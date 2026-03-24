@@ -1,12 +1,20 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "statusLine": {
+    "type": "command",
+    "command": "bash .claude/statusline.sh 2>/dev/null || echo '🎰 Gambling Studio'"
+  },
   "permissions": {
     "allow": [
       "Bash(git status*)",
       "Bash(git diff*)",
       "Bash(git log*)",
       "Bash(git branch*)",
+      "Bash(git rev-parse*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
       "Bash(ls *)",
+      "Bash(cat *)",
       "Bash(flutter create*)",
       "Bash(flutter pub get*)",
       "Bash(flutter pub add*)",
@@ -18,22 +26,117 @@
       "Bash(dart analyze*)",
       "Bash(dart format*)",
       "Bash(dart run*)",
+      "Bash(dart pub*)",
       "Bash(dart --version*)",
       "Bash(mkdir -p assets/*)",
       "Bash(mkdir -p lib/*)",
       "Bash(mkdir -p design/*)",
       "Bash(mkdir -p production/*)",
+      "Bash(mkdir -p prototypes/*)",
+      "Bash(mkdir -p docs/*)",
       "Bash(touch *)",
-      "Bash(python3 *simulate_rtp*)"
+      "Bash(python3 *simulate_rtp*)",
+      "Bash(python3 *tools/*)",
+      "Bash(grep *)",
+      "Bash(find * -name *)",
+      "Bash(wc -l *)",
+      "Bash(date*)",
+      "Bash(echo *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
       "Bash(git push --force*)",
+      "Bash(git push -f *)",
       "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
       "Bash(sudo *)",
       "Bash(chmod 777*)",
       "Bash(*>.env*)",
-      "Read(**/.env*)"
+      "Bash(cat *.env*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-start.sh 2>/dev/null || true",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/detect-gaps.sh 2>/dev/null || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/validate-commit.sh 2>/dev/null || true",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/validate-push.sh 2>/dev/null || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/validate-assets.sh 2>/dev/null || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-compact.sh 2>/dev/null || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-stop.sh 2>/dev/null || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/log-agent.sh 2>/dev/null || true",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }
