@@ -153,6 +153,9 @@ duration = 0.4     // секунд
 - Использовать Near Miss для изменения реального результата
 - Аллоциовать объекты внутри `update()` или `render()`
 
+### Строгие технические ограничения
+- **Централизованные анимации**: ИСПОЛЬЗУЙТЕ константы из `lib/theme/animations.dart` (например, `AnimationConfig.spinDuration` и `AnimationConfig.bounceCurve`) вместо хардкода `Duration(milliseconds: 400)` и базовых `Curves` там, где это возможно.
+
 ### Делегирование
 
 - **Получает спецификации**: `gambling-game-designer`
