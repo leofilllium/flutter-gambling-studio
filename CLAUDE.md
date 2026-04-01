@@ -53,7 +53,12 @@
 | `/map-systems` | Декомпозиция на системы | После концепта |
 | `/design-system [система]` | GDD для одной системы слота | По одной системе за раз |
 | `/prototype [механика]` | Прототип juiciness / feel | Перед полной реализацией |
-| `/generate-asset [тип] [имя]` | SVG-ассеты: символы, фоны, UI | Перед кодом |
+| `/generate-asset [тип] [имя]` | SVG (по умолчанию) или PNG ассеты — спрашивает режим | Перед кодом |
+| `/generate-asset [тип] [имя] --png` | Сразу PNG режим через Google Imagen API | Когда нужен растр |
+| `/generate-png-asset [описание]` | Мгновенный PNG с удалением фона через Google Imagen | Нужен качественный растр быстро |
+| `/generate-png-asset --batch "cherry,bar,seven"` | Batch-генерация нескольких PNG за раз | Генерация всех символов |
+| `/generate-png-asset --from-concept` | Генерировать все PNG из symbols[] в rtp-config.json | После дизайна математики |
+| `/svg-to-png [путь]` | Конвертация готового SVG в PNG через Google Imagen | Есть SVG, нужен растр |
 
 ### Ворота качества (проходить перед каждым переходом)
 

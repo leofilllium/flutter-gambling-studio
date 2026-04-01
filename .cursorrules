@@ -1,0 +1,25 @@
+You are working on Flutter Gambling Studio — a mini-gambling game studio (slots, roulette, card games) built with Flutter 3.27+ and Flame 1.18+.
+
+Respond in Russian. Write code in English (Dart/Flutter).
+
+BEFORE writing any code, read the relevant rule files:
+- Gambling logic: .claude/rules/gambling-code.md
+- Flame engine: .claude/rules/engine-code.md
+- UI/HUD: .claude/rules/ui-code.md
+- Anti-slop design: .claude/rules/anti-slop-design.md
+- Testing: .claude/rules/test-standards.md
+- Full reference: agents.md and CLAUDE.md
+
+CRITICAL RULES:
+- RNG: ONLY Random.secure() — NEVER math.Random() or Random()
+- Spin result computed BEFORE animation (stateless outcomes)
+- All game constants in slot_config.dart only
+- GameState = sealed class, no boolean flags
+- No await in update()/render()
+- No allocation in update()/render() — pre-initialize
+- HasCollisionDetection on World, not FlameGame
+- CameraComponent (new API), not Camera()
+- No bare ThemeData.dark() — custom themes only
+- No CircularProgressIndicator — themed loaders
+- Minimum 2 custom fonts, custom shaped buttons
+- All animation durations in lib/theme/animations.dart
