@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-Compact Hook — Flutter Gambling Studio
+# Pre-Compact Hook — Flutter Game Studio
 # Saves session progress notes before context compaction
 
 STATE_FILE="production/session-state/active.md"

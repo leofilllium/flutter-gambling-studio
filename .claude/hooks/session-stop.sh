@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Session Stop Hook — Flutter Gambling Studio
+# Session Stop Hook — Flutter Game Studio
 # Logs session achievements when Claude stops
 
 LOG_DIR="production/session-logs"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Validate Commit Hook — Flutter Gambling Studio
-# Runs pre-commit checks specific to gambling game integrity
+# Validate Commit Hook — Flutter Game Studio
+# Runs pre-commit checks for game integrity (gambling-specific checks are conditional)
 
 # Only run on git commit commands
 INPUT_JSON="${CLAUDE_TOOL_INPUT:-}"
@@ -13,24 +13,34 @@ fi
 ERRORS=()
 WARNINGS=()
 
-echo "🔍 Проверка gambling-специфичных требований перед коммитом..."
+echo "🔍 Проверка игровых требований перед коммитом..."
 
-# 1. Check for math.Random() — CRITICAL for RNG integrity
-if find lib -name "*.dart" 2>/dev/null | xargs grep -l "math\.Random()" 2>/dev/null | grep -v "_test\.dart" | grep -q .; then
-  ERRORS+=("🚨 math.Random() найден в production коде! Используйте ТОЛЬКО Random.secure()")
-  find lib -name "*.dart" 2>/dev/null | xargs grep -ln "math\.Random()" 2>/dev/null | grep -v "_test\.dart" | while read f; do
-    ERRORS+=("   → $f")
-  done
+# Detect if this is a gambling project
+IS_GAMBLING=false
+if find lib -name "*.dart" 2>/dev/null | xargs grep -l "WeightedRng\|PaylineEvaluator\|reelWeights" 2>/dev/null | grep -q .; then
+  IS_GAMBLING=true
 fi
 
-# 2. Check for hardcoded win probabilities
-if find lib -name "*.dart" 2>/dev/null | xargs grep -lnE "if.*random\(\).*<.*[0-9]\.[0-9]|Random\.secure\(\)\.nextDouble\(\)\s*<\s*[0-9]" 2>/dev/null | grep -v "_test\.dart" | grep -q .; then
-  ERRORS+=("🚨 Захардкоженные вероятности выигрыша! Все шансы должны идти через SlotConfig/WeightedRNG")
+# 1. Check for math.Random() — CRITICAL for gambling RNG integrity
+if [ "$IS_GAMBLING" = true ]; then
+  if find lib -name "*.dart" 2>/dev/null | xargs grep -l "math\.Random()" 2>/dev/null | grep -v "_test\.dart" | grep -q .; then
+    ERRORS+=("🚨 math.Random() найден в gambling коде! Используйте ТОЛЬКО Random.secure()")
+    find lib -name "*.dart" 2>/dev/null | xargs grep -ln "math\.Random()" 2>/dev/null | grep -v "_test\.dart" | while read f; do
+      ERRORS+=("   → $f")
+    done
+  fi
 fi
 
-# 3. Check for hardcoded RTP values (magic numbers in context of win/bet)
-if find lib -name "*.dart" 2>/dev/null | xargs grep -lnE "(rtpTarget|targetRtp|rtp)\s*=\s*0\.[0-9]" 2>/dev/null | grep -v "slot_config\.dart\|rtp_config\|_test\.dart" | grep -q .; then
-  WARNINGS+=("⚠️  RTP значения вне slot_config.dart — проверьте, что это не захардкожено")
+# 2. Check for hardcoded win probabilities (gambling only)
+if [ "$IS_GAMBLING" = true ]; then
+  if find lib -name "*.dart" 2>/dev/null | xargs grep -lnE "if.*random\(\).*<.*[0-9]\.[0-9]|Random\.secure\(\)\.nextDouble\(\)\s*<\s*[0-9]" 2>/dev/null | grep -v "_test\.dart" | grep -q .; then
+    ERRORS+=("🚨 Захардкоженные вероятности выигрыша! Все шансы должны идти через GameConfig/WeightedRNG")
+  fi
+fi
+
+# 3. Check for hardcoded game config values (all genres)
+if find lib -name "*.dart" 2>/dev/null | xargs grep -lnE "(rtpTarget|targetRtp|rtp)\s*=\s*0\.[0-9]" 2>/dev/null | grep -v "game_config\.dart\|slot_config\.dart\|rtp_config\|_test\.dart" | grep -q .; then
+  WARNINGS+=("⚠️  RTP значения вне game_config.dart — проверьте, что это не захардкожено")
 fi
 
 # 4. Check for valid JSON configs
@@ -50,12 +60,12 @@ if find lib -name "*.dart" 2>/dev/null | xargs grep -lnE "^\s*print\(" 2>/dev/nu
   done
 fi
 
-# 6. Check that slot_config.dart exists if there are game files
-if [ -f "lib/game/slot_machine_game.dart" ] && [ ! -f "lib/game/slot_config.dart" ]; then
-  WARNINGS+=("⚠️  slot_config.dart отсутствует — все игровые значения должны быть в конфиге")
+# 6. Check that game_config.dart exists if there are game files
+if [ -d "lib/game" ] && [ ! -f "lib/game/game_config.dart" ] && [ ! -f "lib/game/slot_config.dart" ]; then
+  WARNINGS+=("⚠️  game_config.dart отсутствует — все игровые значения должны быть в конфиге")
 fi
 
-# 7. Check that weighted_rng.dart uses Random.secure()
+# 7. Check that weighted_rng.dart uses Random.secure() (gambling only)
 if [ -f "lib/systems/weighted_rng.dart" ]; then
   if ! grep -q "Random\.secure()" lib/systems/weighted_rng.dart 2>/dev/null; then
     ERRORS+=("🚨 weighted_rng.dart не использует Random.secure()!")
@@ -66,7 +76,7 @@ fi
 if [ ${#ERRORS[@]} -gt 0 ]; then
   echo ""
   echo "╔══════════════════════════════════════════╗"
-  echo "║  ❌ КОММИТ ЗАБЛОКИРОВАН — gambling rules  ║"
+  echo "║  ❌ КОММИТ ЗАБЛОКИРОВАН — game rules      ║"
   echo "╚══════════════════════════════════════════╝"
   for err in "${ERRORS[@]}"; do
     echo "  $err"
@@ -86,5 +96,5 @@ if [ ${#WARNINGS[@]} -gt 0 ]; then
 fi
 
 if [ ${#ERRORS[@]} -eq 0 ] && [ ${#WARNINGS[@]} -eq 0 ]; then
-  echo "✅ Gambling правила соблюдены"
+  echo "✅ Игровые правила соблюдены"
 fi

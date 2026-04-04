@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Validate Assets Hook — Flutter Gambling Studio
+# Validate Assets Hook — Flutter Game Studio
 # Validates asset naming conventions after Write/Edit operations
 
 INPUT_JSON="${CLAUDE_TOOL_INPUT:-}"

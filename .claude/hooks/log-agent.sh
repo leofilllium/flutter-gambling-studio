@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Log Agent Hook — Flutter Gambling Studio
+# Log Agent Hook — Flutter Game Studio
 # Maintains an audit trail of all agent invocations
 
 LOG_DIR="production/session-logs"

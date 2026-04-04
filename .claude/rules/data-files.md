@@ -1,13 +1,13 @@
 ---
-description: JSON config validation rules for RTP weights, paytables, and balance configs
-globs: ["design/balance/**/*.json", "assets/data/**/*.json", "lib/game/slot_config.dart"]
+description: JSON config validation rules for balance configs (RTP for gambling, difficulty for other genres)
+globs: ["design/balance/**/*.json", "assets/data/**/*.json", "lib/game/game_config.dart", "lib/game/slot_config.dart"]
 ---
 
-# Data Files Rules — RTP конфиги и игровые данные
+# Data Files Rules — Игровые конфиги и балансировка
 
-## rtp-config.json — Обязательная схема
+## rtp-config.json — Схема для Gambling игр
 
-Каждая игра ОБЯЗАНА иметь `design/balance/rtp-config.json`:
+Gambling игры ОБЯЗАНЫ иметь `design/balance/rtp-config.json`:
 
 ```json
 {
@@ -89,7 +89,7 @@ globs: ["design/balance/**/*.json", "assets/data/**/*.json", "lib/game/slot_conf
 ```dart
 // ✅ ОБЯЗАТЕЛЬНАЯ СТРУКТУРА
 class SlotConfig {
-  // Из rtp-config.json — не менять без rtp-mathematician!
+  // Из rtp-config.json — не менять без game-mathematician!
   static const double targetRtp = 0.96;
   static const List<int> reelWeights = [10, 7, 4, 2, 1];
 
@@ -114,7 +114,7 @@ class SlotConfig {
 ## Запрещено в data файлах
 
 1. Дублирование значений SlotConfig в JSON и коде — один источник правды
-2. `rtp` > 0.98 или < 0.90 — будет отклонено rtp-mathematician
+2. `rtp` > 0.98 или < 0.90 — будет отклонено game-mathematician
 3. Вес символа = 0 — удали символ вместо нуля
 4. Payout без хотя бы одной комбинации из 3 символов
 5. Коммит rtp-config.json без обновления поля `simulation.last_run_date`

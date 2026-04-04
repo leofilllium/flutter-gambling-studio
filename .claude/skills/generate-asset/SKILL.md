@@ -1,6 +1,6 @@
 ---
 name: generate-asset
-description: "Генерация ассетов для гемблинг-игр: SVG (по умолчанию) или PNG через Google Imagen API. Умеет создавать символы (вишня, 7, алмаз), неоновые контуры кнопок и абстрактные бэкграунды."
+description: "Генерация ассетов для мини-игр любого жанра: SVG (по умолчанию) или PNG через Google Imagen API. Умеет создавать символы (вишня, 7, алмаз, тайлы, спрайты), кнопки, фоны и UI-элементы."
 allowed-tools: Write, Read, Bash, AskUserQuestion
 argument-hint: "[тип (symbol/ui/background)] [название] [--png]"
 user-invocable: true

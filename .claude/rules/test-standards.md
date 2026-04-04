@@ -1,5 +1,5 @@
 ---
-description: QA test standards for gambling mechanics — RNG distribution, paylines, edge cases
+description: QA test standards for mini-games — RNG distribution (gambling), game logic, edge cases
 globs: ["test/**/*.dart", "integration_test/**/*.dart"]
 ---
 

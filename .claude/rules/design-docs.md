@@ -1,9 +1,9 @@
 ---
-description: Required sections and structure for gambling game GDD documents
+description: Required sections and structure for mini-game GDD documents (all genres)
 globs: ["design/**/*.md", "docs/**/*.md"]
 ---
 
-# Design Document Standards — Gambling Game GDD
+# Design Document Standards — Mini-Game GDD
 
 ## Обязательные 8 секций для каждого GDD
 
@@ -39,7 +39,7 @@ RTP = Σ(вероятность_комбинации × выплата) / ста
 - `AudioService` — звуковая обратная связь
 
 ### 7. Настроечные параметры (Tuning Knobs)
-Все значения, которые rtp-mathematician может менять:
+Все значения, которые game-mathematician может менять:
 | Параметр | Текущее | Диапазон | Эффект |
 |----------|---------|---------|--------|
 | Вес Wild | 1 | 0–3 | ↑ вес = ↑ RTP |
@@ -63,13 +63,13 @@ Draft → [OPEN вопросы] → Review → Approved (Status: ✅ Approved YY
 
 ```
 design/gdd/
-├── gambling-concept.md        # Концепт всей игры
-├── reel-mechanics.md          # Механика барабанов
-├── payline-system.md          # Линии выплат
-├── wild-scatter.md            # Wild и Scatter символы
-├── free-spins.md              # Бесплатные вращения
+├── game-concept.md            # Концепт всей игры (любой жанр)
+├── reel-mechanics.md          # Механика барабанов (gambling)
+├── payline-system.md          # Линии выплат (gambling)
+├── wild-scatter.md            # Wild и Scatter символы (gambling)
+├── free-spins.md              # Бесплатные вращения (gambling)
 ├── bonus-round.md             # Бонусный раунд
-└── rtp-math-model.md          # Математическая модель
+└── rtp-math-model.md          # Математическая модель (gambling)
 ```
 
 ## Ссылки в коде

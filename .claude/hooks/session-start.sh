@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Session Start Hook — Flutter Gambling Studio
+# Session Start Hook — Flutter Game Studio
 # Loads sprint context and shows project state at the start of every session
 
 STATE_FILE="production/session-state/active.md"
@@ -9,7 +9,7 @@ DATE=$(date '+%Y-%m-%d %H:%M')
 mkdir -p "$LOG_DIR"
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🎰 Flutter Gambling Studio — Сессия начата: $DATE"
+echo "🎮 Flutter Game Studio — Сессия начата: $DATE"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Check for active game project
