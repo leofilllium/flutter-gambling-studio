@@ -176,8 +176,8 @@ fi
 ## Шаг 2: Контекст игры
 
 Прочитать если есть:
-- `design/gdd/gambling-concept.md` → тема, цвета, стиль
-- `design/balance/rtp-config.json` → список символов
+- `design/gdd/game-concept.md` → тема, цвета, стиль
+- `design/balance/rtp-config.json` → список символов (gambling)
 
 ---
 
@@ -359,7 +359,7 @@ fi
 ## --from-concept: из rtp-config.json автоматически
 
 1. Читаем `design/balance/rtp-config.json` → список `symbols[].name`
-2. Читаем `design/gdd/gambling-concept.md` → тема и цвета
+2. Читаем `design/gdd/game-concept.md` → тема и цвета
 3. Строим `ASSETS=()` динамически и запускаем batch-цикл выше
 
 ---

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Statusline for Flutter Gambling Studio
+# Statusline for Flutter Game Studio
 # Shows current game project context
 
 STATE_FILE="production/session-state/active.md"
@@ -16,8 +16,8 @@ if [ -f "$STATE_FILE" ]; then
   elif [ -n "$EPIC" ]; then
     echo "🎰 $EPIC"
   else
-    echo "🎰 Gambling Studio"
+    echo "🎮 Game Studio"
   fi
 else
-  echo "🎰 Gambling Studio"
+  echo "🎮 Game Studio"
 fi

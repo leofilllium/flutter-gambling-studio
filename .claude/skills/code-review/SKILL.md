@@ -4,7 +4,7 @@
 
 ## Цель
 
-Комплексное ревью кода гемблинг игры. Проверяет:
+Комплексное ревью кода мини-игры. Проверяет:
 - Gambling-специфичные критические требования (RNG, State integrity)
 - Архитектуру Flame 1.18.x (правильное использование API)
 - Качество кода (паттерны, читаемость, тесты)
@@ -14,7 +14,7 @@
 ## Агенты
 
 - `lead-programmer` — архитектура, паттерны, Dart качество
-- `slot-programmer` — gambling логика, RNG безопасность, Flame API
+- `mechanics-programmer` — gambling логика, RNG безопасность, Flame API
 - `qa-tester` — покрытие тестами, edge cases
 
 ## Порядок выполнения
@@ -48,9 +48,9 @@
 - [ ] Нет `isPaused = true` — используется `GameState`
 - [ ] Прединициализированные Vector2/Rect/Paint в `update()`
 
-### Шаг 3: slot-programmer — Gambling Integrity
+### Шаг 3: mechanics-programmer — Game Integrity
 
-Агент `slot-programmer` проверяет:
+Агент `mechanics-programmer` проверяет:
 
 **КРИТИЧЕСКИЕ gambling требования:**
 - [ ] `Random.secure()` — единственный источник случайности
@@ -130,7 +130,7 @@ Read, Glob, Grep, Bash(grep*), Bash(dart analyze*)
 ## Пример вывода
 
 ```
-🔍 Начинаю code review гемблинг игры...
+🔍 Начинаю code review мини-игры...
 
 📋 Проверяю RNG безопасность...
    ✅ Random.secure() используется в weighted_rng.dart

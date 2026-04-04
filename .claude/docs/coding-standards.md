@@ -1,6 +1,6 @@
-# Стандарты кода — Flutter Gambling Studio
+# Стандарты кода — Flutter Game Studio
 
-Все производственные стандарты специализированы под гемблинг игры на Flame 1.18.x.
+Все производственные стандарты специализированы под мини-игры на Flame 1.18.x.
 
 ---
 
@@ -117,9 +117,9 @@ void update(double dt) {
 
 ---
 
-## 3. Gambling-Specific Standards
+## 3. Game-Specific Standards
 
-### WeightedRNG — единственный источник случайности
+### WeightedRNG — единственный источник случайности (Gambling)
 
 ```dart
 /// Weighted random number generator using cryptographically secure Random.
@@ -143,7 +143,7 @@ class WeightedRNG {
 }
 ```
 
-### PaylineEvaluator — чистая функция
+### PaylineEvaluator — чистая функция (Gambling)
 
 ```dart
 /// Evaluates winning combinations on a slot result grid.
@@ -319,7 +319,7 @@ SpinOutcome computeOutcome({required int bet, required int balance}) { ... }
 ```dart
 // TODO(agent-name): Описание [ЗАДАЧА-NNN]
 // Пример:
-// TODO(slot-programmer): Add Near Miss detection [SLOT-42]
+// TODO(mechanics-programmer): Add Near Miss detection [SLOT-42]
 ```
 
 ---
@@ -377,7 +377,7 @@ test(payline): add scatter position tests [QA-12]
 - [ ] flutter test — все зелёные
 - [ ] Нет `math.Random()` в production коде
 - [ ] Нет захардкоженных вероятностей
-- [ ] Все игровые константы в SlotConfig
+- [ ] Все игровые константы в GameConfig / SlotConfig
 - [ ] GDD ссылка в doc comment (если новая механика)
 - [ ] Нет аллокаций в update()/render()
 
@@ -386,7 +386,7 @@ test(payline): add scatter position tests [QA-12]
 ## 10. Запрещённые паттерны
 
 1. **`math.Random()` или `Random()`** — только `Random.secure()`
-2. **Захардкоженные вероятности** вне SlotConfig
+2. **Захардкоженные вероятности** вне GameConfig / SlotConfig
 3. **`isPaused = true`** — используй `GameState` + `pauseEngine()`
 4. **`await` в `update()` / `render()`** — должны быть синхронными
 5. **`BuildContext` в Flame компонентах** — используй колбэки
@@ -394,4 +394,4 @@ test(payline): add scatter position tests [QA-12]
 7. **Аллокация в `update()` / `render()`** — прединициализируй
 8. **`dynamic`** вне JSON-границ
 9. **Наследование > 3 уровней** ниже Component
-10. **Изменение RTP весов** вне `rtp-config.json` + подтверждения rtp-mathematician
+10. **Изменение RTP весов** вне `rtp-config.json` + подтверждения game-mathematician

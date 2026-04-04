@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Detect Gaps Hook — Flutter Gambling Studio
-# Warns when critical gambling game files are missing
+# Detect Gaps Hook — Flutter Game Studio
+# Warns when critical game files are missing
 
 GAPS=()
 WARNINGS=()
@@ -16,21 +16,26 @@ if [ -f "pubspec.yaml" ]; then
     GAPS+=("❌ lib/main.dart отсутствует")
   fi
 
-  if [ ! -f "lib/game/slot_machine_game.dart" ] && [ ! -d "lib/game" ]; then
+  if [ ! -d "lib/game" ]; then
     WARNINGS+=("⚠️  lib/game/ не создан — запустите /autocreate или /brainstorm")
   fi
 
-  # Check for RNG safety
+  # Check for RNG safety (only relevant for gambling genre)
   if find lib -name "*.dart" 2>/dev/null | xargs grep -l "math.Random()" 2>/dev/null | grep -v "_test.dart" | grep -q .; then
-    GAPS+=("🚨 КРИТИЧНО: найден math.Random() — используйте Random.secure()!")
-    find lib -name "*.dart" 2>/dev/null | xargs grep -l "math.Random()" 2>/dev/null | grep -v "_test.dart" | while read f; do
-      GAPS+=("   → $f")
-    done
+    # Only warn if this looks like a gambling project
+    if find lib -name "*.dart" 2>/dev/null | xargs grep -l "WeightedRng\|PaylineEvaluator\|reelWeights" 2>/dev/null | grep -q .; then
+      GAPS+=("🚨 КРИТИЧНО: найден math.Random() в gambling коде — используйте Random.secure()!")
+      find lib -name "*.dart" 2>/dev/null | xargs grep -l "math.Random()" 2>/dev/null | grep -v "_test.dart" | while read f; do
+        GAPS+=("   → $f")
+      done
+    fi
   fi
 
-  # Check for hardcoded probabilities
+  # Check for hardcoded probabilities (gambling only)
   if find lib -name "*.dart" 2>/dev/null | xargs grep -lE "(0\.[0-9]+\s*[<>]=?\s*(win|lose|jackpot|bonus))|if.*random.*<.*0\." 2>/dev/null | grep -q .; then
-    GAPS+=("🚨 КРИТИЧНО: возможно захардкоженные вероятности — используйте SlotConfig!")
+    if find lib -name "*.dart" 2>/dev/null | xargs grep -l "WeightedRng\|reelWeights" 2>/dev/null | grep -q .; then
+      GAPS+=("🚨 КРИТИЧНО: возможно захардкоженные вероятности — используйте GameConfig!")
+    fi
   fi
 
   # Check for GDD
@@ -38,14 +43,9 @@ if [ -f "pubspec.yaml" ]; then
     WARNINGS+=("⚠️  GDD документы отсутствуют — запустите /brainstorm или /design-system")
   fi
 
-  # Check for RTP config
-  if [ ! -f "design/balance/rtp-config.json" ]; then
-    WARNINGS+=("⚠️  design/balance/rtp-config.json отсутствует — RTP не зафиксирован")
-  fi
-
-  # Check for RTP simulation tool
-  if [ ! -f "tools/simulate_rtp.py" ]; then
-    WARNINGS+=("⚠️  tools/simulate_rtp.py отсутствует — /balance-check не будет работать")
+  # Check for balance config
+  if [ ! -d "design/balance" ] || [ -z "$(ls design/balance/*.json 2>/dev/null)" ]; then
+    WARNINGS+=("⚠️  design/balance/ пуст — /balance-check не будет работать")
   fi
 fi
 

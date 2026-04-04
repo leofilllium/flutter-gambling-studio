@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Validate Push Hook — Flutter Gambling Studio
+# Validate Push Hook — Flutter Game Studio
 # Warns when pushing to protected branches
 
 INPUT_JSON="${CLAUDE_TOOL_INPUT:-}"

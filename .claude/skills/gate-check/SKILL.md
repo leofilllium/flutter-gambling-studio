@@ -7,7 +7,7 @@
 Проверяет готовность проекта к переходу между этапами разработки.
 Выдаёт вердикт: **PASS / CONCERNS / FAIL** с конкретными блокерами.
 
-## Этапы разработки гемблинг игры
+## Этапы разработки мини-игры
 
 ```
 Concept → Design → Code → QA → Release
@@ -21,14 +21,12 @@ Concept → Design → Code → QA → Release
 Проверяет готовность концепта для перехода к дизайну:
 
 **Обязательные артефакты:**
-- [ ] `design/gdd/gambling-concept.md` существует
+- [ ] `design/gdd/game-concept.md` существует
 - [ ] Elevator pitch (1-2 предложения)
-- [ ] Жанр определён (слот/рулетка/карты/скрэтч)
-- [ ] Целевой RTP указан (95–97%)
-- [ ] Волатильность выбрана (low/medium/high)
+- [ ] Жанр определён (gambling/puzzle/arcade/physics/casual/card)
 - [ ] Уникальная механика ("сочность") описана
-- [ ] Архетип выбран (A–F)
-- [ ] Хотя бы 3 символа описаны
+- [ ] Архетип выбран (A–X)
+- [ ] Для gambling: целевой RTP указан (95–97%), волатильность выбрана, хотя бы 3 символа описаны
 
 **Ворота:**
 - PASS: все пункты выполнены
@@ -46,7 +44,7 @@ Concept → Design → Code → QA → Release
 - [ ] Wild/Scatter поведение задокументировано (если есть)
 - [ ] Free Spins условия описаны (если есть)
 - [ ] GDD статус: `Status: Approved`
-- [ ] `rtp-mathematician` подписал математику
+- [ ] `game-mathematician` подписал математику
 - [ ] `design/balance/rtp-config.json` → `simulation.last_run_rtp` в диапазоне 95–97%
 
 ### gate-check code → qa
@@ -117,7 +115,7 @@ Concept → Design → Code → QA → Release
 Вердикт: FAIL ← NEEDS WORK ← PASS
          ^^^
 Причина: Simulated RTP вне допустимого диапазона.
-Следующий шаг: Вызовите rtp-mathematician для корректировки весов.
+Следующий шаг: Вызовите game-mathematician для корректировки весов.
 ```
 
 ## Аргументы

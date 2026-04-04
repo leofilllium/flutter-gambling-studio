@@ -4,7 +4,7 @@
 
 ## Цель
 
-Экстренное исправление критической проблемы в гемблинг игре. Обходит обычный
+Экстренное исправление критической проблемы в мини-игре. Обходит обычный
 процесс разработки с полным аудит-следом. Используется для:
 - Критических багов RNG (неправильное распределение)
 - RTP вышло за пределы 90–98%
@@ -40,7 +40,7 @@ grep -rn "TODO\|FIXME\|HACK" lib/ --include="*.dart"
 flutter test --name "повреждённая_механика"
 ```
 
-Агент `slot-programmer` анализирует gambling-специфичные файлы:
+Агент `mechanics-programmer` анализирует gambling-специфичные файлы:
 - `lib/systems/weighted_rng.dart` — проверка RNG
 - `lib/systems/payline_evaluator.dart` — проверка логики
 - `lib/game/slot_config.dart` — проверка конфига
@@ -99,7 +99,7 @@ python3 tools/simulate_rtp.py 100000  # 100K спинов для быстрой 
 
 ## Утверждено
 - Технически: [lead-programmer / technical-director]
-- Математически: [rtp-mathematician — если затронут RTP]
+- Математически: [game-mathematician — если затронут RTP]
 ```
 
 ### Шаг 7: Слияние

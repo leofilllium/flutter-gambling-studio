@@ -1,12 +1,12 @@
 ---
 name: autocreate
-description: "Фабрика производства гемблинг-игр Zero-to-Playable. Создает концепт, рисует SVG ассеты, пишет код на Flutter/Flame 1.18.x с полным набором экранов (7+), настраивает pubspec.yaml, проводит UI/UX аудит и исправляет проблемы. Всё автономно."
+description: "Фабрика производства мини-игр Zero-to-Playable (любой жанр). Создает концепт, рисует SVG ассеты, пишет код на Flutter/Flame 1.18.x с полным набором экранов (10+), настраивает pubspec.yaml, проводит UI/UX аудит и исправляет проблемы. Всё автономно."
 argument-hint: "[--from-concept | --idea-only]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
 
-# AutoCreate — Zero-to-Playable Gambling Game Factory
+# AutoCreate — Zero-to-Playable Mini-Game Factory
 
 Выполняет полный цикл разработки мини-игр без участия пользователя.
 **ЗАПРЕЩАЕТСЯ задавать вопросы (кроме критических багов).**
@@ -19,7 +19,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ## Фаза 1 — Идея (Auto-Concept)
 
 Вызов логики `/auto-idea` для генерации концепции (пропустить если `--from-concept`).
-Сохранение в `design/gdd/gambling-concept.md`.
+Сохранение в `design/gdd/game-concept.md`.
 
 **ВАЖНО**: Концепт ОБЯЗАН включать **Screen Map** — список всех экранов MVP с описанием
 и UX-потока между ними (минимум 10 экранов, включая Daily Bonus, Leaderboard, Profile).
@@ -28,7 +28,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 ## Фаза 2 — Flutter Project Bootstrap
 
-`flutter create . --project-name gambling_app --platforms android,ios,web`
+`flutter create . --project-name game_app --platforms android,ios,web`
 
 Обновление `pubspec.yaml`:
 ```yaml
@@ -104,7 +104,7 @@ mkdir -p assets/fonts
 ### PNG Генерация (если выбран режим PNG)
 
 1. Запросить Google AI Studio API ключ у пользователя (не сохранять в файлы)
-2. Прочитать символы из концепта (`design/gdd/gambling-concept.md`)
+2. Прочитать символы из концепта (`design/gdd/game-concept.md`)
 3. Для каждого ассета: вызвать Google Imagen REST API через `curl`
 4. Декодировать base64 → сохранить PNG в `assets/images/pngs/`
 5. Опционально: убрать фон через remove.bg API (спросить пользователя)
@@ -118,7 +118,7 @@ mkdir -p assets/fonts
 
 Запуск ТРЁХ агентов ПАРАЛЛЕЛЬНО:
 
-### Agent A (slot-programmer):
+### Agent A (mechanics-programmer):
 - `lib/game/slot_machine_game.dart` — FlameGame наследник
 - `lib/game/slot_machine_world.dart` — World с HasCollisionDetection
 - `lib/game/slot_config.dart` — ВСЕ игровые константы
