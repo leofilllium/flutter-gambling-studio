@@ -1,3 +1,11 @@
+---
+name: gate-check
+description: "Проверяет готовность проекта к переходу между этапами (concept/design/code/qa/release) и выдает вердикт PASS/CONCERNS/FAIL."
+argument-hint: "[concept|design|code|qa|release]"
+user-invocable: true
+allowed-tools: Read, Glob, Grep, Write, Bash, Agent
+---
+
 # /gate-check [этап]
 
 Запуск: пользователь вызывает `/gate-check [concept|design|code|qa|release]`

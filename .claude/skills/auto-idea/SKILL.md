@@ -133,36 +133,68 @@ allowed-tools: Read, Glob, Grep, Write
 - Прогрессия (что открывается, как долго до следующего этапа)
 - Баланс сессии (средняя длина сессии, пиковый момент)
 
-### Секция 3: Design DNA (Anti-Slop визуальная идентичность)
+### Секция 3: Design DNA (Contextual Visual Identity)
 
-**ОБЯЗАТЕЛЬНО определить уникальный визуальный язык:**
+**Каждое визуальное решение ОБЯЗАНО быть обосновано контекстом ЭТОЙ КОНКРЕТНОЙ игры.**
+Не шаблон. Не "всегда неон + трапеция." Дизайн вытекает из темы, настроения и механики.
+
+Прочитай `.claude/rules/anti-slop-design.md` — там объяснён принцип.
 
 ```markdown
-## Design DNA
+## Design DNA: [Game Name]
 
-### Цветовая палитра (5 цветов)
-- Background: #XXXXXX — [обоснование]
-- Surface: #XXXXXX — [обоснование]
-- Primary accent: #XXXXXX — [обоснование, НЕ фиолетовый]
-- Win/Success color: #XXXXXX — [обоснование]
-- Danger/Fail color: #XXXXXX — [обоснование]
+### Emotional Core
+[1-2 предложения: что игрок ЧУВСТВУЕТ, играя в ЭТУ КОНКРЕТНУЮ игру?]
+[Пример: "Нарастающее напряжение и эйфория при выигрыше" / "Спокойное удовлетворение от решённой головоломки" / "Адреналин от скорости и рефлексов"]
 
-### Стилизация и Спецэффекты
-- Glassmorphism: [где конкретно используется эффект матового стекла с блюром]
-- Particle Systems: [какие частицы летают на фоне или при действиях]
+### Visual World
+[В каком визуальном мире существует эта игра? Это определяет ВСЁ остальное.]
+[Пример: "Подводный мир с мягким свечением медуз" / "Неоновый Токио 2080-х" / "Уютная кофейня с бумажными текстурами"]
 
-### Типографика
-- Display font: [конкретный Google Font] — для чисел и заголовков
-- Body font: [конкретный Google Font] — для описаний
+### Shape Language (вытекает из Visual World)
+- Primary action button: [форма + ПОЧЕМУ для этой игры]
+  [Пример для подводной игры: "плавная капля — органическая форма, как медуза"]
+  [Пример для механической игры: "рифлёный прямоугольник — как промышленный рычаг"]
+  [Пример для уютной игры: "мягкий скруглённый — как подушка"]
+- Info panels: [форма + ПОЧЕМУ]
+- Decorative elements: [форма + ПОЧЕМУ]
 
-### Форм-фактор кнопок
-- [Описание уникальной формы: трапеция / скос / вырез / закруглённый ромб]
+### Color Palette (5 цветов — КАЖДЫЙ обоснован контекстом игры)
+- Background: #XXXXXX — [ПОЧЕМУ именно этот цвет для ЭТОЙ игры]
+- Surface: #XXXXXX — [ПОЧЕМУ]
+- Primary: #XXXXXX — [ПОЧЕМУ — связь с темой/миром игры]
+- Win/Success: #XXXXXX — [ПОЧЕМУ]
+- Danger/Loss: #XXXXXX — [ПОЧЕМУ]
+[Примечание: если игра про лес — зелёная палитра ЛОГИЧНА, а не запрещена.
+Если игра про космос — синий ЛОГИЧЕН. Цвет запрещён только если он СЛУЧАЕН.]
 
-### Переход между экранами
-- [Описание тематического перехода]
+### Typography (вытекает из мира и настроения)
+- Display font: [конкретный Google Font] — [ПОЧЕМУ этот шрифт подходит этой игре]
+  [Пример: "Press Start 2P — ретро-аркадный мир" / "Playfair Display — элегантное казино" / "Nunito — дружелюбная казуальная игра"]
+- Body font: [конкретный Google Font] — [ПОЧЕМУ читаемый и подходит настроению]
 
-### Idle-состояние
-- [Что происходит когда игрок не взаимодействует]
+### Motion Character (вытекает из emotional core)
+- Button feedback: [КАКОЙ и ПОЧЕМУ]
+  [Тяжёлая механическая игра: глубокое нажатие с задержкой]
+  [Лёгкая казуальная: пружинистый отскок]
+  [Элегантная: тонкое свечение]
+- Win celebration: [ЧТО именно и ПОЧЕМУ соответствует уровню выигрыша]
+- Screen transitions: [ЧТО и ПОЧЕМУ — связь с метафорой игры]
+  [Карточная игра: переворот карты. Слот: створки. Пазл: рассыпание кусочков.]
+  [Или: быстрый cut для быстрой игры. Намеренная простота — тоже дизайн-решение.]
+- Idle state: [ЧТО оживляет экран когда игрок не взаимодействует]
+
+### Depth & Effects Strategy
+[НЕ "всегда glassmorphism." А: какой приём создания глубины подходит ЭТОЙ игре?]
+- [Пример: "Бумажные слои с тенями" для настольной игры]
+- [Пример: "Голографические оверлеи" для sci-fi]
+- [Пример: "Никакой глубины — плоский минимализм" для дзен-пазла]
+- [Пример: "Glassmorphism" для футуристической темы]
+- Effects: [какие эффекты используются, зачем, и где НЕ используются]
+
+### What Makes This Design UNIQUE to This Game
+[Если перенести этот UI на другую игру — будет ли он выглядеть неуместно? Если да — дизайн удался.]
+[1-2 предложения: что НЕВОЗМОЖНО было бы перенести на другую игру]
 ```
 
 ### Секция 4: Карта экранов MVP (Screen Map)
@@ -239,31 +271,156 @@ Splash → Menu → Game ←→ Paytable/Rules
           Menu ←→ Player Profile
 ```
 
-### Секция 5: Asset Manifest
-- Список SVG файлов с описанием
-- Аудио файлы с описанием
-
-### Секция 6: Code Architecture
-- Список Dart классов с ответственностью
-- ValueNotifier контракты между Flame и Flutter UI
-
-### Секция 7: Требования к "Сочности" (Juiciness)
-- Анимация основной механики
-- Anticipation / Near Miss эффект (если применимо)
-- Win/Score celebration (по уровням)
-- Idle-анимации
-- Micro-interactions на кнопках
-
-### Секция 8: Anti-Slop Checklist
+### Секция 5: Asset Manifest (ПОЛНЫЙ)
 ```markdown
+## SVG Assets
+
+### Спрайты (assets/images/sprites/)
+- sprite_[name].svg — [описание, размер 96x96, стиль]
+- ... (минимум 5-8 элементов)
+
+### UI Elements (assets/images/ui/)
+- ui_action_button.svg — кнопка действия (кастомная форма)
+- ui_frame.svg — рамка игрового поля
+- ui_bet_panel.svg — панель управления
+- ui_separator.svg — декоративный разделитель
+- ui_icon_sound.svg — иконка звука
+- ui_icon_settings.svg — иконка настроек
+- ui_icon_info.svg — иконка помощи
+
+### Фоны (assets/images/backgrounds/)
+- background_menu.svg — фон главного меню
+- background_game.svg — фон игрового экрана
+
+### Аудио (assets/audio/sfx/)
+- bgm_main.ogg — фоновая музыка
+- sfx_action.ogg — основное действие (spin/tap/move)
+- sfx_win_small.ogg — малый выигрыш
+- sfx_win_big.ogg — большой выигрыш
+- sfx_win_mega.ogg — мега выигрыш
+- sfx_button.ogg — нажатие кнопки UI
+- sfx_navigate.ogg — переход между экранами
+```
+
+### Секция 6: Code Architecture (ПОЛНАЯ с Data Flow)
+```markdown
+## Dart Classes
+
+### Game Core
+- [GameName]Game extends FlameGame — точка входа, управляет ValueNotifiers
+- [GameName]World extends World with HasCollisionDetection — игровой мир
+- GameConfig — ВСЕ числовые константы (ставки, скорости, множители, тайминги)
+- GameState (sealed) — Idle, Playing, Animating, Win, GameOver, Paused
+
+### Systems
+- [GameLogic] — основная механика (WeightedRNG/MatchDetector/SpawnManager)
+- [Evaluator] — чистая функция подсчёта результата
+
+### Components
+- [MainComponent] — основной игровой объект
+- [ElementComponent] — игровые элементы
+- WinAnimationComponent — VFX выигрышей
+- AmbientParticles — фоновые частицы
+
+### UI
+- GameApp (MaterialApp) → named routes
+- SplashScreen → MainMenu → GameScreen (GameWidget + HUD overlay)
+- HudWidget — ValueListenableBuilder для баланса/счёта/состояния
+- WinOverlay — 3 уровня
+- All other screens (12+)
+
+## ValueNotifier Contracts (между Flame Game и Flutter UI)
+| Notifier | Type | Writes | Reads |
+|----------|------|--------|-------|
+| balance | ValueNotifier<int> | Game | HUD, Bet selector, InsufficientFunds |
+| bet | ValueNotifier<int> | HUD (Bet+/-) | Game (при действии) |
+| isPlaying | ValueNotifier<bool> | Game | HUD (блокировка кнопок) |
+| currentState | ValueNotifier<GameState> | Game | HUD, Overlays |
+| score | ValueNotifier<int> | Game | HUD, Leaderboard |
+| lastWin | ValueNotifier<int> | Game | WinOverlay |
+
+## Complete Game Loop
+1. User taps Action button → check isPlaying (false) + check balance >= bet
+2. Set isPlaying = true, deduct bet from balance
+3. Compute outcome (BEFORE animation)
+4. Play action animation (reels spin / tiles move / etc.)
+5. Animation complete → evaluate result
+6. If win: update balance, show WinOverlay (level based on multiplier), play sound
+7. If loss: brief feedback
+8. Set isPlaying = false → return to Idle state
+9. Update leaderboard if score > highScore
+
+## Edge Cases (ПОЛНЫЙ список)
+- Balance = 0 → show InsufficientFunds dialog
+- Balance < minBet → show InsufficientFunds
+- Double-click Action → second click ignored (isPlaying check)
+- App pause during animation → complete animation, return to Idle
+- Back button on GameScreen → confirm exit dialog
+- Settings changed mid-game → apply immediately (audio volume)
+- Daily Bonus already claimed today → show "come back tomorrow"
+- First launch → show tutorial/help overlay
+```
+
+### Секция 7: Требования к "Сочности" (Juiciness) — ПОЛНЫЕ
+
+```markdown
+## Anticipation
+- [Описание эффекта ожидания перед результатом]
+- [Замедление / задержка / звуковое нарастание]
+
+## Near Miss / Almost Win (если применимо)
+- [Описание визуального эффекта при почти-выигрыше]
+
+## Win Celebration (3 уровня)
+- Small (1-5x): [описание — toast + confetti + ding]
+- Big (5-20x): [описание — полуэкранный + burst particles + fanfare]
+- Mega (20x+): [описание — fullscreen + explosion + camera shake + epic music]
+
+## Idle Animations (когда игрок не взаимодействует)
+- Основной элемент: [покачивание / блик / пульсация]
+- Фон: [движущиеся частицы / ambient glow]
+- Кнопка действия: [пульсирующий glow]
+
+## Micro-Interactions
+- Каждая кнопка: scale 0.95 при нажатии → 1.0 при отпускании + shadow change
+- Числа: AnimatedCounter при изменении (easeOutCubic)
+- Навигация: тематический переход (не fade/slide)
+- Переключатели: custom toggle с анимацией
+
+## Sound Design Map
+| Событие | Звук | Характер |
+|---------|------|----------|
+| Action start | sfx_action.ogg | Нарастающий |
+| Action complete | (тишина 200ms) | Пауза для anticipation |
+| Small win | sfx_win_small.ogg | Мелодичный ding |
+| Big win | sfx_win_big.ogg | Фанфары |
+| Mega win | sfx_win_mega.ogg | Epic orchestra |
+| Button tap | sfx_button.ogg | Короткий click |
+| Navigation | sfx_navigate.ogg | Swoosh |
+| Error/Fail | sfx_error.ogg | Мягкий buzz |
+```
+
+### Секция 8: Anti-Slop Checklist + Production Readiness
+```markdown
+## Anti-Slop
 - [ ] Уникальная цветовая палитра (не фиолетово-синий AI default)
 - [ ] 2 кастомных шрифта определены
 - [ ] Форма кнопок — не стандартный прямоугольник
 - [ ] Переходы между экранами тематические
-- [ ] Все 10+ экранов описаны
+- [ ] Все 12+ экранов описаны с полным содержанием
 - [ ] Micro-interactions на каждом интерактивном элементе
 - [ ] Idle-анимации определены
-- [ ] Загрузка — тематический виджет
+- [ ] Загрузка — тематический виджет (не CircularProgressIndicator)
+- [ ] Glassmorphism/BackdropFilter для модальных окон
+- [ ] Centralized animation timings (animations.dart)
+
+## Production Readiness
+- [ ] Complete Game Loop описан (шаг за шагом)
+- [ ] ВСЕ edge cases перечислены с решениями
+- [ ] Data Flow определён (ValueNotifier контракты)
+- [ ] Asset Manifest полный (SVG + Audio)
+- [ ] Sound Design Map определён
+- [ ] SharedPreferences для: Settings, Profile, Leaderboard, Daily Bonus
 ```
 
 ## Вывод

@@ -1,3 +1,11 @@
+---
+name: design-review
+description: "Проверяет GDD на полноту, качество и математическую корректность по стандартам студии."
+argument-hint: "[файл или система]"
+user-invocable: true
+allowed-tools: Read, Glob, Grep, Write, Agent
+---
+
 # /design-review [файл или система]
 
 Запуск: пользователь вызывает `/design-review [путь к GDD или название системы]`

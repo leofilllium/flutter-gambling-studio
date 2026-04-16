@@ -1,3 +1,11 @@
+---
+name: architecture-decision
+description: "Создает ADR для ключевых технических решений с анализом альтернатив и последствий."
+argument-hint: "[краткое описание решения]"
+user-invocable: true
+allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
+---
+
 # /architecture-decision [решение]
 
 Запуск: пользователь вызывает `/architecture-decision [краткое описание решения]`

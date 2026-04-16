@@ -1,97 +1,46 @@
-# Flutter Game Studio — Instructions for AI Assistants
+# Repository Guidelines
 
-> This file provides instructions for OpenAI Codex and other GPT-based agents.
-> The canonical source of truth is `CLAUDE.md` and files in `.claude/`.
+## Codex CLI Instructions
 
-## Language
+All agent responses must be in Russian. Keep Dart/Flutter code, file paths, class names, and CLI commands in English. Before writing code, read `CLAUDE.md`, `.claude/rules/game-code.md`, `.claude/rules/engine-code.md`, `.claude/rules/ui-code.md`, `.claude/rules/anti-slop-design.md`, `.claude/rules/test-standards.md`, `.claude/rules/data-files.md`, `.claude/rules/design-docs.md`, `.claude/docs/technical-preferences.md`, `.claude/docs/coding-standards.md`, `.claude/docs/directory-structure.md`, and `.claude/docs/coordination-rules.md`.
 
-ALL interactions MUST be in Russian. Exceptions: Dart/Flutter code, file paths, class names, CLI commands.
+Treat slash commands as manual runbooks. When a user types `/brainstorm`, `/autocreate`, `/team-dev`, `/code-review`, `/ui-audit`, `/emulator-test`, `/balance-check`, or another studio command, open the matching file in `.claude/skills/*/SKILL.md` and follow it. For specialized roles, use the persona briefs in `.claude/agents/*.md`. If needed, run helper checks with `bash tools/codex-hooks.sh <hook-name>`.
 
-## Tech Stack
+If Codex CLI does not detect this project or local skills, run:
 
-- Flutter 3.27+ / Flame 1.18+
-- Dart 3.6+ (null-safe, sealed classes, pattern matching)
-- Supported genres: Gambling (slots, roulette, crash, dice), Puzzle (match-3, tetris, sokoban),
-  Action/Arcade (runner, shooter, breakout), Physics (pinball, plinko), Casual (clicker, idle), Card/Board
+- `bash tools/setup-codex-cli.sh link`
+- `bash tools/codex-doctor.sh`
 
-## Critical Rules (All Genres)
+Then restart Codex CLI.
 
-1. **GameState**: sealed class — no boolean flags
-2. **GameConfig**: all game constants in `game_config.dart` — no magic numbers in logic
-3. **Double-click protection**: main action button locked during animation (300ms debounce)
-4. **Stateless Outcomes**: result is computed BEFORE animation starts
-5. **No `await` in `update()` / `render()`**: synchronous only
-6. **No allocation in hot path**: pre-initialize Vector2, Paint, Rect
+## Project Structure & Module Organization
 
-## Critical Rules (Gambling Genre Only)
+This repository is a Flutter + Flame game studio template. Core guidance lives in [`CLAUDE.md`](/Users/leofillium/codex-game/CLAUDE.md), with canonical rules in [`.claude/rules/`](/Users/leofillium/codex-game/.claude/rules), role briefs in [`.claude/agents/`](/Users/leofillium/codex-game/.claude/agents), reusable runbooks in [`.claude/skills/`](/Users/leofillium/codex-game/.claude/skills), and helper scripts in [`.claude/hooks/`](/Users/leofillium/codex-game/.claude/hooks). Codex compatibility docs live in [`.codex/`](/Users/leofillium/codex-game/.codex). Store design docs in [`design/`](/Users/leofillium/codex-game/design), process notes in [`docs/`](/Users/leofillium/codex-game/docs), and session artifacts in [`production/`](/Users/leofillium/codex-game/production). Generated game apps should use `lib/game/`, `lib/components/`, `lib/systems/`, `lib/models/`, `lib/screens/`, `assets/`, and `test/`.
 
-1. **RNG**: ONLY `Random.secure()` — never `math.Random()` or `Random()`
-2. **RTP range**: 95–97% validated via 1M spin simulation
-3. **No hardcoded probability**: no `if (rng < 0.1) win!`
-4. **Weights from config**: always read from `game_config.dart` or `rtp-config.json`
+## Build, Test, and Development Commands
 
-## Required Reading
+Use these commands after initializing or opening a Flutter app in this repo:
 
-Before writing any code, read the following files:
+- `flutter create . --project-name game_app`: scaffold the Flutter project.
+- `flutter pub get`: install dependencies.
+- `dart format .`: format Dart files.
+- `dart analyze` or `flutter analyze`: run static analysis.
+- `flutter test`: run unit and widget tests.
+- `flutter run`: launch the game locally.
+- `bash tools/codex-hooks.sh detect-gaps`: check for missing required files.
 
-| File | Purpose |
-|------|---------|
-| `CLAUDE.md` | Full project instructions, agent roles, command reference |
-| `.claude/rules/game-code.md` | Game logic rules (all genres + gambling-conditional) |
-| `.claude/rules/engine-code.md` | Flame 1.18.x API rules and required patterns |
-| `.claude/rules/ui-code.md` | Flutter UI/HUD rules, state separation |
-| `.claude/rules/anti-slop-design.md` | Anti-AI-slop UI/UX design rules |
-| `.claude/rules/test-standards.md` | Testing requirements |
-| `.claude/rules/data-files.md` | rtp-config.json schema, GameConfig rules |
-| `.claude/rules/design-docs.md` | GDD document standards (8 mandatory sections) |
-| `.claude/docs/technical-preferences.md` | Flame API, audio, SVG asset standards |
-| `.claude/docs/coding-standards.md` | Dart style, component limits, error handling |
-| `.claude/docs/directory-structure.md` | Project directory layout |
-| `.claude/docs/coordination-rules.md` | Agent collaboration and conflict resolution |
+## Coding Style & Naming Conventions
 
-## Slash Commands (manual execution)
+Use Dart 3.6+ with null safety, sealed classes, and pattern matching. Indent with 2 spaces. Prefer `const` and `final`; use `var` only when reassignment is required. Name files in `snake_case.dart`, classes in `PascalCase`, and fields or methods in `camelCase`. Keep gameplay constants in `lib/game/game_config.dart` or a genre-specific config file. Use a logger instead of `print()`.
 
-GPT Codex does not natively support Claude Code skills. To replicate them, read the corresponding skill file and follow its instructions:
+## Testing Guidelines
 
-| Command | Skill file |
-|---------|-----------|
-| `/brainstorm` | `.claude/skills/brainstorm/SKILL.md` |
-| `/auto-idea` | `.claude/skills/auto-idea/SKILL.md` |
-| `/autocreate` | `.claude/skills/autocreate/SKILL.md` |
-| `/team-dev` | `.claude/skills/team-dev/SKILL.md` |
-| `/generate-asset` | `.claude/skills/generate-asset/SKILL.md` |
-| `/code-review` | `.claude/skills/code-review/SKILL.md` |
-| `/ui-audit` | `.claude/skills/ui-audit/SKILL.md` |
-| `/balance-check` | `.claude/skills/balance-check/SKILL.md` |
+Place tests under `test/` and name them `*_test.dart`, for example `test/systems/weighted_rng_test.dart`. Cover pure game logic, state transitions, and edge cases. Gambling games must verify `Random.secure()`, stateless outcomes, and RTP assumptions. Run `flutter test` before opening a pull request.
 
-When a user types a slash command, read the corresponding SKILL.md and execute the instructions within it.
+## Commit & Pull Request Guidelines
 
-## Agent Roles
+The repository does not yet have commit history, so follow the documented convention: use focused conventional commits such as `feat: add free spins overlay` or `fix: move reel speed constants into game config`. Pull requests should state the purpose, affected areas, test status, linked issues, and include screenshots or recordings for UI changes.
 
-The project uses specialized agent roles. When working as a GPT agent, adopt the appropriate role based on the task:
+## Architecture & Safety Notes
 
-- **game-mathematician**: RTP calculations (gambling), difficulty curves (puzzle), scoring (arcade)
-- **game-designer**: GDD for any genre — reels, paylines, levels, bonuses, progression
-- **mechanics-programmer**: Core game logic — RNG, match detection, spawning, physics (Flame 1.18.x)
-- **juice-artist**: VFX, particles, animations — making the game feel "juicy"
-- **lead-programmer**: Architecture, code review
-- **ui-programmer**: Flutter screens, HUD, control panels
-- **sound-designer**: Audio effects, BGM, flame_audio integration
-- **qa-tester**: Test cases, edge cases, RNG verification
-
-## Forbidden Patterns (All Genres)
-
-1. `isPaused = true` — use `GameState` sealed class
-2. `await` in `update()` / `render()` — must be synchronous
-3. `BuildContext` in Flame components — use callbacks
-4. `print()` — use `Logger`
-5. Object allocation in `update()` / `render()` — pre-initialize
-6. `dynamic` outside JSON boundaries
-7. Inheritance > 3 levels below Component
-8. Hardcoded game parameters outside GameConfig
-
-## Forbidden Patterns (Gambling Only)
-
-1. `math.Random()` or `Random()` — only `Random.secure()`
-2. Hardcoded probabilities outside GameConfig / rtp-config.json
-3. Modifying RTP weights outside `rtp-config.json` + game-mathematician approval
+Follow [`.claude/rules/game-code.md`](/Users/leofillium/codex-game/.claude/rules/game-code.md), [`.claude/rules/engine-code.md`](/Users/leofillium/codex-game/.claude/rules/engine-code.md), and [`.claude/rules/ui-code.md`](/Users/leofillium/codex-game/.claude/rules/ui-code.md). Do not `await` inside `update()` or `render()`, avoid allocations in hot paths, never use `Random()` in gambling logic, and keep gameplay values out of inline magic numbers.

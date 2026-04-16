@@ -1,3 +1,11 @@
+---
+name: tech-debt
+description: "Сканирует и ведет реестр технического долга, формирует план его погашения."
+argument-hint: "[сканировать|добавить|показать|план]"
+user-invocable: true
+allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
+---
+
 # /tech-debt [область]
 
 Запуск: пользователь вызывает `/tech-debt [сканировать|добавить|показать|план]`
