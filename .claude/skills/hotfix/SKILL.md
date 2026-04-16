@@ -1,3 +1,11 @@
+---
+name: hotfix
+description: "Экстренное исправление критической проблемы с минимальным diff и обязательной верификацией."
+argument-hint: "[краткое описание критической проблемы]"
+user-invocable: true
+allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
+---
+
 # /hotfix [описание проблемы]
 
 Запуск: пользователь вызывает `/hotfix [краткое описание критической проблемы]`

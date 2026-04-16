@@ -1,3 +1,11 @@
+---
+name: perf-profile
+description: "Профилирует производительность мини-игры и выдает приоритизированные рекомендации по оптимизации."
+argument-hint: "[reels|particles|audio|memory|full]"
+user-invocable: true
+allowed-tools: Read, Glob, Grep, Write, Bash, Agent
+---
+
 # /perf-profile [область]
 
 Запуск: пользователь вызывает `/perf-profile [reels|particles|audio|memory|full]`

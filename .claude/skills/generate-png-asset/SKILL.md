@@ -1,60 +1,71 @@
 ---
 name: generate-png-asset
-description: "Генерация PNG-ассетов через Google AI Studio API (требует биллинг) или альтернативы: Stability AI, Pollinations.ai (бесплатно без ключа). SVG через generate-asset всегда бесплатно."
+description: "Генерация PNG-ассетов через Pollinations.ai (дёшево с ключом / бесплатные модели) или Google Gemini. Удаление фона через remove.bg. Флаги: --cheap POLL_KEY --free REMBG_KEY."
 allowed-tools: Write, Read, Bash, AskUserQuestion, Glob
-argument-hint: "[описание ассета] | [--batch список_через_запятую] | [--from-concept] | [--free]"
+argument-hint: "[описание] | [--batch список] | [--from-concept] | [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
 user-invocable: true
 ---
 
-# `generate-png-asset` — PNG ассеты для гемблинг-игры
+# `generate-png-asset` — PNG ассеты для мини-игр
 
-## ВАЖНО: Статус бесплатного доступа (актуально)
+## Сервисы генерации
 
-| Сервис | Бесплатно? | Требования | Качество |
-|--------|-----------|------------|---------|
-| **Google Gemini 2.5 Flash Image** | ❌ НЕТ — `limit: 0` на free tier | Google Cloud Billing включён | Высокое |
-| **Google Gemini 2.0 Flash Exp** | ⚠️ Экспериментально, может не работать | AI Studio ключ | Среднее |
-| **Pollinations.ai** | ✅ ДА — полностью бесплатно, без ключа | Ничего | Среднее |
-| **Stability AI** | ⚠️ Ограниченный free tier | API ключ с stability.ai | Высокое |
-| **SVG через generate-asset** | ✅ ДА — всегда бесплатно | Ничего | Векторное |
+| Сервис | Стоимость | Требования | Качество | Флаг |
+|--------|-----------|------------|----------|------|
+| **Pollinations.ai** (flux, zimage) | Дёшево с API ключом / бесплатные модели | API ключ (`pk_` или `sk_`) | Среднее-Высокое | `--cheap POLL_API_TOKEN` |
+| **Pollinations.ai** (gptimage) | Платно (pollen баланс) | API ключ | Высокое | `--cheap POLL_API_TOKEN` |
+| **Google Gemini** | ~$0.003/изображение | Google Cloud Billing | Высокое | (без флага) |
+| **SVG** | Бесплатно | Ничего | Векторное | → `/generate-asset` |
 
-**Рекомендация для прототипов:** Pollinations.ai (бесплатно, без регистрации)
-**Рекомендация для продакшна:** Google Gemini с включённым биллингом (~$0.003/изображение)
+**Удаление фона:** remove.bg (50 бесплатных/мес) → флаг `--free REMOVE_BG_TOKEN`
 
 ---
 
-## Шаг 0: Выбор режима генерации
+## Шаг 0: Определение режима
 
-Спроси пользователя:
+### Если переданы флаги:
+- `--cheap POLL_API_TOKEN` → Pollinations.ai с ключом (Режим 1)
+- `--cheap POLL_API_TOKEN --free REMOVE_BG_TOKEN` → Pollinations + auto remove.bg
+- Без флагов → спросить пользователя
+
+### Если флагов нет — спросить:
 
 > "Как генерировать PNG ассеты?
 >
-> **1. Pollinations.ai** — БЕСПЛАТНО, без ключа, без регистрации (рекомендую для старта)
-> **2. Google Gemini** — требует Google Cloud Billing (~$0.003/изображение), высокое качество
-> **3. SVG** — полностью бесплатно, через /generate-asset (векторные, встраиваются в Flame)
+> **1. Pollinations.ai** — дёшево, быстро, модели flux/zimage/gptimage (нужен API ключ → https://enter.pollinations.ai)
+> **2. Google Gemini** — требует Google Cloud Billing (~$0.003/изображение)
+> **3. SVG** — бесплатно, через /generate-asset
 >
 > Введите 1, 2 или 3:"
 
-- Выбор 1 → раздел «Pollinations.ai (бесплатно)»
-- Выбор 2 → раздел «Google Gemini API»
-- Выбор 3 → вызвать логику `/generate-asset` (SVG режим)
-
 ---
 
----
+## Режим 1: Pollinations.ai (рекомендуемый)
 
-## Режим 1: Pollinations.ai — БЕСПЛАТНО, без ключа
+**API Base:** `https://gen.pollinations.ai`
+**Ключи:** `https://enter.pollinations.ai`
+**Авторизация:** Header `Authorization: Bearer API_KEY` или query `?key=API_KEY`
 
-Простой GET-запрос с промптом в URL. Никакой авторизации.
-После генерации символа/иконки — **автоматическое удаление фона**.
+### Модели изображений (Pollinations)
 
-### Удаление фона: спросить один раз в начале
+| Модель | Качество | Цена | Особенности |
+|--------|---------|------|-------------|
+| `flux` | Хорошее | Дёшево | Быстрая, по умолчанию |
+| `zimage` | Хорошее + 2x upscale | Дёшево | Fast 6B Flux с апскейлом |
+| `gptimage` | Высокое | Платно (pollen) | OpenAI image gen, поддержка прозрачности |
+| `gptimage-large` | Очень высокое | Платно | HD, прозрачность |
+| `klein` | Среднее | Дёшево | FLUX.2 Klein 4B, быстрая |
 
-> "Есть ключ remove.bg для автоудаления фона?
+### Удаление фона: определить в начале
+
+Если передан `--free REMOVE_BG_TOKEN` → использовать remove.bg автоматически.
+Иначе спросить:
+
+> "Есть ключ remove.bg для автоудаления фона? (`--free КЛЮЧ`)
 > (50 бесплатных/мес → remove.bg/dashboard)
-> Если нет — используем ImageMagick (хуже качество, но бесплатно и без ключа)"
+> Если нет — используем ImageMagick (хуже качество, но бесплатно)"
 
-Сохрани выбор: `REMBG_KEY="ключ"` или `REMBG_KEY=""` (пустой = ImageMagick fallback).
+Сохрани: `REMBG_KEY="ключ"` или `REMBG_KEY=""` (пустой = ImageMagick fallback).
 
 ---
 
@@ -64,18 +75,22 @@ user-invocable: true
 Ассеты типа `background`, `ui_panel` → фон НЕ удаляется.
 
 ```bash
+POLL_API_KEY="[ключ от --cheap или от пользователя]"
 ASSET_NAME="cherry"
 ASSET_TYPE="symbol"   # symbol | icon | wild | scatter | background | ui_panel
 PROMPT="red glossy cherries fruit, game sprite icon, pure white background, vibrant colors, cartoon style, isolated object"
 OUTPUT_DIR="assets/images/pngs"
-REMBG_KEY=""          # вставить ключ remove.bg или оставить пустым
+MODEL="flux"          # flux | zimage | gptimage | klein
+REMBG_KEY=""          # вставить ключ remove.bg (--free) или оставить пустым
 mkdir -p "${OUTPUT_DIR}"
 
-echo "━━━ [symbol] Генерирую: ${ASSET_NAME} ━━━"
+echo "━━━ [${ASSET_TYPE}] Генерирую: ${ASSET_NAME} (модель: ${MODEL}) ━━━"
 
-# 1. Генерация через Pollinations.ai
-ENCODED=$(echo "${PROMPT}" | sed 's/ /+/g; s/,/%2C/g')
-curl -s -L "https://image.pollinations.ai/prompt/${ENCODED}?width=1024&height=1024&nologo=true&model=flux" -o "${OUTPUT_DIR}/${ASSET_NAME}.png"
+# 1. Генерация через Pollinations.ai (новый API)
+ENCODED=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${PROMPT}'))")
+curl -s -L "https://gen.pollinations.ai/image/${ENCODED}?width=1024&height=1024&nologo=true&model=${MODEL}&seed=-1" \
+  -H "Authorization: Bearer ${POLL_API_KEY}" \
+  -o "${OUTPUT_DIR}/${ASSET_NAME}.png"
 
 if [ ! -s "${OUTPUT_DIR}/${ASSET_NAME}.png" ]; then
   echo "✗ Pollinations не вернул изображение"
@@ -87,10 +102,10 @@ echo "✓ Сгенерирован: ${SIZE}"
 
 # 2. Удаление фона (только для symbol/icon/wild/scatter)
 if [[ "${ASSET_TYPE}" == "symbol" || "${ASSET_TYPE}" == "icon" || "${ASSET_TYPE}" == "wild" || "${ASSET_TYPE}" == "scatter" ]]; then
-  echo "🔲 Удаляю фон..."
+  echo "Удаляю фон..."
 
   if [ -n "${REMBG_KEY}" ]; then
-    # Вариант А: remove.bg (лучшее качество)
+    # remove.bg (лучшее качество)
     curl -s -X POST "https://api.remove.bg/v1.0/removebg" \
       -H "X-Api-Key: ${REMBG_KEY}" \
       -F "image_file=@${OUTPUT_DIR}/${ASSET_NAME}.png" \
@@ -104,7 +119,7 @@ if [[ "${ASSET_TYPE}" == "symbol" || "${ASSET_TYPE}" == "icon" || "${ASSET_TYPE}
       echo "⚠ remove.bg не сработал — оставляю оригинал"
     fi
   else
-    # Вариант Б: ImageMagick (базовое качество, бесплатно)
+    # ImageMagick fallback (бесплатно)
     if command -v convert &>/dev/null; then
       convert "${OUTPUT_DIR}/${ASSET_NAME}.png" \
         -fuzz 15% -transparent white \
@@ -122,8 +137,29 @@ fi
 
 FINAL_SIZE=$(ls -lh "${OUTPUT_DIR}/${ASSET_NAME}.png" | awk '{print $5}')
 echo "✓ Готово: ${OUTPUT_DIR}/${ASSET_NAME}.png (${FINAL_SIZE})"
-echo "⏳ Пауза 10 сек..."
-sleep 10
+```
+
+### Альтернатива: OpenAI-совместимый endpoint (POST)
+
+Для более сложных сценариев (прозрачность, editing):
+
+```bash
+POLL_API_KEY="[ключ]"
+ASSET_NAME="cherry"
+PROMPT="red glossy cherries fruit, game sprite icon, pure white background"
+OUTPUT_DIR="assets/images/pngs"
+mkdir -p "${OUTPUT_DIR}"
+
+# POST /v1/images/generations (OpenAI-compatible)
+RESPONSE=$(curl -s -X POST "https://gen.pollinations.ai/v1/images/generations" \
+  -H "Authorization: Bearer ${POLL_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d "{\"prompt\":\"${PROMPT}\",\"model\":\"flux\",\"size\":\"1024x1024\",\"response_format\":\"url\"}")
+
+# Извлечь URL и скачать
+IMG_URL=$(echo "${RESPONSE}" | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['url'])")
+curl -s -L "${IMG_URL}" -o "${OUTPUT_DIR}/${ASSET_NAME}.png"
+echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
 ```
 
 ---
@@ -142,8 +178,9 @@ sleep 10
 
 ### Особенности:
 - Белый фон в промпте → ImageMagick/remove.bg убирают его точнее
-- Модели: `flux` (качество), `turbo` (быстрее)
+- Модели: `flux` (по умолчанию), `zimage` (с upscale), `gptimage` (лучшее качество, платно)
 - Каждый Bash call = один ассет (не объединять в цикл)
+- `seed=-1` для случайного результата каждый раз
 
 ---
 
@@ -290,13 +327,13 @@ fi
 
 **ОБЯЗАТЕЛЬНО:**
 - Один Bash tool call = один ассет
-- `sleep 65` ВНУТРИ каждого скрипта ПОСЛЕ успешного сохранения
-- Sleep встроен в скрипт — bash call не вернётся пока не выждет паузу
+- Для Gemini: `sleep 65` после каждого (rate limit 10 RPM)
+- Для Pollinations: `sleep 3` после каждого (быстрее)
 - Следующий Bash tool call только ПОСЛЕ того как предыдущий вернул результат
 
 ---
 
-### Шаблон одного ассета (копировать и менять ASSET_NAME + PROMPT):
+### Шаблон одного ассета — Gemini (копировать и менять ASSET_NAME + PROMPT):
 
 ```bash
 API_KEY="[ключ]"
@@ -345,14 +382,14 @@ fi
 
 ### Последовательность для 6 символов (агент делает 6 отдельных Bash calls):
 
-**Call 1:** cherry → ждёт завершения (включая sleep 65) → сообщает "✓ cherry готов (1/6)"
+**Call 1:** cherry → ждёт завершения → сообщает "✓ cherry готов (1/6)"
 **Call 2:** bar → ждёт завершения → "✓ bar готов (2/6)"
 **Call 3:** seven → ждёт завершения → "✓ seven готов (3/6)"
 **Call 4:** diamond → ждёт завершения → "✓ diamond готов (4/6)"
 **Call 5:** wild → ждёт завершения → "✓ wild готов (5/6)"
-**Call 6:** scatter → sleep НЕ НУЖЕН в последнем → "✓ scatter готов (6/6)"
+**Call 6:** scatter → "✓ scatter готов (6/6)"
 
-При ошибке — остановиться, показать JSON, спросить пользователя.
+При ошибке — остановиться, показать ответ, спросить пользователя.
 
 ---
 
@@ -377,15 +414,25 @@ flutter:
 
 ## Диагностика ошибок
 
+### Pollinations.ai
+
+| Симптом | Причина | Решение |
+|---------|---------|---------|
+| HTTP 401 | Отсутствует или неверный API ключ | Проверить ключ на https://enter.pollinations.ai |
+| HTTP 402 | Недостаточно pollen баланса | Пополнить баланс или переключиться на бесплатную модель (flux, zimage) |
+| HTTP 403 | Нет прав (permission denied) | Проверить тип ключа (pk_ vs sk_) и разрешения |
+| Пустой файл | Сервер не вернул изображение | Попробовать другую модель или упростить промпт |
+| Долгий ответ | Модель gptimage медленнее | Переключиться на flux или zimage для скорости |
+
+### Google Gemini
+
 | Симптом | Причина | Решение |
 |---------|---------|---------|
 | HTTP 403 | Неверный ключ или Gemini API не активирован | AI Studio → API Keys → убедиться что Gemini API включён |
-| HTTP 404 `model not found` | Неверное имя модели | Попробовать `gemini-2.5-flash-preview-image-generation` (альтернативное имя) |
+| HTTP 404 `model not found` | Неверное имя модели | Попробовать `gemini-2.5-flash-preview-image-generation` |
 | HTTP 400 `responseModalities` | Модель не поддерживает IMAGE | Добавить `"TEXT"` к списку: `["IMAGE","TEXT"]` |
-| HTTP 429 | Превышен лимит 10 RPM | Увеличить sleep до 8-10 сек, дождаться сброса квоты |
+| HTTP 429 | Превышен лимит 10 RPM | Увеличить sleep до 65+ сек |
 | `inlineData` не найден | Gemini вернул только текст | Изменить промпт: начать с "Create an image of..." |
-| Imagen 403 / 404 | Требует платный биллинг Vertex AI | Не использовать Imagen — только `gemini-2.5-flash-image` |
-| PNG файл пустой | Ошибка base64 или пустой ответ | `cat /tmp/gemini_resp_[name].json` — показать пользователю полный JSON |
-| Ошибка содержимого (safety) | Промпт заблокирован фильтром | Убрать слова gambling/casino из промпта, заменить на "game symbol" |
+| PNG файл пустой | Ошибка base64 | Показать пользователю полный JSON из `/tmp/g_*.json` |
 
-**Правило:** При ЛЮБОЙ ошибке — показывать пользователю полный JSON из `/tmp/gemini_resp_*.json`. Никогда не скрывать ответ API.
+**Правило:** При ЛЮБОЙ ошибке — показывать пользователю полный ответ API. Никогда не скрывать.

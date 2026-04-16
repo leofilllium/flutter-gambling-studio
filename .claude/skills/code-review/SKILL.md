@@ -1,3 +1,11 @@
+---
+name: code-review
+description: "Комплексное ревью кода мини-игры: архитектура, game integrity, Flame API, тесты и риски."
+argument-hint: "[путь или область]"
+user-invocable: true
+allowed-tools: Read, Glob, Grep, Write, Bash, Agent
+---
+
 # /code-review
 
 Запуск: пользователь вызывает `/code-review [путь или область]`

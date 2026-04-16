@@ -23,6 +23,8 @@ user-invocable: true
 - Если выбран **SVG** → продолжить по разделу «SVG режим» ниже
 - Если выбран **PNG** → вызвать логику скилла `generate-png-asset` (следовать его инструкциям)
 - Флаг `--png` в аргументах → сразу PNG режим без вопроса
+- Флаг `--png --cheap POLL_KEY` → PNG через Pollinations.ai
+- Флаг `--png --cheap POLL_KEY --free REMBG_KEY` → PNG + auto remove.bg
 
 ---
 

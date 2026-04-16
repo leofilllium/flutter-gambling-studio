@@ -15,7 +15,8 @@
   <img src="https://img.shields.io/badge/архетипы-24-orange" alt="24 архетипа">
   <img src="https://img.shields.io/badge/Flutter-3.27+-blue?logo=flutter" alt="Flutter 3.27+">
   <img src="https://img.shields.io/badge/Flame-1.18+-red" alt="Flame 1.18+">
-  <a href="https://docs.anthropic.com/en/docs/claude-code"><img src="https://img.shields.io/badge/создано%20для-Claude%20Code-f5f5f5?logo=anthropic" alt="Built for Claude Code"></a>
+  <a href="https://docs.anthropic.com/en/docs/claude-code"><img src="https://img.shields.io/badge/совместимо-Claude%20Code-f5f5f5?logo=anthropic" alt="Claude Code Compatible"></a>
+  <img src="https://img.shields.io/badge/совместимо-OpenAI%20Codex-111111" alt="OpenAI Codex Compatible">
 </p>
 
 ---
@@ -32,6 +33,11 @@
 
 **Flutter Game Studio** решает всё это через систему специализированных агентов — математик балансирует игру, дизайнер пишет GDD, программист механик реализует логику, художник VFX добавляет «сочность». Хуки защищают от нарушений правил при коммите. Ворота качества не пустят плохой код на следующий этап.
 
+Репозиторий теперь настроен в dual-mode:
+
+- `CLAUDE.md` и `.claude/` остаются каноническим источником студийных правил
+- `AGENTS.md` и `.codex/` дают Codex-совместимый слой исполнения тех же skills, ролей и hooks
+
 Вы контролируете стратегию. Команда реализует.
 
 ---
@@ -46,6 +52,19 @@
 | **⚡ Physics** | Pinball, Plinko, Catapult | Forge2D, rigid bodies, реалистичная физика |
 | **🎯 Casual** | Clicker, Idle, Rhythm | Прогрессия, retention, BPM синхронизация |
 | **🃏 Card/Board** | Memory, Trivia, Solitaire | Колода, таймер, streak бонусы |
+
+---
+
+## Codex Quick Start
+
+Если вы работаете в OpenAI Codex:
+
+1. Откройте `AGENTS.md`.
+2. Затем прочитайте `.codex/README.md`.
+3. Любую slash-команду (`/brainstorm`, `/autocreate`, `/team-dev`) выполняйте через маппинг в `.codex/commands.md`.
+4. Для ручного запуска hook-скриптов используйте `bash tools/codex-hooks.sh <hook-name>`.
+
+Это позволяет пользоваться теми же agents/skills/workflows, что и в Claude Code, но без скрытой Claude-специфичной магии.
 
 ---
 
@@ -391,6 +410,7 @@ flutter-game-studio/
 
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) 3.27+
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (`npm install -g @anthropic-ai/claude-code`)
+- OpenAI Codex с поддержкой `AGENTS.md`
 - Python 3 (для симуляции баланса)
 
 ### Установка
