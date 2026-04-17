@@ -18,7 +18,7 @@
 | `/design-review` | `.claude/skills/design-review/SKILL.md` | Ревью GDD и полноты спецификации |
 | `/code-review` | `.claude/skills/code-review/SKILL.md` | Архитектурное и геймплейное ревью |
 | `/ui-audit` | `.claude/skills/ui-audit/SKILL.md` | Anti-slop аудит и UI автоисправления |
-| `/emulator-test` | `.claude/skills/emulator-test/SKILL.md` | Runtime-верификация на ADB/эмуляторе с автофиксом |
+| `/emulator-test` | `.claude/skills/emulator-test/SKILL.md` | Runtime-верификация на ADB/эмуляторе с автофиксом. **Default platform: Android** через ADB. Скриншоты снимаются через `flutter screenshot` (Impeller-safe) с fallback на `adb screencap` + валидация PNG-сигнатуры. Флаг `--no-impeller` если кадры невалидны. |
 | `/balance-check` | `.claude/skills/balance-check/SKILL.md` | RTP, difficulty curve, scoring balance |
 | `/gate-check` | `.claude/skills/gate-check/SKILL.md` | Quality gate для стадии проекта |
 | `/perf-profile` | `.claude/skills/perf-profile/SKILL.md` | FPS, память, particles, audio |
