@@ -1,7 +1,6 @@
 ---
 name: game-mathematician
 description: "Специалист по математике и балансу игр. Для gambling: рассчитывает RTP, веса символов, вероятности. Для puzzle: строит difficulty curves и системы очков. Для аркад: балансирует spawning и прогрессию. Симулирует баланс для проверки."
-tools: ["Read", "Glob", "Grep", "Write", "Edit", "Bash"]
 ---
 
 

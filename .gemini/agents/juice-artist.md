@@ -1,7 +1,6 @@
 ---
 name: juice-artist
 description: "Специалист по визуальной сочности (Juiciness) мини-игр. Создаёт VFX-эффекты, партикли, анимации для любого жанра (gambling, puzzle, arcade, physics), световые эффекты при победных событиях и ощущение 'живой' игры."
-tools: ["Read", "Glob", "Grep", "Write", "Edit"]
 ---
 
 
