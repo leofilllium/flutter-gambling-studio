@@ -1,7 +1,7 @@
 ---
 name: emulator-test
 description: "Runtime-верификация готовой мини-игры на реальном устройстве через ADB (Android) или Simulator (iOS). Запускает приложение, навигирует по всем экранам, делает скриншоты, визуально анализирует их на наличие проблем (пустой игровой экран, RenderFlex overflow, Flutter red screen, отсутствующие ассеты, белые/чёрные экраны), парсит logcat на exceptions, и автоматически исправляет найденные баги через цикл с агентами. Интегрируется в /autocreate после dart analyze."
-argument-hint: "[--device deviceId | --platform android|ios | --no-fix | --quick]"
+argument-hint: "[--device deviceId | --platform android|ios | --no-fix | --quick]  (default: android/adb)"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
@@ -21,13 +21,15 @@ overflow (жёлто-чёрные полосы), Flutter "red screen of death" (
 - По умолчанию: полный цикл (найти → визуально проанализировать → исправить → перезапустить)
 - `--no-fix`: только отчёт без изменений
 - `--quick`: только главные экраны (splash/menu/game), без daily-bonus/leaderboard/profile
-- `--device <id>`: использовать конкретное устройство (иначе первое доступное)
-- `--platform android|ios`: принудительно выбрать платформу (по умолчанию Android)
+- `--device <id>`: использовать конкретное устройство (иначе первое доступное Android-устройство)
+- `--platform android|ios`: принудительно выбрать платформу. **По умолчанию: `android` (через ADB).**
+  iOS-ветка активируется только при явном `--platform ios`.
 
 ---
 
 ## Фаза 0 — Environment Preflight [~15 сек]
 
+**Дефолтная платформа — Android через ADB.** iOS включается только явным `--platform ios`.
 Перед запуском ОБЯЗАТЕЛЬНО проверить окружение. Если что-то отсутствует — сообщить пользователю
 и завершить работу с понятным сообщением (НЕ пытаться чинить окружение автоматически).
 
@@ -84,8 +86,12 @@ dart analyze lib/ | tail -5
 
 # Запустить в debug режиме с verbose logging в фоне
 # ВАЖНО: --verbose для отлова Widget errors в stdout
+# ВАЖНО: если прошлый ран дал .INVALID PNG — добавить --no-enable-impeller,
+#        иначе adb screencap не увидит Flutter surface.
 mkdir -p .claude/runtime-logs
-flutter run -d <deviceId> --verbose > .claude/runtime-logs/flutter-run.log 2>&1 &
+IMPELLER_FLAG=""
+[[ "$NO_IMPELLER" == "1" ]] && IMPELLER_FLAG="--no-enable-impeller"
+flutter run -d <deviceId> --verbose $IMPELLER_FLAG > .claude/runtime-logs/flutter-run.log 2>&1 &
 FLUTTER_PID=$!
 echo $FLUTTER_PID > .claude/runtime-logs/flutter.pid
 
@@ -120,7 +126,17 @@ echo $LOGCAT_PID > .claude/runtime-logs/logcat.pid
 ## Фаза 2 — Screenshot Tour [~3 мин]
 
 **Стратегия**: навигировать по игре через ADB input events, после КАЖДОГО экрана ждать
-анимацию (1-2 сек) и делать скриншот. Для iOS использовать `xcrun simctl io booted screenshot`.
+анимацию (1-2 сек) и делать скриншот. Android — дефолт. Для iOS — `xcrun simctl io booted screenshot`.
+
+### ⚠️ Impeller caveat (корневая причина «invalid image»)
+
+На Android Flutter по умолчанию использует Impeller. `adb exec-out screencap -p` **не видит
+Impeller surface** на ряде устройств и возвращает либо чёрный кадр, либо PNG с поломанным
+color space, который vision-анализ отвергает как «invalid image».
+
+**Поэтому первичный метод снятия — `flutter screenshot`** (читает с Flutter-стороны, Impeller-safe).
+`adb exec-out screencap -p` используется только как фоллбэк. После каждого снимка **валидируем
+PNG-сигнатуру** (`89 50 4E 47`). Если файл не PNG — retry через альтернативный метод.
 
 ### Координаты для навигации
 
@@ -139,31 +155,87 @@ TS=$(date +%Y%m%d-%H%M%S)
 SHOT_DIR="production/runtime-screenshots/$TS"
 mkdir -p "$SHOT_DIR"
 
-shoot() {
-  local name=$1
-  # Android
-  adb exec-out screencap -p > "$SHOT_DIR/$name.png"
-  # Для iOS заменить на:
-  # xcrun simctl io booted screenshot "$SHOT_DIR/$name.png"
+# Платформа фиксирована: android (default). Переопределяется только --platform ios.
+PLATFORM="${PLATFORM:-android}"
+DEVICE_ID="${DEVICE_ID:-}"  # если пусто — flutter сам возьмёт первое устройство
+
+# Проверка PNG: первые 8 байт должны быть 89 50 4E 47 0D 0A 1A 0A
+is_valid_png() {
+  local f=$1
+  [[ -s "$f" ]] || return 1
+  local sig
+  sig=$(xxd -l 8 -p "$f" 2>/dev/null)
+  [[ "$sig" == "89504e470d0a1a0a" ]]
 }
 
-# 1. Splash (сразу после запуска)
-sleep 2 && shoot 01-splash
+# Один снимок с тройным fallback + валидацией
+shoot() {
+  local name=$1
+  local out="$SHOT_DIR/$name.png"
+  local tmp="$SHOT_DIR/.$name.tmp"
+
+  if [[ "$PLATFORM" == "ios" ]]; then
+    xcrun simctl io booted screenshot "$out" 2>/dev/null
+    is_valid_png "$out" && { echo "✅ $name (ios simctl)"; return 0; }
+    echo "❌ $name — simctl не дал валидный PNG"
+    return 1
+  fi
+
+  # ANDROID (default)
+
+  # Попытка 1: flutter screenshot — Impeller-safe, снимает с Flutter-стороны
+  local dev_arg=""
+  [[ -n "$DEVICE_ID" ]] && dev_arg="-d $DEVICE_ID"
+  flutter screenshot $dev_arg --type=device -o "$out" >/dev/null 2>&1 || true
+  if is_valid_png "$out"; then
+    echo "✅ $name (flutter screenshot)"
+    return 0
+  fi
+
+  # Попытка 2: adb exec-out screencap -p (classic)
+  # ВАЖНО: именно exec-out, не `adb shell` — иначе LF→CRLF сломает PNG
+  adb ${DEVICE_ID:+-s $DEVICE_ID} exec-out screencap -p > "$tmp" 2>/dev/null
+  if is_valid_png "$tmp"; then
+    mv "$tmp" "$out"
+    echo "✅ $name (adb screencap)"
+    return 0
+  fi
+
+  # Попытка 3: screencap на устройстве → pull (обходит stdout-искажения)
+  adb ${DEVICE_ID:+-s $DEVICE_ID} shell screencap -p /sdcard/_shot.png 2>/dev/null
+  adb ${DEVICE_ID:+-s $DEVICE_ID} pull /sdcard/_shot.png "$out" >/dev/null 2>&1
+  adb ${DEVICE_ID:+-s $DEVICE_ID} shell rm /sdcard/_shot.png 2>/dev/null
+  if is_valid_png "$out"; then
+    echo "✅ $name (adb pull)"
+    return 0
+  fi
+
+  # Полная неудача — оставляем файл для диагностики, но помечаем
+  mv "$tmp" "$out.INVALID" 2>/dev/null || true
+  echo "❌ $name — все 3 метода вернули невалидный PNG. Проверьте:"
+  echo "   - Impeller: перезапустите с --no-enable-impeller"
+  echo "   - Экран устройства разблокирован?"
+  echo "   - file \"$out.INVALID\" (должно быть PNG image data, не ASCII)"
+  return 1
+}
+
+# 1. Splash (сразу после запуска — даём 3 сек на первый кадр Flame)
+sleep 3 && shoot 01-splash
 
 # 2. Main menu (splash должен авто-перейти)
 sleep 3 && shoot 02-menu
 
 # 3. Game screen (тап по кнопке PLAY — нижняя треть)
-adb shell input tap 540 2000
+adb ${DEVICE_ID:+-s $DEVICE_ID} shell input tap 540 2000
 sleep 2 && shoot 03-game-idle
 
 # 4. После основного действия (spin/play)
-adb shell input tap 540 2000
+adb ${DEVICE_ID:+-s $DEVICE_ID} shell input tap 540 2000
 sleep 3 && shoot 04-game-action
 sleep 3 && shoot 05-game-after-action
 
 # 5. Back → menu → settings
-adb shell input keyevent KEYCODE_BACK
+adb ${DEVICE_ID:+-s $DEVICE_ID} shell input keyevent KEYCODE_BACK
 sleep 1 && shoot 06-back-menu
 
 # 6. Дополнительные экраны (если не --quick)
@@ -175,6 +247,18 @@ sleep 1 && shoot 06-back-menu
 **ВАЖНО**: если `--quick`, ограничиться снимками 01–05.
 
 После каждого скриншота сохранить соответствие: какой экран ожидался vs что снято.
+
+### Если все три метода дают невалидный PNG
+
+1. Убедиться что экран устройства **разблокирован** (adb screencap на lock screen иногда возвращает мусор).
+2. Перезапустить Flutter с отключённым Impeller:
+   ```bash
+   flutter run -d "$DEVICE_ID" --no-enable-impeller > .claude/runtime-logs/flutter-run.log 2>&1 &
+   ```
+3. На Android 14+ бывает, что `screencap` требует разрешения `READ_FRAME_BUFFER` через
+   `adb shell settings put global hidden_api_policy 1` — делать только в личном dev-окружении.
+4. Диагностика: `file "$SHOT_DIR/*.INVALID"` — если там `ASCII text`, в пайп попала ошибка
+   adb (unauthorized / offline / device not found).
 
 ---
 
@@ -440,8 +524,10 @@ ls -1t production/runtime-screenshots/ | tail -n +6 | xargs -I{} rm -rf "product
 
 ## Аргументы
 
-- `--device <id>` — конкретный `flutter devices` ID
-- `--platform android|ios` — форсировать платформу
+- `--device <id>` — конкретный `flutter devices` ID (по умолчанию: первое Android-устройство из `adb devices`)
+- `--platform android|ios` — форсировать платформу. **Default: `android`** (через ADB + `flutter screenshot`).
 - `--no-fix` — только анализ и отчёт, без исправлений
 - `--quick` — сокращённый тур (splash → menu → game → action)
 - `--skip-logcat` — пропустить парсинг logcat (полезно для iOS где logcat недоступен)
+- `--no-impeller` — запустить `flutter run` с `--no-enable-impeller`. Используйте, если
+  первый прогон дал `.INVALID` PNG: `adb screencap` часто не видит Impeller surface.

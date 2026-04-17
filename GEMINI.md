@@ -29,7 +29,7 @@
 | `/autocreate` | Полный цикл создания игры |
 | `/team-dev` | Оркестрация команды разработчиков |
 | `/ui-audit` | Выявление проблем anti-slop дизайна |
-| `/emulator-test` | Тестирование в реальном Android эмуляторе через ADB |
+| `/emulator-test` | Тестирование в реальном Android эмуляторе через ADB (default). Скриншоты — `flutter screenshot` с fallback на `adb screencap` и валидацией PNG. Флаг `--no-impeller` если кадры невалидны. |
 | `/code-review` | Ревью архитектуры Flame и Flutter |
 | `/balance-check`| RTP симуляция (для gambling) |
 
