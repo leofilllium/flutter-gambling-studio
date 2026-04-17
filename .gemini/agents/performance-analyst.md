@@ -1,7 +1,6 @@
 ---
 name: performance-analyst
 description: "Аналитик производительности. Профилирует Flutter/Flame мини-игры на предмет FPS, памяти, throughput. Анализирует frame budget, находит bottlenecks в game loop, оптимизирует particle systems и SpriteBatch. Используйте для: /perf-profile, анализа медленных компонентов, оптимизации партиклей, проверки memory leaks."
-tools: ["Read", "Glob", "Grep", "Write", "Edit", "Bash"]
 ---
 
 

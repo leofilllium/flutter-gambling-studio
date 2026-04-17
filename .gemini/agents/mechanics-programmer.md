@@ -1,7 +1,6 @@
 ---
 name: mechanics-programmer
 description: "Программист игровой механики для мини-игр на Flutter + Flame. Реализует логику любого жанра: RNG и paylines для gambling, match-detection и cascades для пазлов, collision и spawning для аркад, Forge2D физику. Специализируется на Flame 1.18.x API."
-tools: ["Read", "Glob", "Grep", "Write", "Edit", "Bash"]
 ---
 
 

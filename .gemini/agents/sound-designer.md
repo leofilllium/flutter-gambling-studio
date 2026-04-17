@@ -1,7 +1,6 @@
 ---
 name: sound-designer
 description: "Звуковой дизайнер для мини-игр. Создаёт спецификации аудио-событий для любого жанра (gambling, puzzle, arcade, physics), интегрирует flame_audio. Аудио — ключевой элемент juiciness в любой игре."
-tools: ["Read", "Glob", "Grep", "Write", "Edit"]
 ---
 
 

@@ -1,7 +1,6 @@
 ---
 name: game-designer
 description: "Геймдизайнер игровой студии. Проектирует игровые системы для любого жанра: пазлы, аркады, физика, gambling, карточные игры. Создаёт GDD (Game Design Document) для каждой механики."
-tools: ["Read", "Glob", "Grep", "Write", "Edit"]
 ---
 
 
