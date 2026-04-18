@@ -7,7 +7,7 @@
 | `/start` | `.claude/skills/start/SKILL.md` | Онбординг, маршрутизация, выбор следующего шага |
 | `/brainstorm` | `.claude/skills/brainstorm/SKILL.md` | Интерактивный концепт мини-игры |
 | `/auto-idea` | `.claude/skills/auto-idea/SKILL.md` | Автогенерация идеи из архетипов |
-| `/autocreate` | `.claude/skills/autocreate/SKILL.md` | Zero-to-playable конвейер |
+| `/autocreate` | `.claude/skills/autocreate/SKILL.md` | Zero-to-playable конвейер. **АВТОМАТИЧЕСКИ** запускает `/emulator-test --quick` в Фазе 10.5 и `/release-package` в Фазе 10.6 — не оставляет их пользователю. В финальном отчёте эти же команды упоминаются как рекомендации для повторного перезапуска. |
 | `/continue-project` | `.claude/skills/continue-project/SKILL.md` | Возобновление работы по текущему состоянию |
 | `/map-systems` | `.claude/skills/map-systems/SKILL.md` | Декомпозиция концепта на системы |
 | `/design-system` | `.claude/skills/design-system/SKILL.md` | GDD для отдельной механики |
@@ -28,7 +28,8 @@
 | `/team-dev` | `.claude/skills/team-dev/SKILL.md` | Оркестрация мультидисциплинарной команды |
 | `/team-gambling` | `.claude/skills/team-gambling/SKILL.md` | Оркестрация команды для gambling жанра |
 | `/add-feature` | `.claude/skills/add-feature/SKILL.md` | Добавление новой фичи в существующую игру |
-| `/release-checklist` | `.claude/skills/release-checklist/SKILL.md` | Финальная проверка перед релизом |
+| `/release-checklist` | `.claude/skills/release-checklist/SKILL.md` | Финальный GO/NO-GO чеклист перед релизом (делегирует release-manager агенту) |
+| `/release-package` | `.claude/skills/release-package/SKILL.md` | Финальная упаковка релиза: скриншоты всех экранов через ADB/simctl, `flutter build apk --release` (+ AAB + split-per-abi), `flutter clean`, архивация всего проекта со скринами и APK в `project_zip/<name>-<ts>.zip` с SHA256. Автоматически запускается из `/autocreate` Фаза 10.6. |
 
 ## Правило исполнения
 

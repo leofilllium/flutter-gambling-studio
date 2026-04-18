@@ -666,10 +666,18 @@ flutter test
 
 ## Фаза 10.5 — Runtime Emulator Verification [~8 мин]
 
-**КРИТИЧЕСКАЯ ФАЗА.** `dart analyze` и `flutter test` не видят runtime-багов:
+**КРИТИЧЕСКАЯ ФАЗА. ВЫПОЛНЯЕТСЯ АВТОМАТИЧЕСКИ — не только предлагается пользователю.**
+`dart analyze` и `flutter test` не видят runtime-багов:
 пустой игровой экран (чёрный прямоугольник вместо барабанов), RenderFlex overflow,
 Flutter "red screen", missing asset, `setState after dispose`. Это ловится только
 запуском на реальном устройстве.
+
+**Политика автозапуска:**
+1. `/autocreate` ОБЯЗАН запустить `/emulator-test --quick` сам, не оставляя это пользователю
+2. В финальном отчёте (Фаза 12) `/emulator-test` ДОЛЖЕН также упоминаться как рекомендация
+   для повторного прогона — пользователь может перезапустить вручную позже
+3. Если нет доступного устройства — пользователю предлагается запустить эмулятор,
+   фаза помечается SKIPPED, НО мы явно информируем его что эту фазу он ОБЯЗАН прогнать сам
 
 Полная логика описана в `.claude/skills/emulator-test/SKILL.md`. Здесь — краткий план.
 
@@ -731,6 +739,49 @@ adb devices -l 2>/dev/null || xcrun simctl list devices booted 2>/dev/null
 
 Cleanup: остановить `flutter run` и `adb logcat` процессы по PID из
 `.claude/runtime-logs/*.pid`.
+
+---
+
+## Фаза 10.6 — Release Package (Screenshots + APK + Archive) [~10 мин]
+
+**НОВАЯ КРИТИЧЕСКАЯ ФАЗА. ВЫПОЛНЯЕТСЯ АВТОМАТИЧЕСКИ.**
+
+После успешной runtime-верификации (Фаза 10.5) автоматически вызывается навык
+`/release-package` без флагов (полный цикл).
+
+**Что делает release-package:**
+1. Делает скриншоты ВСЕХ экранов и ключевых состояний игры (до 16 снимков):
+   splash, menu, game-idle, game-action-start/mid/end, win overlays,
+   paytable, settings, help, daily-bonus, leaderboard, profile, edge-cases
+2. Собирает release APK (`flutter build apk --release`) + AAB для Play Store
+3. Копирует исходники в `project_zip/<name>-<ts>/source/` (исключая `.git/`,
+   `build/`, `.dart_tool/`, ассеты каша и другие build-артефакты)
+4. Выполняет `flutter clean` (после сборки APK, иначе APK удалится вместе с build/)
+5. Архивирует всё в `project_zip/<name>-<ts>.zip` с SHA256 checksum
+6. Генерирует `RELEASE_INFO.md` с метаданными релиза
+
+**Политика автозапуска:**
+- `/autocreate` ОБЯЗАН запустить `/release-package` сам — не полагаясь на пользователя
+- Если Фаза 10.5 была SKIPPED (нет устройства) — `/release-package` запускается с
+  внутренним `SKIP_SCREENSHOTS=1`, но APK и архив всё равно создаются
+- Если APK build упал — архив всё равно создаётся (пользователь получит хотя бы
+  исходники и скриншоты), с пометкой APK_FAILED в `RELEASE_INFO.md`
+- В финальном отчёте (Фаза 12) `/release-package` ДОЛЖЕН также упоминаться как
+  команда для повторного перезапуска (если пользователь внёс изменения)
+
+**Критерии выхода:**
+- ZIP-архив создан в `project_zip/<name>-<ts>.zip`
+- Хотя бы один из: APK собран ИЛИ скриншоты сделаны (≥5) — иначе отчитаться FAIL
+
+**Артефакты в `project_zip/<name>-<ts>/`:**
+- `screenshots/` — PNG файлы всех экранов
+- `apk/` — release APK (+ AAB, + per-abi APKs)
+- `source/` — полный исходник проекта (без build-артефактов)
+- `RELEASE_INFO.md` — метаданные, SHA256, размеры, версии
+- `build-apk.log` — лог сборки APK
+- `validation.log` — результат `dart analyze`
+- `test-results.log` — результат `flutter test`
+- `runtime-report/` — отчёт runtime-верификации из Фазы 10.5
 
 ---
 
@@ -823,17 +874,30 @@ Task: Production-ready
    [Puzzle: Difficulty curve validated]
    [Arcade: Spawn/scoring balanced]
 
+📦 Релизная упаковка (создана автоматически):
+   project_zip/[name]-[ts].zip          — финальный архив
+   project_zip/[name]-[ts]/apk/         — release APK + AAB
+   project_zip/[name]-[ts]/screenshots/ — N скриншотов экранов
+   project_zip/[name]-[ts]/source/      — исходники (после flutter clean)
+
 🔧 Команды запуска:
    flutter run                  — запустить игру
    flutter test                 — запустить тесты
    flutter run -d chrome        — запустить в браузере
+   adb install project_zip/[name]-[ts]/apk/*.apk — установить APK
+
+📋 Рекомендованные перезапуски (уже выполнены автоматически, но можно повторить):
+   /emulator-test               — ПОВТОРНАЯ runtime-верификация на эмуляторе
+                                  (уже прогнана автоматически в Фазе 10.5)
+   /release-package             — ПОВТОРНАЯ упаковка релиза (скрины + APK + ZIP)
+                                  (уже прогнана автоматически в Фазе 10.6)
 
 📋 Опциональные следующие шаги:
-   /add-feature [фича]         — добавить механику
-   /code-review                — полное ревью кода
-   /balance-check              — детальная проверка баланса (1М итераций)
-   /perf-profile               — профилирование производительности
-   /release-checklist           — подготовка к публикации
+   /add-feature [фича]          — добавить механику
+   /code-review                 — полное ревью кода
+   /balance-check               — детальная проверка баланса (1М итераций)
+   /perf-profile                — профилирование производительности
+   /release-checklist           — финальный GO/NO-GO чеклист перед стор-релизом
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -855,6 +919,7 @@ Task: Production-ready
 | 9. Balance | RTP/difficulty в допустимом диапазоне | 3 |
 | 10. Crash Prevention | 10/10 checks passed, `dart analyze` + `flutter test` clean | 3 |
 | 10.5. Runtime Emulator | 0 CRITICAL visual issues + 0 FATAL exceptions в logcat | 3 (SKIPPED если нет устройств) |
+| 10.6. Release Package | `project_zip/<name>-<ts>.zip` создан + APK собран ИЛИ ≥5 скриншотов | 2 (non-fatal) |
 
 **АБСОЛЮТНЫЙ МИНИМУМ для завершения**:
 - `dart analyze lib/` — 0 errors
