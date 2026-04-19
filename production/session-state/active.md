@@ -36,3 +36,5 @@ Task: Universal multi-genre studio complete
 Запусти `/continue-project` если есть незавершённый проект.
 
 Последнее обновление: 2026-04-04
+
+Последнее сжатие: 2026-04-19 23:55
