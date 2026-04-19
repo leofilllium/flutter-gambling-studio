@@ -17,48 +17,64 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 ## 🚨 MANDATORY EXECUTION CONTRACT (читать до начала работы)
 
-`/autocreate` — это **полный конвейер Zero-to-Android-APK**. Все 12 фаз ОБЯЗАТЕЛЬНЫ
-к выполнению. Невыполнение любой из них = провал команды.
+`/autocreate` — это **полный конвейер Zero-to-Android-APK**, но он разбит на
+ДВЕ context-сессии во избежание истощения токенов:
+
+- **Часть 1 (эта conversation, Фазы 1 → 10)** — концепт, ассеты, код, `dart analyze`
+  чистый, `flutter test` зелёный, UI-аудит, баланс, crash-prevention. Выполняется
+  в основном контексте.
+- **Часть 2 (свежий subagent, Фазы 10.5 → 12)** — runtime emulator verification,
+  release-package (APK + screenshots + tar.gz), финальный отчёт. Запускается
+  ТОЛЬКО через Agent tool с subagent_type="general-purpose" (чистый контекст).
+
+**Часть 1 ОБЯЗАНА передать управление Части 2 через Agent tool в конце Фазы 10.**
+Она НЕ выполняет Фазы 10.5/10.6 сама. Subagent получает путь к handoff-файлу
+`production/session-state/autocreate-handoff.md` и инструкцию следовать
+`.claude/skills/autocreate-finalize/SKILL.md`.
 
 **Основная целевая платформа: Android.** iOS/Web поддерживаются как дополнительные.
-Финальный артефакт — release APK, упакованный в `.tar.gz` в `project_zip/`.
+Финальный артефакт (создаётся Частью 2) — release APK, упакованный в `.tar.gz`
+в `project_zip/`.
 
-### Что ОБЯЗАНО произойти (в порядке, без пропусков):
+### Что ОБЯЗАНО произойти в Части 1 (эта сессия, Фазы 1–10):
 
 1. ✅ **Flutter Android-проект создан с нуля** (`flutter create --platforms android`)
 2. ✅ **Все ассеты сгенерированы** (SVG по умолчанию, путь в `lib/assets.dart`)
 3. ✅ **Вся игровая логика написана** (4 параллельных агента)
 4. ✅ **`dart analyze lib/` → 0 errors** (цикл исправлений, до 10 итераций)
 5. ✅ **`flutter test` → все зелёные** (до 5 итераций)
-6. ✅ **Android эмулятор: приложение запущено, скриншоты сделаны, логи разобраны**
-7. ✅ **Все CRITICAL баги со скриншотов исправлены** (auto-fix loop, до 3 итераций)
-8. ✅ **Финальные скриншоты ГОТОВОЙ игры** (все экраны и состояния, до 16 снимков)
-9. ✅ **Release APK собран** (`flutter build apk --release`)
-10. ✅ **`flutter clean` выполнен** (после сборки APK, не до)
-11. ✅ **Весь проект + APK + скриншоты упакованы в `project_zip/<name>-<ts>.tar.gz`**
+6. ✅ **UI/UX аудит (60+ проверок) с автофиксами**
+7. ✅ **Balance check (RTP/difficulty) в допустимом диапазоне**
+8. ✅ **Crash-prevention аудит (20 пунктов)**
+9. ✅ **Handoff-файл записан** в `production/session-state/autocreate-handoff.md`
+10. ✅ **Subagent запущен через Agent tool** для Части 2
 
-### Запрещено:
+### Что ОБЯЗАН выполнить subagent Части 2 (Фазы 10.5–12):
 
-- ❌ Останавливаться на Фазе 6 (build) без перехода к Фазе 10.5 (emulator)
-- ❌ Пропускать Фазу 10.5, если есть хотя бы один Android-девайс в `adb devices`
-- ❌ Пропускать Фазу 10.6 (release-package) — это финальный deliverable
-- ❌ Создавать `.zip` вместо `.tar.gz` (формат архива строго `.tar.gz`)
+11. ✅ **Android эмулятор: приложение запущено, скриншоты, логи разобраны**
+12. ✅ **Все CRITICAL баги со скриншотов исправлены** (auto-fix loop, до 3 итераций)
+13. ✅ **Финальные скриншоты ГОТОВОЙ игры** (до 16 снимков)
+14. ✅ **Release APK собран** (`flutter build apk --release`)
+15. ✅ **`flutter clean` выполнен** (после сборки APK, не до)
+16. ✅ **Весь проект + APK + скриншоты упакованы в `project_zip/<name>-<ts>.tar.gz`**
+
+### Запрещено в Части 1:
+
+- ❌ Пытаться выполнить Фазу 10.5 (emulator-test) в основной conversation
+- ❌ Пытаться выполнить Фазу 10.6 (release-package) в основной conversation
+- ❌ Вызывать `flutter run`, `flutter build apk`, `adb shell`, `emulator`
+  в основной conversation — это задачи subagent-а
 - ❌ Делать stub-файлы или TODO-комментарии в production коде
-- ❌ Отчитываться об успехе, если хотя бы один чеклист-критерий не выполнен
+- ❌ Отчитываться об успехе Части 1, если `dart analyze lib/` не 0 errors
+  или `flutter test` красный
+- ❌ Рапортовать "игра готова" — RUNTIME ещё не проверен (это делает Часть 2)
 
-### Если нет Android-эмулятора:
+### Запрещено в Части 1 НЕ делать (обязательное):
 
-Скрипт ОБЯЗАН попытаться запустить первый доступный AVD автоматически:
-```bash
-AVD=$(emulator -list-avds | head -1)
-[[ -n "$AVD" ]] && emulator -avd "$AVD" -no-snapshot-save -no-boot-anim > /dev/null 2>&1 &
-adb wait-for-device
-adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
-```
-Только если AVD физически нет на системе — Фаза 10.5 помечается SKIPPED, но
-Фаза 10.6 всё равно выполняется (без скриншотов, но с APK и архивом).
+- ✅ В конце Фазы 10 ОБЯЗАТЕЛЬНО вызвать Agent tool — без этого конвейер
+  считается НЕЗАВЕРШЁННЫМ, independent от того, что `dart analyze` чист
 
-### Финальный критерий успеха:
+### Финальный критерий успеха всего конвейера:
 
 `ls project_zip/` показывает `<name>-<ts>.tar.gz` размером > 1 MB, И `tar -tzf` на нём
 показывает ВНУТРИ архива: `source/` (с `pubspec.yaml`), `apk/app-release.apk`,
@@ -735,276 +751,116 @@ flutter test
 
 ---
 
-## Фаза 10.5 — Runtime Emulator Verification [~8 мин]
+## Фаза 10.7 — Handoff & Subagent Spawn [~1 мин]
 
-**КРИТИЧЕСКАЯ ФАЗА. ВЫПОЛНЯЕТСЯ АВТОМАТИЧЕСКИ — не только предлагается пользователю.**
-`dart analyze` и `flutter test` не видят runtime-багов:
-пустой игровой экран (чёрный прямоугольник вместо барабанов), RenderFlex overflow,
-Flutter "red screen", missing asset, `setState after dispose`. Это ловится только
-запуском на реальном устройстве.
+**ЭТО ПОСЛЕДНЯЯ ФАЗА ОСНОВНОЙ CONVERSATION.**
+Фазы 10.5 (emulator-test), 10.6 (release-package), 11 (session state) и 12
+(final report) выполняются в **subagent-е с чистым контекстом**, не здесь.
 
-**Политика автозапуска:**
-1. `/autocreate` ОБЯЗАН запустить `/emulator-test --quick` сам, не оставляя это пользователю
-2. В финальном отчёте (Фаза 12) `/emulator-test` ДОЛЖЕН также упоминаться как рекомендация
-   для повторного прогона — пользователь может перезапустить вручную позже
-3. Если нет доступного устройства — пользователю предлагается запустить эмулятор,
-   фаза помечается SKIPPED, НО мы явно информируем его что эту фазу он ОБЯЗАН прогнать сам
+### 10.7.1 — Запись handoff-файла
 
-Полная логика описана в `.claude/skills/emulator-test/SKILL.md`. Здесь — краткий план.
-
-### 10.5.1 — Preflight (с автозапуском AVD)
-
-```bash
-flutter devices
-adb devices -l 2>/dev/null
-```
-
-**Если нет подключённых устройств — автоматически запустить первый AVD:**
-
-```bash
-RUNNING_EMU=$(adb devices | grep -E "emulator-[0-9]+" | head -1 | awk '{print $1}')
-if [[ -z "$RUNNING_EMU" ]]; then
-  AVD=$(emulator -list-avds 2>/dev/null | head -1)
-  if [[ -n "$AVD" ]]; then
-    echo "🚀 Запуск AVD: $AVD"
-    nohup emulator -avd "$AVD" -no-snapshot-save -no-boot-anim > /tmp/avd.log 2>&1 &
-    adb wait-for-device
-    # Ждать полной загрузки (до 180 сек)
-    timeout 180 adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
-    echo "✅ AVD загружен"
-  else
-    echo "⚠️ Нет ни одного AVD на системе. Фаза 10.5 — SKIPPED."
-    echo "   Пользователю рекомендовано: создать AVD через Android Studio"
-    # ВАЖНО: Фаза 10.6 всё равно выполняется — APK и архив будут созданы
-  fi
-fi
-```
-
-Критерий: если после автозапуска `adb devices` показывает `emulator-XXXX device` —
-идём дальше. Если нет — Фаза 10.5 SKIPPED, но Фаза 10.6 (release-package) всё равно
-обязательна.
-
-### 10.5.2 — Run --quick режим emulator-test
-
-Запустить `.claude/skills/emulator-test/SKILL.md` в режиме `--quick`:
-- Старт игры через `flutter run` с логированием в `.claude/runtime-logs/flutter-run.log`
-- Параллельно `adb logcat` → `.claude/runtime-logs/logcat.log`
-- Скриншоты: splash, menu, game-idle, game-action, game-after-action
-- Визуальный анализ каждого скриншота через Read (vision) по чеклисту V1–V12
-- Парсинг логов на EXCEPTION CAUGHT, RenderFlex overflow, Unable to load asset, etc.
-
-### 10.5.3 — Auto-Fix Loop (до 3 итераций)
-
-Консолидировать проблемы, разметить severity (CRITICAL/HIGH/MEDIUM), назначить агентов:
-- V2/V3/V5/V7/V8/V9/V10/V11 → **ui-programmer**
-- V4/V12 → **mechanics-programmer**
-- VFX не виден → **juice-artist**
-- Logcat asset errors → проверить `lib/assets.dart` vs реальные файлы
-
-После каждой итерации — заново запуск, новые скриншоты, сравнение.
-
-**Типичные runtime-баги и их автофиксы:**
-
-| Симптом (на скриншоте) | Причина | Автофикс |
-|------------------------|---------|----------|
-| Пустой чёрный прямоугольник вместо барабанов/сетки | Компоненты не добавлены в World.onLoad() | Добавить `await world.addAll([...])` |
-| HUD показывает null/NaN | ValueNotifier не проинициализирован | Проинициализировать в Game constructor |
-| Splash чёрный и не переходит | Нет Timer для навигации | Добавить `Future.delayed → pushReplacementNamed` |
-| Белый экран после тапа PLAY | Route `/game` не зарегистрирован | Добавить в `routes:` map в app.dart |
-| Жёлтые полосы overflow в меню | ListView без Expanded | Обернуть в Expanded |
-| Красный экран exception | Null check/type error из stacktrace | Исправить по file:line из лога |
-
-### 10.5.4 — Критерий выхода
-
-**Успех**: 0 CRITICAL визуальных проблем, 0 FATAL exceptions в logcat.
-**Частичный успех**: CRITICAL устранены, остались MEDIUM — отчитаться и продолжить.
-**Неудача**: после 3 итераций CRITICAL остались — сгенерировать детальный отчёт
-`production/runtime-screenshots/<ts>/REPORT.md` и остановить конвейер с уведомлением
-пользователя. НЕ скрывать проблему. НЕ ложно рапортовать о готовности.
-
-### 10.5.5 — Артефакты
-
-- `production/runtime-screenshots/<ts>/*.png` — снимки каждого экрана (оставить)
-- `production/runtime-screenshots/<ts>/REPORT.md` — отчёт с verdict PASS/CONCERNS/FAIL
-- `.claude/runtime-logs/flutter-run.log` — полный лог запуска
-- `.claude/runtime-logs/logcat.log` — Android system log
-
-Cleanup: остановить `flutter run` и `adb logcat` процессы по PID из
-`.claude/runtime-logs/*.pid`.
-
----
-
-## Фаза 10.6 — Release Package (Screenshots + APK + Archive) [~10 мин]
-
-**НОВАЯ КРИТИЧЕСКАЯ ФАЗА. ВЫПОЛНЯЕТСЯ АВТОМАТИЧЕСКИ.**
-
-После успешной runtime-верификации (Фаза 10.5) автоматически вызывается навык
-`/release-package` без флагов (полный цикл).
-
-**Что делает release-package:**
-1. Делает скриншоты ВСЕХ экранов и ключевых состояний игры (до 16 снимков):
-   splash, menu, game-idle, game-action-start/mid/end, win overlays,
-   paytable, settings, help, daily-bonus, leaderboard, profile, edge-cases
-2. Собирает release APK (`flutter build apk --release`) + AAB для Play Store
-3. Копирует исходники в `project_zip/<name>-<ts>/source/` (исключая `.git/`,
-   `build/`, `.dart_tool/`, ассеты каша и другие build-артефакты)
-4. Выполняет `flutter clean` (после сборки APK, иначе APK удалится вместе с build/)
-5. Архивирует всё в `project_zip/<name>-<ts>.zip` с SHA256 checksum
-6. Генерирует `RELEASE_INFO.md` с метаданными релиза
-
-**Политика автозапуска:**
-- `/autocreate` ОБЯЗАН запустить `/release-package` сам — не полагаясь на пользователя
-- Если Фаза 10.5 была SKIPPED (нет устройства) — `/release-package` запускается с
-  внутренним `SKIP_SCREENSHOTS=1`, но APK и архив всё равно создаются
-- Если APK build упал — архив всё равно создаётся (пользователь получит хотя бы
-  исходники и скриншоты), с пометкой APK_FAILED в `RELEASE_INFO.md`
-- В финальном отчёте (Фаза 12) `/release-package` ДОЛЖЕН также упоминаться как
-  команда для повторного перезапуска (если пользователь внёс изменения)
-
-**Критерии выхода (ОБЯЗАТЕЛЬНО проверить все):**
-- `.tar.gz` архив создан в `project_zip/<name>-<ts>.tar.gz` и прошёл `tar -tzf` валидацию
-- Хотя бы один из: APK собран ИЛИ скриншоты сделаны (≥5) — иначе отчитаться FAIL
-- **APK ВНУТРИ архива** (если APK был):
-  `tar -tzf project_zip/<name>-<ts>.tar.gz | grep -q "/apk/.*app-release.apk$"`
-- **Скриншоты ВНУТРИ архива** (если эмулятор был):
-  `tar -tzf project_zip/<name>-<ts>.tar.gz | grep -c "/screenshots/.*\.png$"` ≥ 5
-- **Исходники ВНУТРИ архива**:
-  `tar -tzf project_zip/<name>-<ts>.tar.gz | grep -q "/source/pubspec.yaml$"`
-- Если хоть одна проверка провалена — tar.gz неполный, ПЕРЕСОБРАТЬ
-
-**Артефакты в `project_zip/<name>-<ts>/`:**
-- `screenshots/` — PNG файлы всех экранов
-- `apk/` — release APK (+ AAB, + per-abi APKs)
-- `source/` — полный исходник проекта (без build-артефактов)
-- `RELEASE_INFO.md` — метаданные, SHA256, размеры, версии
-- `build-apk.log` — лог сборки APK
-- `validation.log` — результат `dart analyze`
-- `test-results.log` — результат `flutter test`
-- `runtime-report/` — отчёт runtime-верификации из Фазы 10.5
-
----
-
-## Фаза 11 — Session State Update [~1 мин]
-
-Обновить `production/session-state/active.md`:
+Создать `production/session-state/autocreate-handoff.md` со всем контекстом,
+необходимым subagent-у:
 
 ```markdown
-<!-- STATUS -->
-Epic: [Game Name]
-Feature: Complete Game
-Task: Production-ready
-<!-- /STATUS -->
+# AutoCreate Handoff — Часть 1 завершена
 
-## Статус
-Игра полностью реализована и готова к запуску.
+**Время завершения Части 1**: [ISO timestamp]
+**Следующий шаг**: subagent выполняет `.claude/skills/autocreate-finalize/SKILL.md`
 
-## Файлы проекта
-[Список всех созданных файлов]
+## Метаданные игры
+- **Название**: [Game Name]
+- **Жанр**: [gambling / puzzle / arcade / physics / casual / card]
+- **Архетип**: [A-X / Unique]
+- **Package name**: com.gamestudio.[name]
+- **Пути**:
+  - Концепт: `design/gdd/game-concept.md`
+  - Баланс: `design/balance/[rtp-config.json или level-config.json]`
+  - Главный класс игры: `lib/game/[name]_game.dart`
+  - Entry point: `lib/main.dart`
 
-## Тесты
-- Unit: [N] тестов, все зелёные
-- Integration: [N] тестов, все зелёные
-- Edge cases: [N] тестов, все зелёные
+## Статус Части 1 (Фазы 1–10)
+- [x] Фаза 1: Концепт сгенерирован
+- [x] Фаза 2: Flutter Android проект создан
+- [x] Фаза 3: [N] ассетов сгенерированы ([SVG/PNG])
+- [x] Фаза 4: 4 агента завершили имплементацию
+- [x] Фаза 5: Интеграция проверена
+- [x] Фаза 6: `dart analyze lib/` → 0 errors
+- [x] Фаза 7: `flutter test` → [N] тестов, все зелёные
+- [x] Фаза 8: UI/UX аудит пройден (60+ проверок)
+- [x] Фаза 9: Balance check — [RTP XX.X% / difficulty OK]
+- [x] Фаза 10: Crash-prevention аудит — 20/20 чистые
 
-## Баланс
-[RTP / Difficulty curve результаты]
+## Задачи для Части 2 (subagent выполняет)
+- [ ] Фаза 10.5: Runtime emulator verification (скрины + logcat + auto-fix loop)
+- [ ] Фаза 10.6: Release package (до 16 скринов + APK + `flutter clean` + `.tar.gz`)
+- [ ] Фаза 11: Обновить `production/session-state/active.md`
+- [ ] Фаза 12: Финальный отчёт
+
+## Контракт артефактов Части 2 (должны существовать ПОСЛЕ)
+- `project_zip/<name>-<ts>.tar.gz` (валидный `tar -tzf`)
+- Внутри архива: `source/pubspec.yaml`, `apk/app-release.apk`,
+  `screenshots/*.png` (≥5 если был эмулятор), `RELEASE_INFO.md`
+
+## Ссылки на документацию
+- Skill Части 2: `.claude/skills/autocreate-finalize/SKILL.md`
+- Runtime verification: `.claude/skills/emulator-test/SKILL.md`
+- Release packaging: `.claude/skills/release-package/SKILL.md`
 ```
 
----
+### 10.7.2 — Spawn subagent через Agent tool
 
-## Фаза 12 — Final Report
+**ОБЯЗАТЕЛЬНО** вызвать Agent tool ИМЕННО ТАК (после записи handoff-файла):
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎮 AUTOCREATE COMPLETE — PRODUCTION READY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Agent(
+  subagent_type="general-purpose",
+  description="AutoCreate finalize: runtime + package",
+  prompt="""
+Ты работаешь во 2-й части конвейера /autocreate с чистым контекстом.
 
-📱 Экраны (12+):
-   ✅ Splash Screen (animated, auto-navigate)
-   ✅ Main Menu (particles, staggered entrance, 5+ buttons)
-   ✅ Game Screen + HUD (ValueListenableBuilder, animated counters)
-   ✅ Paytable / Rules (real data, scrollable)
-   ✅ Settings (SharedPreferences, sound/vibration/auto-play)
-   ✅ Help (step-by-step guide)
-   ✅ Daily Bonus (date check, rewards)
-   ✅ Leaderboard (persistent scores)
-   ✅ Player Profile (avatar, nickname, stats)
-   ✅ Win Overlays (small / big / mega — 3 tiers)
-   ✅ Insufficient Funds (Glassmorphism)
-   ✅ Bonus Mode Overlay
+КОНТЕКСТ:
+- Часть 1 конвейера завершена (dart analyze чист, flutter test зелёный, UI-аудит пройден)
+- Handoff-файл: production/session-state/autocreate-handoff.md — прочитай его ПЕРВЫМ
+- Твой skill-план: .claude/skills/autocreate-finalize/SKILL.md — прочитай его ВТОРЫМ и выполняй
 
-🎮 Gameplay:
-   ✅ Core game loop works end-to-end
-   ✅ [Genre-specific]: [RNG/matching/spawning/physics] fully functional
-   ✅ Stateless Outcomes (result before animation)
-   ✅ GameState sealed class (no boolean flags)
-   ✅ All constants in GameConfig (no magic numbers)
-   ✅ Double-click protection
-   ✅ Balance/score updates correctly
+ТВОИ ЗАДАЧИ (в порядке):
+1. Фаза 10.5 — runtime emulator verification (см. .claude/skills/emulator-test/SKILL.md --quick)
+   - auto-fix loop до 3 итераций при CRITICAL проблемах
+2. Фаза 10.6 — release-package (см. .claude/skills/release-package/SKILL.md)
+   - финальные скриншоты + APK + flutter clean + .tar.gz
+3. Фаза 11 — обновить production/session-state/active.md
+4. Фаза 12 — вернуть финальный отчёт в том формате, что указан в autocreate-finalize/SKILL.md
 
-🎨 Anti-Slop Audit (32/32 passed):
-   ✅ Custom theme (not ThemeData.dark)
-   ✅ 2 fonts connected (display + body)
-   ✅ Unified animation timings (animations.dart)
-   ✅ Glassmorphism / BackdropFilter
-   ✅ Custom screen transitions
-   ✅ Micro-interactions on all buttons
-   ✅ Animated counters for numbers
-   ✅ Themed loader (not CircularProgressIndicator)
-   ✅ No Colors.purple defaults
-   ✅ No print() in production
+КРИТЕРИИ УСПЕХА:
+- project_zip/<name>-<ts>.tar.gz создан и валиден (tar -tzf проходит)
+- Внутри: source/pubspec.yaml, apk/app-release.apk (если build прошёл),
+  screenshots/*.png (≥5 если был эмулятор), RELEASE_INFO.md
+- Если APK build упал — архив всё равно создаётся с пометкой APK_FAILED
 
-🧪 Tests:
-   ✅ Unit tests: [N] passed
-   ✅ Integration tests: [N] passed
-   ✅ Edge case tests: [N] passed
-   ✅ State leakage: 100 actions — clean
-
-🛡️ Crash Prevention:
-   ✅ Null safety: no bare ! operators
-   ✅ Dispose: all controllers cleaned up
-   ✅ Audio: graceful fallback if files missing
-   ✅ SVG: validated paths
-   ✅ SharedPreferences: try-catch wrapped
-   ✅ No overflow possible (FittedBox/ellipsis)
-
-⚖️ Balance:
-   [Gambling: RTP XX.X% (target 95-97%)]
-   [Puzzle: Difficulty curve validated]
-   [Arcade: Spawn/scoring balanced]
-
-📦 Релизная упаковка (создана автоматически):
-   project_zip/[name]-[ts].tar.gz       — финальный архив (gzip)
-   project_zip/[name]-[ts]/apk/         — release APK + AAB
-   project_zip/[name]-[ts]/screenshots/ — N скриншотов экранов
-   project_zip/[name]-[ts]/source/      — исходники (после flutter clean)
-
-🔧 Команды запуска:
-   flutter run                  — запустить игру
-   flutter test                 — запустить тесты
-   flutter run -d chrome        — запустить в браузере
-   adb install project_zip/[name]-[ts]/apk/*.apk — установить APK
-
-📋 Рекомендованные перезапуски (уже выполнены автоматически, но можно повторить):
-   /emulator-test               — ПОВТОРНАЯ runtime-верификация на эмуляторе
-                                  (уже прогнана автоматически в Фазе 10.5)
-   /release-package             — ПОВТОРНАЯ упаковка релиза (скрины + APK + ZIP)
-                                  (уже прогнана автоматически в Фазе 10.6)
-
-📋 Опциональные следующие шаги:
-   /add-feature [фича]          — добавить механику
-   /code-review                 — полное ревью кода
-   /balance-check               — детальная проверка баланса (1М итераций)
-   /perf-profile                — профилирование производительности
-   /release-checklist           — финальный GO/NO-GO чеклист перед стор-релизом
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ОГРАНИЧЕНИЯ:
+- НЕ переписывай игровой код — Часть 1 уже закончила имплементацию
+- Допустимы ТОЛЬКО runtime-автофиксы UI-багов, которые видны на скриншотах
+  или в logcat (overflow, setState after dispose, missing asset, null ValueNotifier)
+- Не меняй game_config.dart, rtp-config.json — баланс уже утверждён
+"""
+)
 ```
+
+### 10.7.3 — Вывод в основную conversation
+
+После возврата subagent-а — в основную сессию сразу вернуть пользователю
+**только** результат subagent-а (финальный отчёт Фазы 12). Не дублировать
+работу. Если subagent упал — сообщить пользователю точную причину и команду
+для ручного перезапуска в новой conversation: `/autocreate-finalize`.
 
 ---
 
 ## Гарантии качества (Quality Gates)
 
 Каждая фаза имеет критерий выхода. Если критерий не выполнен — фаза повторяется.
+
+### Часть 1 (основная conversation):
 
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
@@ -1014,20 +870,28 @@ Task: Production-ready
 | 5. Integration | Все 12 связей проверены | 3 |
 | 6. Build | `dart analyze` — 0 errors | 10 |
 | 7. Tests | `flutter test` — all passed | 5 |
-| 8. UI Audit | 32/32 checks passed | 3 |
+| 8. UI Audit | 60+ checks passed | 3 |
 | 9. Balance | RTP/difficulty в допустимом диапазоне | 3 |
-| 10. Crash Prevention | 10/10 checks passed, `dart analyze` + `flutter test` clean | 3 |
-| 10.5. Runtime Emulator | 0 CRITICAL visual issues + 0 FATAL exceptions в logcat | 3 (SKIPPED если нет устройств) |
-| 10.6. Release Package | `project_zip/<name>-<ts>.tar.gz` создан и валиден + APK собран ИЛИ ≥5 скриншотов | 2 (non-fatal) |
+| 10. Crash Prevention | 20/20 checks passed, `dart analyze` + `flutter test` clean | 3 |
+| 10.7. Handoff & Spawn | Handoff-файл записан + Agent tool вызван | 1 |
 
-**АБСОЛЮТНЫЙ МИНИМУМ для завершения**:
+### Часть 2 (subagent, подробности в `.claude/skills/autocreate-finalize/SKILL.md`):
+
+| Фаза | Критерий выхода | Макс. итераций |
+|------|----------------|---------------|
+| 10.5. Runtime Emulator | 0 CRITICAL visual issues + 0 FATAL exceptions | 3 (SKIPPED если нет устройств) |
+| 10.6. Release Package | `project_zip/<name>-<ts>.tar.gz` + APK ИЛИ ≥5 скриншотов | 2 (non-fatal) |
+
+**АБСОЛЮТНЫЙ МИНИМУМ для Части 1 (без него нельзя звать Часть 2)**:
 - `dart analyze lib/` — 0 errors
 - `flutter test` — all passed
 - 12+ экранов созданы
 - Навигация работает между всеми экранами
 - Основная игровая механика работает
-- Нет потенциальных крашей (null, overflow, unhandled async)
-- **Android release APK собран** (`build/app/outputs/flutter-apk/app-release.apk`)
+- Handoff-файл записан и Agent tool вызван
+
+**АБСОЛЮТНЫЙ МИНИМУМ для Части 2 (subagent отчитывается в основную сессию)**:
+- **Android release APK собран** (если эмулятор был): `build/app/outputs/flutter-apk/app-release.apk`
 - **Финальный архив создан**: `project_zip/<name>-<ts>.tar.gz`, проходит `tar -tzf`
-- **Содержимое архива проверено**: есть `source/`, `apk/`, `screenshots/` (если был эмулятор),
-  `RELEASE_INFO.md`
+- **Содержимое архива проверено**: есть `source/`, `apk/` (если был build),
+  `screenshots/` (если был эмулятор), `RELEASE_INFO.md`
