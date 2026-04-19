@@ -1,6 +1,6 @@
 ---
 name: release-package
-description: "Финальная упаковка релиза мини-игры. Делает скриншоты всех экранов и ключевых состояний игры на эмуляторе/устройстве, собирает release APK (flutter build apk --release), выполняет flutter clean, и архивирует ВЕСЬ проект вместе со скриншотами и APK в ZIP-файл, который сохраняется в папке project_zip/. Вызывается автоматически из /autocreate после успешной runtime-верификации, но может быть запущен и отдельно для любого готового проекта."
+description: "Финальная упаковка релиза мини-игры. Делает скриншоты всех экранов и ключевых состояний игры на эмуляторе/устройстве, собирает release APK (flutter build apk --release), выполняет flutter clean, и архивирует ВЕСЬ проект вместе со скриншотами и APK в .tar.gz-файл, который сохраняется в папке project_zip/. Вызывается автоматически из /autocreate после успешной runtime-верификации, но может быть запущен и отдельно для любого готового проекта."
 argument-hint: "[--no-clean | --no-apk | --screens-only | --platform android|ios | --device <id>]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -12,7 +12,8 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 1. Набор скриншотов всех экранов и состояний игры (визуальная документация)
 2. Release-сборка APK (готовый к установке артефакт)
 3. Очищенный от build-артефактов проект (`flutter clean`)
-4. Единый ZIP-архив со всем этим внутри в директории `project_zip/`
+4. Единый `.tar.gz` архив со всем этим внутри в директории `project_zip/`
+   (gzip выбран как лучше всего сжимающий исходники Flutter + Android SDK артефакты)
 
 **Когда запускается**:
 - Автоматически из `/autocreate` как финальная фаза 10.6 — после успешной Runtime Emulator Verification (фаза 10.5)
@@ -238,7 +239,9 @@ adb install apk/[PROJECT_NAME]-[TS]-release.apk
 
 ### Разработка (из исходников):
 \`\`\`bash
-cd source/
+# Распаковать архив
+tar -xzf [PROJECT_NAME]-[TS].tar.gz
+cd [PROJECT_NAME]-[TS]/source/
 flutter pub get
 flutter run
 \`\`\`
@@ -319,17 +322,71 @@ rsync -a \
   ./ "$SOURCE_DIR/"
 ```
 
-### 5.2. Создать финальный ZIP
+### 5.2. Создать финальный архив `.tar.gz`
+
+**Формат архива — `.tar.gz`** (gzip). Причины: нативный unix tooling, лучшее сжатие
+для исходников Flutter, сохраняет симлинки и права доступа.
 
 ```bash
-ARCHIVE_NAME="$PROJECT_NAME-$TS.zip"
+ARCHIVE_NAME="$PROJECT_NAME-$TS.tar.gz"
 ARCHIVE_PATH="$RELEASE_ROOT/$ARCHIVE_NAME"
 
-# Создаём ZIP из содержимого RELEASE_DIR (без вложенности)
-(cd "$RELEASE_ROOT" && zip -r "$ARCHIVE_NAME" "$(basename "$RELEASE_DIR")" -x "*.DS_Store")
+# Создаём tar.gz из содержимого RELEASE_DIR (без вложенности вне релизной директории)
+# --exclude исключает .DS_Store и прочий мусор
+(cd "$RELEASE_ROOT" && tar \
+  --exclude='.DS_Store' \
+  --exclude='*.swp' \
+  --exclude='__pycache__' \
+  -czf "$ARCHIVE_NAME" \
+  "$(basename "$RELEASE_DIR")")
+
+# Проверка что архив реально создан
+if [[ ! -s "$ARCHIVE_PATH" ]]; then
+  echo "❌ tar.gz не создан — критическая ошибка упаковки"
+  exit 1
+fi
 
 ARCHIVE_SIZE=$(du -h "$ARCHIVE_PATH" | awk '{print $1}')
 echo "✅ Архив готов: $ARCHIVE_PATH ($ARCHIVE_SIZE)"
+
+# Быстрая проверка целостности архива
+tar -tzf "$ARCHIVE_PATH" > /dev/null 2>&1 || {
+  echo "❌ Архив повреждён (tar -tzf fail)"
+  exit 1
+}
+
+# КРИТИЧЕСКАЯ проверка: APK и скриншоты ДОЛЖНЫ быть ВНУТРИ tar.gz
+# (требование пользователя: "the apk and screenshots should all be inside of the tar.gz")
+ARCHIVE_CONTENTS=$(tar -tzf "$ARCHIVE_PATH")
+
+echo "$ARCHIVE_CONTENTS" | grep -q "/apk/.*\.apk$" || {
+  echo "❌ APK не найден ВНУТРИ tar.gz — архив неполный"
+  echo "Содержимое архива:"
+  echo "$ARCHIVE_CONTENTS" | head -20
+  exit 1
+}
+
+echo "$ARCHIVE_CONTENTS" | grep -q "/source/pubspec.yaml$" || {
+  echo "❌ Исходники не найдены ВНУТРИ tar.gz (нет source/pubspec.yaml)"
+  exit 1
+}
+
+echo "$ARCHIVE_CONTENTS" | grep -q "/RELEASE_INFO.md$" || {
+  echo "❌ RELEASE_INFO.md не найден ВНУТРИ tar.gz"
+  exit 1
+}
+
+# Скриншоты обязательны если эмулятор не был пропущен
+if [[ "$SKIP_SCREENSHOTS" != "1" ]]; then
+  SCREENSHOT_COUNT=$(echo "$ARCHIVE_CONTENTS" | grep -c "/screenshots/.*\.png$" || true)
+  if [[ "$SCREENSHOT_COUNT" -lt 1 ]]; then
+    echo "❌ Скриншоты не найдены ВНУТРИ tar.gz (ожидалось минимум 1 PNG)"
+    exit 1
+  fi
+  echo "✅ Внутри архива: apk/*.apk, screenshots/ ($SCREENSHOT_COUNT PNG), source/, RELEASE_INFO.md"
+else
+  echo "✅ Внутри архива: apk/*.apk, source/, RELEASE_INFO.md (скриншоты пропущены)"
+fi
 
 # Вычислить SHA256 архива
 if command -v shasum &>/dev/null; then
@@ -343,8 +400,17 @@ echo "$ARCHIVE_SHA  $ARCHIVE_NAME" > "$ARCHIVE_PATH.sha256"
 
 ### 5.3. Опционально — удалить промежуточную директорию
 
-По умолчанию оставляем `$RELEASE_DIR/` рядом с ZIP для быстрого доступа без распаковки.
-Если пользователь хочет только ZIP: удалить после архивации.
+`$RELEASE_DIR/` по умолчанию остаётся рядом с архивом для быстрого доступа без распаковки —
+**это копия**, настоящие артефакты (APK, скриншоты, исходники, RELEASE_INFO.md) уже
+находятся ВНУТРИ `tar.gz` (проверено в 5.2). Для чистого deliverable можно удалить:
+
+```bash
+# Оставить только tar.gz + .sha256 (чистая доставка)
+if [[ "$CLEAN_INTERMEDIATE" == "1" ]]; then
+  rm -rf "$RELEASE_DIR"
+  echo "✅ Промежуточная директория удалена — deliverable только .tar.gz"
+fi
+```
 
 ---
 
@@ -360,25 +426,33 @@ echo "$ARCHIVE_SHA  $ARCHIVE_NAME" > "$ARCHIVE_PATH.sha256"
 🎯 Проект: [PROJECT_NAME]
 📅 Сборка: [TS]
 
-📁 Артефакты:
-   📦 ZIP архив:     project_zip/[PROJECT_NAME]-[TS].zip ([SIZE])
-   📱 APK (release): project_zip/[PROJECT_NAME]-[TS]/apk/[PROJECT_NAME]-[TS]-release.apk
-   🖼️  Скриншоты:     project_zip/[PROJECT_NAME]-[TS]/screenshots/ ([N] файлов)
-   📄 Release info:  project_zip/[PROJECT_NAME]-[TS]/RELEASE_INFO.md
-   💾 Исходники:     project_zip/[PROJECT_NAME]-[TS]/source/
+📦 Единый deliverable:
+   project_zip/[PROJECT_NAME]-[TS].tar.gz ([SIZE])
+
+📂 Содержимое ВНУТРИ архива (проверено `tar -tzf`):
+   📱 [PROJECT_NAME]-[TS]/apk/[PROJECT_NAME]-[TS]-release.apk
+   🖼️  [PROJECT_NAME]-[TS]/screenshots/ ([N] PNG файлов)
+   💾 [PROJECT_NAME]-[TS]/source/ (полный Flutter проект)
+   📄 [PROJECT_NAME]-[TS]/RELEASE_INFO.md
 
 🔒 SHA256 архива: [SHA]
 
 ✅ Проверки:
-   dart analyze:    [PASS/FAIL]
-   flutter test:    [PASS/FAIL]
-   APK build:       [PASS/FAIL]
-   Screenshots:     [N]/[TOTAL]
+   dart analyze:         [PASS/FAIL]
+   flutter test:         [PASS/FAIL]
+   APK build:            [PASS/FAIL]
+   Screenshots:          [N]/[TOTAL]
+   APK внутри tar.gz:    ✅ verified
+   Screenshots в tar.gz: ✅ verified ([N] PNG)
+   Source в tar.gz:      ✅ verified
 
 📋 Следующие шаги:
-   • Установить APK: adb install project_zip/[PROJECT_NAME]-[TS]/apk/*.apk
-   • Передать архив: project_zip/[PROJECT_NAME]-[TS].zip
-   • Для Play Store: использовать .aab файл из apk/ директории
+   • Передать архив: project_zip/[PROJECT_NAME]-[TS].tar.gz
+   • Распаковать: tar -xzf project_zip/[PROJECT_NAME]-[TS].tar.gz
+   • Установить APK (после распаковки):
+     adb install [PROJECT_NAME]-[TS]/apk/[PROJECT_NAME]-[TS]-release.apk
+   • Просмотреть скриншоты (после распаковки):
+     open [PROJECT_NAME]-[TS]/screenshots/
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -407,7 +481,7 @@ RELEASE_INFO.md), чтобы у пользователя был хотя бы и
 | 2. APK Build | `app-release.apk` существует | 2 (non-fatal) |
 | 3. Metadata | RELEASE_INFO.md создан | 1 |
 | 4. Clean | `flutter clean` без ошибок | 1 |
-| 5. Archive | ZIP создан и прошёл SHA256 | 1 |
+| 5. Archive | `.tar.gz` создан, `tar -tzf` проходит проверку, SHA256 записан | 1 |
 | 6. Report | Отчёт выведен пользователю | 1 |
 
 ---

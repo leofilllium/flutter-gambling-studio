@@ -6,7 +6,18 @@ All agent responses must be in Russian. Keep Dart/Flutter code, file paths, clas
 
 Treat slash commands as manual runbooks. When a user types `/brainstorm`, `/autocreate`, `/team-dev`, `/code-review`, `/ui-audit`, `/emulator-test`, `/balance-check`, `/release-package`, `/release-checklist`, or another studio command, open the matching file in `.claude/skills/*/SKILL.md` and follow it. For specialized roles, use the persona briefs in `.claude/agents/*.md`. If needed, run helper checks with `bash tools/codex-hooks.sh <hook-name>`.
 
-Note on `/autocreate`: it автоматически запускает `/emulator-test --quick` (Фаза 10.5) и `/release-package` (Фаза 10.6) как часть конвейера — эти фазы НЕ оставляются пользователю. В финальном отчёте эти же команды также упоминаются как опции для повторного запуска после ручных правок.
+Note on `/autocreate`: это полный конвейер Zero-to-Android-APK. Он ОБЯЗАН выполнить ВСЕ 12 фаз без пропусков:
+1. `flutter create --platforms android,ios,web` (Android — primary)
+2. Сгенерировать ассеты
+3. Написать код (4 параллельных агента)
+4. `dart analyze lib/` → цикл исправлений до 0 errors
+5. `flutter test` → все зелёные
+6. **Фаза 10.5**: автоматически запустить AVD (если не запущен) и `/emulator-test --quick` — скриншоты, vision-анализ, auto-fix
+7. **Фаза 10.6**: автоматически запустить `/release-package` — финальные скриншоты + `flutter build apk --release` + `flutter clean` + архивирование в **`.tar.gz`** в `project_zip/`
+
+Финальный deliverable: `project_zip/<name>-<ts>.tar.gz` должен содержать `source/`, `apk/app-release.apk`, `screenshots/`, `RELEASE_INFO.md`. Формат архива — строго `.tar.gz` (НЕ `.zip`).
+
+Эти фазы **НЕ** оставляются пользователю — они часть конвейера. Если нет Android-девайса, `/autocreate` пытается автозапустить первый доступный AVD (`emulator -list-avds | head -1`). В финальном отчёте эти команды упоминаются также как опции повторного запуска после ручных правок.
 
 If Codex CLI does not detect this project or local skills, run:
 
