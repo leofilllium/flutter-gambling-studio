@@ -317,7 +317,25 @@ Read file_path=production/runtime-screenshots/<ts>/01-splash.png
 ### Паттерны для grep
 
 ```bash
-# Flutter exceptions
+# ── Gradle / NDK build errors (checked FIRST — these prevent the app from starting) ──
+grep -B 2 -A 10 "FAILURE: Build failed" .claude/runtime-logs/flutter-run.log
+grep -B 2 -A 5  "No toolchains found\|NDK.*not installed\|NDK.*not configured" .claude/runtime-logs/flutter-run.log
+grep -B 2 -A 5  "Execution failed for task.*CompileDebug\|Execution failed for task.*Link" .claude/runtime-logs/flutter-run.log
+grep -B 2 -A 5  "ndkVersion is not set\|Install NDK" .claude/runtime-logs/flutter-run.log
+
+# If any Gradle/NDK error is found, apply the NDK auto-fix before continuing:
+# python3 -c "
+#   import re, pathlib
+#   bg = pathlib.Path('android/app/build.gradle')
+#   src = bg.read_text()
+#   if 'ndkVersion' not in src:
+#       src = src.replace('android {', 'android {\n    ndkVersion \"27.0.12077973\"', 1)
+#   src = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 21', src)
+#   bg.write_text(src)
+# "
+# command -v sdkmanager &>/dev/null && sdkmanager "ndk;27.0.12077973" 2>/dev/null || true
+
+# ── Flutter runtime exceptions ──
 grep -A 20 "EXCEPTION CAUGHT" .claude/runtime-logs/flutter-run.log
 grep -A 10 "Another exception was thrown" .claude/runtime-logs/flutter-run.log
 
