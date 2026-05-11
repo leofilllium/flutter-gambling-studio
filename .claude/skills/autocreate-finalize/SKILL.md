@@ -80,33 +80,45 @@ flutter test > /tmp/finalize_preflight_test.log 2>&1 || {
 ### 10.5.1 — Preflight с автозапуском AVD
 
 ```bash
-RUNNING_EMU=$(adb devices 2>/dev/null | grep -E "emulator-[0-9]+.*device$" | head -1 | awk '{print $1}')
-if [[ -z "$RUNNING_EMU" ]]; then
-  AVD=$(emulator -list-avds 2>/dev/null | head -1)
-  if [[ -n "$AVD" ]]; then
-    echo "🚀 Запуск AVD: $AVD"
-    nohup emulator -avd "$AVD" \
-          -no-snapshot-save -no-boot-anim \
-          -gpu swiftshader_indirect \
-          -no-audio \
-          > /tmp/avd.log 2>&1 &
-    EMU_PID=$!
-    echo "[emulator] PID=$EMU_PID"
-    adb wait-for-device
-    timeout 240 bash -c \
-      'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do sleep 2; done'
-    # Extra warm-up: wait for launcher to be fully interactive (~30 sec)
-    sleep 30
-    echo "✅ AVD загружен и прогрет"
-  else
-    echo "⚠️ Нет ни одного AVD. Фаза 10.5 — SKIPPED."
-    echo "   Фаза 10.6 (release-package) всё равно выполняется без скриншотов."
-    export SKIP_SCREENSHOTS=1
-  fi
+# Дефолт: Chrome web (не требует эмулятора).
+# Android AVD используется только при явном --platform android.
+CHROME_AVAILABLE=0
+flutter devices 2>/dev/null | grep -qiE "Chrome|web" && CHROME_AVAILABLE=1
+
+if [[ $CHROME_AVAILABLE -eq 1 ]]; then
+  echo "🌐 Chrome web доступен — используем его (default)"
+  export PLATFORM=web
+  unset SKIP_SCREENSHOTS
 else
-  echo "✅ Эмулятор уже запущен: $RUNNING_EMU"
-  # Unlock screen in case it's locked
-  adb -s "$RUNNING_EMU" shell input keyevent 82 2>/dev/null || true
+  # Fallback: Android эмулятор
+  RUNNING_EMU=$(adb devices 2>/dev/null | grep -E "emulator-[0-9]+.*device$" | head -1 | awk '{print $1}')
+  if [[ -n "$RUNNING_EMU" ]]; then
+    echo "✅ Android эмулятор запущен: $RUNNING_EMU (fallback)"
+    export PLATFORM=android
+    adb -s "$RUNNING_EMU" shell input keyevent 82 2>/dev/null || true
+  else
+    AVD=$(emulator -list-avds 2>/dev/null | head -1)
+    if [[ -n "$AVD" ]]; then
+      echo "🚀 Запуск AVD: $AVD (fallback)"
+      nohup emulator -avd "$AVD" \
+            -no-snapshot-save -no-boot-anim \
+            -gpu swiftshader_indirect \
+            -no-audio \
+            > /tmp/avd.log 2>&1 &
+      EMU_PID=$!
+      echo "[emulator] PID=$EMU_PID"
+      adb wait-for-device
+      timeout 240 bash -c \
+        'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do sleep 2; done'
+      sleep 30
+      echo "✅ AVD загружен и прогрет"
+      export PLATFORM=android
+    else
+      echo "⚠️ Chrome недоступен и нет AVD. Фаза 10.5 — SKIPPED."
+      echo "   Фаза 10.6 (release-package) всё равно выполняется без скриншотов."
+      export SKIP_SCREENSHOTS=1
+    fi
+  fi
 fi
 
 # NDK pre-flight: ensure NDK 27 is available before flutter run attempt
