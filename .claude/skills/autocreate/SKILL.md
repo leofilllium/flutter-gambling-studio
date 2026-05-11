@@ -125,8 +125,31 @@ if [[ ! -d android/app ]]; then
   exit 1
 fi
 
-# Проверка минимального SDK для современного Flame 1.18.x
-# android/app/build.gradle должен иметь minSdkVersion >= 21
+# Установить ndkVersion и minSdkVersion для Flutter 3.27.x + Flame 1.18.x
+# NDK 27.x required by Flutter 3.27; minSdk 21 required by Flame
+python3 - <<'PY'
+import re, pathlib
+
+bg = pathlib.Path("android/app/build.gradle")
+src = bg.read_text()
+
+# ndkVersion — insert after "android {" if not already present
+if "ndkVersion" not in src:
+    src = src.replace("android {", 'android {\n    ndkVersion "27.0.12077973"', 1)
+
+# minSdkVersion — bump to 21 if lower
+src = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 21', src)
+
+bg.write_text(src)
+print("✅ android/app/build.gradle: ndkVersion + minSdkVersion patched")
+PY
+
+# Verify NDK is installed; install if sdkmanager is available
+if command -v sdkmanager &>/dev/null; then
+  sdkmanager --list_installed 2>/dev/null | grep -q "ndk;27" || \
+    sdkmanager "ndk;27.0.12077973" 2>/dev/null && echo "✅ NDK 27 confirmed" || \
+    echo "⚠️ sdkmanager could not install NDK — build will proceed and may fail if NDK missing"
+fi
 ```
 
 Обновление `pubspec.yaml`:

@@ -80,20 +80,55 @@ flutter test > /tmp/finalize_preflight_test.log 2>&1 || {
 ### 10.5.1 — Preflight с автозапуском AVD
 
 ```bash
-RUNNING_EMU=$(adb devices 2>/dev/null | grep -E "emulator-[0-9]+" | head -1 | awk '{print $1}')
+RUNNING_EMU=$(adb devices 2>/dev/null | grep -E "emulator-[0-9]+.*device$" | head -1 | awk '{print $1}')
 if [[ -z "$RUNNING_EMU" ]]; then
   AVD=$(emulator -list-avds 2>/dev/null | head -1)
   if [[ -n "$AVD" ]]; then
     echo "🚀 Запуск AVD: $AVD"
-    nohup emulator -avd "$AVD" -no-snapshot-save -no-boot-anim > /tmp/avd.log 2>&1 &
+    nohup emulator -avd "$AVD" \
+          -no-snapshot-save -no-boot-anim \
+          -gpu swiftshader_indirect \
+          -no-audio \
+          > /tmp/avd.log 2>&1 &
+    EMU_PID=$!
+    echo "[emulator] PID=$EMU_PID"
     adb wait-for-device
-    timeout 180 adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
-    echo "✅ AVD загружен"
+    timeout 240 bash -c \
+      'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do sleep 2; done'
+    # Extra warm-up: wait for launcher to be fully interactive (~30 sec)
+    sleep 30
+    echo "✅ AVD загружен и прогрет"
   else
     echo "⚠️ Нет ни одного AVD. Фаза 10.5 — SKIPPED."
     echo "   Фаза 10.6 (release-package) всё равно выполняется без скриншотов."
     export SKIP_SCREENSHOTS=1
   fi
+else
+  echo "✅ Эмулятор уже запущен: $RUNNING_EMU"
+  # Unlock screen in case it's locked
+  adb -s "$RUNNING_EMU" shell input keyevent 82 2>/dev/null || true
+fi
+
+# NDK pre-flight: ensure NDK 27 is available before flutter run attempt
+if command -v sdkmanager &>/dev/null; then
+  sdkmanager --list_installed 2>/dev/null | grep -q "ndk;27" || {
+    echo "🔧 NDK 27 not found — installing..."
+    sdkmanager "ndk;27.0.12077973" 2>/dev/null && echo "✅ NDK 27 installed" || \
+      echo "⚠️ NDK install failed — build may fail if ndkVersion not resolved"
+  }
+fi
+
+# Patch android/app/build.gradle if ndkVersion missing (prevents Gradle build failure)
+if [[ -f android/app/build.gradle ]] && ! grep -q "ndkVersion" android/app/build.gradle; then
+  python3 - <<'PY'
+import re, pathlib
+bg = pathlib.Path("android/app/build.gradle")
+src = bg.read_text()
+src = src.replace("android {", 'android {\n    ndkVersion "27.0.12077973"', 1)
+src = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 21', src)
+bg.write_text(src)
+print("✅ Patched build.gradle: ndkVersion + minSdkVersion 21")
+PY
 fi
 ```
 
