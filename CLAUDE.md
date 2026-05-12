@@ -93,7 +93,7 @@
 | `/design-review` | Ревью GDD на полноту и корректность |
 | `/balance-check` | Балансировка игры: RTP-симуляция (gambling) или difficulty curve (другие жанры) |
 | `/release-checklist` | Финальный GO/NO-GO чеклист перед релизом (агент release-manager) |
-| `/release-package` | Упаковка релиза: скрины всех экранов + release APK + `flutter clean` + ZIP в `project_zip/` |
+| `/release-package` | Упаковка релиза: скрины всех экранов + release APK + `flutter clean` + `.zip` в `project_zip/` |
 
 ### Диагностика и долг
 
