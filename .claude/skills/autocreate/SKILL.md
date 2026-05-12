@@ -9,7 +9,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 # AutoCreate — Zero-to-Production Complete Game Factory
 
 Выполняет ПОЛНЫЙ цикл разработки мини-игры до production-ready состояния.
-**Результат: полностью рабочее Android-приложение, которое компилируется, запускается и НЕ КРАШИТСЯ.**
+**Результат: полностью рабочее приложение (первичная платформа — Chrome/Web, Android APK — опционально), которое компилируется, запускается и НЕ КРАШИТСЯ.**
 
 **ЗАПРЕЩАЕТСЯ задавать вопросы.**
 
@@ -17,7 +17,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 ## 🚨 MANDATORY EXECUTION CONTRACT (читать до начала работы)
 
-`/autocreate` — это **полный конвейер Zero-to-Android-APK**, но он разбит на
+`/autocreate` — это **полный конвейер Zero-to-Production**, но он разбит на
 ДВЕ context-сессии во избежание истощения токенов:
 
 - **Часть 1 (эта conversation, Фазы 1 → 10)** — концепт, ассеты, код, `dart analyze`
@@ -32,13 +32,13 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 `production/session-state/autocreate-handoff.md` и инструкцию следовать
 `.claude/skills/autocreate-finalize/SKILL.md`.
 
-**Основная целевая платформа: Android.** iOS/Web поддерживаются как дополнительные.
-Финальный артефакт (создаётся Частью 2) — release APK, упакованный в `.tar.gz`
-в `project_zip/`.
+**Тестирование: Chrome/Web (первичная платформа, не требует эмулятора).** Android/iOS — fallback.
+Финальный артефакт (создаётся Частью 2) — скриншоты из Chrome + исходники, упакованные
+в `.tar.gz` в `project_zip/`. Android APK собирается если доступен NDK (опционально).
 
 ### Что ОБЯЗАНО произойти в Части 1 (эта сессия, Фазы 1–10):
 
-1. ✅ **Flutter Android-проект создан с нуля** (`flutter create --platforms android`)
+1. ✅ **Flutter Web-проект создан с нуля** (`flutter create --platforms web,android,ios`)
 2. ✅ **Все ассеты сгенерированы** (SVG по умолчанию, путь в `lib/assets.dart`)
 3. ✅ **Вся игровая логика написана** (4 параллельных агента)
 4. ✅ **`dart analyze lib/` → 0 errors** (цикл исправлений, до 10 итераций)
@@ -51,18 +51,18 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 ### Что ОБЯЗАН выполнить subagent Части 2 (Фазы 10.5–12):
 
-11. ✅ **Android эмулятор: приложение запущено, скриншоты, логи разобраны**
+11. ✅ **Chrome/Web: приложение запущено, скриншоты через `flutter screenshot`, логи разобраны**
 12. ✅ **Все CRITICAL баги со скриншотов исправлены** (auto-fix loop, до 3 итераций)
 13. ✅ **Финальные скриншоты ГОТОВОЙ игры** (до 16 снимков)
-14. ✅ **Release APK собран** (`flutter build apk --release`)
-15. ✅ **`flutter clean` выполнен** (после сборки APK, не до)
-16. ✅ **Весь проект + APK + скриншоты упакованы в `project_zip/<name>-<ts>.tar.gz`**
+14. ✅ **Android APK собран** (`flutter build apk --release`) если NDK доступен — опционально
+15. ✅ **`flutter clean` выполнен** (после сборок, не до)
+16. ✅ **Весь проект + APK (если был) + скриншоты Chrome упакованы в `project_zip/<name>-<ts>.tar.gz`**
 
 ### Запрещено в Части 1:
 
 - ❌ Пытаться выполнить Фазу 10.5 (emulator-test) в основной conversation
 - ❌ Пытаться выполнить Фазу 10.6 (release-package) в основной conversation
-- ❌ Вызывать `flutter run`, `flutter build apk`, `adb shell`, `emulator`
+- ❌ Вызывать `flutter run`, `flutter build web`, `flutter build apk`, `adb shell`, `emulator`
   в основной conversation — это задачи subagent-а
 - ❌ Делать stub-файлы или TODO-комментарии в production коде
 - ❌ Отчитываться об успехе Части 1, если `dart analyze lib/` не 0 errors
@@ -77,10 +77,11 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ### Финальный критерий успеха всего конвейера:
 
 `ls project_zip/` показывает `<name>-<ts>.tar.gz` размером > 1 MB, И `tar -tzf` на нём
-показывает ВНУТРИ архива: `source/` (с `pubspec.yaml`), `apk/app-release.apk`,
-`screenshots/*.png` (≥5 если эмулятор был), `RELEASE_INFO.md`.
-APK и скриншоты ДОЛЖНЫ быть ВНУТРИ tar.gz, а не рядом с ним.
-Если нет — операция ПРОВАЛЕНА, независимо от прогресса ранних фаз.
+показывает ВНУТРИ архива: `source/` (с `pubspec.yaml`),
+`screenshots/*.png` (≥5 — из Chrome), `RELEASE_INFO.md`.
+Скриншоты ДОЛЖНЫ быть ВНУТРИ tar.gz, а не рядом с ним.
+`apk/app-release.apk` — опционально (если NDK доступен).
+Если скриншоты отсутствуют — операция ПРОВАЛЕНА.
 
 ---
 
@@ -113,21 +114,21 @@ APK и скриншоты ДОЛЖНЫ быть ВНУТРИ tar.gz, а не р�
 
 ## Фаза 2 — Flutter Project Bootstrap [~1 мин]
 
-**Целевая платформа — Android (primary).** iOS и Web — опциональные.
+**Целевая платформа — Web/Chrome (primary).** Android и iOS — опциональные.
 
 ```bash
-# ОБЯЗАТЕЛЬНО: Android должен быть первым в списке платформ
-flutter create . --project-name game_app --platforms android,ios,web --org com.gamestudio
+# Web должен быть первым в списке платформ
+flutter create . --project-name game_app --platforms web,android,ios --org com.gamestudio
 
-# Проверка что Android-директория создана
-if [[ ! -d android/app ]]; then
-  echo "❌ Android-проект не создан — критическая ошибка, прекращаем"
+# Проверка что web-директория создана
+if [[ ! -f web/index.html ]]; then
+  echo "❌ Web-проект не создан — критическая ошибка, прекращаем"
   exit 1
 fi
 
-# Установить ndkVersion и minSdkVersion для Flutter 3.27.x + Flame 1.18.x
-# NDK 27.x required by Flutter 3.27; minSdk 21 required by Flame
-python3 - <<'PY'
+# Патч Android если директория существует (опциональный — не блокирует при отсутствии NDK)
+if [[ -d android/app ]]; then
+  python3 - <<'PY'
 import re, pathlib
 
 bg = pathlib.Path("android/app/build.gradle")
@@ -144,11 +145,12 @@ bg.write_text(src)
 print("✅ android/app/build.gradle: ndkVersion + minSdkVersion patched")
 PY
 
-# Verify NDK is installed; install if sdkmanager is available
-if command -v sdkmanager &>/dev/null; then
-  sdkmanager --list_installed 2>/dev/null | grep -q "ndk;27" || \
-    sdkmanager "ndk;27.0.12077973" 2>/dev/null && echo "✅ NDK 27 confirmed" || \
-    echo "⚠️ sdkmanager could not install NDK — build will proceed and may fail if NDK missing"
+  # Verify NDK is installed; install if sdkmanager is available (non-blocking)
+  if command -v sdkmanager &>/dev/null; then
+    sdkmanager --list_installed 2>/dev/null | grep -q "ndk;27" || \
+      sdkmanager "ndk;27.0.12077973" 2>/dev/null && echo "✅ NDK 27 confirmed" || \
+      echo "⚠️ NDK не установлен — Android APK будет пропущен, web build продолжается"
+  fi
 fi
 ```
 
@@ -901,8 +903,8 @@ Agent(
 
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
-| 10.5. Runtime Emulator | 0 CRITICAL visual issues + 0 FATAL exceptions | 3 (SKIPPED если нет устройств) |
-| 10.6. Release Package | `project_zip/<name>-<ts>.tar.gz` + APK ИЛИ ≥5 скриншотов | 2 (non-fatal) |
+| 10.5. Runtime Chrome | 0 CRITICAL visual issues + 0 FATAL exceptions | 3 (Chrome всегда доступен) |
+| 10.6. Release Package | `project_zip/<name>-<ts>.tar.gz` + ≥5 скриншотов Chrome | 2 (non-fatal) |
 
 **АБСОЛЮТНЫЙ МИНИМУМ для Части 1 (без него нельзя звать Часть 2)**:
 - `dart analyze lib/` — 0 errors
@@ -913,7 +915,7 @@ Agent(
 - Handoff-файл записан и Agent tool вызван
 
 **АБСОЛЮТНЫЙ МИНИМУМ для Части 2 (subagent отчитывается в основную сессию)**:
-- **Android release APK собран** (если эмулятор был): `build/app/outputs/flutter-apk/app-release.apk`
+- **Chrome скриншоты**: ≥5 снимков в `production/runtime-screenshots/<ts>/` (обязательно)
 - **Финальный архив создан**: `project_zip/<name>-<ts>.tar.gz`, проходит `tar -tzf`
-- **Содержимое архива проверено**: есть `source/`, `apk/` (если был build),
-  `screenshots/` (если был эмулятор), `RELEASE_INFO.md`
+- **Содержимое архива проверено**: есть `source/`, `screenshots/`, `RELEASE_INFO.md`.
+  `apk/` — опционально (если NDK доступен).

@@ -1,31 +1,33 @@
 ---
 name: emulator-test
-description: "Runtime-верификация готовой мини-игры на реальном устройстве через ADB (Android) или Simulator (iOS). Запускает приложение, навигирует по всем экранам, делает скриншоты, визуально анализирует их на наличие проблем (пустой игровой экран, RenderFlex overflow, Flutter red screen, отсутствующие ассеты, белые/чёрные экраны), парсит logcat на exceptions, и автоматически исправляет найденные баги через цикл с агентами. Интегрируется в /autocreate после dart analyze."
-argument-hint: "[--device deviceId | --platform android|ios | --no-fix | --quick]  (default: android/adb)"
+description: "Runtime-верификация готовой мини-игры. Первичная платформа — Chrome/Web (не требует эмулятора). Fallback: Android ADB → iOS. Запускает приложение, навигирует по экранам, делает скриншоты, визуально анализирует через vision, парсит flutter-run.log/logcat на exceptions, автоматически исправляет найденные баги. Интегрируется в /autocreate после dart analyze."
+argument-hint: "[--device deviceId | --platform web|android|ios | --no-fix | --quick]  (default: web/chrome)"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
 
-# Emulator Test — Runtime-верификация на реальном устройстве
+# Emulator Test — Runtime-верификация (Chrome/Web-first)
 
 **Проблема**: `dart analyze` + `flutter test` **не видят** runtime-проблем, которые проявляются
 только при запуске: пустой игровой экран (чёрный прямоугольник вместо барабанов), RenderFlex
 overflow (жёлто-чёрные полосы), Flutter "red screen of death" (необработанный exception),
 кривой layout на конкретном разрешении, `setState() called after dispose`, missing asset, и т.д.
 
-**Это навык-страховка**: запускает игру в эмуляторе, навигирует по всем экранам, делает
-скриншоты, **визуально анализирует их через vision** и **парсит logcat** на предмет
-исключений. Найденное — автоматически чинит через цикл с профильными агентами.
+**Это навык-страховка**: запускает игру в **Chrome** (по умолчанию, без эмулятора),
+навигирует по всем экранам, делает скриншоты, **визуально анализирует их через vision**
+и **парсит flutter-run.log** на предмет исключений. Найденное — автоматически чинит.
+
+**Платформы по приоритету:**
+1. **Chrome/Web (дефолт)** — `flutter run -d chrome`, не нужен эмулятор, всегда доступен
+2. Android ADB — fallback при `--platform android` или если Chrome недоступен
+3. iOS Simulator — только при явном `--platform ios` (macOS)
 
 **Режимы:**
 - По умолчанию: полный цикл (найти → визуально проанализировать → исправить → перезапустить)
 - `--no-fix`: только отчёт без изменений
 - `--quick`: только главные экраны (splash/menu/game), без daily-bonus/leaderboard/profile
-- `--device <id>`: использовать конкретное устройство (иначе первое доступное Android-устройство)
-- `--platform android|ios|web`: принудительно выбрать платформу.
-  - **По умолчанию: Chrome web** — не требует эмулятора, всегда доступен
-  - `web` / `chrome` — `flutter run -d chrome` + `flutter screenshot`, не требует эмулятора
-  - iOS-ветка активируется только при явном `--platform ios`.
+- `--device <id>`: использовать конкретное устройство (иначе авто-выбор Chrome)
+- `--platform web|android|ios`: принудительно выбрать платформу (**дефолт: web**).
 
 ---
 
@@ -248,8 +250,8 @@ TS=$(date +%Y%m%d-%H%M%S)
 SHOT_DIR="production/runtime-screenshots/$TS"
 mkdir -p "$SHOT_DIR"
 
-# Платформа фиксирована: android (default). Переопределяется только --platform ios.
-PLATFORM="${PLATFORM:-android}"
+# Платформа фиксирована: web/chrome (default). Переопределяется --platform android|ios.
+PLATFORM="${PLATFORM:-web}"
 DEVICE_ID="${DEVICE_ID:-}"  # если пусто — flutter сам возьмёт первое устройство
 
 # Проверка PNG: первые 8 байт должны быть 89 50 4E 47 0D 0A 1A 0A
@@ -675,8 +677,8 @@ ls -1t production/runtime-screenshots/ | tail -n +6 | xargs -I{} rm -rf "product
 
 ## Аргументы
 
-- `--device <id>` — конкретный `flutter devices` ID (по умолчанию: авто-выбор)
-- `--platform android|web|ios` — форсировать платформу.
+- `--device <id>` — конкретный `flutter devices` ID (по умолчанию: авто-выбор Chrome)
+- `--platform web|android|ios` — форсировать платформу.
   - **По умолчанию: `web`** — `flutter run -d chrome`, не нужен эмулятор
   - `android` — ADB + `flutter screenshot`, требует запущенного устройства/эмулятора
 - `--no-fix` — только анализ и отчёт, без исправлений

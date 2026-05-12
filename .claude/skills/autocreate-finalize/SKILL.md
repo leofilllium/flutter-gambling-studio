@@ -208,32 +208,30 @@ Cleanup: остановить `flutter run` и `adb logcat` по PID из `.clau
 См. `.claude/skills/release-package/SKILL.md`.
 
 **Что делает release-package:**
-1. Скриншоты ВСЕХ экранов и ключевых состояний (до 16 снимков):
+1. Скриншоты ВСЕХ экранов и ключевых состояний (до 16 снимков) через Chrome:
    splash, menu, game-idle, game-action-start/mid/end, win overlays,
    paytable, settings, help, daily-bonus, leaderboard, profile, edge-cases
-2. Собирает release APK (`flutter build apk --release`) + AAB для Play Store
+2. **Опционально**: собирает release APK (`flutter build apk --release`) если NDK доступен
 3. Копирует исходники в `project_zip/<name>-<ts>/source/` (исключая `.git/`,
    `build/`, `.dart_tool/`, build-артефакты)
-4. `flutter clean` (после сборки APK, иначе APK удалится вместе с build/)
+4. `flutter clean` (после сборок, иначе APK удалится вместе с build/)
 5. Архивирует всё в `project_zip/<name>-<ts>.tar.gz` с SHA256
 6. Генерирует `RELEASE_INFO.md`
 
 **Политика:**
 - Если Фаза 10.5 была SKIPPED — передать `SKIP_SCREENSHOTS=1` в release-package,
-  но APK и архив всё равно создаются
-- Если APK build упал — архив всё равно создаётся с пометкой APK_FAILED в
-  `RELEASE_INFO.md`
+  но архив всё равно создаётся
+- Если APK build упал — архив создаётся с пометкой APK_FAILED (некритично)
 - Скриншоты из Фазы 10.5 (`production/runtime-screenshots/<ts>/`) можно
   переиспользовать если актуальны
 
 **Критерии выхода (ОБЯЗАТЕЛЬНО проверить все):**
 - `project_zip/<name>-<ts>.tar.gz` создан и проходит `tar -tzf`
-- Хотя бы один из: APK собран ИЛИ ≥5 скриншотов — иначе FAIL
 - `tar -tzf | grep -q "/source/pubspec.yaml$"` — исходники внутри
-- `tar -tzf | grep -q "/apk/.*app-release.apk$"` — APK внутри (если был)
-- `tar -tzf | grep -c "/screenshots/.*\.png$"` ≥ 5 — скриншоты внутри (если был эмулятор)
+- `tar -tzf | grep -c "/screenshots/.*\.png$"` ≥ 5 — скриншоты Chrome внутри
+- APK (`/apk/.*app-release.apk`) — опционально, не блокирует релиз
 
-Если хоть одна проверка провалена — tar.gz неполный, ПЕРЕСОБРАТЬ.
+Если скриншоты отсутствуют — tar.gz неполный, ПЕРЕСОБРАТЬ.
 
 ---
 
@@ -300,7 +298,7 @@ Task: Production-ready
 🧪 Tests (Часть 1):
    ✅ Unit: [N] passed | Integration: [N] passed | Edge: [N] passed
 
-🛡️ Runtime verification (Фаза 10.5):
+🌐 Runtime verification (Chrome, Фаза 10.5):
    [PASS / CONCERNS / FAIL / SKIPPED] — [N] CRITICAL, [N] HIGH issues
    Скриншоты: production/runtime-screenshots/<ts>/
    Report: production/runtime-screenshots/<ts>/REPORT.md
@@ -312,15 +310,16 @@ Task: Production-ready
 
 📦 Релизная упаковка:
    project_zip/[name]-[ts].tar.gz       — финальный архив (gzip, [XX] MB)
-   project_zip/[name]-[ts]/apk/         — release APK + AAB
-   project_zip/[name]-[ts]/screenshots/ — [N] скриншотов экранов
+   project_zip/[name]-[ts]/apk/         — release APK (если NDK был доступен)
+   project_zip/[name]-[ts]/screenshots/ — [N] скриншотов из Chrome
    project_zip/[name]-[ts]/source/      — исходники (после flutter clean)
    SHA256: [hash]
 
 🔧 Команды запуска:
-   flutter run                  — запустить игру
+   flutter run -d chrome        — запустить в Chrome
+   flutter run                  — запустить на доступном устройстве
    flutter test                 — запустить тесты
-   adb install project_zip/[name]-[ts]/apk/*.apk — установить APK
+   adb install project_zip/[name]-[ts]/apk/*.apk — установить APK (если есть)
 
 📋 Рекомендованные перезапуски:
    /emulator-test               — ПОВТОРНАЯ runtime-верификация
@@ -343,15 +342,15 @@ Task: Production-ready
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
 | 0. Preflight | Handoff есть + `dart analyze` 0 errors | 1 (fail-fast) |
-| 10.5. Runtime Emulator | 0 CRITICAL visual + 0 FATAL в logcat | 3 (SKIPPED если нет устройств) |
-| 10.6. Release Package | `.tar.gz` валиден + APK ИЛИ ≥5 скринов | 2 (non-fatal) |
+| 10.5. Runtime Chrome | 0 CRITICAL visual + 0 FATAL в flutter-run.log | 3 (Chrome всегда доступен) |
+| 10.6. Release Package | `.tar.gz` валиден + web build + ≥5 скринов Chrome | 2 (non-fatal) |
 | 11. Session State | `active.md` обновлён | 1 |
 | 12. Final Report | Отчёт напечатан / возвращён | 1 |
 
 **АБСОЛЮТНЫЙ МИНИМУМ для завершения Части 2:**
 - Финальный архив создан: `project_zip/<name>-<ts>.tar.gz`, проходит `tar -tzf`
-- Содержимое проверено: `source/`, `apk/` (если был build),
-  `screenshots/` (если был эмулятор), `RELEASE_INFO.md`
+- Содержимое проверено: `source/`, `screenshots/` (≥5 из Chrome), `RELEASE_INFO.md`
+- `apk/` — опционально (если NDK доступен)
 - `production/session-state/active.md` обновлён
 
 ---
@@ -367,6 +366,7 @@ Task: Production-ready
    - Есть архив, но `active.md` не обновлён → начать с 11
 3. Продолжает с нужной фазы, не переделывая сделанное
 
-**Если emulator физически отсутствует** — Фаза 10.5 SKIPPED,
-Фаза 10.6 выполняется с `SKIP_SCREENSHOTS=1`. Архив создаётся, но без скриншотов.
-В `RELEASE_INFO.md` пометка `EMULATOR_SKIPPED: true`.
+**Если Chrome почему-то недоступен** — попробовать `flutter run -d web-server` или
+установить Chrome. Chrome — первичная платформа, всегда должен быть доступен.
+Если совсем нет браузера — Фаза 10.5 SKIPPED, архив создаётся без скриншотов.
+В `RELEASE_INFO.md` пометка `CHROME_SKIPPED: true`.
