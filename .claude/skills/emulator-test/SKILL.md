@@ -146,6 +146,7 @@ echo $LOGCAT_PID > .claude/runtime-logs/logcat.pid
 
 ```bash
 flutter run -d chrome \
+  --web-browser-flag "--window-size=390,844" \
   > .claude/runtime-logs/flutter-run.log 2>&1 &
 FLUTTER_PID=$!
 echo $FLUTTER_PID > .claude/runtime-logs/flutter.pid
@@ -198,20 +199,20 @@ if command -v osascript &>/dev/null; then
   # macOS: активируем Chrome и кликаем в нижнюю треть (кнопка Play обычно там)
   osascript -e 'tell application "Google Chrome" to activate' 2>/dev/null
   sleep 1
-  # Симулируем тап по центру нижней трети (640, 600 для окна 1280x800)
-  osascript -e 'tell application "System Events" to click at {640, 600}' 2>/dev/null
+  # Симулируем тап по центру нижней трети (195, 630 для окна 390x844)
+  osascript -e 'tell application "System Events" to click at {195, 630}' 2>/dev/null
 elif command -v xdotool &>/dev/null; then
   # Linux: кликаем в Chrome окно
   WID=$(xdotool search --name "Flutter" | head -1)
-  [[ -n "$WID" ]] && xdotool mousemove --window "$WID" 640 600 click 1
+  [[ -n "$WID" ]] && xdotool mousemove --window "$WID" 195 630 click 1
 fi
 sleep 3  && chrome_shot "03-game-idle"
 sleep 1  # Ещё тап — основное действие
 if command -v osascript &>/dev/null; then
-  osascript -e 'tell application "System Events" to click at {640, 600}' 2>/dev/null
+  osascript -e 'tell application "System Events" to click at {195, 630}' 2>/dev/null
 elif command -v xdotool &>/dev/null; then
   WID=$(xdotool search --name "Flutter" | head -1)
-  [[ -n "$WID" ]] && xdotool mousemove --window "$WID" 640 600 click 1
+  [[ -n "$WID" ]] && xdotool mousemove --window "$WID" 195 630 click 1
 fi
 sleep 3  && chrome_shot "04-game-action"
 sleep 3  && chrome_shot "05-game-after-action"
@@ -329,13 +330,13 @@ nav_tap() {
     adb ${DEVICE_ID:+-s $DEVICE_ID} shell input tap "$x" "$y"
   elif [[ "$PLATFORM" == "web" || "$PLATFORM" == "chrome" ]]; then
     if command -v osascript &>/dev/null; then
-      # macOS: кликаем в Chrome окно. Координаты в экранных px (окно 1280x800).
-      # Центр горизонтально = 640, нижняя треть ≈ y=580
+      # macOS: кликаем в Chrome окно. Координаты в экранных px (окно 390x844).
+      # Центр горизонтально = 195, нижняя треть ≈ y=630
       osascript -e 'tell application "Google Chrome" to activate' 2>/dev/null; sleep 0.3
-      osascript -e "tell application \"System Events\" to click at {640, 580}" 2>/dev/null
+      osascript -e "tell application \"System Events\" to click at {195, 630}" 2>/dev/null
     elif command -v xdotool &>/dev/null; then
       local WID; WID=$(xdotool search --name "Flutter" 2>/dev/null | head -1)
-      [[ -n "$WID" ]] && xdotool mousemove --window "$WID" 640 580 click 1
+      [[ -n "$WID" ]] && xdotool mousemove --window "$WID" 195 630 click 1
     fi
   fi
 }
