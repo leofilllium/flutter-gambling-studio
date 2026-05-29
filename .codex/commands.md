@@ -30,6 +30,7 @@
 | `/add-feature` | `.claude/skills/add-feature/SKILL.md` | Добавление новой фичи в существующую игру |
 | `/release-checklist` | `.claude/skills/release-checklist/SKILL.md` | Финальный GO/NO-GO чеклист перед релизом (делегирует release-manager агенту) |
 | `/release-package` | `.claude/skills/release-package/SKILL.md` | Финальная упаковка релиза: скриншоты всех экранов через ADB/simctl, `flutter build apk --release` (+ AAB + split-per-abi), `flutter clean`, архивация всего проекта со скринами и APK в `project_zip/<name>-<ts>.zip` с SHA256. Автоматически запускается из `/autocreate` Фаза 10.6. |
+| `/store-screenshots` | `.claude/skills/store-screenshots/SKILL.md` | Маркетинговые скрины для стора: реальные кадры игры в рамке телефона на тематическом фоне (фоны через **GPT Images 2.0**), с заголовками-подписями + Google Play feature graphic. Композитинг через ImageMagick. Упаковка в `project_zip/<name>-store-<ts>.zip`. Не меняет код игры. |
 
 ## Правило исполнения
 

@@ -190,9 +190,168 @@ flutter:
 ```
 
 Скачать Google Fonts в `assets/fonts/` через curl.
-Создать ВСЕ необходимые директории:
+Создать базовые директории ассетов и дизайна:
 ```bash
-mkdir -p assets/images/sprites assets/images/ui assets/images/backgrounds assets/audio/sfx assets/fonts design/gdd design/balance
+mkdir -p assets/images/sprites assets/images/ui assets/images/backgrounds assets/audio/sfx assets/fonts design/gdd design/balance production/session-state
+```
+
+### 2.1 — Выбор архитектурной структуры проекта
+
+Выбрать один из 5 вариантов структуры **до** создания lib-директорий. Вариант выбирается псевдослучайно по времени — каждая игра получает уникальную организацию кода. Затем создать `design/structure.md` с полным маппингом путей.
+
+```bash
+python3 - <<'PYEOF'
+import time, pathlib
+
+variant = (int(time.time()) % 5) + 1
+
+variants = {
+    1: dict(
+        name="V1 — Layer Architecture",
+        app="lib/app.dart",
+        assets_constants="lib/assets.dart",
+        game_dir="lib/game/",
+        config="lib/game/game_config.dart",
+        game_state="lib/models/game_state.dart",
+        models_dir="lib/models/",
+        systems_dir="lib/systems/",
+        components_dir="lib/components/",
+        screens_dir="lib/screens/",
+        widgets_dir="lib/widgets/",
+        audio_service="lib/audio/audio_service.dart",
+        game_theme="lib/theme/game_theme.dart",
+        animations="lib/theme/animations.dart",
+        lib_dirs="lib/game lib/components lib/systems lib/models lib/screens lib/widgets lib/audio lib/theme",
+    ),
+    2: dict(
+        name="V2 — Feature Slice",
+        app="lib/core/app.dart",
+        assets_constants="lib/assets.dart",
+        game_dir="lib/gameplay/",
+        config="lib/domain/game_config.dart",
+        game_state="lib/domain/game_state.dart",
+        models_dir="lib/domain/",
+        systems_dir="lib/gameplay/systems/",
+        components_dir="lib/gameplay/components/",
+        screens_dir="lib/ui/screens/",
+        widgets_dir="lib/ui/widgets/",
+        audio_service="lib/services/audio_service.dart",
+        game_theme="lib/core/theme/game_theme.dart",
+        animations="lib/core/theme/animations.dart",
+        lib_dirs="lib/core/theme lib/gameplay/components lib/gameplay/systems lib/ui/screens lib/ui/widgets lib/domain lib/services",
+    ),
+    3: dict(
+        name="V3 — Presentation-Domain-Data",
+        app="lib/app.dart",
+        assets_constants="lib/assets.dart",
+        game_dir="lib/domain/game/",
+        config="lib/data/config/game_config.dart",
+        game_state="lib/domain/models/game_state.dart",
+        models_dir="lib/domain/models/",
+        systems_dir="lib/domain/systems/",
+        components_dir="lib/components/",
+        screens_dir="lib/presentation/screens/",
+        widgets_dir="lib/presentation/widgets/",
+        audio_service="lib/data/services/audio_service.dart",
+        game_theme="lib/presentation/theme/game_theme.dart",
+        animations="lib/presentation/theme/animations.dart",
+        lib_dirs="lib/presentation/screens lib/presentation/widgets lib/presentation/theme lib/domain/game lib/domain/systems lib/domain/models lib/data/config lib/data/services lib/components",
+    ),
+    4: dict(
+        name="V4 — Module Architecture",
+        app="lib/app.dart",
+        assets_constants="lib/assets.dart",
+        game_dir="lib/engine/",
+        config="lib/engine/game_config.dart",
+        game_state="lib/mechanics/models/game_state.dart",
+        models_dir="lib/mechanics/models/",
+        systems_dir="lib/mechanics/systems/",
+        components_dir="lib/visuals/components/",
+        screens_dir="lib/interface/screens/",
+        widgets_dir="lib/interface/widgets/",
+        audio_service="lib/infrastructure/audio/audio_service.dart",
+        game_theme="lib/visuals/theme/game_theme.dart",
+        animations="lib/visuals/theme/animations.dart",
+        lib_dirs="lib/engine lib/mechanics/systems lib/mechanics/models lib/visuals/components lib/visuals/theme lib/interface/screens lib/interface/widgets lib/infrastructure/audio",
+    ),
+    5: dict(
+        name="V5 — Vertical Slice",
+        app="lib/bootstrap/app.dart",
+        assets_constants="lib/bootstrap/assets.dart",
+        game_dir="lib/arena/",
+        config="lib/rules/config/game_config.dart",
+        game_state="lib/rules/models/game_state.dart",
+        models_dir="lib/rules/models/",
+        systems_dir="lib/rules/systems/",
+        components_dir="lib/arena/components/",
+        screens_dir="lib/menus/",
+        widgets_dir="lib/foundation/widgets/",
+        audio_service="lib/foundation/audio/audio_service.dart",
+        game_theme="lib/foundation/theme/game_theme.dart",
+        animations="lib/foundation/theme/animations.dart",
+        lib_dirs="lib/bootstrap lib/arena/components lib/rules/systems lib/rules/models lib/rules/config lib/hud lib/menus lib/foundation/audio lib/foundation/theme lib/foundation/widgets",
+    ),
+}
+
+v = variants[variant]
+content = f"""# Project Structure — Выбранный вариант
+
+## Variant: {v['name']}
+
+## Path Map
+
+### App Bootstrap
+- app: {v['app']}
+- assets_constants: {v['assets_constants']}
+- main: lib/main.dart
+
+### Game Engine (Flame)
+- game_dir: {v['game_dir']}
+- config: {v['config']}
+
+### State & Models
+- game_state: {v['game_state']}
+- models_dir: {v['models_dir']}
+
+### Systems (Logic)
+- systems_dir: {v['systems_dir']}
+
+### Flame Components
+- components_dir: {v['components_dir']}
+
+### Flutter Screens
+- screens_dir: {v['screens_dir']}
+
+### Flutter Widgets
+- widgets_dir: {v['widgets_dir']}
+
+### Audio
+- audio_service: {v['audio_service']}
+
+### Theme
+- game_theme: {v['game_theme']}
+- animations: {v['animations']}
+
+## Directories to Create
+{v['lib_dirs']}
+"""
+pathlib.Path("design/structure.md").write_text(content)
+print(f"✅ Structure variant {variant} ({v['name']}) → design/structure.md")
+print(f"LIB_DIRS={v['lib_dirs']}")
+PYEOF
+```
+
+Прочитать `design/structure.md` и создать lib-директории согласно выбранному варианту:
+
+```bash
+LIB_DIRS=$(python3 -c "
+import re
+txt = open('design/structure.md').read()
+m = re.search(r'## Directories to Create\n(.+)', txt, re.DOTALL)
+print(m.group(1).strip().split('\n')[0] if m else '')
+")
+mkdir -p $LIB_DIRS
+echo "✅ lib/ директории созданы для выбранного варианта структуры"
 ```
 
 **ОБЯЗАТЕЛЬНО**: после `flutter pub get` убедиться что нет ошибок зависимостей.
@@ -254,9 +413,30 @@ SVG выбирается автоматически. Никакого ввода
 > или `reasoning_effort` — эти параметры несовместимы с full-history fork и вызовут ошибку.
 > Используй только `description` и `prompt`.
 
+> **⚠️ СТРУКТУРНО-ЗАВИСИМЫЕ ПУТИ**: Прочитать `design/structure.md` ПЕРЕД формированием
+> промптов для агентов. Пути файлов в описаниях агентов ниже — это примеры для V1 (Layer).
+> **В промпты агентов подставить ФАКТИЧЕСКИЕ пути** из `design/structure.md`:
+>
+> | Категория      | Ключ в structure.md | Агент |
+> |----------------|---------------------|-------|
+> | FlameGame файл | game_dir            | A     |
+> | GameConfig     | config              | A     |
+> | GameState      | game_state          | A     |
+> | Systems        | systems_dir         | A     |
+> | Components     | components_dir      | A, C  |
+> | Screens        | screens_dir         | B     |
+> | Widgets        | widgets_dir         | B     |
+> | App/routes     | app                 | B     |
+> | Assets consts  | assets_constants    | B     |
+> | Theme          | game_theme          | B     |
+> | Animations     | animations          | B     |
+> | AudioService   | audio_service       | D     |
+>
+> Агенты получают `lib/contracts.md` с заполненными путями и читают его первым действием.
+
 ### Контракт между агентами (определить ДО запуска)
 
-Перед запуском агентов, создать файл контракта `lib/contracts.md` (временный, удалить в конце):
+**ПЕРВЫМ ДЕЙСТВИЕМ** прочитать `design/structure.md` — там хранится выбранный в Фазе 2 вариант структуры и точные пути ко всем файлам. Затем создать файл контракта `lib/contracts.md` (временный, удалить в конце), подставив пути из `design/structure.md`:
 
 ```markdown
 ## Shared Types
@@ -266,14 +446,28 @@ SVG выбирается автоматически. Никакого ввода
 - World class name: [GameName]World extends World with HasCollisionDetection
 - Config class name: GameConfig (static constants)
 
-## File Paths (EXACT)
-- Game: lib/game/[name]_game.dart, lib/game/[name]_world.dart
-- Config: lib/game/game_config.dart
-- State: lib/models/game_state.dart
-- Assets helper: lib/assets.dart
-- Theme: lib/theme/game_theme.dart
-- Animations: lib/theme/animations.dart
+## Structure Variant
+[Вставить: Variant из design/structure.md, например "V3 — Presentation-Domain-Data"]
+
+## File Paths (EXACT) — из design/structure.md
+- App: [app из structure.md]
+- Assets constants: [assets_constants из structure.md]
+- Main: lib/main.dart
+- Game: [game_dir из structure.md][name]_game.dart
+- World: [game_dir из structure.md][name]_world.dart
+- Config: [config из structure.md]
+- State: [game_state из structure.md]
+- Models dir: [models_dir из structure.md]
+- Systems dir: [systems_dir из structure.md]
+- Components dir: [components_dir из structure.md]
+- Screens dir: [screens_dir из structure.md]
+- Widgets dir: [widgets_dir из structure.md]
+- Audio service: [audio_service из structure.md]
+- Theme: [game_theme из structure.md]
+- Animations: [animations из structure.md]
 ```
+
+**КРИТИЧЕСКИ**: все агенты ОБЯЗАНЫ читать `lib/contracts.md` ПЕРВЫМ действием и создавать все файлы по УКАЗАННЫМ путям — не по путям из памяти или примерам из других документов.
 
 ### Agent A — mechanics-programmer (Core Game Logic):
 
@@ -451,8 +645,10 @@ SVG выбирается автоматически. Никакого ввода
 
 **ЭТО САМАЯ ВАЖНАЯ ФАЗА.** Большинство крашей происходит из-за плохой интеграции.
 
+Прочитать `design/structure.md` в начале фазы для получения актуальных путей к файлам.
+
 ### 5.1 — Файл ассетов
-Создать / обновить `lib/assets.dart`:
+Создать / обновить файл констант ассетов по пути `assets_constants` из `design/structure.md` (для V1: `lib/assets.dart`, для V5: `lib/bootstrap/assets.dart` и т.д.):
 ```dart
 class GameAssets {
   // Sprites
@@ -592,7 +788,8 @@ flutter test --reporter expanded
 
 **ЭТО КРИТИЧЕСКАЯ ФАЗА. Большинство багов — UI/UX ошибки.**
 
-Прочитать ВСЕ файлы в `lib/screens/`, `lib/widgets/`, `lib/theme/`, `lib/app.dart`.
+Прочитать `design/structure.md` для определения текущего варианта структуры и путей.
+Затем прочитать ВСЕ файлы в директориях `screens_dir`, `widgets_dir`, директории theme, и файл `app` — все пути берутся из `design/structure.md`.
 Провести полный аудит по 7 категориям (60+ проверок) из `.claude/skills/ui-audit/SKILL.md`.
 
 ### 8.1 — КРАШ-УЯЗВИМОСТИ (исправлять ПЕРВЫМИ!)
@@ -799,10 +996,12 @@ flutter test
 - **Жанр**: [gambling / puzzle / arcade / physics / casual / card]
 - **Архетип**: [A-X / Unique]
 - **Package name**: com.gamestudio.[name]
+- **Структура**: [V1–V5 из design/structure.md]
 - **Пути**:
   - Концепт: `design/gdd/game-concept.md`
+  - Структура: `design/structure.md`
   - Баланс: `design/balance/[rtp-config.json или level-config.json]`
-  - Главный класс игры: `lib/game/[name]_game.dart`
+  - Главный класс игры: `[game_dir из structure.md][name]_game.dart`
   - Entry point: `lib/main.dart`
 
 ## Статус Части 1 (Фазы 1–10)
