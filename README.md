@@ -176,9 +176,9 @@
 
 | Команда | Описание |
 |---------|----------|
-| `/generate-asset [тип] [имя]` | SVG или PNG (через Google Imagen API) |
-| `/generate-png-asset [описание]` | PNG с удалением фона через Google AI Studio |
-| `/svg-to-png [путь]` | Конвертация SVG → PNG |
+| `/generate-asset [тип] [имя]` | SVG по умолчанию; PNG только по явному запросу |
+| `/generate-png-asset [описание]` | PNG через Codex GPT Images 2.0; фон простых ассетов вырезается локально при необходимости |
+| `/svg-to-png [путь]` | Конвертация SVG → PNG через Codex GPT Images 2.0 |
 
 ### Ревью и ворота
 

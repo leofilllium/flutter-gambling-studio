@@ -1,6 +1,6 @@
 ---
 name: svg-to-png
-description: "Конвертация SVG-ассетов в качественные PNG: через Pollinations.ai (--cheap POLL_KEY) или Google Imagen API. Удаление фона через remove.bg (--free REMBG_KEY)."
+description: "Конвертация SVG-ассетов в PNG. В Codex основной путь — GPT Images 2.0; внешние API только legacy fallback. Фон простых ассетов удаляется локально при необходимости."
 allowed-tools: Write, Read, Bash, AskUserQuestion, Glob
 argument-hint: "[путь_к_svg] [--bulk папка] [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
 user-invocable: true
@@ -8,23 +8,33 @@ user-invocable: true
 
 # `svg-to-png` — Конвертер SVG → PNG
 
-Агент анализирует SVG, формирует промпт из его содержимого, генерирует качественный PNG через API.
+Агент анализирует SVG, формирует промпт из его содержимого и генерирует качественный PNG.
 
 ---
 
 ## Выбор режима
 
-### Флаги:
-- `--cheap POLL_API_TOKEN` → Pollinations.ai (рекомендуемый, дёшево и быстро)
-- `--free REMOVE_BG_TOKEN` → автоудаление фона через remove.bg после генерации
-- Без флагов → спросить пользователя
+### Codex default
 
-### Если флагов нет — спросить:
+Если агент работает в Codex, всегда использовать **GPT Images 2.0** через встроенную image generation возможность Codex.
+
+- Не спрашивать ключи Google/Pollinations/remove.bg.
+- Один SVG → один вызов image generation → один PNG.
+- Для `sprite`, `symbol`, `icon`, `wild`, `scatter`, `tile`, `item` просить transparent background / alpha channel.
+- Для `background`, `ui_panel`, полноэкранной сцены фон не вырезать.
+- Если у простого ассета фон всё же появился, удалить его локальной библиотекой/CLI (`rembg`), fallback на ImageMagick.
+
+### Legacy flags:
+- `--cheap POLL_API_TOKEN` → Pollinations.ai (только если пользователь явно просит legacy fallback)
+- `--free REMOVE_BG_TOKEN` → remove.bg только если пользователь явно передал ключ и попросил этот сервис
+- Без флагов в Codex → не спрашивать, использовать GPT Images 2.0
+
+### Если флагов нет и агент НЕ работает в Codex — спросить:
 
 > "Как конвертировать SVG → PNG?
 >
-> **1. Pollinations.ai** — дёшево, быстро, нужен API ключ (https://enter.pollinations.ai)
-> **2. Google Imagen** — требует Google Cloud Billing
+> **1. Codex GPT Images 2.0** — если доступен в текущем агенте
+> **2. Legacy external provider** — Pollinations.ai или Google, нужен API ключ / billing
 > **3. Ручной режим** — сгенерирую промпт, вы генерируете PNG сами
 >
 > Введите 1, 2 или 3:"
@@ -47,20 +57,45 @@ user-invocable: true
 ```
 Professional game asset: [asset_name].
 Single isolated object, clean edges, vibrant style, high detail.
-2D game sprite on pure white background, 1024x1024.
+2D game sprite on transparent background with alpha channel, 1024x1024.
 Style derived from: [краткое описание из SVG — цвета, форма, до 200 символов]
 ```
 
 **3. Генерация PNG:**
 
-### Режим 1: Pollinations.ai (--cheap)
+### Режим 1: Codex GPT Images 2.0
+
+В Codex использовать этот режим первым.
+
+1. Передать prompt из шага 2 во встроенную image generation возможность Codex.
+2. Сохранить результат рядом с исходником или в `assets/images/pngs/`.
+3. Если тип ассета простой и PNG содержит фон, применить локальное удаление фона:
+
+```bash
+INPUT_PNG="assets/images/sprites/cherry.png"
+TMP_PNG="${INPUT_PNG%.png}_nobg.png"
+
+if command -v rembg >/dev/null 2>&1; then
+  rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}"
+elif python3 -c "import rembg" >/dev/null 2>&1; then
+  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))"
+elif command -v magick >/dev/null 2>&1; then
+  magick "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
+elif command -v convert >/dev/null 2>&1; then
+  convert "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
+else
+  echo "Фон не удалён: нет rembg/ImageMagick. Перегенерируй с transparent background."
+fi
+```
+
+### Режим 2: Legacy fallback Pollinations.ai (--cheap)
 
 ```bash
 POLL_API_KEY="[ключ от --cheap]"
 ASSET_NAME="cherry"
 PROMPT="Professional game asset: cherry. Red glossy cherries, single isolated object, clean edges, vibrant cartoon style, 2D game sprite, pure white background, 1024x1024"
 OUTPUT_DIR="assets/images/sprites"
-REMBG_KEY=""  # от --free, или пустой
+REMBG_KEY=""  # только если пользователь явно передал --free
 MODEL="flux"  # flux | zimage | gptimage
 
 echo "━━━ SVG→PNG: ${ASSET_NAME} (Pollinations, ${MODEL}) ━━━"
@@ -79,9 +114,16 @@ fi
 SIZE=$(ls -lh "${OUTPUT_DIR}/${ASSET_NAME}.png" | awk '{print $5}')
 echo "✓ Сгенерирован: ${SIZE}"
 
-# Удаление фона (если есть REMBG_KEY)
-if [ -n "${REMBG_KEY}" ]; then
-  echo "Удаляю фон (remove.bg)..."
+# Удаление фона для простого ассета
+if command -v rembg >/dev/null 2>&1; then
+  rembg i "${OUTPUT_DIR}/${ASSET_NAME}.png" "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" &&
+    mv "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" "${OUTPUT_DIR}/${ASSET_NAME}.png"
+  echo "✓ Фон удалён (rembg)"
+elif python3 -c "import rembg" >/dev/null 2>&1; then
+  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${OUTPUT_DIR}/${ASSET_NAME}.png'); p.write_bytes(remove(p.read_bytes()))"
+  echo "✓ Фон удалён (rembg python)"
+elif [ -n "${REMBG_KEY}" ]; then
+  echo "Удаляю фон (remove.bg, explicit legacy key)..."
   curl -s -X POST "https://api.remove.bg/v1.0/removebg" \
     -H "X-Api-Key: ${REMBG_KEY}" \
     -F "image_file=@${OUTPUT_DIR}/${ASSET_NAME}.png" \
@@ -94,22 +136,27 @@ if [ -n "${REMBG_KEY}" ]; then
   else
     echo "⚠ remove.bg не сработал — оставляю оригинал"
   fi
+elif command -v magick >/dev/null 2>&1; then
+  magick "${OUTPUT_DIR}/${ASSET_NAME}.png" \
+    -fuzz 15% -transparent white \
+    -fuzz 10% -transparent "#f0f0f0" \
+    "${OUTPUT_DIR}/${ASSET_NAME}.png"
+  echo "✓ Фон удалён (ImageMagick)"
+elif command -v convert >/dev/null 2>&1; then
+  convert "${OUTPUT_DIR}/${ASSET_NAME}.png" \
+    -fuzz 15% -transparent white \
+    -fuzz 10% -transparent "#f0f0f0" \
+    "${OUTPUT_DIR}/${ASSET_NAME}.png"
+  echo "✓ Фон удалён (ImageMagick)"
 else
-  # ImageMagick fallback
-  if command -v convert &>/dev/null; then
-    convert "${OUTPUT_DIR}/${ASSET_NAME}.png" \
-      -fuzz 15% -transparent white \
-      -fuzz 10% -transparent "#f0f0f0" \
-      "${OUTPUT_DIR}/${ASSET_NAME}.png"
-    echo "✓ Фон удалён (ImageMagick)"
-  fi
+  echo "Фон не удалён: нет rembg/ImageMagick. Перегенерируй с transparent background."
 fi
 
 FINAL_SIZE=$(ls -lh "${OUTPUT_DIR}/${ASSET_NAME}.png" | awk '{print $5}')
 echo "✓ Готово: ${OUTPUT_DIR}/${ASSET_NAME}.png (${FINAL_SIZE})"
 ```
 
-### Режим 2: Google Imagen API
+### Режим 3: Legacy fallback Google Imagen API
 
 ```bash
 API_KEY="[ключ от пользователя]"
@@ -158,14 +205,15 @@ file ${OUTPUT_DIR}/${ASSET_NAME}.png
 1. Находит все `.svg` файлы в папке через Glob
 2. Определяет API ключи из флагов или запрашивает **один раз**
 3. Обрабатывает каждый файл последовательно (один Bash call = один файл)
-4. Для Pollinations: пауза 3 сек между запросами
-5. Для Google Imagen: пауза 4 сек (лимит Free tier: 15 RPM)
-6. Сохраняет PNG в `assets/images/pngs/` или рядом с исходниками
+4. В Codex использовать GPT Images 2.0 для каждого SVG.
+5. Для legacy Pollinations: пауза 3 сек между запросами.
+6. Для legacy Google Imagen: пауза 4 сек (лимит Free tier: 15 RPM).
+7. Сохраняет PNG в `assets/images/pngs/` или рядом с исходниками
 
-### Bulk через Pollinations (рекомендуемый):
+### Bulk через Codex GPT Images 2.0:
 
-Агент делает отдельный Bash call для каждого SVG файла, используя шаблон из Режима 1.
-**Не объединять в цикл** — один Bash call = один ассет.
+Агент делает отдельный image-generation call для каждого SVG файла, используя шаблон из Режима 1.
+**Не объединять в один запрос** — один SVG = один PNG.
 
 ---
 
@@ -188,11 +236,11 @@ Single isolated object, clean edges, vibrant colors.
 
 ---
 
-## Модели Pollinations для конвертации
+## Legacy-модели Pollinations для конвертации
 
 | Модель | Рекомендация | Почему |
 |--------|-------------|--------|
-| `flux` | По умолчанию | Хорошее качество, быстро, дёшево |
+| `flux` | Legacy fallback | Хорошее качество, быстро, дёшево |
 | `zimage` | Для крупных спрайтов | Встроенный 2x upscale |
 | `gptimage` | Для сложных ассетов | Лучшее качество, поддержка прозрачности (`transparent: true`) |
 
@@ -200,11 +248,12 @@ Single isolated object, clean edges, vibrant colors.
 
 ## Важные правила
 
-1. **API ключ никогда не записывается в файлы** — только используется внутри Bash-команды
-2. **Один Bash call = один ассет** — не объединять в цикл
-3. Если API вернул ошибку — показать пользователю полный ответ
-4. Готовые PNG сохранять в `assets/images/sprites/` (одиночный) или `assets/images/pngs/` (bulk)
-5. После завершения — показать `ls -lh` с результатами
+1. В Codex использовать GPT Images 2.0 первым.
+2. **Один image-generation call = один ассет** — не объединять SVG в один запрос.
+3. API ключ legacy-provider никогда не записывается в файлы.
+4. Если legacy API вернул ошибку — показать пользователю полный ответ.
+5. Готовые PNG сохранять в `assets/images/sprites/` (одиночный) или `assets/images/pngs/` (bulk).
+6. После завершения — показать `ls -lh` с результатами.
 
 ## Диагностика
 
@@ -214,4 +263,4 @@ Single isolated object, clean edges, vibrant colors.
 | HTTP 402 (Pollinations) | Недостаточно pollen | Пополнить или использовать бесплатную модель (flux) |
 | Пустой PNG | Сервер не вернул данные | Попробовать другую модель или промпт |
 | Плохое качество | Промпт слишком простой | Добавить детали из SVG (цвета, форма, стиль) |
-| remove.bg не работает | Неверный ключ или лимит исчерпан | Проверить на remove.bg/dashboard, использовать ImageMagick |
+| Фон не удалился | Нет `rembg`/ImageMagick или сложный фон | Перегенерировать с transparent background, затем повторить локальный cutout |

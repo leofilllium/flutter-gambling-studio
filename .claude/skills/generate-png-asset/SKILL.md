@@ -1,6 +1,6 @@
 ---
 name: generate-png-asset
-description: "Генерация PNG-ассетов через Pollinations.ai (дёшево с ключом / бесплатные модели) или Google Gemini. Удаление фона через remove.bg. Флаги: --cheap POLL_KEY --free REMBG_KEY."
+description: "Генерация PNG-ассетов. В Codex основной путь — встроенная image generation через GPT Images 2.0; внешние API только как legacy fallback. Фон простых ассетов удаляется локальной библиотекой при необходимости."
 allowed-tools: Write, Read, Bash, AskUserQuestion, Glob
 argument-hint: "[описание] | [--batch список] | [--from-concept] | [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
 user-invocable: true
@@ -8,64 +8,123 @@ user-invocable: true
 
 # `generate-png-asset` — PNG ассеты для мини-игр
 
+## Правило по умолчанию
+
+1. Если пользователь не просил PNG/image generation — вернуться к `/generate-asset` и создать **SVG**.
+2. Если пользователь явно просил PNG/image generation и агент работает в **Codex** — использовать **GPT Images 2.0**, доступный как встроенная image generation возможность Codex.
+3. Не спрашивать ключи Google, Pollinations или remove.bg в Codex-пути.
+4. Внешние провайдеры ниже считаются legacy fallback и используются только по явной просьбе пользователя или если Codex image generation недоступна.
+
 ## Сервисы генерации
 
-| Сервис | Стоимость | Требования | Качество | Флаг |
-|--------|-----------|------------|----------|------|
-| **Pollinations.ai** (flux, zimage) | Дёшево с API ключом / бесплатные модели | API ключ (`pk_` или `sk_`) | Среднее-Высокое | `--cheap POLL_API_TOKEN` |
-| **Pollinations.ai** (gptimage) | Платно (pollen баланс) | API ключ | Высокое | `--cheap POLL_API_TOKEN` |
-| **Google Gemini** | ~$0.003/изображение | Google Cloud Billing | Высокое | (без флага) |
-| **SVG** | Бесплатно | Ничего | Векторное | → `/generate-asset` |
+| Сервис | Когда использовать | Требования |
+|--------|--------------------|------------|
+| **Codex GPT Images 2.0** | Основной PNG/image-generation путь в Codex | Встроенный Codex image generation tool |
+| **SVG** | Режим по умолчанию, если PNG не нужен | Ничего |
+| **Pollinations.ai / Google Gemini** | Только legacy fallback или явный запрос пользователя | Внешний API ключ / billing |
 
-**Удаление фона:** remove.bg (50 бесплатных/мес) → флаг `--free REMOVE_BG_TOKEN`
+**Удаление фона:** для простых ассетов использовать локальную библиотеку/CLI (`rembg`) при необходимости. `remove.bg` не является дефолтом; использовать только если пользователь явно дал ключ и попросил этот сервис.
 
 ---
 
 ## Шаг 0: Определение режима
 
-### Если переданы флаги:
-- `--cheap POLL_API_TOKEN` → Pollinations.ai с ключом (Режим 1)
-- `--cheap POLL_API_TOKEN --free REMOVE_BG_TOKEN` → Pollinations + auto remove.bg
-- Без флагов → спросить пользователя
+### Если агент работает в Codex
 
-### Если флагов нет — спросить:
+- Всегда выбрать **Codex GPT Images 2.0**.
+- Создавать один PNG за один вызов image generation.
+- Сохранять результат в `assets/images/pngs/`, `assets/images/sprites/`, `assets/images/ui/` или `assets/images/backgrounds/` по типу ассета.
+- Для `symbol`, `sprite`, `icon`, `wild`, `scatter` просить transparent background / alpha channel.
+- Для `background`, `main_menu_bg`, `game_bg`, полноэкранных иллюстраций фон НЕ вырезать.
+
+### Если переданы legacy-флаги:
+- `--cheap POLL_API_TOKEN` → Pollinations.ai с ключом (legacy fallback)
+- `--cheap POLL_API_TOKEN --free REMOVE_BG_TOKEN` → Pollinations + remove.bg только если пользователь явно просит этот сервис
+- Без флагов в Codex → не спрашивать, использовать GPT Images 2.0
+
+### Если флагов нет и агент НЕ работает в Codex — спросить:
 
 > "Как генерировать PNG ассеты?
 >
-> **1. Pollinations.ai** — дёшево, быстро, модели flux/zimage/gptimage (нужен API ключ → https://enter.pollinations.ai)
-> **2. Google Gemini** — требует Google Cloud Billing (~$0.003/изображение)
-> **3. SVG** — бесплатно, через /generate-asset
+> **1. SVG** — режим по умолчанию, через /generate-asset
+> **2. Внешний PNG provider** — Pollinations.ai или Google Gemini, нужен API ключ / billing
+> **3. Ручной промпт** — агент подготовит prompt, пользователь генерирует вне студии
 >
 > Введите 1, 2 или 3:"
 
 ---
 
-## Режим 1: Pollinations.ai (рекомендуемый)
+## Codex-режим: GPT Images 2.0
 
-**API Base:** `https://gen.pollinations.ai`
-**Ключи:** `https://enter.pollinations.ai`
-**Авторизация:** Header `Authorization: Bearer API_KEY` или query `?key=API_KEY`
+**Использовать первым в Codex.** Не нужен API ключ.
+
+### Промпт для простого ассета
+
+```
+Professional 2D game asset: [ASSET_NAME].
+Single isolated object, transparent background, alpha channel,
+clean silhouette, crisp edges, vibrant [THEME_COLORS] palette,
+consistent lighting from top-left, high quality mobile game sprite,
+1024x1024 PNG.
+[TYPE_DETAILS]
+```
+
+### Промпт для background
+
+```
+Professional 9:16 mobile game background: [ASSET_NAME].
+Full scene background, no transparent cutout, no foreground character,
+[THEME] atmosphere, readable center gameplay area, high quality PNG.
+```
+
+### После генерации
+
+1. Сохранить PNG в целевую папку.
+2. Проверить файл через `file path/to/asset.png`.
+3. Если это простой ассет и фон не прозрачный — применить локальное удаление фона.
+4. Добавить папку в `pubspec.yaml`, если она новая.
+
+### Локальное удаление фона
+
+Только для `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`.
+Не применять к `background`, `ui_panel`, полноэкранным сценам и иллюстрациям.
+
+```bash
+INPUT_PNG="assets/images/pngs/cherry.png"
+TMP_PNG="${INPUT_PNG%.png}_nobg.png"
+
+if command -v rembg >/dev/null 2>&1; then
+  rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}"
+elif python3 -c "import rembg" >/dev/null 2>&1; then
+  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))"
+elif command -v magick >/dev/null 2>&1; then
+  magick "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
+elif command -v convert >/dev/null 2>&1; then
+  convert "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
+else
+  echo "Фон не удалён: установи rembg или ImageMagick, либо перегенерируй с transparent background"
+fi
+```
+
+---
+
+## Legacy fallback: Pollinations.ai
 
 ### Модели изображений (Pollinations)
 
 | Модель | Качество | Цена | Особенности |
 |--------|---------|------|-------------|
-| `flux` | Хорошее | Дёшево | Быстрая, по умолчанию |
+| `flux` | Хорошее | Дёшево | Быстрая |
 | `zimage` | Хорошее + 2x upscale | Дёшево | Fast 6B Flux с апскейлом |
 | `gptimage` | Высокое | Платно (pollen) | OpenAI image gen, поддержка прозрачности |
 | `gptimage-large` | Очень высокое | Платно | HD, прозрачность |
 | `klein` | Среднее | Дёшево | FLUX.2 Klein 4B, быстрая |
 
-### Удаление фона: определить в начале
+### Удаление фона в legacy fallback
 
-Если передан `--free REMOVE_BG_TOKEN` → использовать remove.bg автоматически.
-Иначе спросить:
+Предпочитать локальный `rembg` / ImageMagick. `remove.bg` использовать только если пользователь явно передал `--free REMOVE_BG_TOKEN`.
 
-> "Есть ключ remove.bg для автоудаления фона? (`--free КЛЮЧ`)
-> (50 бесплатных/мес → remove.bg/dashboard)
-> Если нет — используем ImageMagick (хуже качество, но бесплатно)"
-
-Сохрани: `REMBG_KEY="ключ"` или `REMBG_KEY=""` (пустой = ImageMagick fallback).
+Не спрашивать ключ remove.bg. Сохрани `REMBG_KEY` только если пользователь уже передал `--free REMOVE_BG_TOKEN`; иначе `REMBG_KEY=""` и используй локальный fallback.
 
 ---
 
@@ -80,8 +139,8 @@ ASSET_NAME="cherry"
 ASSET_TYPE="symbol"   # symbol | icon | wild | scatter | background | ui_panel
 PROMPT="red glossy cherries fruit, game sprite icon, pure white background, vibrant colors, cartoon style, isolated object"
 OUTPUT_DIR="assets/images/pngs"
-MODEL="flux"          # flux | zimage | gptimage | klein
-REMBG_KEY=""          # вставить ключ remove.bg (--free) или оставить пустым
+MODEL="flux"          # legacy: flux | zimage | gptimage | klein
+REMBG_KEY=""          # только если пользователь явно передал --free
 mkdir -p "${OUTPUT_DIR}"
 
 echo "━━━ [${ASSET_TYPE}] Генерирую: ${ASSET_NAME} (модель: ${MODEL}) ━━━"
@@ -104,8 +163,15 @@ echo "✓ Сгенерирован: ${SIZE}"
 if [[ "${ASSET_TYPE}" == "symbol" || "${ASSET_TYPE}" == "icon" || "${ASSET_TYPE}" == "wild" || "${ASSET_TYPE}" == "scatter" ]]; then
   echo "Удаляю фон..."
 
-  if [ -n "${REMBG_KEY}" ]; then
-    # remove.bg (лучшее качество)
+  if command -v rembg >/dev/null 2>&1; then
+    rembg i "${OUTPUT_DIR}/${ASSET_NAME}.png" "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" &&
+      mv "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" "${OUTPUT_DIR}/${ASSET_NAME}.png"
+    echo "✓ Фон удалён (rembg)"
+  elif python3 -c "import rembg" >/dev/null 2>&1; then
+    python3 -c "from rembg import remove; from pathlib import Path; p=Path('${OUTPUT_DIR}/${ASSET_NAME}.png'); p.write_bytes(remove(p.read_bytes()))"
+    echo "✓ Фон удалён (rembg python)"
+  elif [ -n "${REMBG_KEY}" ]; then
+    # remove.bg только по явному ключу пользователя
     curl -s -X POST "https://api.remove.bg/v1.0/removebg" \
       -H "X-Api-Key: ${REMBG_KEY}" \
       -F "image_file=@${OUTPUT_DIR}/${ASSET_NAME}.png" \
@@ -119,8 +185,14 @@ if [[ "${ASSET_TYPE}" == "symbol" || "${ASSET_TYPE}" == "icon" || "${ASSET_TYPE}
       echo "⚠ remove.bg не сработал — оставляю оригинал"
     fi
   else
-    # ImageMagick fallback (бесплатно)
-    if command -v convert &>/dev/null; then
+    # ImageMagick fallback для простого белого/светлого фона
+    if command -v magick &>/dev/null; then
+      magick "${OUTPUT_DIR}/${ASSET_NAME}.png" \
+        -fuzz 15% -transparent white \
+        -fuzz 10% -transparent "#f0f0f0" \
+        "${OUTPUT_DIR}/${ASSET_NAME}.png"
+      echo "✓ Фон удалён (ImageMagick)"
+    elif command -v convert &>/dev/null; then
       convert "${OUTPUT_DIR}/${ASSET_NAME}.png" \
         -fuzz 15% -transparent white \
         -fuzz 10% -transparent "#f0f0f0" \
@@ -177,14 +249,15 @@ echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
 | main_menu_bg | background | `dark cyberpunk casino background, neon lights, atmospheric, no characters` |
 
 ### Особенности:
-- Белый фон в промпте → ImageMagick/remove.bg убирают его точнее
-- Модели: `flux` (по умолчанию), `zimage` (с upscale), `gptimage` (лучшее качество, платно)
+- В Codex просить прозрачный фон сразу через GPT Images 2.0
+- Белый фон в legacy-промпте допустим только когда нужен локальный background cutout
+- Модели legacy fallback: `flux`, `zimage`, `gptimage`
 - Каждый Bash call = один ассет (не объединять в цикл)
 - `seed=-1` для случайного результата каждый раз
 
 ---
 
-## Режим 2: Google Gemini — требует биллинг
+## Legacy fallback: Google Gemini — требует биллинг
 
 ### Шаг 1: Проверка ключа (быстрая диагностика)
 
@@ -222,7 +295,7 @@ fi
 
 ```
 Professional 2D casino slot game asset: [НАЗВАНИЕ].
-Single isolated object on white background, cartoon glossy style,
+Single isolated object, transparent background if supported, cartoon glossy style,
 vibrant [ЦВЕТА ТЕМЫ] color palette, bold clean outline,
 high quality game sprite, 512x512 pixels.
 [ТИП-ДЕТАЛИ]
@@ -237,8 +310,8 @@ high quality game sprite, 512x512 pixels.
 | `ui` кнопка | "neon glowing button, casino UI element, no text" |
 | `background` | "dark casino atmospheric pattern, subtle texture, no characters" |
 
-> **Важно для прозрачного фона:** Imagen/Gemini не всегда генерирует RGBA.
-> Используй белый фон + remove.bg на Шаге 5. В промпте пиши `"white background"`.
+> **Важно для прозрачного фона:** legacy Imagen/Gemini не всегда генерирует RGBA.
+> Если alpha не получилась, используй локальный `rembg` / ImageMagick на Шаге 5.
 
 ---
 
@@ -290,27 +363,28 @@ PYEOF
 
 ---
 
-## Шаг 5: Удаление фона (опционально)
+## Шаг 5: Удаление фона для простых ассетов
 
-Спросить пользователя: "Удалить фон через remove.bg? (50 бесплатных/мес, нужен отдельный ключ)"
+Не спрашивать отдельный сервис. Применять только к простым ассетам (`symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`). Для `background` / полноэкранной иллюстрации пропустить.
 
 ```bash
-REMBG_KEY="[ключ remove.bg — получить на remove.bg/api]"
 INPUT_PNG="${OUTPUT_DIR}/${ASSET_NAME}.png"
 TMP_PNG="${OUTPUT_DIR}/${ASSET_NAME}_nobg.png"
 
-curl -s -X POST "https://api.remove.bg/v1.0/removebg" \
-  -H "X-Api-Key: ${REMBG_KEY}" \
-  -F "image_file=@${INPUT_PNG}" \
-  -F "size=auto" \
-  -o "${TMP_PNG}"
-
-if [ -s "${TMP_PNG}" ]; then
-  mv "${TMP_PNG}" "${INPUT_PNG}"
-  echo "✓ Фон удалён: ${INPUT_PNG}"
+if command -v rembg >/dev/null 2>&1; then
+  rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}"
+  echo "✓ Фон удалён (rembg): ${INPUT_PNG}"
+elif python3 -c "import rembg" >/dev/null 2>&1; then
+  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))"
+  echo "✓ Фон удалён (rembg python): ${INPUT_PNG}"
+elif command -v magick >/dev/null 2>&1; then
+  magick "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
+  echo "✓ Фон удалён (ImageMagick): ${INPUT_PNG}"
+elif command -v convert >/dev/null 2>&1; then
+  convert "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
+  echo "✓ Фон удалён (ImageMagick): ${INPUT_PNG}"
 else
-  echo "Ошибка remove.bg — оригинал сохранён"
-  rm -f "${TMP_PNG}"
+  echo "Фон не удалён: нет rembg/ImageMagick. Перегенерируй с transparent background."
 fi
 ```
 
@@ -329,11 +403,12 @@ fi
 - Один Bash tool call = один ассет
 - Для Gemini: `sleep 65` после каждого (rate limit 10 RPM)
 - Для Pollinations: `sleep 3` после каждого (быстрее)
+- Для Codex GPT Images 2.0: один вызов image generation = один ассет
 - Следующий Bash tool call только ПОСЛЕ того как предыдущий вернул результат
 
 ---
 
-### Шаблон одного ассета — Gemini (копировать и менять ASSET_NAME + PROMPT):
+### Legacy шаблон одного ассета — Gemini (копировать и менять ASSET_NAME + PROMPT):
 
 ```bash
 API_KEY="[ключ]"
