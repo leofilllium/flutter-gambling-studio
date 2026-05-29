@@ -1,6 +1,6 @@
 ---
 name: autocreate-finalize
-description: "Вторая половина конвейера /autocreate (Фазы 10.5 → 12): runtime emulator verification + release-package + финальный отчёт. Запускается автоматически через Agent tool в конце /autocreate, либо вручную в новой conversation. Работает на готовом проекте, не трогает игровой код."
+description: "Вторая половина конвейера /autocreate (Фазы 10.5 → 11 → 12): runtime emulator verification + финальный отчёт. НЕ вызывает /release-package — упаковка APK и архива выполняется только явным запуском /release-package. Запускается автоматически через Agent tool в конце /autocreate, либо вручную в новой conversation."
 argument-hint: "[--skip-emulator | --no-fix]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
@@ -11,8 +11,10 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
 **Назначение**: завершить `/autocreate` после того, как Часть 1 довела проект
 до `dart analyze` 0 errors + `flutter test` зелёные. В этой части:
 - runtime-верификация на эмуляторе (скрины + logcat + auto-fix)
-- release-package (финальные скрины + APK + `flutter clean` + `.tar.gz`)
 - обновление session-state + финальный отчёт
+
+**Упаковка (APK + архив) НЕ входит в этот навык.** Для получения загружаемого
+архива запустите `/release-package` отдельно после финализации.
 
 **Когда вызывается:**
 - Автоматически: `/autocreate` в конце Фазы 10 вызывает Agent tool с
@@ -32,15 +34,14 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
 1. ✅ Читает `production/session-state/autocreate-handoff.md` **первым действием**
 2. ✅ Валидирует что артефакты Части 1 существуют (`pubspec.yaml`, `lib/main.dart`,
    `dart analyze` всё ещё 0 errors)
-3. ✅ Выполняет Фазы 10.5 → 10.6 → 11 → 12 в указанном порядке
+3. ✅ Выполняет Фазы 10.5 → 11 → 12 в указанном порядке
 4. ✅ Возвращает финальный отчёт в родительскую сессию (или печатает пользователю)
 
 **Запрещено:**
 - ❌ Менять `lib/game/game_config.dart`, `design/balance/*.json` — баланс зафиксирован
 - ❌ Переписывать целые экраны — допустимы только точечные runtime-автофиксы
   (overflow, setState after dispose, missing asset path, null ValueNotifier)
-- ❌ Пропускать Фазу 10.6, даже если Фаза 10.5 SKIPPED (нет эмулятора) —
-  APK и архив всё равно должны быть созданы
+- ❌ Вызывать `/release-package` — упаковка выполняется отдельным явным запуском
 
 ---
 
@@ -202,39 +203,6 @@ Cleanup: остановить `flutter run` и `adb logcat` по PID из `.clau
 
 ---
 
-## Фаза 10.6 — Release Package [~10 мин]
-
-Вызвать skill `/release-package` без флагов (полный цикл).
-См. `.claude/skills/release-package/SKILL.md`.
-
-**Что делает release-package:**
-1. Скриншоты ВСЕХ экранов и ключевых состояний (до 16 снимков) через Chrome:
-   splash, menu, game-idle, game-action-start/mid/end, win overlays,
-   paytable, settings, help, daily-bonus, leaderboard, profile, edge-cases
-2. **Опционально**: собирает release APK (`flutter build apk --release`) если NDK доступен
-3. Копирует исходники в `project_zip/<name>-<ts>/source/` (исключая `.git/`,
-   `build/`, `.dart_tool/`, build-артефакты)
-4. `flutter clean` (после сборок, иначе APK удалится вместе с build/)
-5. Архивирует всё в `project_zip/<name>-<ts>.tar.gz` с SHA256
-6. Генерирует `RELEASE_INFO.md`
-
-**Политика:**
-- Если Фаза 10.5 была SKIPPED — передать `SKIP_SCREENSHOTS=1` в release-package,
-  но архив всё равно создаётся
-- Если APK build упал — архив создаётся с пометкой APK_FAILED (некритично)
-- Скриншоты из Фазы 10.5 (`production/runtime-screenshots/<ts>/`) можно
-  переиспользовать если актуальны
-
-**Критерии выхода (ОБЯЗАТЕЛЬНО проверить все):**
-- `project_zip/<name>-<ts>.tar.gz` создан и проходит `tar -tzf`
-- `tar -tzf | grep -q "/source/pubspec.yaml$"` — исходники внутри
-- `tar -tzf | grep -c "/screenshots/.*\.png$"` ≥ 5 — скриншоты Chrome внутри
-- APK (`/apk/.*app-release.apk`) — опционально, не блокирует релиз
-
-Если скриншоты отсутствуют — tar.gz неполный, ПЕРЕСОБРАТЬ.
-
----
-
 ## Фаза 11 — Session State Update [~1 мин]
 
 Обновить `production/session-state/active.md`:
@@ -247,17 +215,12 @@ Task: Production-ready
 <!-- /STATUS -->
 
 ## Статус
-Игра полностью реализована и упакована. Release APK в project_zip/.
+Игра полностью реализована и верифицирована. Для получения APK и архива запустите /release-package.
 
 ## Runtime verification
 - Verdict: [PASS / CONCERNS / FAIL / SKIPPED]
 - Скриншоты: production/runtime-screenshots/<ts>/
 - Report: production/runtime-screenshots/<ts>/REPORT.md
-
-## Релиз
-- Архив: project_zip/<name>-<ts>.tar.gz
-- SHA256: [из RELEASE_INFO.md]
-- APK: [размер, N abi]
 
 ## Тесты Части 1
 - Unit: [N] зелёные
@@ -308,12 +271,8 @@ Task: Production-ready
    [Puzzle: Difficulty curve validated]
    [Arcade: Spawn/scoring balanced]
 
-📦 Релизная упаковка:
-   project_zip/[name]-[ts].tar.gz       — финальный архив (gzip, [XX] MB)
-   project_zip/[name]-[ts]/apk/         — release APK (если NDK был доступен)
-   project_zip/[name]-[ts]/screenshots/ — [N] скриншотов из Chrome
-   project_zip/[name]-[ts]/source/      — исходники (после flutter clean)
-   SHA256: [hash]
+📦 Для получения APK и загружаемого архива:
+   /release-package                 — упаковка APK + скриншоты + исходники → один .zip
 
 🔧 Команды запуска:
    flutter run -d chrome        — запустить в Chrome
@@ -343,15 +302,12 @@ Task: Production-ready
 |------|----------------|---------------|
 | 0. Preflight | Handoff есть + `dart analyze` 0 errors | 1 (fail-fast) |
 | 10.5. Runtime Chrome | 0 CRITICAL visual + 0 FATAL в flutter-run.log | 3 (Chrome всегда доступен) |
-| 10.6. Release Package | `.tar.gz` валиден + web build + ≥5 скринов Chrome | 2 (non-fatal) |
 | 11. Session State | `active.md` обновлён | 1 |
 | 12. Final Report | Отчёт напечатан / возвращён | 1 |
 
 **АБСОЛЮТНЫЙ МИНИМУМ для завершения Части 2:**
-- Финальный архив создан: `project_zip/<name>-<ts>.tar.gz`, проходит `tar -tzf`
-- Содержимое проверено: `source/`, `screenshots/` (≥5 из Chrome), `RELEASE_INFO.md`
-- `apk/` — опционально (если NDK доступен)
 - `production/session-state/active.md` обновлён
+- Финальный отчёт напечатан с verdict runtime-верификации
 
 ---
 
@@ -362,8 +318,7 @@ Task: Production-ready
 1. Читает `autocreate-handoff.md` и `active.md`
 2. Определяет, с какой фазы продолжить (по наличию артефактов):
    - Нет `production/runtime-screenshots/<ts>/` → начать с 10.5
-   - Есть скрины, но нет `project_zip/<name>-<ts>.tar.gz` → начать с 10.6
-   - Есть архив, но `active.md` не обновлён → начать с 11
+   - Есть скрины, но `active.md` не обновлён → начать с 11
 3. Продолжает с нужной фазы, не переделывая сделанное
 
 **Если Chrome почему-то недоступен** — попробовать `flutter run -d web-server` или
