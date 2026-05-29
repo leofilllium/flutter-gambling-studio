@@ -170,39 +170,11 @@ if [[ "$BUILD_EXIT" != "0" ]]; then
   # Не аварийный exit — продолжаем с частичным архивом (без APK)
   APK_FAILED=1
 else
-  # Скопировать APK в релизную директорию
+  # Скопировать только универсальный app-release.apk (не split-per-abi варианты)
   if [[ -f "build/app/outputs/flutter-apk/app-release.apk" ]]; then
     cp "build/app/outputs/flutter-apk/app-release.apk" "$APK_DIR/$PROJECT_NAME-$TS-release.apk"
     APK_SIZE=$(du -h "$APK_DIR/$PROJECT_NAME-$TS-release.apk" | awk '{print $1}')
     echo "✅ APK готов: $APK_SIZE"
-  fi
-
-  # Опционально: split-per-abi для меньших APK
-  flutter build apk --release --split-per-abi 2>/dev/null || true
-  for abi in armeabi-v7a arm64-v8a x86_64; do
-    SRC="build/app/outputs/flutter-apk/app-$abi-release.apk"
-    [[ -f "$SRC" ]] && cp "$SRC" "$APK_DIR/"
-  done
-fi
-```
-
-### 2.1. App Bundle (опционально для Play Store)
-
-```bash
-# AAB для Google Play
-flutter build appbundle --release 2>&1 | tee -a "$RELEASE_DIR/build-apk.log" || true
-[[ -f "build/app/outputs/bundle/release/app-release.aab" ]] && \
-  cp "build/app/outputs/bundle/release/app-release.aab" "$APK_DIR/$PROJECT_NAME-$TS-release.aab"
-```
-
-### 2.2. iOS build (только если `--platform ios` и macOS)
-
-```bash
-if [[ "$PLATFORM" == "ios" ]] && [[ "$(uname)" == "Darwin" ]]; then
-  flutter build ios --release --no-codesign 2>&1 | tee -a "$RELEASE_DIR/build-apk.log" || true
-  # .app бандл
-  if [[ -d "build/ios/iphoneos/Runner.app" ]]; then
-    (cd build/ios/iphoneos && zip -r "$OLDPWD/$APK_DIR/$PROJECT_NAME-$TS-ios.zip" Runner.app)
   fi
 fi
 ```
