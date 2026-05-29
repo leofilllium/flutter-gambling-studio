@@ -12,9 +12,9 @@
 | `/map-systems` | `.claude/skills/map-systems/SKILL.md` | Декомпозиция концепта на системы |
 | `/design-system` | `.claude/skills/design-system/SKILL.md` | GDD для отдельной механики |
 | `/prototype` | `.claude/skills/prototype/SKILL.md` | Быстрый прототип ощущения и juiciness |
-| `/generate-asset` | `.claude/skills/generate-asset/SKILL.md` | SVG/PNG ассеты по задаче |
-| `/generate-png-asset` | `.claude/skills/generate-png-asset/SKILL.md` | Растровые ассеты через AI pipeline |
-| `/svg-to-png` | `.claude/skills/svg-to-png/SKILL.md` | Конвертация SVG в PNG |
+| `/generate-asset` | `.claude/skills/generate-asset/SKILL.md` | SVG по умолчанию; PNG только по явному запросу |
+| `/generate-png-asset` | `.claude/skills/generate-png-asset/SKILL.md` | В Codex растровые ассеты через GPT Images 2.0 |
+| `/svg-to-png` | `.claude/skills/svg-to-png/SKILL.md` | В Codex конвертация SVG в PNG через GPT Images 2.0 |
 | `/design-review` | `.claude/skills/design-review/SKILL.md` | Ревью GDD и полноты спецификации |
 | `/code-review` | `.claude/skills/code-review/SKILL.md` | Архитектурное и геймплейное ревью |
 | `/ui-audit` | `.claude/skills/ui-audit/SKILL.md` | Anti-slop аудит и UI автоисправления |

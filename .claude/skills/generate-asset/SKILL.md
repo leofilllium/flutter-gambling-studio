@@ -1,6 +1,6 @@
 ---
 name: generate-asset
-description: "Генерация ассетов для мини-игр любого жанра: SVG (по умолчанию) или PNG через Google Imagen API. Умеет создавать символы (вишня, 7, алмаз, тайлы, спрайты), кнопки, фоны и UI-элементы."
+description: "Генерация ассетов для мини-игр любого жанра: SVG по умолчанию; PNG только по явному запросу. В Codex PNG/image generation выполняется через GPT Images 2.0."
 allowed-tools: Write, Read, Bash, AskUserQuestion
 argument-hint: "[тип (symbol/ui/background)] [название] [--png]"
 user-invocable: true
@@ -10,21 +10,22 @@ user-invocable: true
 
 Выполняет запросы на генерацию ассетов для игры.
 
-## Шаг 0: Выбор формата (ОБЯЗАТЕЛЬНО в начале)
+## Шаг 0: Выбор формата
 
-Спроси пользователя:
+**SVG — режим по умолчанию.** Если пользователь не указал формат, не спрашивай и сразу создавай SVG.
 
-> "Выберите формат ассетов:
-> **1. SVG** (по умолчанию) — векторный, встраивается в код, подходит для Flame + flame_svg
-> **2. PNG** — растровый, генерируется через Google AI Studio (Imagen API), требует API ключ
->
-> Введите 1 или 2 (Enter = SVG):"
+PNG/image generation включается только если:
+- пользователь передал `--png`;
+- пользователь явно просит PNG, raster, bitmap, "image generation", "AI image", "сгенерируй картинкой";
+- пользователь прямо говорит, что работает в Codex и надо использовать image generation.
 
-- Если выбран **SVG** → продолжить по разделу «SVG режим» ниже
-- Если выбран **PNG** → вызвать логику скилла `generate-png-asset` (следовать его инструкциям)
-- Флаг `--png` в аргументах → сразу PNG режим без вопроса
-- Флаг `--png --cheap POLL_KEY` → PNG через Pollinations.ai
-- Флаг `--png --cheap POLL_KEY --free REMBG_KEY` → PNG + auto remove.bg
+Если выбран PNG/image generation:
+- в **Codex** использовать встроенную image generation возможность Codex: **GPT Images 2.0**;
+- не спрашивать API ключ для Google/Pollinations/remove.bg;
+- следовать логике скилла `generate-png-asset`;
+- внешние провайдеры допустимы только если пользователь явно попросил конкретный legacy-provider или Codex image generation недоступна.
+
+Для простых ассетов (`symbol`, `sprite`, `icon`, `wild`, `scatter`) запрашивать прозрачный фон. Если фон всё же появился, удалять его локальной библиотекой/CLI (`rembg`), при необходимости fallback на ImageMagick. Для `background` и полноэкранных сцен фон не удалять.
 
 ---
 
