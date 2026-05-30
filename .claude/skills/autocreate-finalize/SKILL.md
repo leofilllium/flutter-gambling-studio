@@ -116,7 +116,6 @@ else
       export PLATFORM=android
     else
       echo "⚠️ Chrome недоступен и нет AVD. Фаза 10.5 — SKIPPED."
-      echo "   Фаза 10.6 (release-package) всё равно выполняется без скриншотов."
       export SKIP_SCREENSHOTS=1
     fi
   fi
@@ -146,7 +145,7 @@ fi
 ```
 
 Критерий: если после автозапуска `adb devices` показывает `emulator-XXXX device` —
-идём дальше. Если нет — SKIPPED, но Фаза 10.6 всё равно обязательна.
+идём дальше. Если нет — SKIPPED, переходим к Фазе 11.
 
 ### 10.5.2 — Запуск emulator-test --quick
 
@@ -186,11 +185,10 @@ fi
 ### 10.5.4 — Критерий выхода Фазы 10.5
 
 - **Успех**: 0 CRITICAL визуальных проблем + 0 FATAL exceptions в logcat
-- **Частичный успех**: CRITICAL устранены, остались MEDIUM — идём в 10.6
+- **Частичный успех**: CRITICAL устранены, остались MEDIUM — идём в Фазу 11
 - **Неудача**: после 3 итераций CRITICAL остались — сохранить
   `production/runtime-screenshots/<ts>/REPORT.md`, отчитаться с verdict FAIL,
-  **но Фаза 10.6 всё равно выполняется** (у пользователя должен быть архив
-  для диагностики)
+  Фаза 11 всё равно выполняется (active.md обновляется с verdict FAIL)
 
 ### 10.5.5 — Артефакты
 

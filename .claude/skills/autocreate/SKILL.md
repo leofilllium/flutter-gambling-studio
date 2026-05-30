@@ -23,12 +23,12 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 - **Часть 1 (эта conversation, Фазы 1 → 10)** — концепт, ассеты, код, `dart analyze`
   чистый, `flutter test` зелёный, UI-аудит, баланс, crash-prevention. Выполняется
   в основном контексте.
-- **Часть 2 (свежий subagent, Фазы 10.5 → 12)** — runtime emulator verification,
-  release-package (APK + screenshots + tar.gz), финальный отчёт. Запускается
+- **Часть 2 (свежий subagent, Фазы 10.5 → 11 → 12)** — runtime emulator verification,
+  session state update, финальный отчёт. Запускается
   ТОЛЬКО через Agent tool с subagent_type="general-purpose" (чистый контекст).
 
 **Часть 1 ОБЯЗАНА передать управление Части 2 через Agent tool в конце Фазы 10.**
-Она НЕ выполняет Фазы 10.5/10.6 сама. Subagent получает путь к handoff-файлу
+Она НЕ выполняет Фазу 10.5 сама. Subagent получает путь к handoff-файлу
 `production/session-state/autocreate-handoff.md` и инструкцию следовать
 `.claude/skills/autocreate-finalize/SKILL.md`.
 
@@ -53,15 +53,14 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 11. ✅ **Chrome/Web: приложение запущено, скриншоты через `flutter screenshot`, логи разобраны**
 12. ✅ **Все CRITICAL баги со скриншотов исправлены** (auto-fix loop, до 3 итераций)
-13. ✅ **Финальные скриншоты ГОТОВОЙ игры** (до 16 снимков)
-14. ✅ **Android APK собран** (`flutter build apk --release`) если NDK доступен — опционально
-15. ✅ **`flutter clean` выполнен** (после сборок, не до)
-16. ✅ **Весь проект + APK (если был) + скриншоты Chrome упакованы в `project_zip/<name>-<ts>.tar.gz`**
+13. ✅ **Финальные скриншоты ГОТОВОЙ игры** (до 16 снимков) сохранены в `production/runtime-screenshots/`
+14. ✅ **`production/session-state/active.md` обновлён** с verdict runtime-верификации
+15. ✅ **Финальный отчёт возвращён** в родительскую сессию
 
 ### Запрещено в Части 1:
 
 - ❌ Пытаться выполнить Фазу 10.5 (emulator-test) в основной conversation
-- ❌ Пытаться выполнить Фазу 10.6 (release-package) в основной conversation
+- ❌ Запускать `/release-package` (APK + архив) в основной conversation — только явный запуск пользователем
 - ❌ Вызывать `flutter run`, `flutter build web`, `flutter build apk`, `adb shell`, `emulator`
   в основной conversation — это задачи subagent-а
 - ❌ Делать stub-файлы или TODO-комментарии в production коде
@@ -76,12 +75,9 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 ### Финальный критерий успеха всего конвейера:
 
-`ls project_zip/` показывает `<name>-<ts>.tar.gz` размером > 1 MB, И `tar -tzf` на нём
-показывает ВНУТРИ архива: `source/` (с `pubspec.yaml`),
-`screenshots/*.png` (≥5 — из Chrome), `RELEASE_INFO.md`.
-Скриншоты ДОЛЖНЫ быть ВНУТРИ tar.gz, а не рядом с ним.
-`apk/app-release.apk` — опционально (если NDK доступен).
-Если скриншоты отсутствуют — операция ПРОВАЛЕНА.
+`ls production/runtime-screenshots/` показывает папку `<ts>/` с ≥5 `.png` и `REPORT.md`.
+`production/session-state/active.md` содержит актуальный runtime-verdict.
+Для получения APK и загружаемого архива — запустить `/release-package` отдельно.
 
 ---
 
@@ -1044,7 +1040,7 @@ flutter test
 ## Фаза 10.7 — Handoff & Subagent Spawn [~1 мин]
 
 **ЭТО ПОСЛЕДНЯЯ ФАЗА ОСНОВНОЙ CONVERSATION.**
-Фазы 10.5 (emulator-test), 10.6 (release-package), 11 (session state) и 12
+Фазы 10.5 (emulator-test), 11 (session state) и 12
 (final report) выполняются в **subagent-е с чистым контекстом**, не здесь.
 
 ### 10.7.1 — Запись handoff-файла
@@ -1086,14 +1082,13 @@ flutter test
 
 ## Задачи для Части 2 (subagent выполняет)
 - [ ] Фаза 10.5: Runtime emulator verification (скрины + logcat + auto-fix loop)
-- [ ] Фаза 10.6: Release package (до 16 скринов + APK + `flutter clean` + `.tar.gz`)
 - [ ] Фаза 11: Обновить `production/session-state/active.md`
 - [ ] Фаза 12: Финальный отчёт
 
 ## Контракт артефактов Части 2 (должны существовать ПОСЛЕ)
-- `project_zip/<name>-<ts>.tar.gz` (валидный `tar -tzf`)
-- Внутри архива: `source/pubspec.yaml`, `apk/app-release.apk`,
-  `screenshots/*.png` (≥5 если был эмулятор), `RELEASE_INFO.md`
+- `production/runtime-screenshots/<ts>/*.png` (≥5 снимков) + `REPORT.md`
+- `production/session-state/active.md` обновлён с verdict
+- APK и архив — через отдельный запуск `/release-package`
 
 ## Ссылки на документацию
 - Skill Части 2: `.claude/skills/autocreate-finalize/SKILL.md`
@@ -1107,7 +1102,7 @@ flutter test
 
 ```
 Agent(
-  description="AutoCreate finalize: runtime + package",
+  description="AutoCreate finalize: runtime verification + report",
   prompt="""
 Ты работаешь во 2-й части конвейера /autocreate с чистым контекстом.
 
@@ -1119,22 +1114,21 @@ Agent(
 ТВОИ ЗАДАЧИ (в порядке):
 1. Фаза 10.5 — runtime emulator verification (см. .claude/skills/emulator-test/SKILL.md --quick)
    - auto-fix loop до 3 итераций при CRITICAL проблемах
-2. Фаза 10.6 — release-package (см. .claude/skills/release-package/SKILL.md)
-   - финальные скриншоты + APK + flutter clean + .tar.gz
-3. Фаза 11 — обновить production/session-state/active.md
-4. Фаза 12 — вернуть финальный отчёт в том формате, что указан в autocreate-finalize/SKILL.md
+2. Фаза 11 — обновить production/session-state/active.md с verdict
+3. Фаза 12 — вернуть финальный отчёт в том формате, что указан в autocreate-finalize/SKILL.md
 
 КРИТЕРИИ УСПЕХА:
-- project_zip/<name>-<ts>.tar.gz создан и валиден (tar -tzf проходит)
-- Внутри: source/pubspec.yaml, apk/app-release.apk (если build прошёл),
-  screenshots/*.png (≥5 если был эмулятор), RELEASE_INFO.md
-- Если APK build упал — архив всё равно создаётся с пометкой APK_FAILED
+- production/runtime-screenshots/<ts>/*.png (≥5 снимков) сохранены
+- production/runtime-screenshots/<ts>/REPORT.md содержит verdict PASS/CONCERNS/FAIL
+- production/session-state/active.md обновлён
+- Финальный отчёт Фазы 12 возвращён
 
 ОГРАНИЧЕНИЯ:
 - НЕ переписывай игровой код — Часть 1 уже закончила имплементацию
 - Допустимы ТОЛЬКО runtime-автофиксы UI-багов, которые видны на скриншотах
   или в logcat (overflow, setState after dispose, missing asset, null ValueNotifier)
 - Не меняй game_config.dart, rtp-config.json — баланс уже утверждён
+- НЕ запускай /release-package — APK и архив создаются только явным запуском этого навыка
 """
 )
 ```
@@ -1172,7 +1166,7 @@ Agent(
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
 | 10.5. Runtime Chrome | 0 CRITICAL visual issues + 0 FATAL exceptions | 3 (Chrome всегда доступен) |
-| 10.6. Release Package | `project_zip/<name>-<ts>.tar.gz` + ≥5 скриншотов Chrome | 2 (non-fatal) |
+| 11. Session State | `active.md` обновлён с verdict | 1 |
 
 **АБСОЛЮТНЫЙ МИНИМУМ для Части 1 (без него нельзя звать Часть 2)**:
 - `dart analyze lib/` — 0 errors
@@ -1184,6 +1178,6 @@ Agent(
 
 **АБСОЛЮТНЫЙ МИНИМУМ для Части 2 (subagent отчитывается в основную сессию)**:
 - **Chrome скриншоты**: ≥5 снимков в `production/runtime-screenshots/<ts>/` (обязательно)
-- **Финальный архив создан**: `project_zip/<name>-<ts>.tar.gz`, проходит `tar -tzf`
-- **Содержимое архива проверено**: есть `source/`, `screenshots/`, `RELEASE_INFO.md`.
-  `apk/` — опционально (если NDK доступен).
+- **REPORT.md**: verdict PASS/CONCERNS/FAIL в той же папке
+- **active.md**: обновлён с runtime-verdict
+- **Финальный отчёт**: возвращён в родительскую сессию
