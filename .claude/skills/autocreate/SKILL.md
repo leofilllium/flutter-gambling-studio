@@ -105,6 +105,8 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 Сохранение в `design/gdd/game-concept.md`.
 
 **ВАЖНО**: Концепт ОБЯЗАН включать:
+- **Design DNA** — визуальная идентичность ЭТОЙ игры (палитра/шрифты/shape/motion), обоснованная темой
+- **Layout & Composition Direction** — выбранный Layout Archetype (L1–L6) и как он применён к экранам
 - **Screen Map** — минимум 12 экранов с ПОЛНЫМ описанием каждого
 - **Data Flow** — как данные перетекают между экранами (ValueNotifiers, callbacks)
 - **Complete Game Loop** — полный цикл игры от старта до конца
@@ -176,23 +178,20 @@ flutter:
     - assets/images/ui/
     - assets/images/backgrounds/
     - assets/audio/sfx/
-  fonts:
-    - family: Orbitron
-      fonts:
-        - asset: assets/fonts/Orbitron-Regular.ttf
-        - asset: assets/fonts/Orbitron-Bold.ttf
-          weight: 700
-    - family: Rajdhani
-      fonts:
-        - asset: assets/fonts/Rajdhani-Regular.ttf
-        - asset: assets/fonts/Rajdhani-Bold.ttf
-          weight: 700
+  # ⚠️ НЕ хардкодить шрифты здесь. Шрифты выбираются в Design DNA каждой игры и
+  # подключаются через пакет google_fonts (любой Google Font, без бандла .ttf).
+  # ui-programmer вызывает GoogleFonts.<displayFont>() / GoogleFonts.<bodyFont>()
+  # с конкретными шрифтами из секции Design DNA концепта.
 ```
 
-Скачать Google Fonts в `assets/fonts/` через curl.
+> **АНТИ-SLOP (шрифты):** Orbitron/Rajdhani — НЕ дефолт студии. Display+body шрифты
+> берутся из Design DNA концепта (`design/gdd/game-concept.md`) и различаются от игры
+> к игре (уютная — Fredoka/Nunito; ретро — Press Start 2P; элегантная — Playfair/Lora;
+> sci-fi — Orbitron; и т.д.). `google_fonts` уже в зависимостях — бандлить .ttf не нужно.
+
 Создать базовые директории ассетов и дизайна:
 ```bash
-mkdir -p assets/images/sprites assets/images/ui assets/images/backgrounds assets/audio/sfx assets/fonts design/gdd design/balance production/session-state
+mkdir -p assets/images/sprites assets/images/ui assets/images/backgrounds assets/audio/sfx design/gdd design/balance production/session-state
 ```
 
 ### 2.1 — Выбор архитектурной структуры проекта
@@ -356,6 +355,57 @@ echo "✅ lib/ директории созданы для выбранного �
 
 **ОБЯЗАТЕЛЬНО**: после `flutter pub get` убедиться что нет ошибок зависимостей.
 
+### 2.2 — Выбор Layout Archetype (композиция экранов)
+
+Структура (2.1) меняет, ГДЕ лежат файлы. Layout Archetype меняет, КАК ВЫГЛЯДИТ компоновка
+экранов (HUD сверху / нижняя консоль / плавающие углы / боковая рейка / сплит / карточки).
+Это вторая ось разнообразия: вместе со структурой и Design DNA она гарантирует, что
+игровые экраны НЕ выглядят одинаково от игры к игре.
+
+Каталог: `.claude/docs/layout-archetypes.md` (L1–L6).
+
+При `--from-concept` — взять архетип из секции **Layout & Composition Direction** концепта.
+Иначе — выбрать псевдослучайно и записать в `design/art-direction.md`:
+
+```bash
+python3 - <<'PYEOF'
+import time, pathlib
+
+archetypes = {
+    "L1": "Classic Stack — верхний HUD-бар, поле в центре, управление+действие снизу",
+    "L2": "Bottom Command Deck — поле edge-to-edge сверху, плотная нижняя консоль с HUD+действием",
+    "L3": "Floating Corners — full-bleed поле, плавающие чипы по углам, плавающая кнопка действия",
+    "L4": "Side Rail — вертикальная рейка управления/HUD сбоку, поле занимает остальное",
+    "L5": "Split Panel — две явные зоны (≈60% поле / ≈40% инфо-панель с отдельной поверхностью)",
+    "L6": "Card / Sheet Stack — контент на скруглённых карточках/листах, тонкая пилюля HUD",
+}
+keys = list(archetypes)
+layout = keys[(int(time.time() // 7)) % len(keys)]
+
+content = f"""# Art Direction — выбранное направление
+
+## Layout Archetype: {layout}
+{archetypes[layout]}
+
+Полное описание композиции (меню, игровой экран, размещение действия, оверлеи, переходы):
+см. `.claude/docs/layout-archetypes.md` → раздел {layout}.
+
+## Как применять
+- **Layout Archetype ({layout})** определяет КОМПОЗИЦИЮ всех экранов.
+- **Design DNA** (из `design/gdd/game-concept.md`) определяет ВИД (палитра/шрифты/формы/motion).
+- ui-programmer реализует пересечение: компоновка по {layout}, одетая в DNA игры.
+- Инварианты UX (досягаемость большого пальца, 48×48, SafeArea, фокус на поле) соблюдаются
+  в любом архетипе.
+
+> Не применяй один и тот же art-стиль (неон/стекло/тёмная тема) ко всем играм — стиль из DNA.
+"""
+pathlib.Path("design/art-direction.md").write_text(content)
+print(f"✅ Layout archetype {layout} → design/art-direction.md")
+PYEOF
+```
+
+Прочитать `design/art-direction.md` и передать выбранный архетип в контракт Agent B (Фаза 4).
+
 ---
 
 ## Фаза 3 — Asset Generation & Validation [~5 мин]
@@ -372,22 +422,24 @@ SVG выбирается автоматически. Никакого ввода
 #### Спрайты (`assets/images/sprites/`)
 - Минимум 5-8 игровых элементов (символы для слота, тайлы для match-3, и т.д.)
 - Каждый: 96x96 SVG с `viewBox="0 0 96 96"`
-- Обязательны градиенты (`<linearGradient>` / `<radialGradient>`) для объёма
-- НЕ плоские иконки — тени, блики, детали
-- Единый стиль освещения (45 градусов сверху-слева)
+- **Стиль рендера — из Design DNA**: объёмный (градиенты + блики) ИЛИ плоский/flat ИЛИ
+  outline/lineart — что подходит миру игры. Дзен/минимал может быть намеренно плоским.
+- **Главное — консистентность набора**: один стиль освещения и один уровень детализации
+  во ВСЕХ спрайтах. Нельзя мешать flat и фотореалистичные в одном сете.
 
 #### UI Elements (`assets/images/ui/`)
-- `ui_spin_button.svg` — кастомная форма (трапеция / скос)
+- `ui_action_button.svg` — основное действие; форма из shape language DNA (НЕ обязательно трапеция/скос)
 - `ui_frame.svg` — рамка игрового поля
-- `ui_bet_panel.svg` — панель ставок
+- `ui_panel.svg` — панель управления / ставок
 - `ui_separator.svg` — декоративный разделитель
 - `ui_icon_sound.svg` — иконка звука
 - `ui_icon_settings.svg` — иконка настроек
 - `ui_icon_info.svg` — иконка помощи
+- Иконки — в едином стиле и одной толщине обводки (Craft Fundamentals)
 
 #### Фоны (`assets/images/backgrounds/`)
-- `background_menu.svg` — фон меню (с паттерном / градиентом)
-- `background_game.svg` — фон игрового экрана (текстурированный)
+- `background_menu.svg` — фон меню (паттерн/градиент/сцена — из DNA; яркость тоже из DNA, не «всегда тёмный»)
+- `background_game.svg` — фон игрового экрана (не отвлекает от поля; контраст к элементам HUD)
 
 ### Post-Generation Validation
 
@@ -448,6 +500,10 @@ SVG выбирается автоматически. Никакого ввода
 
 ## Structure Variant
 [Вставить: Variant из design/structure.md, например "V3 — Presentation-Domain-Data"]
+
+## Layout Archetype
+[Вставить: L1–L6 из design/art-direction.md, например "L2 — Bottom Command Deck".
+Agent B компонует ВСЕ экраны по этому архетипу — см. .claude/docs/layout-archetypes.md]
 
 ## File Paths (EXACT) — из design/structure.md
 - App: [app из structure.md]
@@ -511,7 +567,15 @@ SVG выбирается автоматически. Никакого ввода
 
 ### Agent B — ui-programmer (Complete UI):
 
-**Prompt ОБЯЗАН включать**: Полный концепт с Screen Map, Design DNA, контракт типов, ПОЛНЫЙ список ассетов.
+**Prompt ОБЯЗАН включать**: Полный концепт с Screen Map, **Design DNA**, **Layout Archetype
+(L1–L6) из `design/art-direction.md`**, контракт типов, ПОЛНЫЙ список ассетов.
+
+> **АНТИ-SLOP для Agent B (две оси):**
+> - **Композиция** — строго по выбранному Layout Archetype (см. `.claude/docs/layout-archetypes.md`).
+>   Не лепи дефолтную раскладку «HUD сверху + кнопка снизу по центру» в каждую игру.
+> - **Вид** — строго из Design DNA: палитра, шрифты (через `google_fonts`), shape language,
+>   brightness (light/dark равноправны), depth-стратегия. НЕ хардкодь неон/Orbitron/тёмную тему/
+>   glassmorphism, если это не в DNA. Тип-шкала (4–6 размеров) и базовый шаг отступов (4/8) — обязательны.
 
 Создаёт ВСЕ экраны и виджеты (ПОЛНОСТЬЮ РАБОЧИЕ, не заглушки):
 
@@ -519,9 +583,9 @@ SVG выбирается автоматически. Никакого ввода
 
 **Тема и утилиты:**
 - `lib/theme/game_theme.dart` — ПОЛНАЯ кастомная тема
-  - Палитра из 5 цветов (из Design DNA)
-  - TextTheme с 2 шрифтами (Orbitron + Rajdhani)
-  - ButtonTheme с кастомными формами
+  - Палитра из 5 цветов (из Design DNA), brightness из DNA (light/dark равноправны)
+  - TextTheme: 2 шрифта из Design DNA через `google_fonts` (НЕ хардкод Orbitron) + тип-шкала (4–6 размеров)
+  - Базовый шаг отступов (4/8); формы кнопок из shape language DNA
   - CardTheme, DialogTheme, AppBarTheme
 - `lib/theme/animations.dart` — ВСЕ тайминги централизованы
   - Durations: fast (150ms), medium (300ms), slow (600ms), screenTransition (400ms)
@@ -543,17 +607,20 @@ SVG выбирается автоматически. Никакого ввода
   - Small: toast снизу + animated counter + auto-dismiss 2s
   - Big: полу-экранный + конфетти + 3s
   - Mega: fullscreen + explosion + camera shake + 4s
-- `lib/screens/insufficient_funds_dialog.dart` — Glassmorphism модал (BackdropFilter)
+- `lib/screens/insufficient_funds_dialog.dart` — стилизованный модал (НЕ AlertDialog); depth-стратегия из DNA (карточка/стекло/бумага/плоско)
 - `lib/screens/bonus_overlay.dart` — оверлей бонусного режима (Free Spins / Special Mode)
 
-**Виджеты (КАЖДЫЙ с анимациями и состояниями):**
+**Виджеты (КАЖДЫЙ с анимациями и состояниями; назначение фиксировано, ВИД — из DNA):**
 - `lib/widgets/animated_counter.dart` — плавное изменение чисел (Tween)
-- `lib/widgets/glow_button.dart` — кнопка с glow пульсацией (idle/hover/tap/disabled)
-- `lib/widgets/skewed_button.dart` — кнопка с ClipPath (4 состояния)
-- `lib/widgets/neon_text.dart` — текст с Shadow glow
-- `lib/widgets/pulsating_widget.dart` — idle пульсация для любого child
+- `lib/widgets/primary_action_button.dart` — основное действие, 3 состояния (idle/press/disabled); форма+эффект из DNA
+- `lib/widgets/secondary_button.dart` — вторичные действия, визуально тише primary
+- `lib/widgets/display_text.dart` — акцентный текст (титулы/числа); эффект (glow/тень/нет) из DNA
+- `lib/widgets/idle_pulse.dart` — idle-анимация для любого child (характер из DNA)
 - `lib/widgets/game_loading.dart` — тематический загрузчик (НЕ CircularProgressIndicator)
-- `lib/widgets/glassmorphism_container.dart` — переиспользуемый контейнер с BackdropFilter
+- `lib/widgets/themed_panel.dart` — поверхность-контейнер; depth-стратегия из DNA (карточка/стекло/бумага/плоско)
+
+> Имена нейтральны намеренно. НЕ создавай `NeonText`/`SkewedButton`/`GlowButton` в игре, где
+> нет неона/скоса/glow в DNA — это house-style slop. Вид виджета вытекает из Design DNA.
 
 **Маршрутизация:**
 - `lib/app.dart` — MaterialApp с именованными routes:
@@ -994,7 +1061,8 @@ flutter test
 ## Метаданные игры
 - **Название**: [Game Name]
 - **Жанр**: [gambling / puzzle / arcade / physics / casual / card]
-- **Архетип**: [A-X / Unique]
+- **Архетип**: [A-AF / Unique]
+- **Layout Archetype**: [L1–L6 из design/art-direction.md]
 - **Package name**: com.gamestudio.[name]
 - **Структура**: [V1–V5 из design/structure.md]
 - **Пути**:

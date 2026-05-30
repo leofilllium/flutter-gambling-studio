@@ -8,7 +8,12 @@ argument-hint: "<название-системы> (например: rtp-weights
 
 # `design-system` — Детализация игровых систем
 
-Интерактивно проектирует одну систему мини-игры любого жанра.
+Интерактивно проектирует одну **игровую** систему мини-игры любого жанра (механика/баланс).
+
+> **Визуальная design-система** (Design DNA → theme-токены: палитра, тип-шкала, формы, motion)
+> и **композиция** (Layout Archetype) живут в концепте: `design/gdd/game-concept.md` (Design DNA)
+> и `design/art-direction.md` (Layout). См. `.claude/rules/anti-slop-design.md` (+ Craft
+> Fundamentals) и `.claude/docs/layout-archetypes.md`. Этот скилл — про игровые системы, не про тему.
 
 ## Рабочий процесс
 

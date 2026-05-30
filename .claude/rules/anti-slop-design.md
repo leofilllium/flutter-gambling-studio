@@ -179,6 +179,72 @@ But they also shouldn't be 2-second elaborate animations. Speed matters.
 
 ---
 
+## Craft Fundamentals — what makes visuals look "good", not "AI-made"
+
+> These are NOT a style. They're the quiet craft that separates a designer's screen from
+> a generated one — true for a cozy game, a neon game, a minimal game alike. They raise the
+> floor without dictating a look. If a screen feels "off" but you can't say why, it's usually
+> one of these, not the color choice.
+
+### 1. Type scale (a few sizes, not many)
+
+Pick 4–6 text sizes and reuse them everywhere (e.g. display 40 / title 24 / body 16 / caption 13).
+Random one-off font sizes are the #1 tell of generated UI. Define the scale once in the theme.
+Numbers/score usually get the display size; rules/descriptions get body.
+
+### 2. Spacing rhythm (one base unit)
+
+Choose a base spacing unit (4 or 8) and make every gap/padding/margin a multiple of it.
+Consistent rhythm is what makes a layout feel "designed". Group related things with tight
+spacing, separate unrelated things with generous spacing. Whitespace is not wasted space.
+
+### 3. Palette cohesion (1–2 accents, not a rainbow)
+
+A cohesive palette is one background family, 1–2 surface tones, ONE primary accent, and
+semantic colors for win/loss. More than two competing accents reads as slop. Tints/shades of
+the same hue beat introducing new hues. (Which hues — that's the game's DNA.)
+
+### 4. One focal point per screen
+
+Each screen has exactly one element the eye lands on first (the play button, the hero logo,
+the result). Everything else is intentionally quieter. If three things shout, nothing is heard.
+
+### 5. Shape language consistency
+
+Whatever the corner radius and shape vocabulary (sharp, soft, organic, geometric), keep it
+consistent within a game. Mixing pill buttons, sharp cards, and circular chips with no logic
+is slop. Pick the language (from DNA) and hold it across all screens.
+
+### 6. Contrast & legibility (non-negotiable)
+
+Text contrast ≥ 4.5:1 against its background. Don't put light text on busy art without a scrim
+or shadow. A beautiful screen you can't read is a failed screen. This is the one place
+"intent" doesn't get a pass.
+
+### 7. Alignment & edges
+
+Elements share alignment lines (left edges line up, centers line up). Equal optical margins
+from screen edges. Ragged, almost-aligned elements are the subtle tell of generated layouts.
+
+### 8. Restraint with effects
+
+Shadows, glows, blurs, gradients, particles — each must earn its place (see "effects serve a
+purpose"). Default to fewer, stronger effects over many weak ones. A flat, clean screen with one
+confident accent beats a screen drowning in soft shadows and gradients. When unsure, remove it.
+
+### 9. Consistent iconography
+
+Icons share one style (all outline, or all filled, or all duotone) and one stroke weight.
+Mixed icon styles are an instant tell. Same with iconography metaphors — keep them coherent.
+
+### 10. Polish in the details
+
+The difference between "works" and "feels good": pressed states, focus states, empty states,
+the count-up on a number, the slight delay before a result, the rounded corner that matches the
+art. Players don't notice these individually — they notice their absence as "cheap".
+
+---
+
 ## What NOT To Do (Anti-Patterns)
 
 ### Don't: Apply the Same Style to Every Game
@@ -277,3 +343,21 @@ Instead of checking for specific widgets or effects, validate that:
 - [ ] No default Material/Cupertino widgets used without intentional customization
 - [ ] The overall visual identity is CONSISTENT across all screens
 - [ ] 12+ screens/overlays exist with full implementation
+
+### Craft fundamentals (raise the floor — see "Craft Fundamentals" above)
+
+- [ ] A defined type scale (4–6 sizes), reused — not random one-off font sizes
+- [ ] One base spacing unit (4 or 8); gaps/paddings are multiples of it
+- [ ] Cohesive palette: 1–2 accents max, not a rainbow of competing hues
+- [ ] Each screen has a single clear focal point
+- [ ] Consistent shape/corner-radius language across screens
+- [ ] Text contrast ≥ 4.5:1 (scrim/shadow over busy backgrounds)
+- [ ] Elements share alignment lines; equal optical margins from edges
+- [ ] Effects used with restraint (fewer/stronger beats many/weak)
+- [ ] Icons share one style and stroke weight
+
+> **Audit guard — don't trade one slop for another.** This audit checks INTENT, COHESION and
+> CRAFT — never a specific style. Do NOT "fix" a screen by adding neon glow, glassmorphism,
+> skewed buttons, or dark mode if those don't fit the game's DNA. A clean light cozy screen
+> that follows the craft fundamentals PASSES. Forcing the studio's house style onto every game
+> is itself the failure this document exists to prevent.

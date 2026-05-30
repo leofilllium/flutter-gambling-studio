@@ -236,9 +236,15 @@ echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
 
 ---
 
-### Промпты для символов по умолчанию:
+### Промпты — выводятся из Design DNA (пример ниже — для ОДНОГО конкретного слота)
 
-| Символ | ASSET_TYPE | Промпт |
+> ⚠️ Таблица ниже — иллюстрация для классического фруктового слота. **Для ЭТОЙ игры
+> символы, палитра и стиль берутся из Design DNA концепта** (`design/gdd/game-concept.md`),
+> а НЕ казино/неон по умолчанию. Подставь в промпты: тему/мир, палитру, стиль арта (flat /
+> volume / lineart / пиксель) и яркость из DNA. Лесной пазл → листья/жёлуди в тёплых тонах;
+> космос → кристаллы/звёзды в холодных; и т.д. Держи единый стиль во всём наборе.
+
+| Символ (пример-слот) | ASSET_TYPE | Промпт (стиль/палитра — подставить из DNA) |
 |--------|-----------|--------|
 | cherry | symbol | `red glossy cherries fruit, game sprite, pure white background, vibrant cartoon` |
 | bar | symbol | `chrome metallic BAR text, slot machine symbol, pure white background, shiny 3D` |
@@ -246,7 +252,7 @@ echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
 | diamond | symbol | `blue diamond gemstone, crystal faceted, game icon, pure white background, glossy` |
 | wild | wild | `golden star wild, glowing rainbow aura, game icon, pure white background` |
 | scatter | scatter | `purple hexagon lightning bolt, scatter symbol, game icon, pure white background` |
-| main_menu_bg | background | `dark cyberpunk casino background, neon lights, atmospheric, no characters` |
+| main_menu_bg | background | `[DNA theme] background, [DNA palette], atmospheric, no characters` — яркость и мир из DNA, не «всегда тёмное казино» |
 
 ### Особенности:
 - В Codex просить прозрачный фон сразу через GPT Images 2.0
@@ -293,22 +299,26 @@ fi
 
 ## Шаг 3: Построение промпта
 
+> Стиль, палитра и яркость подставляются из **Design DNA** концепта — НЕ casino/neon по
+> умолчанию. `[АРТ-СТИЛЬ]` = один из {flat 2D, glossy 3D with highlights, hand-drawn lineart,
+> pixel art, paper cutout, watercolor} — выбери по DNA и держи ЕДИНЫМ для всего набора.
+
 ```
-Professional 2D casino slot game asset: [НАЗВАНИЕ].
-Single isolated object, transparent background if supported, cartoon glossy style,
-vibrant [ЦВЕТА ТЕМЫ] color palette, bold clean outline,
+Professional 2D mobile game asset: [НАЗВАНИЕ].
+Single isolated object, transparent background if supported, [АРТ-СТИЛЬ из DNA],
+[ПАЛИТРА ТЕМЫ из DNA] color palette, bold clean outline,
 high quality game sprite, 512x512 pixels.
 [ТИП-ДЕТАЛИ]
 ```
 
-### Детали по типу:
-| Тип | Добавить |
+### Детали по типу (эффекты — только если они в DNA):
+| Тип | Добавить (подставить под DNA) |
 |-----|---------|
-| `symbol` (вишня, бар, 7) | "glossy shiny surface, cartoon with depth and highlights" |
-| `wild` | "golden glowing wild symbol, premium casino look, radiant aura" |
-| `scatter` | "mystical scatter symbol, glowing particles, magical energy" |
-| `ui` кнопка | "neon glowing button, casino UI element, no text" |
-| `background` | "dark casino atmospheric pattern, subtle texture, no characters" |
+| `symbol` / `sprite` | стиль из DNA (объём с бликами ИЛИ flat ИЛИ lineart), единый для набора |
+| `wild` (gambling) | премиальный акцентный символ; эффект (свечение/блеск/нет) — из DNA |
+| `scatter` (gambling) | особый символ-триггер, визуально выделен средствами DNA |
+| `ui` кнопка | форма из shape language DNA; эффект (glow/тень/плоско) из DNA, no text |
+| `background` | мир и **яркость** из DNA (не «всегда тёмное казино»), не отвлекает от игрового поля |
 
 > **Важно для прозрачного фона:** legacy Imagen/Gemini не всегда генерирует RGBA.
 > Если alpha не получилась, используй локальный `rembg` / ImageMagick на Шаге 5.

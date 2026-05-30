@@ -33,7 +33,9 @@ Concept → Design → Code → QA → Release
 - [ ] Elevator pitch (1-2 предложения)
 - [ ] Жанр определён (gambling/puzzle/arcade/physics/casual/card)
 - [ ] Уникальная механика ("сочность") описана
-- [ ] Архетип выбран (A–X)
+- [ ] Архетип выбран (A–AF / Unique)
+- [ ] Design DNA описан (палитра/шрифты/формы/motion, обоснованные темой; не дефолтный неон)
+- [ ] Layout & Composition Direction указан (Layout Archetype L1–L6)
 - [ ] Для gambling: целевой RTP указан (95–97%), волатильность выбрана, хотя бы 3 символа описаны
 
 **Ворота:**
