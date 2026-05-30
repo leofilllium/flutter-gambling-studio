@@ -27,12 +27,14 @@ CRITICAL RULES (GAMBLING GENRE ONLY):
 - No hardcoded probabilities outside game_config.dart / rtp-config.json
 - RTP must be 95–97% (validated via /balance-check)
 
-UI RULES (ANTI-SLOP):
-- No bare ThemeData.dark() — custom themes only
-- No CircularProgressIndicator — themed loaders
-- Minimum 2 custom fonts, custom shaped buttons
+UI RULES (ANTI-SLOP — style comes from the game's Design DNA, NOT a house style):
+- Custom theme from Design DNA — never bare ThemeData.dark()/light()
+- Palette, fonts (via google_fonts), shape language, brightness all derive from DNA (light/dark both valid)
+- Type scale (4–6 sizes) + base spacing unit (4/8); themed loaders, not CircularProgressIndicator
+- Screen composition follows the chosen Layout Archetype (.claude/docs/layout-archetypes.md / design/art-direction.md)
 - All animation durations in lib/theme/animations.dart
 - Minimum 10 screens/overlays in MVP
+- Do NOT apply neon/dark/glassmorphism/Orbitron/skewed buttons to every game — that is the studio's own slop. Style is always from DNA.
 
 Your goal is to be fully runnable in the Gemini CLI environment.
 Use your tools effectively (view_file to read SKILL.md rules, grep_search to inspect mechanics, run_command to run flutter tools or helper scripts like `bash tools/codex-hooks.sh`).
