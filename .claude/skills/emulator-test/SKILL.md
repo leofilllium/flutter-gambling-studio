@@ -18,8 +18,9 @@ overflow (жёлто-чёрные полосы), Flutter "red screen of death" (
 и **парсит flutter-run.log** на предмет исключений. Найденное — автоматически чинит.
 
 **Платформы по приоритету:**
-1. **Chrome/Web (дефолт)** — `flutter run -d chrome`, не нужен эмулятор, всегда доступен
-2. Android ADB — fallback при `--platform android` или если Chrome недоступен
+1. **Chrome/Web (дефолт)** — headless `flutter run -d web-server` + headless Chrome по CDP
+   (`tools/web_verify.mjs`). Не нужен эмулятор/дисплей/`xdotool`. Нужны только `node` и бинарь Chrome.
+2. Android ADB — fallback при `--platform android` или если web-путь невозможен
 3. iOS Simulator — только при явном `--platform ios` (macOS)
 
 **Режимы:**
@@ -33,8 +34,8 @@ overflow (жёлто-чёрные полосы), Flutter "red screen of death" (
 
 ## Фаза 0 — Environment Preflight [~15 сек]
 
-**Дефолтная платформа — Chrome web** (`flutter run -d chrome`). Не требует эмулятора.
-Порядок авто-выбора: Chrome web → Android (ADB) → iOS.
+**Дефолтная платформа — Chrome web** (headless `web-server` + CDP). Не требует эмулятора/дисплея.
+Порядок авто-выбора: web → Android (ADB) → iOS.
 Принудительный выбор — `--platform android|web|ios`.
 
 ```bash
@@ -78,7 +79,7 @@ elif [[ -n "$IOS_DEV" ]]; then
   PLATFORM=${PLATFORM:-ios}
   echo "✅ iOS simulator fallback"
 else
-  echo "⚠️ Нет доступных устройств. Запускаем Chrome через flutter run -d chrome..."
+  echo "🌐 Нет нативных устройств → headless web (web-server + CDP)."
   PLATFORM=${PLATFORM:-web}
 fi
 ```
@@ -86,8 +87,10 @@ fi
 ### Если нет ни одного устройства — авто-запуск
 
 **Chrome web (приоритет 1 — дефолт):**
-Chrome не требует запуска — Flutter сам открывает браузер через `flutter run -d chrome`.
-Если `flutter devices` показывает Chrome — используем его. Это всегда так на машинах с Chrome.
+Не нужен ни эмулятор, ни открытое окно браузера. Игра раздаётся headless через
+`flutter run -d web-server`, а снимки/тапы делает headless Chrome по CDP (`tools/web_verify.mjs`).
+Достаточно, чтобы в системе были `node` и бинарь Chrome (`google-chrome`/`chromium`, либо
+`$CHROME_EXECUTABLE`). Дисплей/`xdotool`/`osascript` НЕ требуются.
 
 **Android AVD (приоритет 2 — fallback):**
 ```bash
@@ -151,26 +154,42 @@ LOGCAT_PID=$!
 echo $LOGCAT_PID > .claude/runtime-logs/logcat.pid
 ```
 
-### Chrome / Web (PLATFORM=web) — не требует эмулятора
+### Chrome / Web (PLATFORM=web) — не требует эмулятора и **не требует дисплея**
+
+> **Почему `web-server`, а не `-d chrome`:** `flutter run -d chrome` открывает GUI-окно,
+> которым потом приходится управлять через `xdotool`/`osascript` — а они недоступны или
+> ненадёжны в headless / Wayland-сессиях. Плюс `flutter screenshot` **не поддерживает web**.
+> Поэтому мы поднимаем игру headless через `web-server` и снимаем/навигируем **headless Chrome
+> по Chrome DevTools Protocol** (`tools/web_verify.mjs`). Это работает без дисплея, даёт
+> реальные PNG c CanvasKit-канвы и реальные тапы.
 
 ```bash
-flutter run -d chrome \
-  --web-browser-flag "--window-size=390,844" \
-  > .claude/runtime-logs/flutter-run.log 2>&1 &
-FLUTTER_PID=$!
-echo $FLUTTER_PID > .claude/runtime-logs/flutter.pid
+mkdir -p .claude/runtime-logs
+WEB_PORT="${WEB_PORT:-8099}"
 
-# Ждём "Flutter run key commands" или "Connecting to VM"
-for i in $(seq 1 90); do
-  grep -qE "Flutter run key commands|Connecting to VM|web server is available" \
-    .claude/runtime-logs/flutter-run.log 2>/dev/null && { echo "✅ Chrome запущен"; break; }
-  sleep 1
+# Headless dev-server: компилирует и раздаёт игру, НЕ открывая браузер.
+nohup flutter run -d web-server --web-port "$WEB_PORT" --web-hostname 127.0.0.1 \
+  > .claude/runtime-logs/flutter-run.log 2>&1 &
+echo $! > .claude/runtime-logs/flutter.pid
+
+# Ждём строку "is being served at http://127.0.0.1:PORT" — но с жёстким лимитом и
+# ранним выходом при ошибке компиляции (иначе фаза зависает на сломанной сборке).
+WEB_URL=""
+for i in $(seq 1 120); do
+  WEB_URL=$(grep -oE "http://127\.0\.0\.1:[0-9]+" .claude/runtime-logs/flutter-run.log 2>/dev/null | head -1)
+  [ -n "$WEB_URL" ] && { echo "✅ web-server: $WEB_URL"; break; }
+  if grep -qE "Failed to compile|Target dart2js failed|^Error: |Compilation failed" .claude/runtime-logs/flutter-run.log 2>/dev/null; then
+    echo "❌ web build failed — см. flutter-run.log (Фаза 'Если build упал')"; break
+  fi
+  sleep 2
 done
-sleep 5  # Extra warm-up для рендера первого кадра
+[ -z "$WEB_URL" ] && WEB_URL="http://127.0.0.1:$WEB_PORT"  # fallback
 ```
 
-**Logcat для web**: парсим только `.claude/runtime-logs/flutter-run.log`
-(Chrome не имеет adb logcat, но Flutter выводит все ошибки в stdout).
+**Logcat для web**: adb logcat недоступен. Вместо него runtime-исключения собираются из
+**двух** источников: `.claude/runtime-logs/flutter-run.log` (stdout сборки/VM) **и**
+`<SHOT_DIR>/webconsole.log` — консоль браузера + uncaught exceptions, которые `web_verify.mjs`
+снимает по CDP (`Runtime.consoleAPICalled` / `Runtime.exceptionThrown` / `Log.entryAdded`).
 
 ### Если build упал
 
@@ -184,52 +203,38 @@ sleep 5  # Extra warm-up для рендера первого кадра
 **Стратегия**: навигировать по игре через ADB input events, после КАЖДОГО экрана ждать
 анимацию (1-2 сек) и делать скриншот. Android — дефолт. Для iOS — `xcrun simctl io booted screenshot`.
 
-### Chrome / Web скриншоты (PLATFORM=web)
+### Chrome / Web скриншоты (PLATFORM=web) — headless CDP, один вызов
 
-`flutter screenshot -d chrome -o <file.png>` снимает текущий кадр в активном Chrome-окне,
-открытом через `flutter run -d chrome`. Это Impeller-safe и не требует ADB.
+`flutter screenshot` **не поддерживает web** (только `device`/`skia` для нативных устройств),
+а `xdotool`/`osascript` недоступны/ненадёжны headless. Поэтому весь тур по экранам выполняет
+**один** скрипт `tools/web_verify.mjs`: он сам поднимает headless Chrome, снимает кадры по CDP,
+тапает по канве (по семантической метке, иначе по thumb-зоне), пишет консоль/исключения и
+ВСЕГДА завершается в рамках `--budget` (не вешает конвейер).
 
 ```bash
-# Один снимок в Chrome
-chrome_shot() {
-  local name=$1 out="$SHOT_DIR/$name.png"
-  flutter screenshot -d chrome --type=device -o "$out" 2>/dev/null || \
-  flutter screenshot --type=rasterizer -o "$out" 2>/dev/null
-  is_valid_png "$out" && echo "✅ $name (flutter screenshot / chrome)" || echo "❌ $name (chrome shot failed)"
-}
+TS=$(date +%Y%m%d-%H%M%S)
+SHOT_DIR="production/runtime-screenshots/$TS"
+mkdir -p "$SHOT_DIR"
 
-# Тур по экранам (тайм-базированный — ждём авто-навигацию)
-sleep 2  && chrome_shot "01-splash"
-sleep 4  && chrome_shot "02-menu"      # splash → menu авто-переход
-
-# Для навигации в Chrome используем flutter/dart vm service events
-# (нажатие клавиш через xdotool на Linux, osascript на macOS)
-if command -v osascript &>/dev/null; then
-  # macOS: активируем Chrome и кликаем в нижнюю треть (кнопка Play обычно там)
-  osascript -e 'tell application "Google Chrome" to activate' 2>/dev/null
-  sleep 1
-  # Симулируем тап по центру нижней трети (195, 630 для окна 390x844)
-  osascript -e 'tell application "System Events" to click at {195, 630}' 2>/dev/null
-elif command -v xdotool &>/dev/null; then
-  # Linux: кликаем в Chrome окно
-  WID=$(xdotool search --name "Flutter" | head -1)
-  [[ -n "$WID" ]] && xdotool mousemove --window "$WID" 195 630 click 1
-fi
-sleep 3  && chrome_shot "03-game-idle"
-sleep 1  # Ещё тап — основное действие
-if command -v osascript &>/dev/null; then
-  osascript -e 'tell application "System Events" to click at {195, 630}' 2>/dev/null
-elif command -v xdotool &>/dev/null; then
-  WID=$(xdotool search --name "Flutter" | head -1)
-  [[ -n "$WID" ]] && xdotool mousemove --window "$WID" 195 630 click 1
-fi
-sleep 3  && chrome_shot "04-game-action"
-sleep 3  && chrome_shot "05-game-after-action"
+# --budget — внутренний дедлайн скрипта; внешний `timeout` — страховка сверху.
+# --quick — только splash→menu→game→action (для /autocreate).
+timeout 220 node tools/web_verify.mjs \
+  --url "$WEB_URL" --out "$SHOT_DIR" --budget 180 ${QUICK_FLAG:-} \
+  2>&1 | tee "$SHOT_DIR/web_verify.log"
 ```
 
-**Парсинг ошибок Chrome**: использовать тот же grep против `flutter-run.log` —
-Flutter в Chrome пишет все exceptions туда же (EXCEPTION CAUGHT, RenderFlex overflowed,
-Unable to load asset). Logcat отдельно запускать не нужно.
+Скрипт кладёт в `$SHOT_DIR`: `01-splash.png … 05-game-after-action.png` (+ доп. экраны без
+`--quick`), `webconsole.log` (консоль+исключения браузера) и `manifest.json`
+(`{ steps, semanticLabels, consoleErrors, shots }`).
+
+**Навигация:** скрипт сначала пытается найти кнопку действия по `aria-label`
+(Flutter semantics — студия требует `Semantics(label: …)` на основной кнопке: `играть/спин/
+play/start/spin`), и только если метки нет — тапает thumb-зону (центр нижних 60%). Это покрывает
+все layout-архетипы L1–L6 без угадывания координат окна.
+
+**Парсинг ошибок Chrome**: grep по `manifest.json` (`consoleErrors`) и `webconsole.log`
+(EXCEPTION, RenderFlex overflowed, Unable to load asset) **плюс** `flutter-run.log`
+(ошибки компиляции). Отдельный logcat не нужен.
 
 ---
 
@@ -287,10 +292,9 @@ shoot() {
   fi
 
   if [[ "$PLATFORM" == "web" || "$PLATFORM" == "chrome" ]]; then
-    flutter screenshot -d chrome --type=device -o "$out" 2>/dev/null || \
-    flutter screenshot --type=rasterizer -o "$out" 2>/dev/null || true
-    is_valid_png "$out" && { echo "✅ $name (flutter screenshot/chrome)"; return 0; }
-    echo "❌ $name — flutter screenshot не дал валидный PNG (Chrome)"
+    # web НЕ использует эту функцию — весь тур делает tools/web_verify.mjs по CDP
+    # (`flutter screenshot` не поддерживает web). Эта ветка — только страховочный лог.
+    echo "ℹ️ $name — для web используйте tools/web_verify.mjs (см. «Chrome / Web скриншоты»)"
     return 1
   fi
 
@@ -334,33 +338,12 @@ shoot() {
 
 # Вспомогательная функция навигации (Android ADB tap или Chrome/macOS click)
 nav_tap() {
+  # Только Android/iOS. Для web навигацию делает tools/web_verify.mjs по CDP.
   local x=${1:-540} y=${2:-2000}
-  if [[ "$PLATFORM" == "android" ]]; then
-    adb ${DEVICE_ID:+-s $DEVICE_ID} shell input tap "$x" "$y"
-  elif [[ "$PLATFORM" == "web" || "$PLATFORM" == "chrome" ]]; then
-    if command -v osascript &>/dev/null; then
-      # macOS: кликаем в Chrome окно. Координаты в экранных px (окно 390x844).
-      # Центр горизонтально = 195, нижняя треть ≈ y=630
-      osascript -e 'tell application "Google Chrome" to activate' 2>/dev/null; sleep 0.3
-      osascript -e "tell application \"System Events\" to click at {195, 630}" 2>/dev/null
-    elif command -v xdotool &>/dev/null; then
-      local WID; WID=$(xdotool search --name "Flutter" 2>/dev/null | head -1)
-      [[ -n "$WID" ]] && xdotool mousemove --window "$WID" 195 630 click 1
-    fi
-  fi
+  [[ "$PLATFORM" == "android" ]] && adb ${DEVICE_ID:+-s $DEVICE_ID} shell input tap "$x" "$y"
 }
 nav_back() {
-  if [[ "$PLATFORM" == "android" ]]; then
-    adb ${DEVICE_ID:+-s $DEVICE_ID} shell input keyevent KEYCODE_BACK
-  elif [[ "$PLATFORM" == "web" || "$PLATFORM" == "chrome" ]]; then
-    # Chrome: Alt+Left или Backspace для "back"
-    if command -v osascript &>/dev/null; then
-      osascript -e 'tell application "Google Chrome" to activate' 2>/dev/null; sleep 0.3
-      osascript -e 'tell application "System Events" to key code 123 using {command down}' 2>/dev/null
-    elif command -v xdotool &>/dev/null; then
-      xdotool key alt+Left
-    fi
-  fi
+  [[ "$PLATFORM" == "android" ]] && adb ${DEVICE_ID:+-s $DEVICE_ID} shell input keyevent KEYCODE_BACK
 }
 
 # 1. Splash
@@ -456,7 +439,9 @@ Read file_path=production/runtime-screenshots/<ts>/01-splash.png
 ## Фаза 4 — Logcat Analysis [~30 сек]
 
 **Android**: читать и `logcat.log`, и `flutter-run.log`.
-**Chrome/web**: читать только `flutter-run.log` — Flutter выводит все ошибки туда.
+**Chrome/web**: читать `flutter-run.log` (ошибки компиляции/VM) **и** `<SHOT_DIR>/webconsole.log`
++ `<SHOT_DIR>/manifest.json` → `consoleErrors[]` (runtime-исключения и console.error из браузера,
+снятые по CDP). Быстрая проверка: `jq '.consoleErrors' "$SHOT_DIR/manifest.json"`.
 Извлечь все runtime-exceptions.
 
 ### Паттерны для grep
@@ -689,10 +674,10 @@ ls -1t production/runtime-screenshots/ | tail -n +6 | xargs -I{} rm -rf "product
 
 - `--device <id>` — конкретный `flutter devices` ID (по умолчанию: авто-выбор Chrome)
 - `--platform web|android|ios` — форсировать платформу.
-  - **По умолчанию: `web`** — `flutter run -d chrome`, не нужен эмулятор
+  - **По умолчанию: `web`** — headless `web-server` + CDP (`tools/web_verify.mjs`), не нужен эмулятор/дисплей
   - `android` — ADB + `flutter screenshot`, требует запущенного устройства/эмулятора
 - `--no-fix` — только анализ и отчёт, без исправлений
-- `--quick` — сокращённый тур (splash → menu → game → action)
-- `--skip-logcat` — пропустить парсинг logcat (для web logcat не нужен — всё в flutter-run.log)
+- `--quick` — сокращённый тур (splash → menu → game → action). Пробрасывается в `web_verify.mjs --quick`.
+- `--skip-logcat` — пропустить парсинг logcat (для web logcat не нужен — всё в webconsole.log/flutter-run.log)
 - `--no-impeller` — запустить `flutter run` с `--no-enable-impeller` (только Android).
   Используйте, если первый прогон дал `.INVALID` PNG.

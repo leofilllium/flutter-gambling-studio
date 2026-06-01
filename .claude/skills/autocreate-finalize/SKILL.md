@@ -78,103 +78,126 @@ flutter test > /tmp/finalize_preflight_test.log 2>&1 || {
 
 Вызвать skill `/emulator-test --quick` (см. `.claude/skills/emulator-test/SKILL.md`).
 
-### 10.5.1 — Preflight с автозапуском AVD
+### 10.5.1 — Preflight (web-first, headless, без дисплея)
+
+> **Дефолт — headless web** через `flutter run -d web-server` + headless Chrome по CDP
+> (`tools/web_verify.mjs`). Это НЕ требует ни эмулятора, ни KVM, ни графического дисплея,
+> ни `xdotool`/`osascript`. Android AVD — только явный fallback (`--platform android`).
+> Это устраняет две главные причины зависаний Фазы 10.5: «не могу открыть/кликнуть Chrome»
+> и `flutter screenshot` (он не поддерживает web).
 
 ```bash
-# Дефолт: Chrome web (не требует эмулятора).
-# Android AVD используется только при явном --platform android.
-CHROME_AVAILABLE=0
-flutter devices 2>/dev/null | grep -qiE "Chrome|web" && CHROME_AVAILABLE=1
+# Что нужно для web-пути: node (для CDP-драйвера) + бинарь Chrome (для headless-снимков).
+HAVE_NODE=0; command -v node >/dev/null 2>&1 && HAVE_NODE=1
+CHROME_BIN="${CHROME_EXECUTABLE:-}"
+for c in google-chrome google-chrome-stable chromium chromium-browser; do
+  [ -z "$CHROME_BIN" ] && command -v "$c" >/dev/null 2>&1 && CHROME_BIN="$(command -v "$c")"
+done
+export CHROME_EXECUTABLE="$CHROME_BIN"
 
-if [[ $CHROME_AVAILABLE -eq 1 ]]; then
-  echo "🌐 Chrome web доступен — используем его (default)"
-  export PLATFORM=web
-  unset SKIP_SCREENSHOTS
-elif [[ "${AUTOCREATE_SKIP_EMULATOR:-0}" == "1" ]]; then
-  # Явный opt-out (напр. headless CI, где runtime-проверка только мешает).
+if [[ "${AUTOCREATE_SKIP_EMULATOR:-0}" == "1" ]]; then
   echo "⏭️ AUTOCREATE_SKIP_EMULATOR=1 — Фаза 10.5 SKIPPED по запросу."
   export SKIP_SCREENSHOTS=1
-else
-  # Fallback: Android эмулятор. ВАЖНО — всё ограничено по времени: runtime-проверка
-  # НЕ должна вешать конвейер. Если устройство не поднялось за отведённый бюджет —
-  # SKIPPED и идём в Фазу 11 (игра уже скомпилирована и протестирована в Части 1).
+elif [[ "${PLATFORM:-web}" == "android" ]]; then
+  # Явный Android fallback (--platform android). Всё под timeout — не вешаем конвейер.
   RUNNING_EMU=$(adb devices 2>/dev/null | grep -E "emulator-[0-9]+.*device$" | head -1 | awk '{print $1}')
   if [[ -n "$RUNNING_EMU" ]]; then
-    echo "✅ Android эмулятор запущен: $RUNNING_EMU (fallback)"
-    export PLATFORM=android
+    echo "✅ Android эмулятор: $RUNNING_EMU"; export PLATFORM=android
     adb -s "$RUNNING_EMU" shell input keyevent 82 2>/dev/null || true
-  elif [[ ! -e /dev/kvm ]]; then
-    # Без KVM свежий AVD грузится минутами или не грузится вовсе (headless) — это
-    # главный источник зависаний Фазы 10.5. Не пытаемся, сразу SKIP.
-    echo "⚠️ Chrome нет, эмулятор не запущен, нет /dev/kvm. Фаза 10.5 — SKIPPED."
-    export SKIP_SCREENSHOTS=1
-  else
-    AVD=$(emulator -list-avds 2>/dev/null | head -1)
-    if [[ -n "$AVD" ]]; then
-      echo "🚀 Запуск AVD: $AVD (fallback)"
-      nohup emulator -avd "$AVD" \
-            -no-window -no-snapshot-save -no-boot-anim \
-            -gpu swiftshader_indirect \
-            -no-audio \
-            > /tmp/avd.log 2>&1 &
-      EMU_PID=$!
-      echo "[emulator] PID=$EMU_PID"
-      # Никаких безлимитных adb wait-for-device — всё под timeout.
-      if timeout 90 adb wait-for-device 2>/dev/null && \
-         timeout 240 bash -c \
-           'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do sleep 2; done'; then
-        sleep 20
-        echo "✅ AVD загружен и прогрет"
-        export PLATFORM=android
-      else
-        echo "⚠️ AVD не загрузился за отведённое время. Фаза 10.5 — SKIPPED."
-        kill "$EMU_PID" 2>/dev/null || true
-        export SKIP_SCREENSHOTS=1
-      fi
+  elif [[ -e /dev/kvm ]] && AVD=$(emulator -list-avds 2>/dev/null | head -1) && [[ -n "$AVD" ]]; then
+    echo "🚀 Запуск AVD: $AVD"
+    nohup emulator -avd "$AVD" -no-window -no-snapshot-save -no-boot-anim \
+          -gpu swiftshader_indirect -no-audio > /tmp/avd.log 2>&1 &
+    EMU_PID=$!
+    if timeout 90 adb wait-for-device 2>/dev/null && \
+       timeout 240 bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null|tr -d "\r")" = "1" ]; do sleep 2; done'; then
+      sleep 20; echo "✅ AVD прогрет"; export PLATFORM=android
     else
-      echo "⚠️ Chrome недоступен и нет AVD. Фаза 10.5 — SKIPPED."
-      export SKIP_SCREENSHOTS=1
+      echo "⚠️ AVD не загрузился вовремя → откат на web."; kill "$EMU_PID" 2>/dev/null || true
+      export PLATFORM=web
     fi
+  else
+    echo "⚠️ Нет эмулятора/KVM/AVD → откат на web."; export PLATFORM=web
   fi
 fi
 
-# NDK pre-flight: ensure NDK 27 is available before flutter run attempt
-if command -v sdkmanager &>/dev/null; then
-  sdkmanager --list_installed 2>/dev/null | grep -q "ndk;27" || {
-    echo "🔧 NDK 27 not found — installing..."
-    sdkmanager "ndk;27.0.12077973" 2>/dev/null && echo "✅ NDK 27 installed" || \
-      echo "⚠️ NDK install failed — build may fail if ndkVersion not resolved"
-  }
+# Web-путь (дефолт): нужен node + Chrome. Если их нет — единственный честный SKIP.
+if [[ "${SKIP_SCREENSHOTS:-0}" != "1" && "${PLATFORM:-web}" == "web" ]]; then
+  if [[ $HAVE_NODE -eq 1 && -n "$CHROME_BIN" ]]; then
+    echo "🌐 Web-путь: node=$(node -v) chrome=$CHROME_BIN"; export PLATFORM=web
+  else
+    echo "⚠️ Нет node ($HAVE_NODE) или Chrome ('$CHROME_BIN') — web-верификация невозможна. SKIPPED."
+    export SKIP_SCREENSHOTS=1
+  fi
 fi
 
-# Patch android/app/build.gradle if ndkVersion missing (prevents Gradle build failure)
-if [[ -f android/app/build.gradle ]] && ! grep -q "ndkVersion" android/app/build.gradle; then
-  python3 - <<'PY'
+# NDK pre-flight — ТОЛЬКО для Android fallback (web не собирает Gradle).
+if [[ "${PLATFORM:-web}" == "android" ]]; then
+  command -v sdkmanager &>/dev/null && { sdkmanager --list_installed 2>/dev/null | grep -q "ndk;27" || \
+    sdkmanager "ndk;27.0.12077973" 2>/dev/null || echo "⚠️ NDK install failed"; }
+  if [[ -f android/app/build.gradle ]] && ! grep -q "ndkVersion" android/app/build.gradle; then
+    python3 - <<'PY'
 import re, pathlib
-bg = pathlib.Path("android/app/build.gradle")
-src = bg.read_text()
+bg = pathlib.Path("android/app/build.gradle"); src = bg.read_text()
 src = src.replace("android {", 'android {\n    ndkVersion "27.0.12077973"', 1)
-src = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 21', src)
-bg.write_text(src)
+src = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 21', src); bg.write_text(src)
 print("✅ Patched build.gradle: ndkVersion + minSdkVersion 21")
 PY
+  fi
 fi
 ```
 
 **Критерий перехода:**
-- Если `SKIP_SCREENSHOTS=1` (нет Chrome, нет устройства/KVM, либо `AUTOCREATE_SKIP_EMULATOR=1`) —
-  **НЕ запускать** 10.5.2, сразу перейти к Фазе 11 с verdict **SKIPPED**. Это штатный
-  путь в headless-окружении — НЕ ошибка, конвейер считается успешным.
-- Иначе (`PLATFORM` установлен и устройство доступно) — продолжить с 10.5.2.
+- Если `SKIP_SCREENSHOTS=1` (явный opt-out, либо нет node/Chrome для web и нет Android-устройства) —
+  **НЕ запускать** 10.5.2, сразу перейти к Фазе 11 с verdict **SKIPPED**. Это штатный путь —
+  НЕ ошибка, конвейер считается успешным (игра уже собрана и протестирована в Части 1).
+- Иначе (`PLATFORM=web` с node+Chrome, либо `PLATFORM=android` с устройством) — продолжить с 10.5.2.
 
-### 10.5.2 — Запуск emulator-test --quick (только если НЕ SKIP_SCREENSHOTS)
+### 10.5.2 — Runtime tour (только если НЕ SKIP_SCREENSHOTS)
 
-Следовать `.claude/skills/emulator-test/SKILL.md` в режиме `--quick`:
-- `flutter run` с логированием в `.claude/runtime-logs/flutter-run.log`
-- Параллельно `adb logcat` → `.claude/runtime-logs/logcat.log`
-- Скриншоты: splash, menu, game-idle, game-action, game-after-action
-- Визуальный анализ каждого скриншота по чеклисту V1–V12
-- Парсинг логов на EXCEPTION CAUGHT, RenderFlex overflow, Unable to load asset
+**Web-путь (дефолт)** — самодостаточные команды (детали см. в `emulator-test/SKILL.md`):
+
+```bash
+mkdir -p .claude/runtime-logs
+WEB_PORT=8099
+
+# 1) headless dev-server (не открывает браузер)
+nohup flutter run -d web-server --web-port "$WEB_PORT" --web-hostname 127.0.0.1 \
+  > .claude/runtime-logs/flutter-run.log 2>&1 &
+echo $! > .claude/runtime-logs/flutter.pid
+
+# 2) ждём URL, с ранним выходом при ошибке сборки (без зависания)
+WEB_URL=""
+for i in $(seq 1 120); do
+  WEB_URL=$(grep -oE "http://127\.0\.0\.1:[0-9]+" .claude/runtime-logs/flutter-run.log 2>/dev/null | head -1)
+  [ -n "$WEB_URL" ] && break
+  grep -qE "Failed to compile|Target dart2js failed|Compilation failed|^Error: " .claude/runtime-logs/flutter-run.log 2>/dev/null && break
+  sleep 2
+done
+
+TS=$(date +%Y%m%d-%H%M%S); SHOT_DIR="production/runtime-screenshots/$TS"; mkdir -p "$SHOT_DIR"
+
+if [ -n "$WEB_URL" ]; then
+  # 3) ВЕСЬ тур по экранам + снимки + консоль/исключения одним самозавершающимся вызовом.
+  #    Внешний timeout — страховка над внутренним --budget.
+  timeout 220 node tools/web_verify.mjs --url "$WEB_URL" --out "$SHOT_DIR" --budget 180 --quick \
+    2>&1 | tee "$SHOT_DIR/web_verify.log"
+else
+  echo "❌ web-server не поднялся — сборка сломана. Лог: .claude/runtime-logs/flutter-run.log" \
+    | tee "$SHOT_DIR/web_verify.log"
+fi
+
+# 4) cleanup сервера (скрипт сам убивает свой headless Chrome)
+kill "$(cat .claude/runtime-logs/flutter.pid 2>/dev/null)" 2>/dev/null || true
+```
+
+Затем:
+- **Визуальный анализ** каждого `$SHOT_DIR/*.png` через Read (vision) по чеклисту V1–V12.
+- **Парсинг ошибок**: `jq '.consoleErrors' "$SHOT_DIR/manifest.json"`, `$SHOT_DIR/webconsole.log`,
+  и `.claude/runtime-logs/flutter-run.log` (EXCEPTION CAUGHT, RenderFlex overflowed, Unable to load asset).
+
+**Android fallback** (`PLATFORM=android`): следовать `emulator-test/SKILL.md` (`flutter run` + `adb logcat`
++ `flutter screenshot`/`adb screencap`), режим `--quick`.
 
 ### 10.5.3 — Auto-Fix Loop (до 3 итераций)
 
@@ -339,7 +362,14 @@ Task: Production-ready
    - Есть скрины, но `active.md` не обновлён → начать с 11
 3. Продолжает с нужной фазы, не переделывая сделанное
 
-**Если Chrome почему-то недоступен** — попробовать `flutter run -d web-server` или
-установить Chrome. Chrome — первичная платформа, всегда должен быть доступен.
-Если совсем нет браузера — Фаза 10.5 SKIPPED, архив создаётся без скриншотов.
+**Если web-верификация невозможна** (нет `node` или бинаря Chrome): `web_verify.mjs` не запустить —
+Фаза 10.5 штатно SKIPPED, идём в Фазу 11 с verdict SKIPPED (игра уже собрана и протестирована
+в Части 1). Чтобы включить web-верификацию: установить `node` (≥21, нужен встроенный WebSocket)
+и Chrome/Chromium (`google-chrome`/`chromium`), либо указать путь в `$CHROME_EXECUTABLE`.
+Это НЕ блокирует завершение Части 2.
+
+**Если зависает на Фазе 10.5** — этого не должно происходить: `web_verify.mjs` самозавершается
+по `--budget`, поверх него стоит `timeout`, а `flutter run -d web-server` имеет ранний выход при
+ошибке сборки. Если всё же завис — убить `$(cat .claude/runtime-logs/flutter.pid)` и осиротевшие
+`google-chrome --headless` процессы, пометить verdict SKIPPED и перейти к Фазе 11.
 В `RELEASE_INFO.md` пометка `CHROME_SKIPPED: true`.
