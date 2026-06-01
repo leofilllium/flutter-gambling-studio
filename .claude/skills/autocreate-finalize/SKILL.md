@@ -90,30 +90,47 @@ if [[ $CHROME_AVAILABLE -eq 1 ]]; then
   echo "🌐 Chrome web доступен — используем его (default)"
   export PLATFORM=web
   unset SKIP_SCREENSHOTS
+elif [[ "${AUTOCREATE_SKIP_EMULATOR:-0}" == "1" ]]; then
+  # Явный opt-out (напр. headless CI, где runtime-проверка только мешает).
+  echo "⏭️ AUTOCREATE_SKIP_EMULATOR=1 — Фаза 10.5 SKIPPED по запросу."
+  export SKIP_SCREENSHOTS=1
 else
-  # Fallback: Android эмулятор
+  # Fallback: Android эмулятор. ВАЖНО — всё ограничено по времени: runtime-проверка
+  # НЕ должна вешать конвейер. Если устройство не поднялось за отведённый бюджет —
+  # SKIPPED и идём в Фазу 11 (игра уже скомпилирована и протестирована в Части 1).
   RUNNING_EMU=$(adb devices 2>/dev/null | grep -E "emulator-[0-9]+.*device$" | head -1 | awk '{print $1}')
   if [[ -n "$RUNNING_EMU" ]]; then
     echo "✅ Android эмулятор запущен: $RUNNING_EMU (fallback)"
     export PLATFORM=android
     adb -s "$RUNNING_EMU" shell input keyevent 82 2>/dev/null || true
+  elif [[ ! -e /dev/kvm ]]; then
+    # Без KVM свежий AVD грузится минутами или не грузится вовсе (headless) — это
+    # главный источник зависаний Фазы 10.5. Не пытаемся, сразу SKIP.
+    echo "⚠️ Chrome нет, эмулятор не запущен, нет /dev/kvm. Фаза 10.5 — SKIPPED."
+    export SKIP_SCREENSHOTS=1
   else
     AVD=$(emulator -list-avds 2>/dev/null | head -1)
     if [[ -n "$AVD" ]]; then
       echo "🚀 Запуск AVD: $AVD (fallback)"
       nohup emulator -avd "$AVD" \
-            -no-snapshot-save -no-boot-anim \
+            -no-window -no-snapshot-save -no-boot-anim \
             -gpu swiftshader_indirect \
             -no-audio \
             > /tmp/avd.log 2>&1 &
       EMU_PID=$!
       echo "[emulator] PID=$EMU_PID"
-      adb wait-for-device
-      timeout 240 bash -c \
-        'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do sleep 2; done'
-      sleep 30
-      echo "✅ AVD загружен и прогрет"
-      export PLATFORM=android
+      # Никаких безлимитных adb wait-for-device — всё под timeout.
+      if timeout 90 adb wait-for-device 2>/dev/null && \
+         timeout 240 bash -c \
+           'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do sleep 2; done'; then
+        sleep 20
+        echo "✅ AVD загружен и прогрет"
+        export PLATFORM=android
+      else
+        echo "⚠️ AVD не загрузился за отведённое время. Фаза 10.5 — SKIPPED."
+        kill "$EMU_PID" 2>/dev/null || true
+        export SKIP_SCREENSHOTS=1
+      fi
     else
       echo "⚠️ Chrome недоступен и нет AVD. Фаза 10.5 — SKIPPED."
       export SKIP_SCREENSHOTS=1
@@ -144,10 +161,13 @@ PY
 fi
 ```
 
-Критерий: если после автозапуска `adb devices` показывает `emulator-XXXX device` —
-идём дальше. Если нет — SKIPPED, переходим к Фазе 11.
+**Критерий перехода:**
+- Если `SKIP_SCREENSHOTS=1` (нет Chrome, нет устройства/KVM, либо `AUTOCREATE_SKIP_EMULATOR=1`) —
+  **НЕ запускать** 10.5.2, сразу перейти к Фазе 11 с verdict **SKIPPED**. Это штатный
+  путь в headless-окружении — НЕ ошибка, конвейер считается успешным.
+- Иначе (`PLATFORM` установлен и устройство доступно) — продолжить с 10.5.2.
 
-### 10.5.2 — Запуск emulator-test --quick
+### 10.5.2 — Запуск emulator-test --quick (только если НЕ SKIP_SCREENSHOTS)
 
 Следовать `.claude/skills/emulator-test/SKILL.md` в режиме `--quick`:
 - `flutter run` с логированием в `.claude/runtime-logs/flutter-run.log`

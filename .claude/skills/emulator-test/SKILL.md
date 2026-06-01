@@ -91,12 +91,21 @@ Chrome не требует запуска — Flutter сам открывает 
 
 **Android AVD (приоритет 2 — fallback):**
 ```bash
+# Только при наличии KVM и с жёсткими таймаутами на каждый шаг — иначе headless-зависание
+# (безлимитный adb wait-for-device — главный источник «застряло на эмуляторе»).
 AVD=$(emulator -list-avds 2>/dev/null | head -1)
-if [[ -n "$AVD" ]]; then
-  emulator -avd "$AVD" -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-audio &
-  adb wait-for-device
-  timeout 180 bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null|tr -d "\r")" = "1" ]; do sleep 2; done'
-  PLATFORM=android
+if [[ -n "$AVD" && -e /dev/kvm ]]; then
+  emulator -avd "$AVD" -no-window -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-audio &
+  EMU_PID=$!
+  if timeout 90 adb wait-for-device 2>/dev/null && \
+     timeout 180 bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null|tr -d "\r")" = "1" ]; do sleep 2; done'; then
+    PLATFORM=android
+  else
+    echo "⚠️ AVD не загрузился вовремя — пропускаем Android."
+    kill "$EMU_PID" 2>/dev/null || true
+  fi
+elif [[ -n "$AVD" ]]; then
+  echo "⚠️ AVD есть, но нет /dev/kvm — запуск свежего эмулятора пропущен (был бы зависанием)."
 fi
 ```
 
