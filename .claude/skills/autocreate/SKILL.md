@@ -51,7 +51,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 ### Что ОБЯЗАН выполнить subagent Части 2 (Фазы 10.5–12):
 
-11. ✅ **Chrome/Web: приложение запущено, скриншоты через `flutter screenshot`, логи разобраны**
+11. ✅ **Chrome/Web: headless `web-server` + скриншоты/тапы по CDP (`tools/web_verify.mjs`), логи разобраны**
 12. ✅ **Все CRITICAL баги со скриншотов исправлены** (auto-fix loop, до 3 итераций)
 13. ✅ **Финальные скриншоты ГОТОВОЙ игры** (до 16 снимков) сохранены в `production/runtime-screenshots/`
 14. ✅ **`production/session-state/active.md` обновлён** с verdict runtime-верификации
