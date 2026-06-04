@@ -58,23 +58,47 @@ user-invocable: true
 
 **Использовать первым в Codex.** Не нужен API ключ.
 
-### Промпт для простого ассета
+### Realism & concept fidelity (читать ПЕРЕД построением промпта)
+
+> Цель — НЕ «нарисуй абстрактный значок». Цель — **реалистичный, концептуально-достоверный
+> ассет, который выглядит как настоящий объект из мира ЭТОЙ игры**. Дешёвый промпт даёт
+> дешёвый ассет. Перед генерацией каждого ассета выведи из концепта (`design/gdd/game-concept.md`)
+> и Design DNA четыре вещи и подставь их в промпт:
+
+1. **Subject identity** — что это конкретно за объект в мире игры (не «гем», а «гранёный
+   аметист с внутренним свечением»; не «кнопка», а «латунная клавиша с гравировкой»).
+2. **Material & texture** — из чего сделан: металл/стекло/дерево/драгоценный камень/неон/ткань;
+   реальные блики, шероховатость, отражения, подповерхностное свечение.
+3. **Lighting** — единый для ВСЕГО набора источник (например, мягкий верхне-левый key light
+   + лёгкий rim). Свет = главный признак «дорогого» ассета.
+4. **Render style из DNA** — фотореалистичный 3D-render / glossy 2.5D / рисованный / pixel /
+   paper-cut. Выбери ОДИН и держи его одинаковым во всём наборе (консистентность набора важнее
+   красоты одного ассета).
+
+### Промпт для простого ассета (concept-grounded, realistic)
 
 ```
-Professional 2D game asset: [ASSET_NAME].
-Single isolated object, transparent background, alpha channel,
-clean silhouette, crisp edges, vibrant [THEME_COLORS] palette,
-consistent lighting from top-left, high quality mobile game sprite,
-1024x1024 PNG.
+Highly detailed game asset of [SUBJECT IDENTITY from concept], single hero object centered,
+realistic [MATERIAL/TEXTURE] with believable [reflections/roughness/subsurface glow],
+[RENDER STYLE from DNA] render, dramatic but soft [LIGHTING: key from top-left + subtle rim],
+rich [DNA PALETTE] colors, crisp clean silhouette, sharp focus, studio product shot,
+isolated on a plain solid pure-white background, NO scene, NO shadow on ground,
+NO text, NO border, transparent-ready, 1024x1024 PNG.
 [TYPE_DETAILS]
 ```
 
-### Промпт для background
+> Если Codex поддерживает прозрачность напрямую — проси `transparent background, alpha channel`
+> вместо white. Если нет — проси **plain solid pure-white background** (легко вырезать локально
+> на Шаге «Удаление фона»). Никогда не проси сложную сцену/тени под объектом у простого ассета —
+> это ломает вырезание фона.
+
+### Промпт для background (без вырезания фона)
 
 ```
-Professional 9:16 mobile game background: [ASSET_NAME].
-Full scene background, no transparent cutout, no foreground character,
-[THEME] atmosphere, readable center gameplay area, high quality PNG.
+Cinematic 9:16 mobile game background: [SCENE from concept & DNA].
+Full atmospheric scene with depth (foreground / midground / sky layers),
+[DNA mood & palette], volumetric light, no foreground characters, no UI, no text,
+calm readable empty area in the vertical center for gameplay, high quality PNG.
 ```
 
 ### После генерации
@@ -84,27 +108,56 @@ Full scene background, no transparent cutout, no foreground character,
 3. Если это простой ассет и фон не прозрачный — применить локальное удаление фона.
 4. Добавить папку в `pubspec.yaml`, если она новая.
 
-### Локальное удаление фона
+### Локальное удаление фона (с проверкой результата)
 
 Только для `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`.
 Не применять к `background`, `ui_panel`, полноэкранным сценам и иллюстрациям.
+
+> **Порядок предпочтения строгий:** `rembg` (нейросетевое вырезание — даёт чистую альфу даже
+> на сложных краях) → ImageMagick fuzz **только как последний резерв** (грубый, рвёт мягкие
+> края и полупрозрачность). После вырезания **обязательно проверить, что альфа реально
+> появилась**; если нет — перегенерировать ассет с чистым белым фоном и повторить.
 
 ```bash
 INPUT_PNG="assets/images/pngs/cherry.png"
 TMP_PNG="${INPUT_PNG%.png}_nobg.png"
 
+removed=0
 if command -v rembg >/dev/null 2>&1; then
-  rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}"
+  rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}" && removed=1
 elif python3 -c "import rembg" >/dev/null 2>&1; then
-  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))"
+  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))" && removed=1
 elif command -v magick >/dev/null 2>&1; then
-  magick "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
+  echo "⚠ rembg не найден — грубый ImageMagick fallback (мягкие края могут пострадать)"
+  magick "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
 elif command -v convert >/dev/null 2>&1; then
-  convert "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
+  echo "⚠ rembg не найден — грубый ImageMagick fallback (мягкие края могут пострадать)"
+  convert "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
 else
-  echo "Фон не удалён: установи rembg или ImageMagick, либо перегенерируй с transparent background"
+  echo "Фон не удалён: установи rembg (pip install rembg) или ImageMagick, либо перегенерируй с transparent background"
+fi
+
+# Проверка: действительно ли в PNG появились прозрачные пиксели
+if [ "${removed}" = "1" ]; then
+  python3 - "${INPUT_PNG}" <<'PYEOF'
+import sys
+try:
+    from PIL import Image
+    im = Image.open(sys.argv[1]).convert("RGBA")
+    amin, amax = im.getchannel("A").getextrema()
+    if amin == 255:
+        print("⚠ Альфа НЕ появилась (фон не вырезан). Перегенерируй ассет с чистым белым фоном и повтори rembg.")
+    else:
+        print(f"✓ Прозрачность подтверждена (alpha min={amin})")
+except Exception as e:
+    print(f"ℹ Проверку альфы пропустил ({e}); установи Pillow (pip install pillow) для авто-проверки")
+PYEOF
 fi
 ```
+
+> **Установка rembg, если отсутствует** (лучшее качество вырезания):
+> `pip install rembg` или `pip install "rembg[cpu]"`. После установки — повторить вырезание,
+> не оставляя грубый ImageMagick-результат для финальных ассетов.
 
 ---
 
@@ -301,13 +354,17 @@ fi
 
 > Стиль, палитра и яркость подставляются из **Design DNA** концепта — НЕ casino/neon по
 > умолчанию. `[АРТ-СТИЛЬ]` = один из {flat 2D, glossy 3D with highlights, hand-drawn lineart,
-> pixel art, paper cutout, watercolor} — выбери по DNA и держи ЕДИНЫМ для всего набора.
+> pixel art, paper cutout, watercolor, photoreal render} — выбери по DNA и держи ЕДИНЫМ для
+> всего набора. Сначала выведи **Subject / Material / Lighting** (см. «Realism & concept
+> fidelity» выше) — без них получится дешёвый плоский значок.
 
 ```
-Professional 2D mobile game asset: [НАЗВАНИЕ].
-Single isolated object, transparent background if supported, [АРТ-СТИЛЬ из DNA],
-[ПАЛИТРА ТЕМЫ из DNA] color palette, bold clean outline,
-high quality game sprite, 512x512 pixels.
+Highly detailed mobile game asset of [SUBJECT IDENTITY из концепта],
+single hero object centered, realistic [MATERIAL/TEXTURE: металл/стекло/камень/дерево/неон],
+believable [reflections / roughness / subsurface glow], [АРТ-СТИЛЬ из DNA] render,
+soft [LIGHTING: key верх-слева + лёгкий rim], rich [ПАЛИТРА из DNA] colors,
+crisp clean silhouette, sharp focus, isolated on plain solid pure-white background,
+no scene, no ground shadow, no text, transparent-ready, 1024x1024.
 [ТИП-ДЕТАЛИ]
 ```
 

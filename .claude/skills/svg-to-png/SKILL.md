@@ -49,17 +49,30 @@ user-invocable: true
 
 ### Алгоритм (агент выполняет сам):
 
-**1. Прочитать SVG** через Read tool, извлечь:
+**1. Прочитать SVG + концепт** для контекста:
 - Название ассета из имени файла (например `sprite_cherry` → `cherry`)
 - Цвета, форму, назначение из содержимого SVG
+- Если есть `design/gdd/game-concept.md` — прочитать **Design DNA** (мир, материалы,
+  палитра, render style). Конвертация — не просто «обводка картинки», а **апгрейд** плоского
+  SVG до реалистичного, концептуально-достоверного ассета того же объекта.
 
-**2. Сформировать промпт** на английском:
+**2. Сформировать промпт** на английском (concept-grounded, realistic — НЕ дешёвый значок):
+
+Сначала из SVG+концепта выведи: **Subject** (что это за объект в мире игры),
+**Material/texture** (металл/стекло/камень/дерево/неон/ткань), **Lighting** (единый для набора,
+напр. key верх-слева + rim), **Render style** из DNA.
+
 ```
-Professional game asset: [asset_name].
-Single isolated object, clean edges, vibrant style, high detail.
-2D game sprite on transparent background with alpha channel, 1024x1024.
-Style derived from: [краткое описание из SVG — цвета, форма, до 200 символов]
+Highly detailed game asset of [SUBJECT identity], single hero object centered,
+realistic [MATERIAL/TEXTURE] with believable [reflections / roughness / subsurface glow],
+[RENDER STYLE from DNA] render, soft [LIGHTING] light, rich [DNA PALETTE] colors,
+crisp clean silhouette, sharp focus, faithful to the original shape/colors,
+isolated on plain solid pure-white background, no scene, no ground shadow, no text,
+transparent-ready, 1024x1024.
 ```
+
+> Объект на PNG должен совпадать по форме/композиции с исходным SVG (это конвертация, не
+> новая идея), но быть объёмным и материальным, а не плоской заливкой.
 
 **3. Генерация PNG:**
 
@@ -69,22 +82,40 @@ Style derived from: [краткое описание из SVG — цвета, ф
 
 1. Передать prompt из шага 2 во встроенную image generation возможность Codex.
 2. Сохранить результат рядом с исходником или в `assets/images/pngs/`.
-3. Если тип ассета простой и PNG содержит фон, применить локальное удаление фона:
+3. Если тип ассета простой и PNG содержит фон, применить локальное удаление фона с проверкой
+   (rembg — приоритет; ImageMagick — последний резерв; затем проверить, что альфа появилась):
 
 ```bash
 INPUT_PNG="assets/images/sprites/cherry.png"
 TMP_PNG="${INPUT_PNG%.png}_nobg.png"
 
+removed=0
 if command -v rembg >/dev/null 2>&1; then
-  rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}"
+  rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}" && removed=1
 elif python3 -c "import rembg" >/dev/null 2>&1; then
-  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))"
+  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))" && removed=1
 elif command -v magick >/dev/null 2>&1; then
-  magick "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
+  echo "⚠ rembg не найден — грубый ImageMagick fallback"
+  magick "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
 elif command -v convert >/dev/null 2>&1; then
-  convert "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
+  echo "⚠ rembg не найден — грубый ImageMagick fallback"
+  convert "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
 else
-  echo "Фон не удалён: нет rembg/ImageMagick. Перегенерируй с transparent background."
+  echo "Фон не удалён: установи rembg (pip install rembg) или ImageMagick. Перегенерируй с transparent background."
+fi
+
+# Проверка, что прозрачность действительно появилась
+if [ "${removed}" = "1" ]; then
+  python3 - "${INPUT_PNG}" <<'PYEOF'
+import sys
+try:
+    from PIL import Image
+    amin, _ = Image.open(sys.argv[1]).convert("RGBA").getchannel("A").getextrema()
+    print("⚠ Альфа НЕ появилась — перегенерируй с белым фоном и повтори rembg." if amin == 255
+          else f"✓ Прозрачность подтверждена (alpha min={amin})")
+except Exception as e:
+    print(f"ℹ Проверку альфы пропустил ({e}); pip install pillow для авто-проверки")
+PYEOF
 fi
 ```
 
