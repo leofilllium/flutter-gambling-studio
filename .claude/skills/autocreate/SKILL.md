@@ -421,7 +421,7 @@ PYEOF
 # Определение среды: Codex → PNG (GPT Images 2.0), иначе → SVG fallback
 IS_CODEX=0
 if [[ -n "${CODEX:-}" ]] || [[ -n "${CODEX_ENV:-}" ]] || [[ "${AGENT_PLATFORM:-}" == "codex" ]] || \
-   [[ -d ".codex" && "${OPENAI_API_KEY:-}" != "" ]] || [[ "${IMAGE_GENERATION_AVAILABLE:-}" == "1" ]]; then
+   [[ -d ".codex" ]] || [[ "${IMAGE_GENERATION_AVAILABLE:-}" == "1" ]]; then
   IS_CODEX=1
 fi
 
