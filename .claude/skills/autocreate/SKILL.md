@@ -50,7 +50,8 @@ Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` 
 
 1. ✅ **Flutter-проект создан с нуля** (`flutter create --platforms web,android,ios`)
 2. ✅ **Структура + Layout Archetype выбраны** (`design/structure.md`, `design/art-direction.md`)
-3. ✅ **Все ассеты сгенерированы** (SVG по умолчанию, путь в `assets_constants`)
+3. ✅ **Все ассеты сгенерированы** (Codex → PNG через GPT Images 2.0 + rembg background removal;
+   не-Codex → SVG fallback; формат записан в `design/asset-format.md`)
 4. ✅ **Реальное аудио синтезировано** (Фаза 3.5: `tools/synth_sfx.py` → `.wav` SFX + BGM)
 5. ✅ **ДАННЫЕ контента/экономики сгенерированы** (Фаза 3.7: `assets/data/*.json`, N>1 уровней)
 6. ✅ **Handoff-1 записан** + **Сессия 2 запущена через Agent tool** (`autocreate-implement`)
@@ -160,9 +161,12 @@ dependencies:
     sdk: flutter
   flame: ^1.18.0
   flame_audio: ^2.1.0
-  flame_svg: ^1.10.0
+  flame_svg: ^1.10.0    # Используется в SVG-режиме; в PNG-режиме (Codex) оставить в pubspec как fallback
   google_fonts: ^6.1.0
   shared_preferences: ^2.2.0
+  # Примечание: в PNG-режиме (Codex) ассеты загружаются через Image.asset(), не flame_svg.
+  # flame_svg остаётся в pubspec для совместимости, но Agent B читает design/asset-format.md
+  # и выбирает Image.asset() (png) или SvgPicture.asset() (svg) соответственно.
 
 dev_dependencies:
   flutter_test:
@@ -409,12 +413,188 @@ PYEOF
 
 ## Фаза 3 — Asset Generation & Validation [~5 мин]
 
-### Формат ассетов — SVG (автоматически, без вопросов)
+### Формат ассетов — автоматический выбор (без вопросов)
 
-SVG выбирается автоматически. Никакого ввода от пользователя не требуется.
-Для PNG-режима передай флаг `--png` при вызове команды.
+Формат определяется автоматически по среде выполнения. Никакого ввода от пользователя не требуется.
 
-### SVG Генерация (режим по умолчанию)
+```bash
+# Определение среды: Codex → PNG (GPT Images 2.0), иначе → SVG fallback
+IS_CODEX=0
+if [[ -n "${CODEX:-}" ]] || [[ -n "${CODEX_ENV:-}" ]] || [[ "${AGENT_PLATFORM:-}" == "codex" ]] || \
+   [[ -d ".codex" && "${OPENAI_API_KEY:-}" != "" ]] || [[ "${IMAGE_GENERATION_AVAILABLE:-}" == "1" ]]; then
+  IS_CODEX=1
+fi
+
+if [[ "$IS_CODEX" == "1" ]]; then
+  ASSET_FORMAT="png"
+  echo "🎨 Codex detected → PNG mode (GPT Images 2.0)"
+else
+  ASSET_FORMAT="svg"
+  echo "🎨 Non-Codex environment → SVG fallback mode"
+fi
+```
+
+> **Правила переключения:**
+> - **Codex** → PNG через GPT Images 2.0 (встроенная image generation, ключи не нужны)
+> - **Не-Codex** (Claude Code, CLI, другое) → SVG (ручная генерация кодом, без внешних API)
+> - Явный `--png` всегда форсирует PNG, `--svg` всегда форсирует SVG, regardless of environment
+> - Записать выбранный формат в `design/asset-format.md` для Session 2
+
+```bash
+mkdir -p design
+cat > design/asset-format.md << EOF
+# Asset Format — автоматически выбран
+
+format: ${ASSET_FORMAT}
+is_codex: ${IS_CODEX}
+timestamp: $(date -Iseconds)
+
+## Что это значит для Session 2
+- Если format=png: ассеты в assets/images/sprites/*.png, ui/*.png, backgrounds/*.png
+  Agent B использует Image.asset() / деко через Image, НЕ flame_svg
+- Если format=svg: ассеты в assets/images/sprites/*.svg, ui/*.svg, backgrounds/*.svg
+  Agent B использует SvgPicture / flame_svg
+EOF
+echo "✅ Asset format → design/asset-format.md"
+```
+
+---
+
+### PNG Генерация (режим по умолчанию в Codex)
+
+Когда `ASSET_FORMAT=png`, все ассеты генерируются через **GPT Images 2.0** (встроенную
+image generation Codex). Следовать логике `/generate-png-asset --from-concept`.
+
+**КРИТИЧЕСКИ**: Качество PNG = реалистичность + достоверность концепту. НЕ генерировать
+абстрактные плоские значки.
+
+#### Промпт-инжиниринг (обязательно для КАЖДОГО ассета)
+
+Для КАЖДОГО ассета вывести из концепта (`design/gdd/game-concept.md`) + Design DNA:
+1. **Subject identity** — что конкретно за объект в мире игры
+2. **Material/texture** — металл/стекло/камень/дерево/неон
+3. **Lighting** — единый для ВСЕГО набора источник
+4. **Render style** из DNA — фотореалистичный 3D / glossy 2.5D / рисованный / pixel
+   (один стиль для ВСЕГО набора — консистентность важнее красоты одного ассета)
+
+См. раздел «Realism & concept fidelity» в `generate-png-asset/SKILL.md`.
+
+#### Спрайты PNG (`assets/images/sprites/`)
+- Минимум 5-8 игровых элементов (символы для слота, тайлы для match-3, и т.д.)
+- Каждый: 1024x1024 PNG, затем при необходимости resize до 256x256 для runtime
+- **Генерация**: один вызов GPT Images 2.0 на каждый ассет
+- **Фон**: просить `transparent background, alpha channel` в промпте; если модель
+  не поддерживает — `plain solid pure-white background` + rembg post-processing
+- Стиль рендера и детализация — из Design DNA, единый для всего набора
+
+#### UI Elements PNG (`assets/images/ui/`)
+- `ui_action_button.png` — основное действие; форма из shape language DNA
+- `ui_frame.png` — рамка игрового поля
+- `ui_panel.png` — панель управления / ставок
+- `ui_separator.png` — декоративный разделитель
+- `ui_icon_sound.png` — иконка звука
+- `ui_icon_settings.png` — иконка настроек
+- `ui_icon_info.png` — иконка помощи
+- Иконки — в едином стиле (Craft Fundamentals)
+
+#### Фоны PNG (`assets/images/backgrounds/`)
+- `background_menu.png` — фон меню (мир/яркость из DNA, не «всегда тёмное казино»)
+- `background_game.png` — фон игрового экрана (не отвлекает от поля)
+
+#### Удаление фона (ОБЯЗАТЕЛЬНО для sprites/icons/symbols)
+
+Применяется ТОЛЬКО к: `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`.
+НЕ применяется к: `background_*`, `ui_panel`, полноэкранным сценам.
+
+> **Порядок предпочтения строгий:** `rembg` (нейросетевое вырезание — даёт чистую альфу
+> даже на сложных краях) → ImageMagick fuzz **только как последний резерв** (грубый, рвёт
+> мягкие края). После вырезания **обязательно проверить, что альфа реально появилась**;
+> если нет — перегенерировать ассет с чистым белым фоном и повторить.
+
+```bash
+# Функция удаления фона — вызывать после генерации каждого sprite/icon/symbol PNG
+remove_bg_if_needed() {
+  local INPUT_PNG="$1"
+  local ASSET_TYPE="$2"  # symbol | icon | sprite | wild | scatter | tile | item | background | ui_panel
+
+  # Пропускаем фоны и панели
+  case "$ASSET_TYPE" in
+    background*|ui_panel|scene) echo "⏭ Тип '${ASSET_TYPE}' — удаление фона пропущено"; return 0 ;;
+  esac
+
+  local TMP_PNG="${INPUT_PNG%.png}_nobg.png"
+  local removed=0
+
+  if command -v rembg >/dev/null 2>&1; then
+    rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}" && removed=1
+    echo "✓ Фон удалён (rembg CLI): ${INPUT_PNG}"
+  elif python3 -c "import rembg" >/dev/null 2>&1; then
+    python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))" && removed=1
+    echo "✓ Фон удалён (rembg python): ${INPUT_PNG}"
+  elif command -v magick >/dev/null 2>&1; then
+    echo "⚠ rembg не найден — грубый ImageMagick fallback"
+    magick "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
+  elif command -v convert >/dev/null 2>&1; then
+    echo "⚠ rembg не найден — грубый ImageMagick fallback"
+    convert "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
+  else
+    echo "⚠ Ни rembg, ни ImageMagick не установлены. Фон не удалён."
+    echo "  Установи: pip install rembg   или   apt install imagemagick"
+    return 1
+  fi
+
+  # Проверка: действительно ли в PNG появились прозрачные пиксели
+  if [ "${removed}" = "1" ]; then
+    python3 - "${INPUT_PNG}" <<'PYEOF'
+import sys
+try:
+    from PIL import Image
+    im = Image.open(sys.argv[1]).convert("RGBA")
+    amin, amax = im.getchannel("A").getextrema()
+    if amin == 255:
+        print("⚠ Альфа НЕ появилась (фон не вырезан). Перегенерируй ассет с чистым белым фоном и повтори rembg.")
+        sys.exit(1)
+    else:
+        print(f"✓ Прозрачность подтверждена (alpha min={amin})")
+except ImportError:
+    print("ℹ Pillow не установлен — пропускаю проверку альфы (pip install pillow)")
+except Exception as e:
+    print(f"ℹ Проверку альфы пропустил ({e})")
+PYEOF
+  fi
+}
+```
+
+#### Post-Generation Validation (PNG)
+
+**ОБЯЗАТЕЛЬНО** после генерации всех PNG:
+1. Проверить что каждый файл валидный PNG (`file *.png | grep "PNG image"`)
+2. Проверить что sprites/icons имеют альфа-канал (прозрачный фон)
+3. Проверить что все файлы, указанные в коде (`lib/assets.dart`), физически существуют
+4. Запустить `flutter pub get` для валидации путей ассетов
+
+```bash
+# Валидация PNG-ассетов
+echo "━━━ Валидация PNG ассетов ━━━"
+ERRORS=0
+for png in assets/images/sprites/*.png assets/images/ui/*.png assets/images/backgrounds/*.png; do
+  [ -f "$png" ] || continue
+  if ! file "$png" | grep -q "PNG image"; then
+    echo "✗ Невалидный PNG: $png"
+    ERRORS=$((ERRORS + 1))
+  else
+    SIZE=$(ls -lh "$png" | awk '{print $5}')
+    echo "✓ $png ($SIZE)"
+  fi
+done
+[ "$ERRORS" -eq 0 ] && echo "✅ Все PNG валидны" || echo "❌ $ERRORS невалидных файлов"
+```
+
+---
+
+### SVG Генерация (fallback для не-Codex среды)
+
+Используется когда `ASSET_FORMAT=svg` (не-Codex среда, или явный `--svg`).
 
 **КРИТИЧЕСКИ**: Каждый SVG ОБЯЗАН быть валидным и отрисовываемым.
 
@@ -440,30 +620,13 @@ SVG выбирается автоматически. Никакого ввода
 - `background_menu.svg` — фон меню (паттерн/градиент/сцена — из DNA; яркость тоже из DNA, не «всегда тёмный»)
 - `background_game.svg` — фон игрового экрана (не отвлекает от поля; контраст к элементам HUD)
 
-### Post-Generation Validation
+### Post-Generation Validation (SVG)
 
 **ОБЯЗАТЕЛЬНО** после генерации всех SVG:
 1. Проверить что каждый файл начинается с `<svg` и содержит `</svg>`
 2. Проверить что `viewBox` определён в каждом файле
 3. Проверить что все файлы, указанные в коде (`lib/assets.dart`), физически существуют
 4. Запустить `flutter pub get` для валидации путей ассетов
-
-### PNG Генерация (если выбран)
-
-Следовать логике `/generate-png-asset --from-concept`.
-В Codex PNG/image generation выполняется через встроенный **GPT Images 2.0**.
-
-> **Качество PNG = реалистичность + достоверность концепту.** НЕ генерировать абстрактные плоские
-> значки. Для КАЖДОГО ассета вывести из концепта (`design/gdd/game-concept.md`) + Design DNA:
-> **Subject** (что это за объект в мире игры), **Material/texture** (металл/стекло/камень/дерево/
-> неон), **Lighting** (единый для всего набора), **Render style** из DNA — и подставить в промпт
-> (см. раздел «Realism & concept fidelity» в `generate-png-asset/SKILL.md`). Один стиль освещения
-> и детализации во ВСЁМ наборе.
->
-> **Удаление фона** для простых ассетов (symbol/sprite/icon/tile/wild/scatter): `rembg` —
-> приоритет (нейросеть, чистая альфа), ImageMagick — только последний резерв. После вырезания
-> **проверить, что прозрачность реально появилась** (alpha min < 255); если нет — перегенерировать
-> с чистым белым фоном и повторить. Фоны/полноэкранные сцены (`background_*`) НЕ трогать.
 
 ---
 
@@ -551,7 +714,8 @@ done
 - [x] Концепт + Production Plan: design/gdd/game-concept.md
 - [x] Bootstrap: flutter create (web,android,ios), pubspec, директории
 - [x] Структура+Layout: design/structure.md, design/art-direction.md
-- [x] Ассеты: [N] SVG в assets/images/**
+- [x] Ассеты: [N] [PNG/SVG] в assets/images/** (формат: [png/svg], см. design/asset-format.md)
+- [x] [Если PNG] Фон удалён для sprites/icons через rembg, прозрачность подтверждена
 - [x] Аудио: 9 .wav (assets/audio/sfx + bgm)
 - [x] Контент-данные: assets/data/*.json — [N] уровней, режимы [список], economy
 
@@ -991,11 +1155,15 @@ Monetization/Telemetry/Compliance), контракт типов, пути из `
 Прочитать `design/structure.md` в начале фазы для получения актуальных путей к файлам.
 
 ### 5.1 — Файл ассетов
-Создать / обновить файл констант ассетов по пути `assets_constants` из `design/structure.md` (для V1: `lib/assets.dart`, для V5: `lib/bootstrap/assets.dart` и т.д.):
+Создать / обновить файл констант ассетов по пути `assets_constants` из `design/structure.md` (для V1: `lib/assets.dart`, для V5: `lib/bootstrap/assets.dart` и т.д.).
+
+**КРИТИЧЕСКИ**: расширения файлов берутся из `design/asset-format.md` (`.png` для Codex-режима,
+`.svg` для fallback). Все пути ОБЯЗАНЫ совпадать с реально существующими файлами.
+
 ```dart
 class GameAssets {
-  // Sprites
-  static const String spriteCherry = 'assets/images/sprites/sprite_cherry.svg';
+  // Sprites (расширение .png или .svg — из design/asset-format.md)
+  static const String spriteCherry = 'assets/images/sprites/sprite_cherry.png'; // .png в Codex / .svg иначе
   // ... ВСЕ ассеты с ТОЧНЫМИ путями к существующим файлам
 
   // Validate all assets exist (вызвать в debug mode)
