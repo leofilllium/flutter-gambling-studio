@@ -49,12 +49,13 @@ const URL = arg('url');
 const OUT = arg('out');
 const BUDGET = Number(arg('budget', '150')) * 1000;
 const QUICK = arg('quick', false) === true;
+const SOAK = Number(arg('soak', '0')) || 0;   // N stress taps for leak detection (0 = off)
 const SIZE = String(arg('size', '390x844'));
 const [VW, VH] = SIZE.split('x').map(Number);
 const CHROME = resolveChrome(arg('chrome'));
 
 if (!URL || !OUT) {
-  console.error('usage: web_verify.mjs --url <url> --out <dir> [--budget s] [--size WxH] [--quick] [--chrome path]');
+  console.error('usage: web_verify.mjs --url <url> --out <dir> [--budget s] [--size WxH] [--quick] [--soak N] [--chrome path]');
   process.exit(3);
 }
 mkdirSync(OUT, { recursive: true });
@@ -294,7 +295,43 @@ async function main() {
   await sleep(3000);
   await screenshot('05-game-after-action');
 
-  if (!QUICK) {
+  // 4b. SOAK / leak probe — repeat the main action N times, compare JS heap start vs end.
+  if (SOAK > 0) {
+    const ax = act ? act.x : VW / 2;
+    const ay = act ? act.y : VH * 0.82;
+    const heapUsed = async () => {
+      try { const h = await send('Runtime.getHeapUsage'); return Number(h?.usedSize || 0); }
+      catch { return 0; }
+    };
+    // settle + force a GC baseline if exposed, then measure
+    await sleep(800);
+    const errStart = manifest.consoleErrors.length;
+    const heapStart = await heapUsed();
+    log(`🧪 soak: ${SOAK} taps, heapStart=${(heapStart / 1048576).toFixed(1)}MB`);
+    for (let i = 0; i < SOAK; i++) {
+      await tap(ax, ay);
+      await sleep(120);
+      // stay inside the global budget — bail out gracefully if time runs short
+      if (i % 25 === 24) log(`   soak ${i + 1}/${SOAK}…`);
+    }
+    await sleep(1200);
+    const heapEnd = await heapUsed();
+    const errEnd = manifest.consoleErrors.length;
+    const growthPct = heapStart > 0 ? ((heapEnd - heapStart) / heapStart) * 100 : 0;
+    manifest.soak = {
+      taps: SOAK,
+      heapStartBytes: heapStart, heapEndBytes: heapEnd,
+      heapGrowthPct: Number(growthPct.toFixed(1)),
+      consoleErrorsStart: errStart, consoleErrorsEnd: errEnd,
+      // heuristic: >60% heap growth with no plateau OR a burst of new console errors = suspect leak
+      suspectLeak: (growthPct > 60) || (errEnd - errStart > 5),
+    };
+    log(`🧪 soak done: heapEnd=${(heapEnd / 1048576).toFixed(1)}MB growth=${growthPct.toFixed(1)}% ` +
+        `newErrors=${errEnd - errStart} suspectLeak=${manifest.soak.suspectLeak}`);
+    await screenshot('06-soak-after');
+  }
+
+  if (!QUICK && SOAK === 0) {
     // Best-effort sweep of secondary screens, by label when available.
     const extras = [
       [/настройк|settings|опции/i, '06-settings'],

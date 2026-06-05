@@ -93,7 +93,8 @@
 | `/design-review` | Ревью GDD на полноту и корректность |
 | `/balance-check` | Балансировка игры: RTP-симуляция (gambling) или difficulty curve (другие жанры) |
 | `/release-checklist` | Финальный GO/NO-GO чеклист перед релизом (агент release-manager) |
-| `/release-package` | Упаковка релиза: скрины всех экранов + release APK + `flutter clean` + `.zip` в `project_zip/` |
+| `/release-engineering` | Ship-engineering: app-иконки (adaptive+iOS) + native splash + версия + **signed AAB** (формат Google Play) + iOS-каркас + store-metadata + CI |
+| `/release-package` | Упаковка релиза: скрины всех экранов + release APK/AAB + `flutter clean` + `.zip` в `project_zip/` |
 | `/store-screenshots` | Маркетинговые скрины для стора: кадры игры в рамке телефона на фоне (GPT Images 2.0) + подписи + feature graphic → `.zip` в `project_zip/` |
 
 ### Диагностика и долг
@@ -134,6 +135,7 @@
 | `game-mathematician` | Баланс игры: RTP для gambling, difficulty curves для пазлов, scoring для аркад |
 | `game-designer` | GDD для любого жанра: механики, уровни, бонусы, прогрессия |
 | `mechanics-programmer` | Реализация игровых механик: RNG, физика, коллизии, логика уровней |
+| `meta-systems-programmer` | Мета-системы: SaveService, Economy, Progression, Achievements + abstractions Analytics/Ads/IAP/RemoteConfig (no-op). Превращает один цикл в полную игру |
 | `juice-artist` | VFX, партикли, анимации, juiciness — делает игру «сочной» |
 
 ### Tier 3 — Базовые специалисты
