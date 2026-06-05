@@ -1,46 +1,52 @@
 ---
 name: autocreate-finalize
-description: "Вторая половина конвейера /autocreate (Фазы 10.5 → 11 → 12): runtime emulator verification + финальный отчёт. НЕ вызывает /release-package — упаковка APK и архива выполняется только явным запуском /release-package. Запускается автоматически через Agent tool в конце /autocreate, либо вручную в новой conversation."
+description: "Сессия 3 конвейера /autocreate (Фазы 10.5 → 11 → 11.5 → 12): runtime+soak верификация (Chrome CDP, auto-fix), session-state, release-engineering PREP (иконки/splash/версия/store-metadata/CI — БЕЗ сборки AAB/APK и БЕЗ keystore) и финальный отчёт. Оставляет проект release-ready. НЕ собирает артефакты и НЕ вызывает /release-package — это явный запуск пользователя. Запускается автоматически через Agent tool в конце Сессии 2 (autocreate-implement), либо вручную в новой conversation."
 argument-hint: "[--skip-emulator | --no-fix]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
 ---
 
-# AutoCreate Finalize — Часть 2 конвейера
+# AutoCreate Finalize — Сессия 3 конвейера
 
-**Назначение**: завершить `/autocreate` после того, как Часть 1 довела проект
-до `dart analyze` 0 errors + `flutter test` зелёные. В этой части:
-- runtime-верификация на эмуляторе (скрины + logcat + auto-fix)
+**Назначение**: завершить `/autocreate` после того, как Сессия 2 (`autocreate-implement`)
+довела проект до `dart analyze` 0 errors + `flutter test` зелёные. В этой сессии:
+- runtime-верификация на эмуляторе/Chrome (скрины + logcat + auto-fix) + soak-проба на утечки
 - обновление session-state + финальный отчёт
+- **release-engineering PREP** (`/release-engineering --prep-only --no-keystore`): иконки, native
+  splash, версия, store-metadata, CI — **БЕЗ сборки AAB/APK и БЕЗ keystore**
 
-**Упаковка (APK + архив) НЕ входит в этот навык.** Для получения загружаемого
-архива запустите `/release-package` отдельно после финализации.
+**Сборка артефактов НЕ входит в этот навык.** AAB/APK + архив собирает `/release-package`
+(явный запуск). Для signed-AAB под Google Play — `/release-engineering` без флагов (сминтит
+upload-keystore, явное действие пользователя).
 
 **Когда вызывается:**
-- Автоматически: `/autocreate` в конце Фазы 10 вызывает Agent tool с
-  subagent_type="general-purpose" и прописанным промптом
+- Автоматически: Сессия 2 (`autocreate-implement`) в конце Фазы 10.7 вызывает Agent tool
+  с прописанным промптом (full-history fork, без subagent_type)
 - Вручную: пользователь запускает `/autocreate-finalize` в **новой** conversation,
   если subagent упал, или чтобы повторить runtime-проверку после правок
 
 **Что НЕ делает:**
 - НЕ переписывает игровой код, не меняет GDD, не меняет баланс
 - НЕ создаёт новые экраны
-- НЕ запускает Фазы 1–10 — они уже выполнены Частью 1
+- НЕ запускает Фазы 1–10 — они уже выполнены Сессией 2
 
 ---
 
 ## 🚨 MANDATORY CONTRACT
 
 1. ✅ Читает `production/session-state/autocreate-handoff.md` **первым действием**
-2. ✅ Валидирует что артефакты Части 1 существуют (`pubspec.yaml`, `lib/main.dart`,
+2. ✅ Валидирует что артефакты Сессии 2 существуют (`pubspec.yaml`, `lib/main.dart`,
    `dart analyze` всё ещё 0 errors)
-3. ✅ Выполняет Фазы 10.5 → 11 → 12 в указанном порядке
+3. ✅ Выполняет Фазы 10.5 → 11 → 11.5 → 12 в указанном порядке
 4. ✅ Возвращает финальный отчёт в родительскую сессию (или печатает пользователю)
 
 **Запрещено:**
-- ❌ Менять `lib/game/game_config.dart`, `design/balance/*.json` — баланс зафиксирован
+- ❌ Менять `lib/game/game_config.dart`, `design/balance/*.json`, `assets/data/*.json` —
+  баланс/контент зафиксированы
 - ❌ Переписывать целые экраны — допустимы только точечные runtime-автофиксы
   (overflow, setState after dispose, missing asset path, null ValueNotifier)
+- ❌ Генерировать release upload-keystore — Фаза 11.5 идёт ТОЛЬКО с `--no-keystore`;
+  signed-AAB пользователь делает явным `/release-engineering`
 - ❌ Вызывать `/release-package` — упаковка выполняется отдельным явным запуском
 
 ---
@@ -50,14 +56,14 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
 ```bash
 # 1. Handoff должен существовать
 test -f production/session-state/autocreate-handoff.md || {
-  echo "❌ Нет handoff-файла. Часть 1 /autocreate не завершилась?"
+  echo "❌ Нет handoff-файла. Сессия 2 (autocreate-implement) не завершилась?"
   exit 1
 }
 
 # 2. Проект должен компилироваться
 dart analyze lib/ > /tmp/finalize_preflight_analyze.log 2>&1
 if grep -q " error " /tmp/finalize_preflight_analyze.log; then
-  echo "❌ dart analyze lib/ показывает errors — Часть 1 не закончила работу корректно"
+  echo "❌ dart analyze lib/ показывает errors — Сессия 2 не закончила работу корректно"
   exit 1
 fi
 
@@ -150,7 +156,7 @@ fi
 **Критерий перехода:**
 - Если `SKIP_SCREENSHOTS=1` (явный opt-out, либо нет node/Chrome для web и нет Android-устройства) —
   **НЕ запускать** 10.5.2, сразу перейти к Фазе 11 с verdict **SKIPPED**. Это штатный путь —
-  НЕ ошибка, конвейер считается успешным (игра уже собрана и протестирована в Части 1).
+  НЕ ошибка, конвейер считается успешным (игра уже собрана и протестирована в Сессии 2).
 - Иначе (`PLATFORM=web` с node+Chrome, либо `PLATFORM=android` с устройством) — продолжить с 10.5.2.
 
 ### 10.5.2 — Runtime tour (только если НЕ SKIP_SCREENSHOTS)
@@ -198,6 +204,23 @@ kill "$(cat .claude/runtime-logs/flutter.pid 2>/dev/null)" 2>/dev/null || true
 
 **Android fallback** (`PLATFORM=android`): следовать `emulator-test/SKILL.md` (`flutter run` + `adb logcat`
 + `flutter screenshot`/`adb screencap`), режим `--quick`.
+
+### 10.5.2b — Soak / Leak probe (web, опционально но рекомендуется)
+
+Полная игра должна выдерживать длинную сессию без роста памяти/исключений. Если web-путь
+активен, прогнать короткий soak: ~150–200 авто-действий (повтор основного игрового действия +
+переходы между экранами) и сравнить heap в начале/конце + накопление console-ошибок.
+
+```bash
+# web_verify.mjs --soak N выполняет N циклов действие→ожидание и пишет heapUsedStart/End
+# (если флаг не поддержан в текущей версии — пропустить, это не блокер).
+timeout 180 node tools/web_verify.mjs --url "$WEB_URL" --out "$SHOT_DIR" --soak 150 \
+  2>&1 | tee -a "$SHOT_DIR/web_verify.log" || echo "soak skipped"
+```
+
+Признак утечки: монотонный рост `JSHeapUsedSize` без плато после GC, или растущее число
+повторяющихся console-исключений. Найденное — в REPORT.md как HIGH (не CRITICAL, если игра
+играбельна); точечный фикс (un-disposed controller/timer/particle leak) разрешён.
 
 ### 10.5.3 — Auto-Fix Loop (до 3 итераций)
 
@@ -263,18 +286,46 @@ Task: Production-ready
 - Скриншоты: production/runtime-screenshots/<ts>/
 - Report: production/runtime-screenshots/<ts>/REPORT.md
 
-## Тесты Части 1
+## Тесты Сессии 2
 - Unit: [N] зелёные
 - Integration: [N] зелёные
 - Edge cases: [N] зелёные
 
 ## Баланс
-[RTP / Difficulty curve результаты из Части 1]
+[RTP / Difficulty curve результаты из Сессии 2]
 ```
 
 Также отметить handoff-файл завершённым: дописать в
 `production/session-state/autocreate-handoff.md` финальную секцию
-`## Часть 2 завершена` с ISO-timestamp и verdict.
+`## Сессия 3 завершена` с ISO-timestamp и verdict.
+
+---
+
+## Фаза 11.5 — Release Engineering Prep (БЕЗ сборки) [~3 мин]
+
+Запустить `/release-engineering --prep-only --no-keystore`
+(см. `.claude/skills/release-engineering/SKILL.md`). **Сборка AAB/APK здесь НЕ выполняется** —
+цель: оставить проект ГОТОВЫМ к `/release-package`, не тратя время на тяжёлый Gradle-build:
+- App-иконки (Android adaptive + iOS + web) и native splash из Design DNA.
+- Версия/build number, launcher label.
+- `store/` — заготовки листинга, privacy-policy, data-safety, age-rating (gambling — disclaimer).
+- `.github/workflows/build.yml` (CI).
+- **НЕ** генерирует upload-keystore и **НЕ** собирает AAB/APK.
+
+```bash
+# Безопасный prep: не создаёт keystore, не публикует наружу, не собирает артефакты.
+flutter pub get >/dev/null 2>&1 || true
+# Если release-engineering недоступен как skill — выполнить вручную только prep-шаги:
+#   dart run flutter_launcher_icons ; dart run flutter_native_splash:create
+#   (НЕ запускать flutter build appbundle/apk здесь — это делает /release-package)
+```
+
+> Если иконка-источник `assets/branding/app_icon.png` отсутствует — сгенерировать её из
+> фирменного логотипа/спрайта (rasterize SVG в 1024×1024) перед запуском launcher_icons.
+
+**Критерий выхода:** иконки и splash сгенерированы, `store/` создан. Артефакты (AAB/APK) НЕ
+собираются — их соберёт `/release-package`. Для подписанного Play-AAB пользователь запускает
+`/release-engineering` (без флагов) — он сминтит keystore и соберёт signed AAB.
 
 ---
 
@@ -299,7 +350,19 @@ Task: Production-ready
    ✅ Stateless Outcomes, GameState sealed class
    ✅ All constants in GameConfig, double-click protection
 
-🧪 Tests (Часть 1):
+🗂 Контент и режимы (Фаза 4.5):
+   ✅ [N] уровней/стейджей (assets/data/*.json) | Режимы: [Classic + Endless/Time-Attack/Daily]
+   ✅ Level/Mode Select связан с реальными данными
+
+🧩 Мета-системы (Agent E):
+   ✅ SaveService (versioned), Economy (валюта+магазин), Progression (звёзды), Achievements
+   ✅ Analytics/Ads/IAP/RemoteConfig — abstractions (no-op, без внешних SDK)
+   [Gambling: age-gate + disclaimer 18+ + responsible-play]
+
+🔊 Audio (Фаза 3.5):
+   ✅ 9 реальных .wav синтезированы (mood: [mood]) — SFX + BGM, не заглушки
+
+🧪 Tests (Сессия 2):
    ✅ Unit: [N] passed | Integration: [N] passed | Edge: [N] passed
 
 🌐 Runtime verification (Chrome, Фаза 10.5):
@@ -307,13 +370,20 @@ Task: Production-ready
    Скриншоты: production/runtime-screenshots/<ts>/
    Report: production/runtime-screenshots/<ts>/REPORT.md
 
-⚖️ Balance (Часть 1):
+⚖️ Balance (Сессия 2):
    [Gambling: RTP XX.X% (target 95-97%)]
    [Puzzle: Difficulty curve validated]
    [Arcade: Spawn/scoring balanced]
 
-📦 Для получения APK и загружаемого архива:
-   /release-package                 — упаковка APK + скриншоты + исходники → один .zip
+🚀 Release-ready (Фаза 11.5, PREP — без сборки):
+   ✅ Иконки (Android adaptive + iOS + web) + native splash (цвет из DNA)
+   ✅ Версия [name]+[build], store/ (listing+privacy+data-safety+age-rating)
+   ⚙️ .github/workflows/build.yml (CI)
+   ℹ️ AAB/APK НЕ собирались — проект готов к упаковке
+
+📦 Сборка артефактов / публикация (явный запуск пользователя):
+   /release-package                 — собрать AAB+APK + скриншоты + исходники → один .zip
+   /release-engineering             — сминтить upload-keystore → SIGNED .aab для Google Play
 
 🔧 Команды запуска:
    flutter run -d chrome        — запустить в Chrome
@@ -324,7 +394,7 @@ Task: Production-ready
 📋 Рекомендованные перезапуски:
    /emulator-test               — ПОВТОРНАЯ runtime-верификация
    /release-package             — ПОВТОРНАЯ упаковка релиза
-   /autocreate-finalize         — перезапустить Часть 2 целиком
+   /autocreate-finalize         — перезапустить Сессию 3 целиком
 
 📋 Опциональные следующие шаги:
    /add-feature [фича]          — добавить механику
@@ -342,11 +412,12 @@ Task: Production-ready
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
 | 0. Preflight | Handoff есть + `dart analyze` 0 errors | 1 (fail-fast) |
-| 10.5. Runtime Chrome | 0 CRITICAL visual + 0 FATAL в flutter-run.log | 3 (Chrome всегда доступен) |
+| 10.5. Runtime Chrome | 0 CRITICAL visual + 0 FATAL в flutter-run.log (+ soak: нет утечки) | 3 (Chrome всегда доступен) |
 | 11. Session State | `active.md` обновлён | 1 |
+| 11.5. Release-eng prep | Иконки/splash сгенерированы, `store/` создан (AAB best-effort) | 1 |
 | 12. Final Report | Отчёт напечатан / возвращён | 1 |
 
-**АБСОЛЮТНЫЙ МИНИМУМ для завершения Части 2:**
+**АБСОЛЮТНЫЙ МИНИМУМ для завершения Сессии 3:**
 - `production/session-state/active.md` обновлён
 - Финальный отчёт напечатан с verdict runtime-верификации
 
@@ -354,7 +425,7 @@ Task: Production-ready
 
 ## Восстановление после сбоев
 
-**Если subagent упал посреди Части 2** — пользователь запускает
+**Если subagent упал посреди Сессии 3** — пользователь запускает
 `/autocreate-finalize` в новой conversation. Skill:
 1. Читает `autocreate-handoff.md` и `active.md`
 2. Определяет, с какой фазы продолжить (по наличию артефактов):
@@ -364,9 +435,9 @@ Task: Production-ready
 
 **Если web-верификация невозможна** (нет `node` или бинаря Chrome): `web_verify.mjs` не запустить —
 Фаза 10.5 штатно SKIPPED, идём в Фазу 11 с verdict SKIPPED (игра уже собрана и протестирована
-в Части 1). Чтобы включить web-верификацию: установить `node` (≥21, нужен встроенный WebSocket)
+в Сессии 2). Чтобы включить web-верификацию: установить `node` (≥21, нужен встроенный WebSocket)
 и Chrome/Chromium (`google-chrome`/`chromium`), либо указать путь в `$CHROME_EXECUTABLE`.
-Это НЕ блокирует завершение Части 2.
+Это НЕ блокирует завершение Сессии 3.
 
 **Если зависает на Фазе 10.5** — этого не должно происходить: `web_verify.mjs` самозавершается
 по `--budget`, поверх него стоит `timeout`, а `flutter run -d web-server` имеет ранний выход при

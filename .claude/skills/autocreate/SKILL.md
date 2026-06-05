@@ -1,6 +1,6 @@
 ---
 name: autocreate
-description: "Фабрика производства ПОЛНЫХ мини-игр Zero-to-Production (любой жанр). Создает концепт, генерирует ВСЕ SVG ассеты с валидацией, пишет полный код на Flutter/Flame 1.18.x со ВСЕМИ экранами (12+), реализует ВСЮ игровую логику, пишет и запускает тесты, проводит UI/UX аудит, проверяет баланс, фиксит ВСЕ ошибки. Результат — полностью рабочее приложение без крашей."
+description: "Фабрика производства ПОЛНЫХ игр Zero-to-Production (любой жанр). Концепт + Production Plan, ВСЕ SVG-ассеты, РЕАЛЬНОЕ синтезированное аудио (.wav), полный код на Flutter/Flame 1.18.x со ВСЕМИ экранами (15+), ВСЯ игровая логика + мета-системы (save/economy/progression/achievements + analytics/ads/iap/remote-config abstractions), КОНТЕНТ (N уровней/режимов), тесты, UI/UX аудит (compliance), баланс по всей кривой, runtime+soak верификация, release-engineering (иконки/splash/AAB/store-metadata). Результат — полная, публикуемая 2D-игра без крашей, а не мини-демо."
 argument-hint: "[--from-concept | --idea-only]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -17,67 +17,67 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 ## 🚨 MANDATORY EXECUTION CONTRACT (читать до начала работы)
 
-`/autocreate` — это **полный конвейер Zero-to-Production**, но он разбит на
-ДВЕ context-сессии во избежание истощения токенов:
+`/autocreate` — это **полный конвейер Zero-to-Production**, разбитый на **ТРИ
+context-сессии** во избежание истощения токенов (полная игра тяжелее, чем мини-демо):
 
-- **Часть 1 (эта conversation, Фазы 1 → 10)** — концепт, ассеты, код, `dart analyze`
-  чистый, `flutter test` зелёный, UI-аудит, баланс, crash-prevention. Выполняется
-  в основном контексте.
-- **Часть 2 (свежий subagent, Фазы 10.5 → 11 → 12)** — runtime emulator verification,
-  session state update, финальный отчёт. Запускается
-  ТОЛЬКО через Agent tool с subagent_type="general-purpose" (чистый контекст).
+- **Сессия 1 — Pre-production (ЭТА conversation, Фазы 1 → 3.7)** — концепт+Production Plan,
+  bootstrap проекта, ассеты, синтез аудио, генерация ДАННЫХ контента/экономики. Лёгкая по
+  контексту: дизайн-выход + конфиги, без массового кода. В конце — spawn Сессии 2.
+- **Сессия 2 — Implementation (свежий subagent, Фазы 4 → 10)** — 5 агентов пишут код + мета-
+  системы, wiring контента, интеграция, build, feel-pass, тесты, UI-аудит, баланс, crash. Тяжёлые
+  фазы делегируются СУБ-АГЕНТАМ (оркестратор не читает весь код сам). Skill: `autocreate-implement`.
+  В конце — spawn Сессии 3.
+- **Сессия 3 — Finalize & release-ready (свежий subagent, Фазы 10.5 → 12)** — runtime+soak
+  верификация, session-state, **release-eng PREP** (иконки/splash/версия/store-metadata — БЕЗ
+  сборки AAB/APK), финальный отчёт. Оставляет проект ГОТОВЫМ к `/release-package`.
+  Skill: `autocreate-finalize`.
 
-**Часть 1 ОБЯЗАНА передать управление Части 2 через Agent tool в конце Фазы 10.**
-Она НЕ выполняет Фазу 10.5 сама. Subagent получает путь к handoff-файлу
-`production/session-state/autocreate-handoff.md` и инструкцию следовать
-`.claude/skills/autocreate-finalize/SKILL.md`.
+```
+Сессия 1 (autocreate)        Сессия 2 (autocreate-implement)     Сессия 3 (autocreate-finalize)
+Фазы 1–3.7                   Фазы 4–10                            Фазы 10.5–12
+концепт/ассеты/аудио/данные →[Agent]→ код/тесты/аудит/баланс →[Agent]→ runtime/prep/отчёт
+        handoff-1.md                      autocreate-handoff.md
+```
+
+**Каждая сессия ОБЯЗАНА передать управление следующей через Agent tool в конце.**
+Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` (full-history fork).
 
 **Тестирование: Chrome/Web (первичная платформа, не требует эмулятора).** Android/iOS — fallback.
-Финальный артефакт (создаётся Частью 2) — скриншоты из Chrome + исходники, упакованные
-в `.tar.gz` в `project_zip/`. Android APK собирается если доступен NDK (опционально).
+**Сборка AAB/APK НЕ выполняется в конвейере** — финализация лишь делает проект release-ready
+(иконки/splash/метаданные); артефакты собирает `/release-package` или `/release-engineering`.
 
-### Что ОБЯЗАНО произойти в Части 1 (эта сессия, Фазы 1–10):
+### Что ОБЯЗАНО произойти в Сессии 1 (эта сессия, Фазы 1 → 3.7):
 
-1. ✅ **Flutter Web-проект создан с нуля** (`flutter create --platforms web,android,ios`)
-2. ✅ **Все ассеты сгенерированы** (SVG по умолчанию, путь в `lib/assets.dart`)
-3. ✅ **Вся игровая логика написана** (4 параллельных агента) + **Gameplay Feel Pass** (Фаза 6.5): живые анимации ВНУТРИ геймплея
-4. ✅ **`dart analyze lib/` → 0 errors** (цикл исправлений, до 10 итераций)
-5. ✅ **`flutter test` → все зелёные** (до 5 итераций)
-6. ✅ **UI/UX аудит (64+ проверок) с автофиксами** — вкл. концептуальное меню, сдержанный HUD, живой геймплей
-7. ✅ **Balance check (RTP/difficulty) в допустимом диапазоне**
-8. ✅ **Crash-prevention аудит (20 пунктов)**
-9. ✅ **Handoff-файл записан** в `production/session-state/autocreate-handoff.md`
-10. ✅ **Subagent запущен через Agent tool** для Части 2
+1. ✅ **Flutter-проект создан с нуля** (`flutter create --platforms web,android,ios`)
+2. ✅ **Структура + Layout Archetype выбраны** (`design/structure.md`, `design/art-direction.md`)
+3. ✅ **Все ассеты сгенерированы** (SVG по умолчанию, путь в `assets_constants`)
+4. ✅ **Реальное аудио синтезировано** (Фаза 3.5: `tools/synth_sfx.py` → `.wav` SFX + BGM)
+5. ✅ **ДАННЫЕ контента/экономики сгенерированы** (Фаза 3.7: `assets/data/*.json`, N>1 уровней)
+6. ✅ **Handoff-1 записан** + **Сессия 2 запущена через Agent tool** (`autocreate-implement`)
 
-### Что ОБЯЗАН выполнить subagent Части 2 (Фазы 10.5–12):
+### Что выполняют последующие сессии (резюме — детали в их skill-файлах):
 
-11. ✅ **Chrome/Web: headless `web-server` + скриншоты/тапы по CDP (`tools/web_verify.mjs`), логи разобраны**
-12. ✅ **Все CRITICAL баги со скриншотов исправлены** (auto-fix loop, до 3 итераций)
-13. ✅ **Финальные скриншоты ГОТОВОЙ игры** (до 16 снимков) сохранены в `production/runtime-screenshots/`
-14. ✅ **`production/session-state/active.md` обновлён** с verdict runtime-верификации
-15. ✅ **Финальный отчёт возвращён** в родительскую сессию
+- **Сессия 2** (`autocreate-implement`, Фазы 4–10): 5 агентов (A/B/C/D/E), wiring контента,
+  интеграция, `dart analyze` 0 errors, feel-pass, тесты зелёные, UI-аудит (compliance), баланс
+  по всей кривой, crash-prevention. Затем spawn Сессии 3.
+- **Сессия 3** (`autocreate-finalize`, Фазы 10.5–12): runtime+soak верификация (Chrome CDP,
+  auto-fix), `active.md`, release-eng PREP (БЕЗ сборки AAB/APK), финальный отчёт.
 
-### Запрещено в Части 1:
+### Запрещено в Сессии 1:
 
-- ❌ Пытаться выполнить Фазу 10.5 (emulator-test) в основной conversation
-- ❌ Запускать `/release-package` (APK + архив) в основной conversation — только явный запуск пользователем
-- ❌ Вызывать `flutter run`, `flutter build web`, `flutter build apk`, `adb shell`, `emulator`
-  в основной conversation — это задачи subagent-а
-- ❌ Делать stub-файлы или TODO-комментарии в production коде
-- ❌ Отчитываться об успехе Части 1, если `dart analyze lib/` не 0 errors
-  или `flutter test` красный
-- ❌ Рапортовать "игра готова" — RUNTIME ещё не проверен (это делает Часть 2)
+- ❌ Писать игровой код, экраны, сервисы — это Сессия 2 (5 агентов)
+- ❌ Вызывать `flutter run/build/test`, `dart analyze`, `adb`, `emulator` — это задачи Сессий 2/3
+- ❌ Делать stub-файлы или TODO-комментарии
+- ❌ Отчитываться "игра готова" — написан только дизайн+ассеты+данные
+- ✅ В конце ОБЯЗАТЕЛЬНО вызвать Agent tool для Сессии 2 — без этого конвейер НЕ завершён
 
-### Запрещено в Части 1 НЕ делать (обязательное):
+### Финальный критерий успеха всего конвейера (после Сессии 3):
 
-- ✅ В конце Фазы 10 ОБЯЗАТЕЛЬНО вызвать Agent tool — без этого конвейер
-  считается НЕЗАВЕРШЁННЫМ, independent от того, что `dart analyze` чист
-
-### Финальный критерий успеха всего конвейера:
-
-`ls production/runtime-screenshots/` показывает папку `<ts>/` с ≥5 `.png` и `REPORT.md`.
-`production/session-state/active.md` содержит актуальный runtime-verdict.
-Для получения APK и загружаемого архива — запустить `/release-package` отдельно.
+`ls production/runtime-screenshots/<ts>/` — ≥5 `.png` + `REPORT.md`;
+`production/session-state/active.md` — актуальный runtime-verdict;
+проект release-ready (иконки/splash/store-metadata готовы).
+Для сборки/упаковки артефактов — `/release-package` (AAB+APK+архив) или `/release-engineering`
+(signed AAB) отдельным явным запуском.
 
 ---
 
@@ -175,6 +175,8 @@ flutter:
     - assets/images/ui/
     - assets/images/backgrounds/
     - assets/audio/sfx/
+    - assets/audio/bgm/
+    - assets/data/          # level/difficulty/economy configs (генерируются в Фазе 4.5)
   # ⚠️ НЕ хардкодить шрифты здесь. Шрифты выбираются в Design DNA каждой игры и
   # подключаются через пакет google_fonts (любой Google Font, без бандла .ttf).
   # ui-programmer вызывает GoogleFonts.<displayFont>() / GoogleFonts.<bodyFont>()
@@ -188,7 +190,7 @@ flutter:
 
 Создать базовые директории ассетов и дизайна:
 ```bash
-mkdir -p assets/images/sprites assets/images/ui assets/images/backgrounds assets/audio/sfx design/gdd design/balance production/session-state
+mkdir -p assets/images/sprites assets/images/ui assets/images/backgrounds assets/audio/sfx assets/audio/bgm assets/data assets/branding design/gdd design/balance production/session-state
 ```
 
 ### 2.1 — Выбор архитектурной структуры проекта
@@ -465,16 +467,160 @@ SVG выбирается автоматически. Никакого ввода
 
 ---
 
-## Фаза 4 — Complete Game Implementation (FOUR parallel agents) [~15 мин]
+## Фаза 3.5 — Real Audio Synthesis [~30 сек]
+
+> **Зачем.** Раньше `AudioService` «graceful-fail» на отсутствующих файлах — игра выходила
+> БЕЗ ЗВУКА. Полная игра обязана звучать. `tools/synth_sfx.py` синтезирует НАСТОЯЩИЕ
+> playable `.wav` (16-bit/44.1kHz, только stdlib — без внешних API/ffmpeg) для каждого события
+> Sound Design Map. Mood берётся из Design DNA (Emotional Core).
+
+```bash
+# Mood выводится из концепта (напряжённое/уютное/эпичное/...). Если не определить — bright.
+python3 tools/synth_sfx.py --from-concept \
+  --sfx-dir assets/audio/sfx --bgm-dir assets/audio/bgm 2>&1 | tail -12
+
+# Валидация: 9 файлов созданы и непустые
+ls -1 assets/audio/sfx/*.wav assets/audio/bgm/*.wav 2>/dev/null | wc -l
+```
+
+Генерируемые файлы (используй ровно эти имена в `audio_assets`):
+`sfx_button, sfx_navigate, sfx_action, sfx_coin, sfx_error, sfx_win_small, sfx_win_big,
+sfx_win_mega` (в `assets/audio/sfx/`) + `bgm_main` (в `assets/audio/bgm/`).
+
+> **Контракт для Agent D (Фаза 4):** `audio_assets.dart` ссылается на `.wav` по этим путям;
+> `AudioService` всё равно оборачивает воспроизведение в try-catch (на случай платформенных
+> ограничений), но файлы РЕАЛЬНО существуют. Если нужен другой mood — перезапусти с `--mood`.
+
+---
+
+## Фаза 3.7 — Content & Economy Data (DATA only) [~3 мин]
+
+> **Сессия 1.** Контент полной игры — это ДАННЫЕ, и они генерируются здесь, ДО кода: агенты
+> Сессии 2 будут строить логику против уже готовых конфигов. Объём — из **Production Plan**
+> концепта (`design/gdd/game-concept.md` → Секция 2.5). Это дизайн-выход, кода не требует.
+
+Создать в `assets/data/` (зеркало для ревью — в `design/balance/`):
+
+- **levels/stages** → `assets/data/level-config.json` — массив из **N > 1** записей (из Content
+  Plan; напр. 24). Каждая запись: `id`, параметры сложности под жанр (цель/скорость/плотность/
+  веса/лимит ходов или времени), пороги звёзд `{1:.., 2:.., 3:..}`, награда в валюте.
+- **arcade/endless** → `assets/data/difficulty-curve.json` — формула/таблица нарастания (spawn
+  rate, скорость, частота волн) по времени/стейджам.
+- **gambling** → `assets/data/bet-tiers.json` (+ `design/balance/rtp-config.json`) — bet-tiers и
+  параметры бонус-режимов.
+- **economy** → `assets/data/economy-config.json` — стартовый баланс валюты, цены каталога
+  магазина (скины/темы/бустеры/наборы/remove-ads), награды за уровни/дейли/достижения.
+- **modes** → отразить в концепте/handoff список 2–3 режимов (Classic + Endless/Time-Attack/Daily).
+
+Валидация:
+```bash
+for f in assets/data/level-config.json assets/data/economy-config.json; do
+  [ -f "$f" ] && python3 -c "import json,sys; d=json.load(open('$f')); print('$f OK', (len(d) if isinstance(d,list) else 'obj'))" \
+    || echo "⚠️ нет $f (если жанр того требует — создать)"
+done
+```
+
+> Числа держим в JSON (контент) — один источник правды; `GameConfig` (Сессия 2) их загружает,
+> не дублирует. Кривую при желании просчитывает `game-mathematician`, но в Сессии 1 достаточно
+> разумных значений из Production Plan; полная балансировка — Фаза 9 (Сессия 2).
+
+---
+
+## Фаза 3.8 — Session 1 Handoff & Spawn Session 2 [~1 мин]
+
+**ЭТО ПОСЛЕДНЯЯ ФАЗА СЕССИИ 1.** Реализация (Фазы 4–10) идёт в Сессии 2 (subagent с чистым
+контекстом), НЕ здесь.
+
+### 3.8.1 — Записать handoff-1
+
+Создать `production/session-state/autocreate-handoff-1.md`:
+
+```markdown
+# AutoCreate Handoff 1 — Pre-production завершена (Сессия 1)
+
+**Время**: [ISO timestamp]
+**Следующий шаг**: subagent выполняет `.claude/skills/autocreate-implement/SKILL.md` (Сессия 2)
+
+## Метаданные игры
+- Название / Жанр / Архетип: [...]
+- Структура: [V1–V5 из design/structure.md] | Layout: [L1–L6 из design/art-direction.md]
+- Audio mood: [mood] (9 .wav в assets/audio/)
+- Package: com.gamestudio.[name]
+
+## Готово в Сессии 1
+- [x] Концепт + Production Plan: design/gdd/game-concept.md
+- [x] Bootstrap: flutter create (web,android,ios), pubspec, директории
+- [x] Структура+Layout: design/structure.md, design/art-direction.md
+- [x] Ассеты: [N] SVG в assets/images/**
+- [x] Аудио: 9 .wav (assets/audio/sfx + bgm)
+- [x] Контент-данные: assets/data/*.json — [N] уровней, режимы [список], economy
+
+## Задачи Сессии 2 (autocreate-implement, Фазы 4–10)
+- [ ] 4: 5 агентов (A/B/C/D/E) пишут код + мета-системы
+- [ ] 4.5: wiring контента (level/mode select ↔ data) | 5: интеграция (18 связей)
+- [ ] 6: dart analyze 0 errors | 6.5: feel-pass | 7: тесты зелёные
+- [ ] 8: UI-аудит (compliance) | 9: баланс по кривой | 10: crash-prevention
+- [ ] 10.7: spawn Сессии 3 (autocreate-finalize)
+
+## Ссылки
+- Спецификации Фаз 4–10: `.claude/skills/autocreate/SKILL.md` (этот файл, ниже)
+- Драйвер Сессии 2: `.claude/skills/autocreate-implement/SKILL.md`
+```
+
+### 3.8.2 — Spawn Сессии 2 через Agent tool
+
+**ОБЯЗАТЕЛЬНО** (без `subagent_type`/`model`/`reasoning_effort`):
+
+```
+Agent(
+  description="AutoCreate Session 2: implementation (phases 4–10)",
+  prompt="""
+Ты — Сессия 2 конвейера /autocreate (чистый контекст). Pre-production (Сессия 1) завершена.
+
+ПЕРВЫМИ ДЕЙСТВИЯМИ прочитай:
+1. production/session-state/autocreate-handoff-1.md — что уже готово
+2. .claude/skills/autocreate-implement/SKILL.md — твой план Сессии 2 (выполняй его)
+3. design/structure.md, design/art-direction.md, design/gdd/game-concept.md
+
+ТВОЯ ЗАДАЧА: выполнить Фазы 4 → 10 (как описано в .claude/skills/autocreate/SKILL.md),
+ДЕЛЕГИРУЯ тяжёлые фазы суб-агентам (см. autocreate-implement) чтобы не истощить контекст.
+КРИТЕРИЙ: dart analyze 0 errors, flutter test зелёные, UI-аудит пройден, баланс ок,
+crash-prevention 20/20. В конце (Фаза 10.7) — записать autocreate-handoff.md и
+запустить Сессию 3 (autocreate-finalize) через Agent tool.
+
+НЕ переписывай концепт/ассеты/аудио/данные Сессии 1 — они зафиксированы (можно только
+дополнять GameConfig значениями из assets/data/*.json).
+"""
+)
+```
+
+После возврата subagent-а Сессии 2 — вернуть пользователю его итог (который, в свою очередь,
+содержит итог Сессии 3). Если упал — сообщить причину и команду ручного перезапуска:
+`/autocreate-implement` (в новой conversation).
+
+---
+
+> **Фазы 4–10 ниже ВЫПОЛНЯЮТСЯ В СЕССИИ 2** (`autocreate-implement`), а не в этой conversation.
+> Они оставлены здесь как канонические спецификации, на которые ссылается драйвер Сессии 2.
+
+---
+
+## Фаза 4 — Complete Game Implementation (FIVE parallel agents) [~15 мин]
 
 > **КЛЮЧЕВОЕ ПРАВИЛО**: Каждый агент получает ПОЛНЫЙ концепт из `design/gdd/game-concept.md`
 > и ПОЛНЫЙ список ассетов. Агенты ОБЯЗАНЫ использовать ОДИНАКОВЫЕ имена классов, типы и интерфейсы.
 
-> **Конвейер использует 5 агентских проходов:** 4 параллельных здесь (A mechanics, B ui,
-> C juice, D sound) + 1 выделенный **Gameplay Feel Pass** (Фаза 6.5, juice-artist), который
-> оживляет сами игровые компоненты на поле уже на чистом, компилирующемся коде. Это разделение
-> намеренное: параллельные агенты строят каркас, feel-pass добавляет «жизнь» в геймплей без
-> коллизий при параллельной записи.
+> **Конвейер использует 6 агентских проходов:** 5 параллельных здесь (A mechanics, B ui,
+> C juice, D sound, **E meta-systems**) + 1 выделенный **Gameplay Feel Pass** (Фаза 6.5,
+> juice-artist), который оживляет сами игровые компоненты на поле уже на чистом,
+> компилирующемся коде. Это разделение намеренное: параллельные агенты строят каркас,
+> feel-pass добавляет «жизнь» в геймплей без коллизий при параллельной записи.
+>
+> **Чтобы 5 агентов не писали в одни файлы:** у каждого — свои директории (A: game/systems/
+> components/models; B: screens/widgets/theme/app/assets; C: components/vfx; D: audio;
+> E: services/save/economy/progression). Пересечения (game_config.dart, contracts) — только
+> ЧИТАЮТСЯ агентами B/C/D/E, ПИШЕТ их Agent A. Мета-сервисы Agent E подключаются к игре в
+> Фазе 5 (wiring), а не правкой файлов Agent A.
 
 > **⚠️ СОВМЕСТИМОСТЬ АГЕНТОВ**: При вызове `Agent(...)` НЕ указывай `subagent_type`, `model`
 > или `reasoning_effort` — эти параметры несовместимы с full-history fork и вызовут ошибку.
@@ -498,6 +644,7 @@ SVG выбирается автоматически. Никакого ввода
 > | Theme          | game_theme          | B     |
 > | Animations     | animations          | B     |
 > | AudioService   | audio_service       | D     |
+> | Services (save/economy/progression/achievements/analytics/ads/iap/remote-config) | директория рядом с `audio_service` (`services/`/`data/`/`infrastructure`/`foundation` по варианту) | E |
 >
 > Агенты получают `lib/contracts.md` с заполненными путями и читают его первым действием.
 
@@ -509,9 +656,19 @@ SVG выбирается автоматически. Никакого ввода
 ## Shared Types
 - GameState sealed class: IdleState, PlayingState, AnimatingState, WinState, GameOverState, PausedState
 - ValueNotifiers: balance (int), bet (int), isSpinning/isPlaying (bool), score (int), currentState (GameState)
+  + мета: coins (int), currentLevel (int), currentMode (enum), achievementUnlocked (callback/notifier)
 - Game class name: [GameName]Game extends FlameGame
 - World class name: [GameName]World extends World with HasCollisionDetection
 - Config class name: GameConfig (static constants)
+
+## Meta-Services (Agent E) — интерфейсы, которые ЧИТАЮТ Agent A/B
+- SaveService    — единый persistence (versioned schema + migration), try-catch
+- EconomyService — coins, shop, isUnlocked/purchase (цены из GameConfig)
+- ProgressionService — открытые уровни, звёзды, recordResult
+- AchievementService — разблокировка по событиям, награда через Economy
+- AnalyticsService (abstract) + NoOp/Debug; AdService (abstract) + NoOp;
+  IapService (abstract) + NoOp; RemoteConfigService (abstract) + Local(defaults из GameConfig)
+- Точки вызова этих сервисов в геймплее/навигации расставляются в Фазе 5 (wiring)
 
 ## Structure Variant
 [Вставить: Variant из design/structure.md, например "V3 — Presentation-Domain-Data"]
@@ -751,10 +908,79 @@ Agent B компонует ВСЕ экраны по этому архетипу 
   - UI: button tap, navigation swish, error buzz
   - Проверка Settings (sound on/off) перед каждым воспроизведением
   - Максимум 3 параллельных звука
-- `lib/audio/audio_assets.dart` — константы путей аудио
+- `lib/audio/audio_assets.dart` — константы путей аудио (**`.wav`**, файлы РЕАЛЬНО созданы
+  в Фазе 3.5: `assets/audio/sfx/sfx_*.wav` + `assets/audio/bgm/bgm_main.wav`)
 
-**Примечание**: Если реальные .ogg файлы недоступны, AudioService ОБЯЗАН gracefully handle
-отсутствие файлов (try-catch, не крашить). Логирование через Logger, не print().
+**Примечание**: Файлы аудио синтезированы (Фаза 3.5) и существуют. Тем не менее AudioService
+ОБЯЗАН оборачивать воспроизведение в try-catch (платформенные ограничения web/codecs) и не
+крашить. Логирование через Logger, не print(). Уважать Settings (sound/sfx/bgm on/off).
+
+### Agent E — meta-systems-programmer (Save / Economy / Progression / Telemetry):
+
+**Prompt ОБЯЗАН включать**: Полный концепт с **Production Plan** (Content/Economy/Progression/
+Monetization/Telemetry/Compliance), контракт типов, пути из `design/structure.md`.
+
+> Полная спецификация ролей и правил — в `.claude/agents/meta-systems-programmer.md`.
+> Читать её ПЕРВЫМ действием вместе с `lib/contracts.md` и `design/structure.md`.
+
+Создаёт мета-системы (всё, что превращает один цикл в ПОЛНУЮ игру):
+
+- **SaveService** — единый persistence: settings, profile, progression, economy, leaderboard,
+  achievements, dailyBonus, (опц.) resume-snapshot. Версионированная схема + миграция.
+  try-catch вокруг КАЖДОГО доступа к диску, безопасный fallback.
+- **EconomyService** — coins/валюта, каталог магазина (скины/темы/бустеры/наборы/remove-ads),
+  canAfford/purchase/isUnlocked. Цены — из `GameConfig`/`economy-config.json`, не литералы.
+- **ProgressionService** — открытые уровни/стейджи, звёзды, лучшие счёты, recordResult/unlockNext.
+  Источник кривой — `level-config.json`/`difficulty-curve.json` (Фаза 4.5).
+- **AchievementService** — декларативный список (id/условие/награда), проверка по событиям,
+  колбэк в UI + начисление награды через Economy.
+- **AnalyticsService** (abstract) + **NoOpAnalytics** (default) + **DebugAnalytics** (Logger).
+  Таксономия: app_open, session_*, screen_view, level_start/complete/fail, game_action,
+  purchase, ad_*, achievement_unlocked, daily_bonus_claimed.
+- **AdService** (abstract) + **NoOpAdService**: rewardedContinue/rewardedDouble/interstitial/banner.
+- **IapService** (abstract) + **NoOpIapService**: каталог продуктов, buy() выдаёт товар через Economy.
+- **RemoteConfigService** (abstract) + **LocalRemoteConfig** (дефолты из GameConfig).
+
+**КРИТИЧЕСКИ для Agent E:**
+- Игра ОБЯЗАНА собираться БЕЗ внешних SDK — никаких `firebase_*`/`google_mobile_ads`/
+  `in_app_purchase` в pubspec. Только чистый Dart + `shared_preferences`. Всё «облачное» — абстракции.
+- НЕ дублировать игровую логику/RNG/исходы/баланс (это Agent A). Не хардкодить числа.
+- Без `dynamic` вне JSON-границ; без `print()` (Logger).
+- **(gambling) Compliance:** держать флаг age-gate (показан ли) в SaveService + строки disclaimer/
+  responsible-play в конфиге; валюта строго виртуальная (не реальные деньги/выигрыши).
+- Сервисы testable (инъекция SharedPreferences/времени). Вызовы сервисов расставляются в Фазе 5.
+
+---
+
+## Фаза 4.5 — Content & Modes WIRING (Сессия 2) [~4 мин]
+
+> **Данные уже есть.** `assets/data/*.json` сгенерированы в Фазе 3.7 (Сессия 1). Здесь —
+> ПОДКЛЮЧЕНИЕ этих данных к коду: GameConfig загружает их, Game/GameScreen принимают
+> `(mode, levelId)`, ProgressionService читает level-config, Level/Mode Select показывает
+> реальный список. Контент = данные, поэтому 24 уровня = один GameScreen + конфиг, не 24 экрана.
+
+### 4.5.1 — Проверить и загрузить конфиг контента
+Конфиги из Фазы 3.7: `level-config.json` / `difficulty-curve.json` / `bet-tiers.json` /
+`economy-config.json` в `assets/data/`. Убедиться, что они валидны и **GameConfig их загружает**
+(не дублирует числа в литералах). Если какого-то жанрового конфига не хватает — досоздать здесь.
+
+### 4.5.2 — Режимы (modes)
+Реализовать 2–3 режима из Production Plan как enum + ветвление в Game (НЕ как отдельные копии
+игры): Classic/Campaign (прохождение по level-config), плюс один из Endless/Time-Attack/Survival,
+плюс опц. Daily Challenge (детерминированный seed по дате → одинаковый «сегодняшний» расклад,
+отдельный leaderboard). GameScreen принимает `(mode, levelId)`; ProgressionService решает доступ.
+
+### 4.5.3 — Лёгкая балансировка кривой (game-mathematician)
+Прогнать сгенерированный конфиг через быструю проверку (полная — в Фазе 9):
+- **puzzle/arcade**: кривая растёт монотонно, все уровни проходимы, нет «стены» сложности.
+- **gambling**: bet-tiers не ломают RTP-окно.
+Если кривая кривая — скорректировать JSON (не код).
+
+### 4.5.4 — Критерий выхода Фазы 4.5
+- `assets/data/*.json` существуют и валидный JSON (N записей контента, не 1).
+- GameScreen/Game умеют принимать `(mode, levelId)`; ProgressionService читает level-config.
+- Level/Mode Select экран (Agent B) связан с реальными данными (не хардкод-список из 3 уровней).
+- `dart analyze lib/` остаётся 0 errors.
 
 ---
 
@@ -792,6 +1018,20 @@ class GameAssets {
 10. **Daily Bonus → SharedPreferences**: дата проверяется, бонус начисляется
 11. **Leaderboard → SharedPreferences**: результаты записываются и читаются
 12. **Profile → SharedPreferences**: данные сохраняются
+
+**Мета-системы (Agent E) — подключение к игре и UI:**
+13. **SaveService — единый**: экраны/сервисы ходят через SaveService, нет россыпи прямых
+    `SharedPreferences.getInstance()` по экранам (консолидировать)
+14. **Level/Mode Select → Game**: выбор уровня/режима передаёт параметр в Game; ProgressionService
+    отдаёт состояние (открыт/звёзды); по завершении — `recordResult` + `unlockNext`
+15. **Economy → Shop**: магазин читает баланс/каталог из EconomyService; покупка списывает coins
+    и помечает unlocked; победы/уровни начисляют coins
+16. **Achievements → события**: AchievementService подписан на игровые события; разблокировка →
+    toast/overlay + награда через Economy
+17. **Analytics-вызовы расставлены**: `analytics.log(...)` в навигации (screen_view) и геймплее
+    (level_start/complete/fail, game_action, purchase, ad_*, daily_bonus_claimed)
+18. **(gambling) Compliance подключён**: age-gate показывается при первом запуске (флаг в Save);
+    disclaimer на splash + paytable; responsible-play в settings
 
 ### 5.3 — Исправление несоответствий между агентами
 Типичные проблемы:
@@ -971,6 +1211,17 @@ grep -rn "playEntrance\|playImpact\|playReaction\|playStateChange\|playLand\|pla
   - 100 последовательных действий без ошибок (state leakage test)
   - Пауза и возобновление работают
 
+### 7.3b — Meta-Systems Tests (Agent E)
+
+**`test/services/`** (инъекция мок-`SharedPreferences`, без реального диска):
+- `save_service_test.dart` — round-trip save→load; миграция со старой `save_schema_version`;
+  повреждённые/отсутствующие данные → безопасный fallback (не падать)
+- `economy_service_test.dart` — начисление, `canAfford`/`purchase` списывает ровно цену,
+  `isUnlocked` после покупки, нельзя купить без средств, валюта не уходит в минус
+- `progression_service_test.dart` — `recordResult`/`unlockNext`, открытие следующего уровня,
+  звёзды сохраняются, лучший счёт не уменьшается
+- `analytics_noop_test.dart` — NoOp/Debug не бросают и не зависят от внешних SDK
+
 ### 7.4 — Edge Case Tests
 
 **`test/edge_cases/`**:
@@ -998,8 +1249,10 @@ flutter test --reporter expanded
 
 Прочитать `design/structure.md` для определения текущего варианта структуры и путей.
 Затем прочитать ВСЕ файлы в директориях `screens_dir`, `widgets_dir`, директории theme, и файл `app` — все пути берутся из `design/structure.md`.
-Провести полный аудит по 9 категориям (90+ проверок) из `.claude/skills/ui-audit/SKILL.md`,
-включая меню-centerpiece, сдержанность HUD и живой геймплей (категория I).
+Провести полный аудит по 10 категориям (100+ проверок) из `.claude/skills/ui-audit/SKILL.md`,
+включая меню-centerpiece, сдержанность HUD, живой геймплей (категория I) и
+**Production Completeness & Compliance (категория J)** — наличие контента/режимов/мета-систем,
+расставленные analytics-вызовы, и (для gambling) age-gate/disclaimer/responsible-play.
 
 ### 8.1 — КРАШ-УЯЗВИМОСТИ (исправлять ПЕРВЫМИ!)
 
@@ -1119,6 +1372,11 @@ flutter test
 
 ## Фаза 9 — Balance Check (Genre-Specific) [~3 мин]
 
+> **Проверять ВЕСЬ контент**, а не один уровень: пройти по всем записям `level-config.json` /
+> `difficulty-curve.json` из Фазы 4.5, а не только по дефолтному уровню. Кривая сложности должна
+> быть монотонной и без «стены»; все уровни проходимы; bet-tiers (gambling) не ломают RTP-окно.
+> Детальная проверка — `/balance-check` (full-curve режим).
+
 ### Для Gambling жанра:
 
 Создать `tools/simulate_rtp.py`:
@@ -1205,20 +1463,20 @@ flutter test
 
 ## Фаза 10.7 — Handoff & Subagent Spawn [~1 мин]
 
-**ЭТО ПОСЛЕДНЯЯ ФАЗА ОСНОВНОЙ CONVERSATION.**
-Фазы 10.5 (emulator-test), 11 (session state) и 12
-(final report) выполняются в **subagent-е с чистым контекстом**, не здесь.
+**ЭТО ПОСЛЕДНЯЯ ФАЗА СЕССИИ 2** (`autocreate-implement`).
+Фазы 10.5 (runtime+soak), 11 (session state), 11.5 (release-eng prep) и 12 (final report)
+выполняются в **Сессии 3** (subagent с чистым контекстом, `autocreate-finalize`), не здесь.
 
 ### 10.7.1 — Запись handoff-файла
 
 Создать `production/session-state/autocreate-handoff.md` со всем контекстом,
-необходимым subagent-у:
+необходимым subagent-у Сессии 3:
 
 ```markdown
-# AutoCreate Handoff — Часть 1 завершена
+# AutoCreate Handoff — Сессия 2 (имплементация) завершена
 
-**Время завершения Части 1**: [ISO timestamp]
-**Следующий шаг**: subagent выполняет `.claude/skills/autocreate-finalize/SKILL.md`
+**Время завершения Сессии 2**: [ISO timestamp]
+**Следующий шаг**: subagent выполняет `.claude/skills/autocreate-finalize/SKILL.md` (Сессия 3)
 
 ## Метаданные игры
 - **Название**: [Game Name]
@@ -1234,31 +1492,42 @@ flutter test
   - Главный класс игры: `[game_dir из structure.md][name]_game.dart`
   - Entry point: `lib/main.dart`
 
-## Статус Части 1 (Фазы 1–10)
-- [x] Фаза 1: Концепт сгенерирован
-- [x] Фаза 2: Flutter Android проект создан
-- [x] Фаза 3: [N] ассетов сгенерированы ([SVG/PNG])
-- [x] Фаза 4: 4 агента завершили имплементацию
-- [x] Фаза 5: Интеграция проверена
+## Статус Сессий 1–2 (Фазы 1–10)
+- [x] Фаза 1: Концепт + Production Plan сгенерированы (Сессия 1)
+- [x] Фаза 2: Flutter проект создан (web,android,ios) (Сессия 1)
+- [x] Фаза 3: [N] ассетов сгенерированы ([SVG/PNG]) (Сессия 1)
+- [x] Фаза 3.5: Аудио синтезировано — 9 `.wav` (mood: [mood]) (Сессия 1)
+- [x] Фаза 3.7: Контент-данные — `assets/data/*.json`, [N] уровней (Сессия 1)
+- [x] Фаза 4: 5 агентов завершили имплементацию (A/B/C/D/E)
+- [x] Фаза 4.5: Контент — [N] уровней/стейджей + режимы [список]; `assets/data/*.json`
+- [x] Фаза 5: Интеграция проверена (18 связей, вкл. мета-сервисы)
 - [x] Фаза 6: `dart analyze lib/` → 0 errors
 - [x] Фаза 6.5: Gameplay Feel Pass — игровое поле живое (idle/entrance/impact/state)
 - [x] Фаза 7: `flutter test` → [N] тестов, все зелёные
-- [x] Фаза 8: UI/UX аудит пройден (64+ проверок, вкл. меню/restraint/живой геймплей)
-- [x] Фаза 9: Balance check — [RTP XX.X% / difficulty OK]
-- [x] Фаза 10: Crash-prevention аудит — 20/20 чистые
+- [x] Фаза 8: UI/UX аудит пройден (100+ проверок, вкл. compliance/content)
+- [x] Фаза 9: Balance check по всей кривой — [RTP XX.X% / difficulty OK]
+- [x] Фаза 10: Crash-prevention аудит — 20/20 + (gambling) age-gate/disclaimer
 
-## Задачи для Части 2 (subagent выполняет)
-- [ ] Фаза 10.5: Runtime emulator verification (скрины + logcat + auto-fix loop)
+## Мета-системы (Agent E) — для финального отчёта
+- Экономика: [валюта] + магазин ([N] позиций); Прогрессия: [N] уровней/звёзды
+- Достижения: [N]; Monetization: rewarded/interstitial/iap — abstractions (no-op)
+- Telemetry: AnalyticsService (no-op) с расставленными вызовами
+
+## Задачи для Сессии 3 (subagent выполняет)
+- [ ] Фаза 10.5: Runtime verification (скрины + logcat + auto-fix loop) + soak/leak проверка
 - [ ] Фаза 11: Обновить `production/session-state/active.md`
+- [ ] Фаза 11.5 (release-eng PREP): `/release-engineering --prep-only --no-keystore` —
+      иконки/splash/версия/store-metadata/CI (БЕЗ сборки AAB/APK)
 - [ ] Фаза 12: Финальный отчёт
 
-## Контракт артефактов Части 2 (должны существовать ПОСЛЕ)
+## Контракт артефактов Сессии 3 (должны существовать ПОСЛЕ)
 - `production/runtime-screenshots/<ts>/*.png` (≥5 снимков) + `REPORT.md`
 - `production/session-state/active.md` обновлён с verdict
-- APK и архив — через отдельный запуск `/release-package`
+- Иконки/splash/store-metadata готовы (release-ready, БЕЗ сборки артефактов)
+- AAB+APK+архив — через отдельный запуск `/release-package`
 
 ## Ссылки на документацию
-- Skill Части 2: `.claude/skills/autocreate-finalize/SKILL.md`
+- Skill Сессии 3: `.claude/skills/autocreate-finalize/SKILL.md`
 - Runtime verification: `.claude/skills/emulator-test/SKILL.md`
 - Release packaging: `.claude/skills/release-package/SKILL.md`
 ```
@@ -1271,31 +1540,36 @@ flutter test
 Agent(
   description="AutoCreate finalize: runtime verification + report",
   prompt="""
-Ты работаешь во 2-й части конвейера /autocreate с чистым контекстом.
+Ты — Сессия 3 конвейера /autocreate (finalize) с чистым контекстом.
 
 КОНТЕКСТ:
-- Часть 1 конвейера завершена (dart analyze чист, flutter test зелёный, UI-аудит пройден)
+- Сессия 2 (имплементация) завершена (dart analyze чист, flutter test зелёный, UI-аудит пройден)
 - Handoff-файл: production/session-state/autocreate-handoff.md — прочитай его ПЕРВЫМ
 - Твой skill-план: .claude/skills/autocreate-finalize/SKILL.md — прочитай его ВТОРЫМ и выполняй
 
 ТВОИ ЗАДАЧИ (в порядке):
-1. Фаза 10.5 — runtime emulator verification (см. .claude/skills/emulator-test/SKILL.md --quick)
+1. Фаза 10.5 — runtime verification (см. .claude/skills/emulator-test/SKILL.md --quick)
    - auto-fix loop до 3 итераций при CRITICAL проблемах
+   - + soak-проба: ~200 авто-действий по CDP, следить за ростом heap/console (утечки)
 2. Фаза 11 — обновить production/session-state/active.md с verdict
-3. Фаза 12 — вернуть финальный отчёт в том формате, что указан в autocreate-finalize/SKILL.md
+3. Фаза 11.5 (release-eng prep) — выполнить `/release-engineering --prep-only --no-keystore`
+   (иконки, native splash, версия, store-metadata, CI). БЕЗ сборки AAB/APK и БЕЗ keystore —
+   проект становится release-ready; артефакты соберёт пользователь через /release-package.
+4. Фаза 12 — вернуть финальный отчёт в том формате, что указан в autocreate-finalize/SKILL.md
 
 КРИТЕРИИ УСПЕХА:
 - production/runtime-screenshots/<ts>/*.png (≥5 снимков) сохранены
 - production/runtime-screenshots/<ts>/REPORT.md содержит verdict PASS/CONCERNS/FAIL
 - production/session-state/active.md обновлён
+- Иконки/splash сгенерированы, store/ создан (release-eng prep)
 - Финальный отчёт Фазы 12 возвращён
 
 ОГРАНИЧЕНИЯ:
-- НЕ переписывай игровой код — Часть 1 уже закончила имплементацию
+- НЕ переписывай игровой код — Сессия 2 уже закончила имплементацию
 - Допустимы ТОЛЬКО runtime-автофиксы UI-багов, которые видны на скриншотах
   или в logcat (overflow, setState after dispose, missing asset, null ValueNotifier)
-- Не меняй game_config.dart, rtp-config.json — баланс уже утверждён
-- НЕ запускай /release-package — APK и архив создаются только явным запуском этого навыка
+- Не меняй game_config.dart, rtp-config.json, level-config.json — баланс/контент утверждены
+- НЕ генерируй release-keystore и НЕ запускай /release-package — это явные действия пользователя
 """
 )
 ```
@@ -1313,39 +1587,51 @@ Agent(
 
 Каждая фаза имеет критерий выхода. Если критерий не выполнен — фаза повторяется.
 
-### Часть 1 (основная conversation):
+### Сессия 1 — Pre-production (эта conversation, `autocreate`):
 
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
-| 2. Bootstrap | `flutter pub get` — 0 errors | 3 |
+| 2. Bootstrap | `flutter pub get` — 0 errors; структура+layout выбраны | 3 |
 | 3. Assets | Все SVG валидны, все пути существуют | 2 |
-| 4. Implementation | Все 4 агента завершены | 1 (но Фаза 6 исправляет) |
-| 5. Integration | Все 12 связей проверены | 3 |
+| 3.5. Audio | 9 `.wav` синтезированы и непустые (`tools/synth_sfx.py`) | 2 |
+| 3.7. Content Data | `assets/data/*.json` валидны, N>1 уровней + economy | 2 |
+| 3.8. Handoff & Spawn | `autocreate-handoff-1.md` записан + Agent tool (Сессия 2) вызван | 1 |
+
+### Сессия 2 — Implementation (subagent, `autocreate-implement`):
+
+| Фаза | Критерий выхода | Макс. итераций |
+|------|----------------|---------------|
+| 4. Implementation | Все 5 агентов завершены (A/B/C/D/E) | 1 (Фаза 6 исправляет) |
+| 4.5. Content wiring | Game принимает (mode,levelId); Level/Mode Select ↔ data | 2 |
+| 5. Integration | Все 18 связей проверены (вкл. мета-сервисы) | 3 |
 | 6. Build | `dart analyze` — 0 errors | 10 |
 | 6.5. Gameplay Feel Pass | Поле живое (F1–F5), analyze+test чисты | 2 |
-| 7. Tests | `flutter test` — all passed | 5 |
-| 8. UI Audit | 64+ checks passed (вкл. меню/restraint/живой геймплей) | 3 |
-| 9. Balance | RTP/difficulty в допустимом диапазоне | 3 |
-| 10. Crash Prevention | 20/20 checks passed, `dart analyze` + `flutter test` clean | 3 |
-| 10.7. Handoff & Spawn | Handoff-файл записан + Agent tool вызван | 1 |
+| 7. Tests | `flutter test` — all passed (вкл. test/services/) | 5 |
+| 8. UI Audit | 100+ checks passed (меню/restraint/живой геймплей/compliance) | 3 |
+| 9. Balance | RTP/difficulty по ВСЕЙ кривой контента в норме | 3 |
+| 10. Crash Prevention | 20/20 + (gambling) age-gate/disclaimer, analyze+test clean | 3 |
+| 10.7. Handoff & Spawn | `autocreate-handoff.md` записан + Agent tool (Сессия 3) вызван | 1 |
 
-### Часть 2 (subagent, подробности в `.claude/skills/autocreate-finalize/SKILL.md`):
+### Сессия 3 — Finalize (subagent, `autocreate-finalize`):
 
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
-| 10.5. Runtime Chrome | 0 CRITICAL visual issues + 0 FATAL exceptions | 3 (Chrome всегда доступен) |
+| 10.5. Runtime Chrome | 0 CRITICAL visual + 0 FATAL exceptions (+ soak: нет утечки) | 3 (Chrome всегда доступен) |
 | 11. Session State | `active.md` обновлён с verdict | 1 |
+| 11.5. Release-eng prep | Иконки/splash/store-metadata готовы (БЕЗ сборки AAB/APK) | 1 |
+| 12. Final Report | Отчёт возвращён | 1 |
 
-**АБСОЛЮТНЫЙ МИНИМУМ для Части 1 (без него нельзя звать Часть 2)**:
-- `dart analyze lib/` — 0 errors
-- `flutter test` — all passed
-- 12+ экранов созданы
-- Навигация работает между всеми экранами
-- Основная игровая механика работает
-- Handoff-файл записан и Agent tool вызван
+**АБСОЛЮТНЫЙ МИНИМУМ Сессии 1 (без него нельзя звать Сессию 2)**:
+- Концепт+Production Plan, ассеты, 9 `.wav`, `assets/data/*.json` (N>1) созданы
+- `autocreate-handoff-1.md` записан и Agent tool (Сессия 2) вызван
 
-**АБСОЛЮТНЫЙ МИНИМУМ для Части 2 (subagent отчитывается в основную сессию)**:
-- **Chrome скриншоты**: ≥5 снимков в `production/runtime-screenshots/<ts>/` (обязательно)
-- **REPORT.md**: verdict PASS/CONCERNS/FAIL в той же папке
-- **active.md**: обновлён с runtime-verdict
-- **Финальный отчёт**: возвращён в родительскую сессию
+**АБСОЛЮТНЫЙ МИНИМУМ Сессии 2 (без него нельзя звать Сессию 3)**:
+- `dart analyze lib/` — 0 errors; `flutter test` — all passed
+- 15+ экранов, навигация работает, механика + контент (N уровней/режимы) + мета-системы на месте
+- `autocreate-handoff.md` записан и Agent tool (Сессия 3) вызван
+
+**АБСОЛЮТНЫЙ МИНИМУМ Сессии 3**:
+- **Chrome скриншоты**: ≥5 снимков в `production/runtime-screenshots/<ts>/`
+- **REPORT.md**: verdict PASS/CONCERNS/FAIL; **active.md** обновлён
+- Release-eng PREP выполнен (иконки/splash/store-metadata; БЕЗ сборки AAB/APK)
+- **Финальный отчёт** возвращён

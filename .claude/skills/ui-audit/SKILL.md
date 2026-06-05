@@ -1,6 +1,6 @@
 ---
 name: ui-audit
-description: "Глубокий аудит UI/UX кода на anti-slop качество, краш-уязвимости, layout overflow, state ошибки, навигацию, отзывчивость, craft-композицию, живой геймплей и визуальные проблемы. 90+ проверок (9 категорий) с автоматическим исправлением. Проверяет НАМЕРЕНИЕ и КРАФТ, не навязывая house-style. Ловит реальные баги, а не только стилистику."
+description: "Глубокий аудит UI/UX кода на anti-slop качество, краш-уязвимости, layout overflow, state ошибки, навигацию, отзывчивость, craft-композицию, живой геймплей, production-полноту/compliance и визуальные проблемы. 100+ проверок (10 категорий) с автоматическим исправлением. Проверяет НАМЕРЕНИЕ и КРАФТ, не навязывая house-style. Ловит реальные баги, а не только стилистику."
 argument-hint: "[--fix | --report-only]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -38,7 +38,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 ---
 
-## Фаза 2 — Аудит (90+ проверок, 9 категорий)
+## Фаза 2 — Аудит (100+ проверок, 10 категорий)
 
 ### Категория A: КРАШ-УЯЗВИМОСТИ (Critical — приложение падает)
 
@@ -200,6 +200,32 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 > ⚠️ Если автофикс требует существенной работы (оживить весь геймплей) — делегируй её агенту
 > **juice-artist** через Agent tool (роль «Gameplay Feel Pass»), как в Фазе 6.5 `/autocreate`.
+
+### Категория J: PRODUCTION COMPLETENESS & COMPLIANCE (Medium — «полная игра», не демо)
+
+> Отличие полной игры от мини-демо: объём контента, мета-петля и (для gambling) compliance.
+> Проверяем наличие подсистем и точек интеграции, а не один игровой цикл. Жанр — из
+> `design/gdd/game-concept.md` (секция Production Plan). Если игра намеренно одно-уровневая
+> (напр. чистый endless без мета) — отметь N/A с обоснованием, не форси контент ради контента.
+
+| # | Проверка | Как найти | Автофикс |
+|---|---------|-----------|----------|
+| J1 | **Контент = данные, не 1 уровень** | `assets/data/level-config.json`/`difficulty-curve.json` есть и >1 записи | Сгенерировать конфиг контента (Фаза 4.5 autocreate) |
+| J2 | **Level/Mode Select связан с данными** | экран читает реальный список уровней/режимов, не хардкод 3 кнопки | Связать с ProgressionService/конфигом |
+| J3 | **Режимы реализованы** | enum режимов + ветвление в Game (Classic + ещё ≥1) | Добавить mode-параметр в GameScreen |
+| J4 | **SaveService единый** | нет россыпи прямых `SharedPreferences.getInstance()` по экранам | Консолидировать в SaveService |
+| J5 | **Economy подключена** | EconomyService + Shop читают/тратят валюту; победы начисляют | Подключить магазин к Economy |
+| J6 | **Progression сохраняется** | открытые уровни/звёзды/лучшие счёты пишутся и читаются | Добавить recordResult/unlock |
+| J7 | **Achievements работают** | список + проверка по событиям + награда | Подписать на события |
+| J8 | **Analytics-вызовы расставлены** | `grep -rn "analytics\.\(log\|logEvent\)" lib/` непусто (screen_view + level_* + game_action) | Добавить вызовы (no-op сервис) |
+| J9 | **Нет внешних SDK по умолчанию** | `firebase_`/`google_mobile_ads`/`in_app_purchase` НЕ в pubspec | Заменить на abstraction + no-op |
+| J10 | **(gambling) Age-gate** | при первом запуске, флаг в SaveService | Добавить age-gate overlay + флаг |
+| J11 | **(gambling) Disclaimer** | «для развлечения / не на реальные деньги» на splash + paytable | Добавить строку disclaimer |
+| J12 | **(gambling) Responsible-play** | блок в settings | Добавить блок в настройки |
+
+> J10–J12 — **release-блокеры для жанра gambling** (без них стор отклонит). Для не-gambling — N/A.
+> J1–J9 — про «полноту»: если их нет, игра функциональна, но остаётся мини-демо. Помечать как
+> Medium и чинить там, где Production Plan концепта это предусматривает.
 
 ---
 
@@ -368,6 +394,12 @@ flutter test
 🕹 I: Живой геймплей (Medium):
    [✅|❌] I1-I7: [idle, entrance, impact, state-transition, вызовы хуков, аллокации, тайминги]
    Итого: [X]/7
+
+🏗 J: Production completeness & compliance (Medium):
+   [✅|❌] J1-J9: [контент-данные, level/mode select, режимы, SaveService, economy, progression,
+          achievements, analytics-вызовы, нет внешних SDK]
+   [✅|❌] J10-J12 (gambling): [age-gate, disclaimer, responsible-play] — release-блокеры
+   Итого: [X]/12  (J10-J12 = N/A для не-gambling)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊 ОБЩИЙ РЕЗУЛЬТАТ: [PASS ✅ | NEEDS FIX ⚠️ | BLOCKED ❌]

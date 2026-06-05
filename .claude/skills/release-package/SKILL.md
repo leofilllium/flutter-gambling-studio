@@ -156,27 +156,45 @@ kill $(cat .claude/runtime-logs/flutter-release.pid) 2>/dev/null || true
 
 ---
 
-## Фаза 2 — Release APK Build [~5 мин]
+## Фаза 2 — Release APK + AAB Build [~6 мин]
 
 **Пропустить если** `--no-apk` или `--screens-only`.
 
+> **AAB — формат публикации в Google Play; APK — для sideload-теста.** Если запускался
+> `/release-engineering`, проект подписан upload-keystore — тогда AAB здесь будет **signed**
+> (готов для Play Console). Иначе AAB debug-signed (только внутренний тест).
+
 ```bash
-# Сборка release APK
+# 1) Сборка release APK (universal, для sideload)
 flutter build apk --release --verbose 2>&1 | tee "$RELEASE_DIR/build-apk.log"
 BUILD_EXIT=${PIPESTATUS[0]}
 
 if [[ "$BUILD_EXIT" != "0" ]]; then
   echo "❌ flutter build apk --release упал. Лог: $RELEASE_DIR/build-apk.log"
-  # Не аварийный exit — продолжаем с частичным архивом (без APK)
-  APK_FAILED=1
+  APK_FAILED=1   # не аварийный exit — продолжаем с частичным архивом
 else
-  # Скопировать только универсальный app-release.apk (не split-per-abi варианты)
   if [[ -f "build/app/outputs/flutter-apk/app-release.apk" ]]; then
     cp "build/app/outputs/flutter-apk/app-release.apk" "$APK_DIR/$PROJECT_NAME-$TS-release.apk"
-    APK_SIZE=$(du -h "$APK_DIR/$PROJECT_NAME-$TS-release.apk" | awk '{print $1}')
-    echo "✅ APK готов: $APK_SIZE"
+    echo "✅ APK готов: $(du -h "$APK_DIR/$PROJECT_NAME-$TS-release.apk" | awk '{print $1}')"
   fi
 fi
+
+# 2) Сборка release AAB (App Bundle — то, что грузится в Google Play)
+flutter build appbundle --release 2>&1 | tee "$RELEASE_DIR/build-aab.log"
+if [[ -f "build/app/outputs/bundle/release/app-release.aab" ]]; then
+  cp "build/app/outputs/bundle/release/app-release.aab" "$APK_DIR/$PROJECT_NAME-$TS-release.aab"
+  echo "✅ AAB готов: $(du -h "$APK_DIR/$PROJECT_NAME-$TS-release.aab" | awk '{print $1}')"
+  if [[ -f android/key.properties ]]; then
+    echo "🔐 AAB подписан upload-keystore — готов к загрузке в Play Console."
+  else
+    echo "ℹ️ AAB debug-signed (нет android/key.properties). Для Play запусти /release-engineering."
+  fi
+else
+  echo "⚠️ AAB не собрался (NDK/Gradle?). Лог: $RELEASE_DIR/build-aab.log"
+fi
+
+# 3) Символы деобфускации (если есть от release-engineering)
+[[ -d build/symbols ]] && cp -r build/symbols "$RELEASE_DIR/symbols" && echo "✅ symbols скопированы"
 ```
 
 ---
