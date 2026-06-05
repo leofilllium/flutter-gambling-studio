@@ -23,11 +23,13 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
 
 1. ✅ Читает `production/session-state/autocreate-handoff-1.md` **первым действием**
 2. ✅ Валидирует артефакты Сессии 1 (pubspec, структура, `assets/data/*.json`, `assets/audio/*`)
-3. ✅ Выполняет **Фазы 4 → 10** как описано в `.claude/skills/autocreate/SKILL.md`
+3. ✅ Читает `design/asset-format.md` для определения формата ассетов (PNG vs SVG) и передаёт
+   агентам (Agent B: `Image.asset()` для PNG, `SvgPicture` для SVG; Agent A: расширения файлов)
+4. ✅ Выполняет **Фазы 4 → 10** как описано в `.claude/skills/autocreate/SKILL.md`
    (эти фазы — канонические спецификации; этот skill — драйвер их исполнения)
-4. ✅ **Делегирует тяжёлые фазы суб-агентам** (см. карту ниже) — оркестратор НЕ читает весь
+5. ✅ **Делегирует тяжёлые фазы суб-агентам** (см. карту ниже) — оркестратор НЕ читает весь
    `lib/` сам, а оперирует выводами команд (`dart analyze`/`flutter test`) и резюме агентов
-5. ✅ В конце (Фаза 10.7) пишет `autocreate-handoff.md` и **spawn Сессии 3** через Agent tool
+6. ✅ В конце (Фаза 10.7) пишет `autocreate-handoff.md` и **spawn Сессии 3** через Agent tool
 
 **Запрещено:**
 - ❌ Переписывать концепт/ассеты/аудио/данные Сессии 1 (можно лишь дополнять `GameConfig`
@@ -73,12 +75,35 @@ test -f pubspec.yaml || { echo "❌ Нет pubspec.yaml — проект не и
 test -f design/structure.md || { echo "❌ Нет design/structure.md"; exit 1; }
 ls assets/data/*.json   >/dev/null 2>&1 || echo "⚠️ нет assets/data/*.json — контент-данные отсутствуют"
 ls assets/audio/sfx/*.wav >/dev/null 2>&1 || echo "⚠️ нет аудио — перезапусти tools/synth_sfx.py"
+
+# Определение формата ассетов (PNG vs SVG)
+ASSET_FORMAT="svg"  # fallback
+if [ -f design/asset-format.md ]; then
+  ASSET_FORMAT=$(grep '^format:' design/asset-format.md | awk '{print $2}' | tr -d '[:space:]')
+fi
+echo "🎨 Asset format: ${ASSET_FORMAT}"
+
+# Валидация ассетов по формату
+if [ "$ASSET_FORMAT" = "png" ]; then
+  ls assets/images/sprites/*.png >/dev/null 2>&1 || echo "⚠️ нет PNG спрайтов — ожидались для Codex-режима"
+  ls assets/images/backgrounds/*.png >/dev/null 2>&1 || echo "⚠️ нет PNG фонов"
+else
+  ls assets/images/sprites/*.svg >/dev/null 2>&1 || echo "⚠️ нет SVG спрайтов"
+  ls assets/images/backgrounds/*.svg >/dev/null 2>&1 || echo "⚠️ нет SVG фонов"
+fi
 echo "✅ Preflight OK — Сессия 1 артефакты на месте"
 ```
 
 Прочитать `autocreate-handoff-1.md`, `design/structure.md`, `design/art-direction.md`,
+`design/asset-format.md` (формат ассетов: PNG или SVG — влияет на код Agent B),
 `design/gdd/game-concept.md` (особенно Production Plan, Screen Map, Design DNA, ValueNotifier
 контракты). Не читать `lib/` массово.
+
+> **КРИТИЧЕСКИ для Asset Format:** Если `design/asset-format.md` содержит `format: png`:
+> - Agent B использует `Image.asset('assets/images/sprites/name.png')`, НЕ `SvgPicture`
+> - `flame_svg` НЕ используется в коде (может оставаться в pubspec как fallback)
+> - Константы в `assets_constants` имеют расширение `.png`
+> - Если `format: svg` — всё как раньше: `SvgPicture.asset()` + `flame_svg`
 
 ### `--resume` (после сбоя Сессии 2)
 Определить, с какой фазы продолжить, по артефактам:
