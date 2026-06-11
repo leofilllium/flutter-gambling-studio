@@ -1,6 +1,6 @@
 ---
 name: autocreate
-description: "Фабрика производства ПОЛНЫХ игр Zero-to-Production (любой жанр). Концепт + Production Plan, ВСЕ SVG-ассеты, РЕАЛЬНОЕ синтезированное аудио (.wav), полный код на Flutter/Flame 1.18.x со ВСЕМИ экранами (15+), ВСЯ игровая логика + мета-системы (save/economy/progression/achievements + analytics/ads/iap/remote-config abstractions), КОНТЕНТ (N уровней/режимов), тесты, UI/UX аудит (compliance), баланс по всей кривой, runtime+soak верификация, release-engineering (иконки/splash/AAB/store-metadata). Результат — полная, публикуемая 2D-игра без крашей, а не мини-демо."
+description: "Фабрика производства ПОЛНЫХ игр Zero-to-Production (любой жанр). Концепт + Production Plan, реалистичные PNG-ассеты в Codex через GPT Images 2.0 (SVG только fallback вне Codex), РЕАЛЬНОЕ синтезированное аудио (.wav), полный код на Flutter/Flame 1.18.x со ВСЕМИ экранами (15+), ВСЯ игровая логика + мета-системы (save/economy/progression/achievements + analytics/ads/iap/remote-config abstractions), КОНТЕНТ (N уровней/режимов), тесты, UI/UX аудит (compliance), баланс по всей кривой, runtime+soak верификация, release-engineering (иконки/splash/AAB/store-metadata). Результат — полная, публикуемая 2D-игра без крашей, а не мини-демо."
 argument-hint: "[--from-concept | --idea-only]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -12,6 +12,11 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 **Результат: полностью рабочее приложение (первичная платформа — Chrome/Web, Android APK — опционально), которое компилируется, запускается и НЕ КРАШИТСЯ.**
 
 **ЗАПРЕЩАЕТСЯ задавать вопросы.**
+
+**CODEX ASSET DEFAULT:** в Codex `/autocreate` всегда создаёт **PNG через GPT Images 2.0**
+без дополнительных флагов и без внешних API-ключей. SVG допустим только если среда НЕ Codex
+или пользователь явно передал `--svg`. Дефолтный визуальный профиль PNG — realistic/material-
+grounded game assets: правдоподобные материалы, единый свет, чистый силуэт, без flat clipart.
 
 ---
 
@@ -56,8 +61,9 @@ Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` 
 
 1. ✅ **Flutter-проект создан с нуля** (`flutter create --platforms web,android,ios`)
 2. ✅ **Структура + Layout Archetype выбраны** (`design/structure.md`, `design/art-direction.md`)
-3. ✅ **Все ассеты сгенерированы** (Codex → PNG через GPT Images 2.0 + rembg background removal;
-   не-Codex → SVG fallback; формат записан в `design/asset-format.md`)
+3. ✅ **Все ассеты сгенерированы** (Codex default → realistic PNG через GPT Images 2.0 + rembg
+   background removal; не-Codex → SVG fallback; формат записан в `design/asset-format.md`,
+   промпты и стиль набора — в `design/asset-prompts.md`)
 4. ✅ **Реальное аудио синтезировано** (Фаза 3.5: `tools/synth_sfx.py` → `.wav` SFX + BGM)
 5. ✅ **Asset Cohesion Review пройден** (Фаза 3.6: art-director, vision-ревью AR1–AR10,
    перегенерация бракованных → `design/asset-review.md`)
@@ -446,9 +452,13 @@ fi
 
 if [[ "$IS_CODEX" == "1" ]]; then
   ASSET_FORMAT="png"
+  ASSET_GENERATOR="gpt-images-2.0"
+  ASSET_RENDER_PROFILE="realistic material-grounded 3D/product render"
   echo "🎨 Codex detected → PNG mode (GPT Images 2.0)"
 else
   ASSET_FORMAT="svg"
+  ASSET_GENERATOR="svg-code"
+  ASSET_RENDER_PROFILE="design-dna svg fallback"
   echo "🎨 Non-Codex environment → SVG fallback mode"
 fi
 ```
@@ -466,6 +476,8 @@ cat > design/asset-format.md << EOF
 
 format: ${ASSET_FORMAT}
 is_codex: ${IS_CODEX}
+generator: ${ASSET_GENERATOR}
+default_render_profile: ${ASSET_RENDER_PROFILE}
 timestamp: $(date -Iseconds)
 
 ## Что это значит для Session 2
@@ -487,6 +499,52 @@ image generation Codex). Следовать логике `/generate-png-asset --
 **КРИТИЧЕСКИ**: Качество PNG = реалистичность + достоверность концепту. НЕ генерировать
 абстрактные плоские значки.
 
+#### Codex GPT Images 2.0 default profile (ОБЯЗАТЕЛЬНО)
+
+- **Генератор:** встроенная image generation Codex / GPT Images 2.0. Не использовать SVG,
+  Pollinations, Gemini, Google API, remove.bg API или запросы ключей в Codex-пути.
+- **Один ассет = один image-generation вызов.** Не просить sprite sheet, atlas, сетку из
+  нескольких предметов или набор объектов в одном изображении.
+- **Дефолтный стиль:** realistic/material-grounded 3D или product-render для игровых ассетов:
+  реальные материалы, правдоподобные отражения/roughness, единый key light сверху-слева,
+  лёгкий rim light, чистый силуэт. Flat/pixel/lineart разрешены только если Design DNA явно
+  требует именно этот стиль; даже тогда должны быть единые свет, палитра и читаемость.
+- **Запрещённый результат:** flat vector icon, emoji/sticker, logo, generic casino/neon,
+  text baked into image, sprite sheet, random scene behind a simple object, inconsistent light,
+  ground shadow that мешает вырезанию. Такой ассет сразу перегенерировать до asset-review.
+- **Ledger:** создать `design/asset-prompts.md` и записывать для каждого ассета:
+  `name`, `type`, `path`, `subject identity`, `material`, `lighting anchor`, `render style`,
+  полный prompt, post-processing (`transparent`/`rembg`), validation verdict.
+
+```bash
+cat > design/asset-prompts.md << 'EOF'
+# Asset Prompts — GPT Images 2.0
+
+| name | type | path | subject identity | material | lighting anchor | render style | prompt | post-processing | verdict |
+|------|------|------|------------------|----------|-----------------|--------------|--------|-----------------|---------|
+EOF
+```
+
+Базовый prompt для каждого простого ассета:
+
+```text
+Highly detailed realistic mobile game asset of [SUBJECT IDENTITY FROM CONCEPT],
+single hero object centered, [MATERIAL/TEXTURE] with believable reflections,
+roughness and small surface imperfections, [RENDER STYLE FROM DNA OR DEFAULT REALISTIC 3D]
+render, shared soft top-left key light and subtle rim light, rich [DNA PALETTE] colors,
+crisp clean silhouette readable at 64 px, sharp focus, premium studio product shot,
+transparent background, alpha channel, no scene, no ground shadow, no text, no border,
+no logo, no sprite sheet, 1024x1024 PNG.
+[TYPE_DETAILS]
+```
+
+Fallback prompt, если прозрачность не поддержана:
+
+```text
+... isolated on a plain solid pure-white background, transparent-ready,
+no ground shadow, no gradients in the background, 1024x1024 PNG.
+```
+
 #### Промпт-инжиниринг (обязательно для КАЖДОГО ассета)
 
 Для КАЖДОГО ассета вывести из концепта (`design/gdd/game-concept.md`) + Design DNA:
@@ -496,7 +554,8 @@ image generation Codex). Следовать логике `/generate-png-asset --
 4. **Render style** из DNA — фотореалистичный 3D / glossy 2.5D / рисованный / pixel
    (один стиль для ВСЕГО набора — консистентность важнее красоты одного ассета)
 
-См. раздел «Realism & concept fidelity» в `generate-png-asset/SKILL.md`.
+См. раздел «Realism & concept fidelity» в `generate-png-asset/SKILL.md`, но для
+`/autocreate` профиль выше имеет приоритет: realistic PNG через GPT Images 2.0 по умолчанию.
 
 #### Спрайты PNG (`assets/images/sprites/`)
 - Минимум 5-8 игровых элементов (символы для слота, тайлы для match-3, и т.д.)
@@ -589,8 +648,11 @@ PYEOF
 **ОБЯЗАТЕЛЬНО** после генерации всех PNG:
 1. Проверить что каждый файл валидный PNG (`file *.png | grep "PNG image"`)
 2. Проверить что sprites/icons имеют альфа-канал (прозрачный фон)
-3. Проверить что все файлы, указанные в коде (`lib/assets.dart`), физически существуют
-4. Запустить `flutter pub get` для валидации путей ассетов
+3. Проверить что каждый простой ассет НЕ выглядит как flat/emoji/clipart/logo; провал →
+   перегенерировать через GPT Images 2.0 до Phase 3.6
+4. Проверить что `design/asset-prompts.md` содержит prompt+style ledger для каждого PNG
+5. Проверить что все файлы, указанные в коде (`lib/assets.dart`), физически существуют
+6. Запустить `flutter pub get` для валидации путей ассетов
 
 ```bash
 # Валидация PNG-ассетов
@@ -1005,7 +1067,8 @@ Agent B компонует ВСЕ экраны по этому архетипу 
 - `lib/screens/hud_widget.dart` — ValueListenableBuilder для баланса (animated counter), ставки,
   кнопки действия (с блокировкой); строгое выравнивание (общие линии, отступы кратны 4/8),
   минимум хрома, без отвлекающих эффектов
-- `lib/screens/paytable_screen.dart` — SVG символы с описанием выплат / правилами (скролл или PageView)
+- `lib/screens/paytable_screen.dart` — символы из `design/asset-format.md` (PNG через Image.asset
+  в Codex, SVG только fallback) с описанием выплат / правилами (скролл или PageView)
 - `lib/screens/settings_screen.dart` — Sound on/off, SFX on/off, Vibration toggle (SharedPreferences)
 - `lib/screens/help_screen.dart` — пошаговое руководство с иллюстрациями
 - `lib/screens/daily_bonus_screen.dart` — механика ежедневного бонуса (мини-рулетка или сундуки, SharedPreferences для even tracking)
@@ -1810,7 +1873,7 @@ Agent(
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
 | 2. Bootstrap | `flutter pub get` — 0 errors; структура+layout выбраны | 3 |
-| 3. Assets | Все SVG валидны, все пути существуют | 2 |
+| 3. Assets | Codex: realistic PNG через GPT Images 2.0, валидные файлы, alpha для sprites/icons, `design/asset-prompts.md`; fallback: SVG валидны | 2 |
 | 3.5. Audio | 9 `.wav` синтезированы и непустые (`tools/synth_sfx.py`) | 2 |
 | 3.6. Asset Review | `design/asset-review.md` — PASS, альфа подтверждена | 2 |
 | 3.7. Content Data | `assets/data/*.json` валидны, N>1 уровней + economy | 2 |

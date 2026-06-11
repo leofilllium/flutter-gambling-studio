@@ -10,10 +10,14 @@ user-invocable: true
 
 ## Правило по умолчанию
 
-1. Если пользователь не просил PNG/image generation — вернуться к `/generate-asset` и создать **SVG**.
-2. Если пользователь явно просил PNG/image generation и агент работает в **Codex** — использовать **GPT Images 2.0**, доступный как встроенная image generation возможность Codex.
-3. Не спрашивать ключи Google, Pollinations или remove.bg в Codex-пути.
-4. Внешние провайдеры ниже считаются legacy fallback и используются только по явной просьбе пользователя или если Codex image generation недоступна.
+1. **Исключение для `/autocreate`:** если вызов идёт из `/autocreate` или `--from-concept`
+   полного проекта в Codex, PNG/image generation является дефолтом даже без `--png`; SVG
+   запрещён без явного `--svg`.
+2. Если пользователь не просил PNG/image generation и это НЕ `/autocreate` — вернуться к
+   `/generate-asset` и создать **SVG**.
+3. Если пользователь явно просил PNG/image generation и агент работает в **Codex** — использовать **GPT Images 2.0**, доступный как встроенная image generation возможность Codex.
+4. Не спрашивать ключи Google, Pollinations или remove.bg в Codex-пути.
+5. Внешние провайдеры ниже считаются legacy fallback и используются только по явной просьбе пользователя или если Codex image generation недоступна.
 
 ## Сервисы генерации
 
@@ -36,6 +40,8 @@ user-invocable: true
 - Сохранять результат в `assets/images/pngs/`, `assets/images/sprites/`, `assets/images/ui/` или `assets/images/backgrounds/` по типу ассета.
 - Для `symbol`, `sprite`, `icon`, `wild`, `scatter` просить transparent background / alpha channel.
 - Для `background`, `main_menu_bg`, `game_bg`, полноэкранных иллюстраций фон НЕ вырезать.
+- Для `/autocreate` создать/обновить `design/asset-prompts.md`: полный prompt, subject,
+  material, lighting, render style, путь файла и post-processing verdict для каждого ассета.
 
 ### Если переданы legacy-флаги:
 - `--cheap POLL_API_TOKEN` → Pollinations.ai с ключом (legacy fallback)
@@ -71,26 +77,33 @@ user-invocable: true
    реальные блики, шероховатость, отражения, подповерхностное свечение.
 3. **Lighting** — единый для ВСЕГО набора источник (например, мягкий верхне-левый key light
    + лёгкий rim). Свет = главный признак «дорогого» ассета.
-4. **Render style из DNA** — фотореалистичный 3D-render / glossy 2.5D / рисованный / pixel /
-   paper-cut. Выбери ОДИН и держи его одинаковым во всём наборе (консистентность набора важнее
-   красоты одного ассета).
+4. **Render style из DNA** — по умолчанию для `/autocreate`: realistic/material-grounded
+   3D product render или glossy 2.5D с реальными материалами. Рисованный / pixel / paper-cut
+   выбирать только если Design DNA явно требует именно это. Выбери ОДИН стиль и держи его
+   одинаковым во всём наборе (консистентность набора важнее красоты одного ассета).
+
+**Жёсткий quality floor для `/autocreate`:** результат, похожий на flat vector icon,
+emoji/sticker, generic logo, дешёвый clipart, случайный neon/casino asset без связи с концептом,
+sprite sheet, текст внутри изображения или объект с другой схемой света, считается FAIL и
+перегенерируется сразу, до asset-review.
 
 ### Промпт для простого ассета (concept-grounded, realistic)
 
 ```
-Highly detailed game asset of [SUBJECT IDENTITY from concept], single hero object centered,
-realistic [MATERIAL/TEXTURE] with believable [reflections/roughness/subsurface glow],
-[RENDER STYLE from DNA] render, dramatic but soft [LIGHTING: key from top-left + subtle rim],
-rich [DNA PALETTE] colors, crisp clean silhouette, sharp focus, studio product shot,
-isolated on a plain solid pure-white background, NO scene, NO shadow on ground,
-NO text, NO border, transparent-ready, 1024x1024 PNG.
+Highly detailed realistic mobile game asset of [SUBJECT IDENTITY from concept],
+single hero object centered, [MATERIAL/TEXTURE] with believable
+[reflections/roughness/subsurface glow/small surface imperfections],
+[RENDER STYLE from DNA or default realistic 3D product render], shared soft
+[LIGHTING: key from top-left + subtle rim], rich [DNA PALETTE] colors,
+crisp clean silhouette readable at 64 px, sharp focus, premium studio product shot,
+transparent background, alpha channel, NO scene, NO ground shadow, NO text, NO border,
+NO logo, NO sprite sheet, 1024x1024 PNG.
 [TYPE_DETAILS]
 ```
 
-> Если Codex поддерживает прозрачность напрямую — проси `transparent background, alpha channel`
-> вместо white. Если нет — проси **plain solid pure-white background** (легко вырезать локально
-> на Шаге «Удаление фона»). Никогда не проси сложную сцену/тени под объектом у простого ассета —
-> это ломает вырезание фона.
+> Если Codex не дал прозрачность напрямую — перегенерируй с **plain solid pure-white background**
+> и затем вырежи фон локально. Никогда не проси сложную сцену/тени под объектом у простого
+> ассета — это ломает вырезание фона.
 
 ### Промпт для background (без вырезания фона)
 
@@ -293,9 +306,11 @@ echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
 
 > ⚠️ Таблица ниже — иллюстрация для классического фруктового слота. **Для ЭТОЙ игры
 > символы, палитра и стиль берутся из Design DNA концепта** (`design/gdd/game-concept.md`),
-> а НЕ казино/неон по умолчанию. Подставь в промпты: тему/мир, палитру, стиль арта (flat /
-> volume / lineart / пиксель) и яркость из DNA. Лесной пазл → листья/жёлуди в тёплых тонах;
-> космос → кристаллы/звёзды в холодных; и т.д. Держи единый стиль во всём наборе.
+> а НЕ казино/неон по умолчанию. Для `/autocreate` базовый стиль — realistic/material-grounded
+> 3D/product render; flat/lineart/pixel разрешены только если это прямо написано в DNA.
+> Подставь в промпты тему/мир, палитру, материалы, единый свет и яркость из DNA.
+> Лесной пазл → листья/жёлуди с натуральной фактурой в тёплых тонах; космос → кристаллы/
+> сплавы/звёздная керамика в холодных; и т.д. Держи единый стиль во всём наборе.
 
 | Символ (пример-слот) | ASSET_TYPE | Промпт (стиль/палитра — подставить из DNA) |
 |--------|-----------|--------|
@@ -353,9 +368,9 @@ fi
 ## Шаг 3: Построение промпта
 
 > Стиль, палитра и яркость подставляются из **Design DNA** концепта — НЕ casino/neon по
-> умолчанию. `[АРТ-СТИЛЬ]` = один из {flat 2D, glossy 3D with highlights, hand-drawn lineart,
-> pixel art, paper cutout, watercolor, photoreal render} — выбери по DNA и держи ЕДИНЫМ для
-> всего набора. Сначала выведи **Subject / Material / Lighting** (см. «Realism & concept
+> умолчанию. Для `/autocreate` `[АРТ-СТИЛЬ]` по умолчанию = realistic/material-grounded
+> 3D product render или glossy 2.5D with believable materials; flat/pixel/lineart только по
+> явному DNA. Сначала выведи **Subject / Material / Lighting** (см. «Realism & concept
 > fidelity» выше) — без них получится дешёвый плоский значок.
 
 ```
