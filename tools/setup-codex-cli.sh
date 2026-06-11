@@ -6,9 +6,10 @@ CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 CONFIG_FILE="$CODEX_HOME/config.toml"
 SKILLS_SRC="$REPO_ROOT/.claude/skills"
 SKILLS_DST="$CODEX_HOME/skills"
+PROMPTS_DST="$CODEX_HOME/prompts"
 MODE="${1:-link}" # link | copy
 
-mkdir -p "$CODEX_HOME" "$SKILLS_DST"
+mkdir -p "$CODEX_HOME" "$SKILLS_DST" "$PROMPTS_DST"
 touch "$CONFIG_FILE"
 
 # Idempotency checks use grep -Fqx (fixed-string, whole-line, quiet) from
@@ -59,17 +60,40 @@ install_skills() {
   echo "Installed skills: $installed ($MODE mode)"
 }
 
+# Custom prompts make `/name` work in Codex CLI alongside `$name` (skills).
+# Each prompt routes to the canonical SKILL.md runbook in this repo.
+install_prompts() {
+  local installed=0
+  local skill_dir name
+  while IFS= read -r -d '' skill_dir; do
+    name="$(basename "$skill_dir")"
+    cat > "$PROMPTS_DST/$name.md" <<EOF
+Выполни runbook навыка "/$name" студии Flutter Game Studio.
+
+1. Если ещё не прочитан — прочитай $REPO_ROOT/AGENTS.md (раздел «Execution Model»:
+   как адаптировать Claude-механики — Agent tool, Skill tool, hooks — к Codex).
+2. Открой $REPO_ROOT/.claude/skills/$name/SKILL.md и выполни его фазы по порядку,
+   соблюдая критерии выхода каждой фазы. Общение — на русском языке.
+3. Аргументы пользователя (если есть): \$ARGUMENTS
+EOF
+    installed=$((installed + 1))
+  done < <(find "$SKILLS_SRC" -mindepth 1 -maxdepth 1 -type d -print0)
+  echo "Installed prompts: $installed -> $PROMPTS_DST"
+}
+
 main() {
   ensure_project_block
   ensure_sandbox_defaults
   install_skills
+  install_prompts
   cat <<EOF
 Codex CLI bootstrap completed.
 Repo: $REPO_ROOT
 Config: $CONFIG_FILE
 Skills: $SKILLS_DST
+Prompts: $PROMPTS_DST
 
-Next step: restart Codex CLI so it reloads skills and project config.
+Next step: restart Codex CLI so it reloads skills, prompts and project config.
 EOF
 }
 

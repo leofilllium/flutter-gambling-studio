@@ -42,6 +42,12 @@ context-сессии** во избежание истощения токенов
 **Каждая сессия ОБЯЗАНА передать управление следующей через Agent tool в конце.**
 Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` (full-history fork).
 
+> **🤖 CODEX / среда без Agent tool:** если Agent tool НЕдоступен (OpenAI Codex CLI,
+> Gemini CLI), конвейер НЕ останавливается. Вместо spawn: записать handoff-файл как обычно,
+> затем **продолжить в этой же сессии** — прочитать SKILL.md следующей сессии и выполнять его.
+> «5 параллельных агентов» Фазы 4 выполняются ПОСЛЕДОВАТЕЛЬНО (A→B→C→D→E) как persona-проходы.
+> Полные правила адаптации — в `AGENTS.md` (корень репо), раздел «Execution Model».
+
 **Тестирование: Chrome/Web (первичная платформа, не требует эмулятора).** Android/iOS — fallback.
 **Сборка AAB/APK НЕ выполняется в конвейере** — финализация лишь делает проект release-ready
 (иконки/splash/метаданные); артефакты собирает `/release-package` или `/release-engineering`.
@@ -53,8 +59,10 @@ Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` 
 3. ✅ **Все ассеты сгенерированы** (Codex → PNG через GPT Images 2.0 + rembg background removal;
    не-Codex → SVG fallback; формат записан в `design/asset-format.md`)
 4. ✅ **Реальное аудио синтезировано** (Фаза 3.5: `tools/synth_sfx.py` → `.wav` SFX + BGM)
-5. ✅ **ДАННЫЕ контента/экономики сгенерированы** (Фаза 3.7: `assets/data/*.json`, N>1 уровней)
-6. ✅ **Handoff-1 записан** + **Сессия 2 запущена через Agent tool** (`autocreate-implement`)
+5. ✅ **Asset Cohesion Review пройден** (Фаза 3.6: art-director, vision-ревью AR1–AR10,
+   перегенерация бракованных → `design/asset-review.md`)
+6. ✅ **ДАННЫЕ контента/экономики сгенерированы** (Фаза 3.7: `assets/data/*.json`, N>1 уровней)
+7. ✅ **Handoff-1 записан** + **Сессия 2 запущена через Agent tool** (`autocreate-implement`)
 
 ### Что выполняют последующие сессии (резюме — детали в их skill-файлах):
 
@@ -62,7 +70,8 @@ Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` 
   интеграция, `dart analyze` 0 errors, feel-pass, тесты зелёные, UI-аудит (compliance), баланс
   по всей кривой, crash-prevention. Затем spawn Сессии 3.
 - **Сессия 3** (`autocreate-finalize`, Фазы 10.5–12): runtime+soak верификация (Chrome CDP,
-  auto-fix), `active.md`, release-eng PREP (БЕЗ сборки AAB/APK), финальный отчёт.
+  auto-fix), **playtest** (Фаза 10.6 — реальная игровая сессия, проверки P1–P10),
+  `active.md`, release-eng PREP (БЕЗ сборки AAB/APK), финальный отчёт.
 
 ### Запрещено в Сессии 1:
 
@@ -85,6 +94,11 @@ Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` 
 > **ANTI-SLOP**: Каждый экран и виджет — craft-level дизайн.
 > Прочитайте `.claude/rules/anti-slop-design.md` перед началом работы.
 
+> **QUALITY BAR**: эталон «профессионального уровня» — `.claude/docs/quality-bar.md`.
+> Главный тест: «поставил бы игрок 4+ звезды, не зная, что игру сделал ИИ?»
+> Конкретные пороги (TTF ≤ 10 с, отклик ≤ 100 мс, живое поле, масштабированный фидбек,
+> 60 fps на win-celebration) проверяются фазами 3.6 / 6.5 / 8 / 10.6 — не на глаз.
+
 > **КЛЮЧЕВОЕ ОТЛИЧИЕ ОТ MVP**: Это НЕ прототип. Это полная игра:
 > - ВСЯ игровая логика работает (спины крутятся, очки считаются, уровни переключаются)
 > - ВСЕ экраны связаны навигацией и данными
@@ -103,6 +117,11 @@ Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` 
 Сохранение в `design/gdd/game-concept.md`.
 
 **ВАЖНО**: Концепт ОБЯЗАН включать:
+- **Reference Bar** — 2–3 НАЗВАННЫХ реальных хитовых игры этого жанра (например для слота:
+  Coin Master, Slotomania; для merge: 2048, Triple Town) и КОНКРЕТНО что мы заимствуем у
+  каждой В ОЩУЩЕНИИ (тайминг остановки барабанов, вес каскада, ритм наград) — не в контенте.
+  Это калибрует планку: игра соревнуется с настоящими играми, а не с другими демками.
+  Плюс одна строка: чем НАША игра отличается от референсов (hook).
 - **Design DNA** — визуальная идентичность ЭТОЙ игры (палитра/шрифты/shape/motion), обоснованная темой
 - **Layout & Composition Direction** — выбранный Layout Archetype (L1–L6) и как он применён к экранам
 - **Screen Map** — минимум 12 экранов с ПОЛНЫМ описанием каждого
@@ -656,6 +675,30 @@ sfx_win_mega` (в `assets/audio/sfx/`) + `bgm_main` (в `assets/audio/bgm/`).
 
 ---
 
+## Фаза 3.6 — Asset Cohesion Review (art-director) [~4 мин]
+
+> **Зачем.** Генерация «один промпт = один ассет» неизбежно даёт разнобой: разный свет,
+> разная детализация, чужие хюи, нечитаемые в 64 px силуэты, белые ореолы после вырезания.
+> Игрок видит это за 3 секунды. Эта фаза — vision-ревью ВСЕГО набора как ЕДИНОГО целого
+> и перегенерация только бракованных.
+
+Выполнить runbook `.claude/skills/asset-review/SKILL.md` (роль: `art-director`,
+`.claude/agents/art-director.md`):
+
+1. Контактные листы (montage) + **обязательный 64px-лист** (как видит игрок).
+2. Vision-оценка по критериям **AR1–AR10** (единый стиль/свет/детализация, палитра из DNA,
+   читаемость в 64 px, чистая альфа, единый стиль иконок, фон уступает полю, предмет
+   опознаётся, нет AI-артефактов).
+3. `design/asset-review.md` — вердикт по каждому ассету.
+4. Перегенерация ТОЛЬКО FAIL-ассетов с исправленным промптом + «якорем стиля» набора
+   (Codex: GPT Images 2.0 + rembg; SVG: правка кода). Максимум **2 итерации**, затем
+   принять лучшее и записать остаточные риски.
+
+**Критерий выхода:** `design/asset-review.md` существует с вердиктом PASS (или REGENERATE
+с выполненной перегенерацией); все спрайты/иконки с подтверждённой альфой.
+
+---
+
 ## Фаза 3.7 — Content & Economy Data (DATA only) [~3 мин]
 
 > **Сессия 1.** Контент полной игры — это ДАННЫЕ, и они генерируются здесь, ДО кода: агенты
@@ -717,6 +760,7 @@ done
 - [x] Ассеты: [N] [PNG/SVG] в assets/images/** (формат: [png/svg], см. design/asset-format.md)
 - [x] [Если PNG] Фон удалён для sprites/icons через rembg, прозрачность подтверждена
 - [x] Аудио: 9 .wav (assets/audio/sfx + bgm)
+- [x] Asset Cohesion Review: design/asset-review.md — вердикт [PASS / N перегенерировано]
 - [x] Контент-данные: assets/data/*.json — [N] уровней, режимы [список], economy
 
 ## Задачи Сессии 2 (autocreate-implement, Фазы 4–10)
@@ -1271,9 +1315,12 @@ Agent(
 
 ПЕРВЫМИ ДЕЙСТВИЯМИ прочитай:
 1. design/structure.md — точные пути (components_dir, systems_dir, game_dir, animations)
-2. design/gdd/game-concept.md — секция Design DNA → Motion Character (характер движения игры)
+2. design/gdd/game-concept.md — секции Design DNA → Motion Character И Reference Bar
+   (референс-игры калибруют ОЩУЩЕНИЕ: тайминги, вес, ритм наград)
 3. .claude/agents/juice-artist.md — раздел «0.5 — Анимация ВНУТРИ геймплея» (5 типов движения)
-4. Реальные файлы игровых компонентов и логики (по путям из structure.md)
+4. .claude/docs/quality-bar.md — §2 (окна отклика ≤100мс), §3 (масштабированный фидбек),
+   §4 (живое поле: скриншоты с интервалом 2с ОБЯЗАНЫ различаться)
+5. Реальные файлы игровых компонентов и логики (по путям из structure.md)
 
 ЧТО СДЕЛАТЬ (для КАЖДОГО игрового элемента на поле):
 - **Entrance**: элемент появляется с анимацией (влетает/выпадает/проявляется), не мгновенно
@@ -1683,6 +1730,7 @@ flutter test
 
 ## Задачи для Сессии 3 (subagent выполняет)
 - [ ] Фаза 10.5: Runtime verification (скрины + logcat + auto-fix loop) + soak/leak проверка
+- [ ] Фаза 10.6: Playtest — реальная игровая сессия (P1–P10, `.claude/skills/playtest/SKILL.md`)
 - [ ] Фаза 11: Обновить `production/session-state/active.md`
 - [ ] Фаза 11.5 (release-eng PREP): `/release-engineering --prep-only --no-keystore` —
       иконки/splash/версия/store-metadata/CI (БЕЗ сборки AAB/APK)
@@ -1719,11 +1767,13 @@ Agent(
 1. Фаза 10.5 — runtime verification (см. .claude/skills/emulator-test/SKILL.md --quick)
    - auto-fix loop до 3 итераций при CRITICAL проблемах
    - + soak-проба: ~200 авто-действий по CDP, следить за ростом heap/console (утечки)
-2. Фаза 11 — обновить production/session-state/active.md с verdict
-3. Фаза 11.5 (release-eng prep) — выполнить `/release-engineering --prep-only --no-keystore`
+2. Фаза 10.6 — playtest (см. .claude/skills/playtest/SKILL.md): реальная игровая сессия,
+   проверки P1–P10 (числа меняются, win/lose пути, живое поле, прогрессия), verdict PLAYABLE
+3. Фаза 11 — обновить production/session-state/active.md с verdict
+4. Фаза 11.5 (release-eng prep) — выполнить `/release-engineering --prep-only --no-keystore`
    (иконки, native splash, версия, store-metadata, CI). БЕЗ сборки AAB/APK и БЕЗ keystore —
    проект становится release-ready; артефакты соберёт пользователь через /release-package.
-4. Фаза 12 — вернуть финальный отчёт в том формате, что указан в autocreate-finalize/SKILL.md
+5. Фаза 12 — вернуть финальный отчёт в том формате, что указан в autocreate-finalize/SKILL.md
 
 КРИТЕРИИ УСПЕХА:
 - production/runtime-screenshots/<ts>/*.png (≥5 снимков) сохранены
@@ -1762,6 +1812,7 @@ Agent(
 | 2. Bootstrap | `flutter pub get` — 0 errors; структура+layout выбраны | 3 |
 | 3. Assets | Все SVG валидны, все пути существуют | 2 |
 | 3.5. Audio | 9 `.wav` синтезированы и непустые (`tools/synth_sfx.py`) | 2 |
+| 3.6. Asset Review | `design/asset-review.md` — PASS, альфа подтверждена | 2 |
 | 3.7. Content Data | `assets/data/*.json` валидны, N>1 уровней + economy | 2 |
 | 3.8. Handoff & Spawn | `autocreate-handoff-1.md` записан + Agent tool (Сессия 2) вызван | 1 |
 
@@ -1785,6 +1836,7 @@ Agent(
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
 | 10.5. Runtime Chrome | 0 CRITICAL visual + 0 FATAL exceptions (+ soak: нет утечки) | 3 (Chrome всегда доступен) |
+| 10.6. Playtest | PLAYABLE (P1–P10, см. `/playtest`); 0 CRITICAL | 2 |
 | 11. Session State | `active.md` обновлён с verdict | 1 |
 | 11.5. Release-eng prep | Иконки/splash/store-metadata готовы (БЕЗ сборки AAB/APK) | 1 |
 | 12. Final Report | Отчёт возвращён | 1 |
