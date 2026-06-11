@@ -27,6 +27,9 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 2. Прочитать `.claude/rules/ui-code.md`
 2a. Прочитать `design/gdd/game-concept.md` → **Design DNA** (палитра/шрифты/формы/motion ЭТОЙ игры)
 2b. Прочитать `design/art-direction.md` (если есть) → выбранный **Layout Archetype** (L1–L6)
+2c. Прочитать `.claude/docs/quality-bar.md` → пороги профессионального уровня
+    (§1 первые 30 сек: TTP ≤ 3 тапа; §2 отклик ≤ 100 мс; §3 масштабированный фидбек;
+    §7 завершённость; §8 визуальная целостность) — аудит меряет ПО НИМ, не «на глаз»
 3. `glob lib/screens/**/*.dart` — найти все экраны
 4. `glob lib/widgets/**/*.dart` — найти все виджеты
 5. `glob lib/theme/**/*.dart` — найти тему и анимации

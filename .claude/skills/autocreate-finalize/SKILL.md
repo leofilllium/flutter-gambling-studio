@@ -1,6 +1,6 @@
 ---
 name: autocreate-finalize
-description: "Сессия 3 конвейера /autocreate (Фазы 10.5 → 11 → 11.5 → 12): runtime+soak верификация (Chrome CDP, auto-fix), session-state, release-engineering PREP (иконки/splash/версия/store-metadata/CI — БЕЗ сборки AAB/APK и БЕЗ keystore) и финальный отчёт. Оставляет проект release-ready. НЕ собирает артефакты и НЕ вызывает /release-package — это явный запуск пользователя. Запускается автоматически через Agent tool в конце Сессии 2 (autocreate-implement), либо вручную в новой conversation."
+description: "Сессия 3 конвейера /autocreate (Фазы 10.5 → 10.6 → 11 → 11.5 → 12): runtime+soak верификация (Chrome CDP, auto-fix), playtest (реальная игровая сессия P1–P10), session-state, release-engineering PREP (иконки/splash/версия/store-metadata/CI — БЕЗ сборки AAB/APK и БЕЗ keystore) и финальный отчёт. Оставляет проект release-ready. НЕ собирает артефакты и НЕ вызывает /release-package — это явный запуск пользователя. Запускается автоматически через Agent tool в конце Сессии 2 (autocreate-implement), либо вручную в новой conversation."
 argument-hint: "[--skip-emulator | --no-fix]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
@@ -11,6 +11,8 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
 **Назначение**: завершить `/autocreate` после того, как Сессия 2 (`autocreate-implement`)
 довела проект до `dart analyze` 0 errors + `flutter test` зелёные. В этой сессии:
 - runtime-верификация на эмуляторе/Chrome (скрины + logcat + auto-fix) + soak-проба на утечки
+- **playtest** (Фаза 10.6): реальная игровая сессия — проверки P1–P10 из
+  `.claude/skills/playtest/SKILL.md` (числа меняются, win/lose пути, живое поле, прогрессия)
 - обновление session-state + финальный отчёт
 - **release-engineering PREP** (`/release-engineering --prep-only --no-keystore`): иконки, native
   splash, версия, store-metadata, CI — **БЕЗ сборки AAB/APK и БЕЗ keystore**
@@ -267,6 +269,28 @@ Cleanup: остановить `flutter run` и `adb logcat` по PID из `.clau
 
 ---
 
+## Фаза 10.6 — Playtest (реальная игровая сессия) [~6 мин]
+
+> Фаза 10.5 проверила «экраны открываются и не падают». Эта фаза проверяет «в это
+> ИГРАЕТСЯ»: действия дают результат, числа меняются, победы празднуются, поле живое.
+> Эталон — `.claude/docs/quality-bar.md` (§2–§4, §6, §7).
+
+Выполнить runbook `.claude/skills/playtest/SKILL.md` (если web-путь был SKIPPED в 10.5 —
+эта фаза тоже честно SKIPPED, не ошибка):
+
+- Тур + игровая нагрузка (`web_verify.mjs --soak 60`) → проверки **P1–P10**
+  (vision-сравнение кадров: действие меняет поле, HUD-числа меняются, win-фидбек виден,
+  idle-анимация есть; manifest: 0 consoleErrors, suspectLeak=false).
+- Verdict: **PLAYABLE / PLAYABLE-WITH-ISSUES / NOT-PLAYABLE / SKIPPED** →
+  `production/playtest/<ts>/PLAYTEST-REPORT.md`.
+- При CRITICAL (P1/P2/P8) — автофикс-цикл до 2 итераций по той же таблице разрешённых
+  фиксов, что в 10.5.3 (только точечные правки wiring; НЕ баланс, НЕ переписывание экранов).
+
+**Критерий выхода:** PLAYTEST-REPORT.md существует; verdict ≠ NOT-PLAYABLE (или 2 итерации
+исчерпаны — тогда verdict честно фиксируется и попадает в финальный отчёт как FAIL-причина).
+
+---
+
 ## Фаза 11 — Session State Update [~1 мин]
 
 Обновить `production/session-state/active.md`:
@@ -370,6 +394,11 @@ flutter pub get >/dev/null 2>&1 || true
    Скриншоты: production/runtime-screenshots/<ts>/
    Report: production/runtime-screenshots/<ts>/REPORT.md
 
+🕹 Playtest (Фаза 10.6 — реальная игровая сессия):
+   [PLAYABLE / PLAYABLE-WITH-ISSUES / NOT-PLAYABLE / SKIPPED]
+   P1–P10: [кратко — например «P1–P8 PASS, P9 leak-suspect, P10 PASS»]
+   Report: production/playtest/<ts>/PLAYTEST-REPORT.md
+
 ⚖️ Balance (Сессия 2):
    [Gambling: RTP XX.X% (target 95-97%)]
    [Puzzle: Difficulty curve validated]
@@ -413,6 +442,7 @@ flutter pub get >/dev/null 2>&1 || true
 |------|----------------|---------------|
 | 0. Preflight | Handoff есть + `dart analyze` 0 errors | 1 (fail-fast) |
 | 10.5. Runtime Chrome | 0 CRITICAL visual + 0 FATAL в flutter-run.log (+ soak: нет утечки) | 3 (Chrome всегда доступен) |
+| 10.6. Playtest | PLAYTEST-REPORT.md, verdict ≠ NOT-PLAYABLE (P1–P10) | 2 |
 | 11. Session State | `active.md` обновлён | 1 |
 | 11.5. Release-eng prep | Иконки/splash сгенерированы, `store/` создан (AAB best-effort) | 1 |
 | 12. Final Report | Отчёт напечатан / возвращён | 1 |
@@ -430,7 +460,8 @@ flutter pub get >/dev/null 2>&1 || true
 1. Читает `autocreate-handoff.md` и `active.md`
 2. Определяет, с какой фазы продолжить (по наличию артефактов):
    - Нет `production/runtime-screenshots/<ts>/` → начать с 10.5
-   - Есть скрины, но `active.md` не обновлён → начать с 11
+   - Есть скрины, но нет `production/playtest/<ts>/PLAYTEST-REPORT.md` → начать с 10.6
+   - Есть playtest-report, но `active.md` не обновлён → начать с 11
 3. Продолжает с нужной фазы, не переделывая сделанное
 
 **Если web-верификация невозможна** (нет `node` или бинаря Chrome): `web_verify.mjs` не запустить —
