@@ -84,10 +84,21 @@ test -f design/structure.md || { echo "❌ Нет design/structure.md"; exit 1; 
 ls assets/data/*.json   >/dev/null 2>&1 || echo "⚠️ нет assets/data/*.json — контент-данные отсутствуют"
 ls assets/audio/sfx/*.wav >/dev/null 2>&1 || echo "⚠️ нет аудио — перезапусти tools/synth_sfx.py"
 
-# Определение формата ассетов (PNG vs SVG)
-ASSET_FORMAT="svg"  # fallback
+# Определение формата ассетов (PNG vs SVG). Нельзя молча откатываться в SVG:
+# Session 1 обязана записать design/asset-format.md, а при сбое формат выводится
+# из реально существующих ассетов.
+ASSET_FORMAT=""
 if [ -f design/asset-format.md ]; then
   ASSET_FORMAT=$(grep '^format:' design/asset-format.md | awk '{print $2}' | tr -d '[:space:]')
+elif ls assets/images/sprites/*.png >/dev/null 2>&1 || ls assets/images/backgrounds/*.png >/dev/null 2>&1; then
+  ASSET_FORMAT="png"
+  echo "⚠️ design/asset-format.md отсутствует; inferred format=png from existing assets"
+elif ls assets/images/sprites/*.svg >/dev/null 2>&1 || ls assets/images/backgrounds/*.svg >/dev/null 2>&1; then
+  ASSET_FORMAT="svg"
+  echo "⚠️ design/asset-format.md отсутствует; inferred format=svg from existing assets"
+else
+  echo "❌ Нет design/asset-format.md и не найдены ассеты PNG/SVG — Сессия 1 неполная"
+  exit 1
 fi
 echo "🎨 Asset format: ${ASSET_FORMAT}"
 
@@ -95,6 +106,9 @@ echo "🎨 Asset format: ${ASSET_FORMAT}"
 if [ "$ASSET_FORMAT" = "png" ]; then
   ls assets/images/sprites/*.png >/dev/null 2>&1 || echo "⚠️ нет PNG спрайтов — ожидались для Codex-режима"
   ls assets/images/backgrounds/*.png >/dev/null 2>&1 || echo "⚠️ нет PNG фонов"
+  if find assets/images -name "*.svg" -print -quit | grep -q .; then
+    echo "⚠️ PNG-режим, но найдены SVG. Не использовать их в коде; проверить, что это не результат ошибочной генерации."
+  fi
 else
   ls assets/images/sprites/*.svg >/dev/null 2>&1 || echo "⚠️ нет SVG спрайтов"
   ls assets/images/backgrounds/*.svg >/dev/null 2>&1 || echo "⚠️ нет SVG фонов"

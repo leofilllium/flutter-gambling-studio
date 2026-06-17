@@ -441,35 +441,51 @@ Splash → Menu → Game ←→ Paytable/Rules
           Menu ←→ Player Profile
 ```
 
-### Секция 5: Asset Manifest (ПОЛНЫЙ)
+### Секция 5: Asset Manifest (ПОЛНЫЙ, format-aware)
 ```markdown
-## SVG Assets
+## Asset Manifest
+
+**Default for Codex `/autocreate`: PNG через GPT Images 2.0.**
+SVG допустим только как fallback вне Codex или при явном `--svg`. В концепте НЕ называй
+ассеты `.svg`, если игра будет идти через `/autocreate` в Codex: downstream-агенты читают этот
+манифест буквально.
+
+### Shared Visual Style Anchor
+- Render style: [realistic/material-grounded 3D product render | glossy 2.5D | другой стиль из DNA]
+- Lighting: [единый источник, например soft top-left key + subtle rim]
+- Palette: [3-5 цветов из Design DNA]
+- Camera/composition: single centered hero object for sprites/icons; 9:16 layered scene for backgrounds
+- Alpha policy: sprites/icons/tiles/items = transparent alpha; backgrounds = full scene, no alpha removal
+- Negative prompt: no flat vector icon, no emoji/sticker, no logo, no text, no sprite sheet,
+  no generic casino/neon unless this is explicitly in Design DNA
 
 ### Спрайты (assets/images/sprites/)
-- sprite_[name].svg — [описание, размер 96x96, стиль]
+- sprite_[name].png — [subject identity из мира игры; material/texture; role in gameplay; readable at 64px]
 - ... (минимум 5-8 элементов)
 
 ### UI Elements (assets/images/ui/)
-- ui_action_button.svg — кнопка действия (кастомная форма)
-- ui_frame.svg — рамка игрового поля
-- ui_bet_panel.svg — панель управления
-- ui_separator.svg — декоративный разделитель
-- ui_icon_sound.svg — иконка звука
-- ui_icon_settings.svg — иконка настроек
-- ui_icon_info.svg — иконка помощи
+- ui_action_button.png — кнопка действия; форма из shape language DNA
+- ui_frame.png — рамка игрового поля
+- ui_panel.png — панель управления / ставок / ресурсов
+- ui_separator.png — декоративный разделитель
+- ui_icon_sound.png — иконка звука
+- ui_icon_settings.png — иконка настроек
+- ui_icon_info.png — иконка помощи
 
 ### Фоны (assets/images/backgrounds/)
-- background_menu.svg — фон главного меню
-- background_game.svg — фон игрового экрана
+- background_menu.png — 9:16 фон главного меню; мир, глубина и яркость из DNA
+- background_game.png — 9:16 фон игрового экрана; quiet center area, не спорит с полем
 
-### Аудио (assets/audio/sfx/)
-- bgm_main.ogg — фоновая музыка
-- sfx_action.ogg — основное действие (spin/tap/move)
-- sfx_win_small.ogg — малый выигрыш
-- sfx_win_big.ogg — большой выигрыш
-- sfx_win_mega.ogg — мега выигрыш
-- sfx_button.ogg — нажатие кнопки UI
-- sfx_navigate.ogg — переход между экранами
+### Аудио (assets/audio/)
+- assets/audio/bgm/bgm_main.wav — фоновая музыка
+- assets/audio/sfx/sfx_action.wav — основное действие (spin/tap/move)
+- assets/audio/sfx/sfx_coin.wav — начисление валюты / счётчик
+- assets/audio/sfx/sfx_error.wav — отказ / ошибка / недостаточно ресурсов
+- assets/audio/sfx/sfx_win_small.wav — малый выигрыш / успех
+- assets/audio/sfx/sfx_win_big.wav — большой выигрыш / успех
+- assets/audio/sfx/sfx_win_mega.wav — мега выигрыш / исключительный успех
+- assets/audio/sfx/sfx_button.wav — нажатие кнопки UI
+- assets/audio/sfx/sfx_navigate.wav — переход между экранами
 ```
 
 ### Секция 6: Code Architecture (ПОЛНАЯ с Data Flow)
@@ -560,14 +576,14 @@ Splash → Menu → Game ←→ Paytable/Rules
 ## Sound Design Map
 | Событие | Звук | Характер |
 |---------|------|----------|
-| Action start | sfx_action.ogg | Нарастающий |
+| Action start | sfx_action.wav | Нарастающий |
 | Action complete | (тишина 200ms) | Пауза для anticipation |
-| Small win | sfx_win_small.ogg | Мелодичный ding |
-| Big win | sfx_win_big.ogg | Фанфары |
-| Mega win | sfx_win_mega.ogg | Epic orchestra |
-| Button tap | sfx_button.ogg | Короткий click |
-| Navigation | sfx_navigate.ogg | Swoosh |
-| Error/Fail | sfx_error.ogg | Мягкий buzz |
+| Small win | sfx_win_small.wav | Мелодичный ding |
+| Big win | sfx_win_big.wav | Фанфары |
+| Mega win | sfx_win_mega.wav | Epic orchestra |
+| Button tap | sfx_button.wav | Короткий click |
+| Navigation | sfx_navigate.wav | Swoosh |
+| Error/Fail | sfx_error.wav | Мягкий buzz |
 ```
 
 ### Секция 8: Anti-Slop Checklist + Production Readiness
@@ -591,7 +607,7 @@ Splash → Menu → Game ←→ Paytable/Rules
 - [ ] Complete Game Loop описан (шаг за шагом)
 - [ ] ВСЕ edge cases перечислены с решениями
 - [ ] Data Flow определён (ValueNotifier контракты)
-- [ ] Asset Manifest полный (SVG + Audio)
+- [ ] Asset Manifest полный (Codex PNG + Audio WAV; SVG только fallback)
 - [ ] Sound Design Map определён
 - [ ] SharedPreferences для: Settings, Profile, Leaderboard, Daily Bonus
 ```
