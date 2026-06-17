@@ -652,7 +652,10 @@ PYEOF
    перегенерировать через GPT Images 2.0 до Phase 3.6
 4. Проверить что `design/asset-prompts.md` содержит prompt+style ledger для каждого PNG
 5. Проверить что все файлы, указанные в коде (`lib/assets.dart`), физически существуют
-6. Запустить `flutter pub get` для валидации путей ассетов
+6. Проверить что Codex PNG-режим НЕ создал `.svg` в `assets/images/**`. SVG здесь означает
+   ошибочный fallback; удалить из манифеста/кода и перегенерировать нужный PNG напрямую через
+   GPT Images 2.0 из концепта.
+7. Запустить `flutter pub get` для валидации путей ассетов
 
 ```bash
 # Валидация PNG-ассетов
@@ -668,6 +671,10 @@ for png in assets/images/sprites/*.png assets/images/ui/*.png assets/images/back
     echo "✓ $png ($SIZE)"
   fi
 done
+if find assets/images -name "*.svg" -print -quit | grep -q .; then
+  echo "✗ PNG-режим, но найдены SVG в assets/images/**. Не использовать SVG→PNG как путь autocreate."
+  ERRORS=$((ERRORS + 1))
+fi
 [ "$ERRORS" -eq 0 ] && echo "✅ Все PNG валидны" || echo "❌ $ERRORS невалидных файлов"
 ```
 
@@ -947,6 +954,13 @@ crash-prevention 20/20. В конце (Фаза 10.7) — записать autoc
 [Вставить: L1–L6 из design/art-direction.md, например "L2 — Bottom Command Deck".
 Agent B компонует ВСЕ экраны по этому архетипу — см. .claude/docs/layout-archetypes.md]
 
+## Asset Format
+[Вставить из design/asset-format.md: format=png|svg, generator, render profile]
+- format=png: использовать Image.asset и .png пути; не использовать SvgPicture/flame_svg в коде.
+- format=svg: использовать SvgPicture/flame_svg fallback.
+- В Codex `/autocreate` PNG создаются напрямую через GPT Images 2.0 из концепта, НЕ через
+  промежуточный SVG→PNG.
+
 ## File Paths (EXACT) — из design/structure.md
 - App: [app из structure.md]
 - Assets constants: [assets_constants из structure.md]
@@ -1001,7 +1015,7 @@ Agent B компонует ВСЕ экраны по этому архетипу 
   - **Animation hooks (для Gameplay Feel Pass):** каждый игровой компонент ОБЯЗАН объявить
     публичные методы-хуки для анимаций — `playEntrance()`, `playImpact()`/`playReaction()`,
     `playStateChange()` (и жанровые: `playLand()`, `playMatch()`, `stopAt()` и т.п.). В Фазе 4
-    они могут содержать базовую реализацию или TODO-заглушку с понятной сигнатурой — **Фаза 6.5
+    они могут содержать минимальную рабочую реализацию без TODO-комментариев — **Фаза 6.5
     их наполнит**. ГЛАВНОЕ: в логике игры (game/world/systems) РАСставить ВЫЗОВЫ этих хуков в
     нужных точках цикла (появился элемент → `playEntrance()`; засчитан матч/удар → `playImpact()`;
     сменилось состояние объекта → `playStateChange()`). Без вызовов хуки мертвы.

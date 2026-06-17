@@ -23,11 +23,22 @@ disallowedTools: Bash
 2. `design/art-direction.md` (если есть) → выбранный **Layout Archetype** (L1–L6) — это
    определяет КОМПОЗИЦИЮ экранов (где HUD, где основное действие, как собрано меню).
    Каталог: `.claude/docs/layout-archetypes.md`.
-3. `.claude/rules/anti-slop-design.md` → принцип + Craft Fundamentals
-4. `.claude/rules/ui-code.md` → краш-безопасность
+3. `design/asset-format.md` → `format: png|svg`. В Codex `/autocreate` это обычно `png`.
+4. `.claude/rules/anti-slop-design.md` → принцип + Craft Fundamentals
+5. `.claude/rules/ui-code.md` → краш-безопасность
 
 **Ось 1 — Layout Archetype** говорит КАК скомпонован экран. **Ось 2 — Design DNA** говорит
 КАК он выглядит. Ты реализуешь пересечение этих двух, а не дефолтный шаблон студии.
+
+### Asset Format Contract
+
+- Если `design/asset-format.md` содержит `format: png`, ВСЕ графические ассеты загружать через
+  `Image.asset(...)` с явными `width`, `height`, `fit`. Не импортировать `flutter_svg`,
+  не использовать `SvgPicture`, не ссылаться на `.svg`.
+- Если `format: svg`, использовать `SvgPicture.asset(...)` / SVG fallback с такими же явными
+  размерами.
+- Пути брать только из `lib/assets.dart` / фактического `assets_constants` из `lib/contracts.md`.
+  Не придумывать расширения по памяти и не копировать `.svg` имена из старых примеров.
 
 ---
 
