@@ -1,6 +1,6 @@
 ---
 name: autocreate
-description: "Фабрика производства ПОЛНЫХ игр Zero-to-Production (любой жанр). Концепт + Production Plan, реалистичные PNG-ассеты в Codex через GPT Images 2.0 (SVG только fallback вне Codex), РЕАЛЬНОЕ синтезированное аудио (.wav), полный код на Flutter/Flame 1.18.x со ВСЕМИ экранами (15+), ВСЯ игровая логика + мета-системы (save/economy/progression/achievements + analytics/ads/iap/remote-config abstractions), КОНТЕНТ (N уровней/режимов), тесты, UI/UX аудит (compliance), баланс по всей кривой, runtime+soak верификация, release-engineering (иконки/splash/AAB/store-metadata). Результат — полная, публикуемая 2D-игра без крашей, а не мини-демо."
+description: "Фабрика производства ПОЛНЫХ игр Zero-to-Production (любой жанр). Концепт + Production Plan, реалистичные PNG-ассеты в Codex через GPT Images 2.0 с fallback на GPT Images/default Codex image generation (SVG только fallback вне Codex), РЕАЛЬНОЕ синтезированное аудио (.wav), полный код на Flutter/Flame 1.18.x со ВСЕМИ экранами (15+), ВСЯ игровая логика + мета-системы (save/economy/progression/achievements + analytics/ads/iap/remote-config abstractions), КОНТЕНТ (N уровней/режимов), тесты, UI/UX аудит (compliance), баланс по всей кривой, runtime+soak верификация, release-engineering (иконки/splash/AAB/store-metadata). Результат — полная, публикуемая 2D-игра без крашей, а не мини-демо."
 argument-hint: "[--from-concept | --idea-only]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -13,10 +13,12 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 **ЗАПРЕЩАЕТСЯ задавать вопросы.**
 
-**CODEX ASSET DEFAULT:** в Codex `/autocreate` всегда создаёт **PNG через GPT Images 2.0**
-без дополнительных флагов и без внешних API-ключей. SVG допустим только если среда НЕ Codex
-или пользователь явно передал `--svg`. Дефолтный визуальный профиль PNG — realistic/material-
-grounded game assets: правдоподобные материалы, единый свет, чистый силуэт, без flat clipart.
+**CODEX ASSET DEFAULT:** в Codex `/autocreate` всегда создаёт **PNG через GPT Images 2.0**.
+Если GPT Images 2.0 не сработал, повторить генерацию через **GPT Images / default Codex image
+generation** с тем же prompt. SVG допустим только если среда НЕ Codex, пользователь явно передал
+`--svg`, или оба Codex image-generation пути недоступны. Дефолтный визуальный профиль PNG —
+realistic/material-grounded game assets: правдоподобные материалы, единый свет, чистый силуэт,
+простые ассеты на чистом белом фоне для локального вырезания, без flat clipart.
 
 ---
 
@@ -61,8 +63,8 @@ Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` 
 
 1. ✅ **Flutter-проект создан с нуля** (`flutter create --platforms web,android,ios`)
 2. ✅ **Структура + Layout Archetype выбраны** (`design/structure.md`, `design/art-direction.md`)
-3. ✅ **Все ассеты сгенерированы** (Codex default → realistic PNG через GPT Images 2.0 + rembg
-   background removal; не-Codex → SVG fallback; формат записан в `design/asset-format.md`,
+3. ✅ **Все ассеты сгенерированы** (Codex default → realistic PNG через GPT Images 2.0 →
+   GPT Images fallback + white-background cutout/rembg; не-Codex → SVG fallback; формат записан в `design/asset-format.md`,
    промпты и стиль набора — в `design/asset-prompts.md`)
 4. ✅ **Реальное аудио синтезировано** (Фаза 3.5: `tools/synth_sfx.py` → `.wav` SFX + BGM)
 5. ✅ **Asset Cohesion Review пройден** (Фаза 3.6: art-director, vision-ревью AR1–AR10,
@@ -443,7 +445,7 @@ PYEOF
 Формат определяется автоматически по среде выполнения. Никакого ввода от пользователя не требуется.
 
 ```bash
-# Определение среды: Codex → PNG (GPT Images 2.0), иначе → SVG fallback
+# Определение среды: Codex → PNG (GPT Images 2.0 → GPT Images fallback), иначе → SVG fallback
 IS_CODEX=0
 if [[ -n "${CODEX:-}" ]] || [[ -n "${CODEX_ENV:-}" ]] || [[ "${AGENT_PLATFORM:-}" == "codex" ]] || \
    [[ -d ".codex" ]] || [[ "${IMAGE_GENERATION_AVAILABLE:-}" == "1" ]]; then
@@ -452,9 +454,9 @@ fi
 
 if [[ "$IS_CODEX" == "1" ]]; then
   ASSET_FORMAT="png"
-  ASSET_GENERATOR="gpt-images-2.0"
+  ASSET_GENERATOR="gpt-images-2.0->gpt-images"
   ASSET_RENDER_PROFILE="realistic material-grounded 3D/product render"
-  echo "🎨 Codex detected → PNG mode (GPT Images 2.0)"
+  echo "🎨 Codex detected → PNG mode (GPT Images 2.0 → GPT Images fallback)"
 else
   ASSET_FORMAT="svg"
   ASSET_GENERATOR="svg-code"
@@ -464,7 +466,7 @@ fi
 ```
 
 > **Правила переключения:**
-> - **Codex** → PNG через GPT Images 2.0 (встроенная image generation, ключи не нужны)
+> - **Codex** → PNG через GPT Images 2.0; если он не сработал, через GPT Images/default Codex image generation (ключи не нужны)
 > - **Не-Codex** (Claude Code, CLI, другое) → SVG (ручная генерация кодом, без внешних API)
 > - Явный `--png` всегда форсирует PNG, `--svg` всегда форсирует SVG, regardless of environment
 > - Записать выбранный формат в `design/asset-format.md` для Session 2
@@ -494,15 +496,18 @@ echo "✅ Asset format → design/asset-format.md"
 ### PNG Генерация (режим по умолчанию в Codex)
 
 Когда `ASSET_FORMAT=png`, все ассеты генерируются через **GPT Images 2.0** (встроенную
-image generation Codex). Следовать логике `/generate-png-asset --from-concept`.
+image generation Codex). Если GPT Images 2.0 не сработал или не дал валидный PNG, повторить
+тот же prompt через **GPT Images / default Codex image generation**. Следовать логике
+`/generate-png-asset --from-concept`.
 
 **КРИТИЧЕСКИ**: Качество PNG = реалистичность + достоверность концепту. НЕ генерировать
 абстрактные плоские значки.
 
 #### Codex GPT Images 2.0 default profile (ОБЯЗАТЕЛЬНО)
 
-- **Генератор:** встроенная image generation Codex / GPT Images 2.0. Не использовать SVG,
-  Pollinations, Gemini, Google API, remove.bg API или запросы ключей в Codex-пути.
+- **Генератор:** встроенная image generation Codex / GPT Images 2.0; fallback — GPT Images /
+  default Codex image generation с тем же prompt. Не использовать SVG, Pollinations, Gemini,
+  Google API, remove.bg API или запросы ключей в Codex-пути, пока не провалились оба Codex-пути.
 - **Один ассет = один image-generation вызов.** Не просить sprite sheet, atlas, сетку из
   нескольких предметов или набор объектов в одном изображении.
 - **Дефолтный стиль:** realistic/material-grounded 3D или product-render для игровых ассетов:
@@ -514,11 +519,11 @@ image generation Codex). Следовать логике `/generate-png-asset --
   ground shadow that мешает вырезанию. Такой ассет сразу перегенерировать до asset-review.
 - **Ledger:** создать `design/asset-prompts.md` и записывать для каждого ассета:
   `name`, `type`, `path`, `subject identity`, `material`, `lighting anchor`, `render style`,
-  полный prompt, post-processing (`transparent`/`rembg`), validation verdict.
+  полный prompt, post-processing (`white-bg`/`rembg`), validation verdict.
 
 ```bash
 cat > design/asset-prompts.md << 'EOF'
-# Asset Prompts — GPT Images 2.0
+# Asset Prompts — GPT Images 2.0 → GPT Images fallback
 
 | name | type | path | subject identity | material | lighting anchor | render style | prompt | post-processing | verdict |
 |------|------|------|------------------|----------|-----------------|--------------|--------|-----------------|---------|
@@ -533,16 +538,16 @@ single hero object centered, [MATERIAL/TEXTURE] with believable reflections,
 roughness and small surface imperfections, [RENDER STYLE FROM DNA OR DEFAULT REALISTIC 3D]
 render, shared soft top-left key light and subtle rim light, rich [DNA PALETTE] colors,
 crisp clean silhouette readable at 64 px, sharp focus, premium studio product shot,
-transparent background, alpha channel, no scene, no ground shadow, no text, no border,
-no logo, no sprite sheet, 1024x1024 PNG.
+plain solid pure-white background, transparent-ready cutout, no scene, no ground shadow,
+no background gradient, no text, no border, no logo, no sprite sheet, 1024x1024 PNG.
 [TYPE_DETAILS]
 ```
 
-Fallback prompt, если прозрачность не поддержана:
+Fallback, если GPT Images 2.0 не сработал:
 
 ```text
-... isolated on a plain solid pure-white background, transparent-ready,
-no ground shadow, no gradients in the background, 1024x1024 PNG.
+Повторить тот же prompt через GPT Images / default Codex image generation.
+Не менять белый фон на прозрачный: белый фон нужен для стабильного `rembg`/ImageMagick cutout.
 ```
 
 #### Промпт-инжиниринг (обязательно для КАЖДОГО ассета)
@@ -560,9 +565,8 @@ no ground shadow, no gradients in the background, 1024x1024 PNG.
 #### Спрайты PNG (`assets/images/sprites/`)
 - Минимум 5-8 игровых элементов (символы для слота, тайлы для match-3, и т.д.)
 - Каждый: 1024x1024 PNG, затем при необходимости resize до 256x256 для runtime
-- **Генерация**: один вызов GPT Images 2.0 на каждый ассет
-- **Фон**: просить `transparent background, alpha channel` в промпте; если модель
-  не поддерживает — `plain solid pure-white background` + rembg post-processing
+- **Генерация**: один вызов GPT Images 2.0 на каждый ассет; при сбое один fallback-вызов GPT Images/default
+- **Фон**: просить `plain solid pure-white background`, без теней/градиентов/сцены, затем rembg post-processing
 - Стиль рендера и детализация — из Design DNA, единый для всего набора
 
 #### UI Elements PNG (`assets/images/ui/`)
@@ -649,12 +653,12 @@ PYEOF
 1. Проверить что каждый файл валидный PNG (`file *.png | grep "PNG image"`)
 2. Проверить что sprites/icons имеют альфа-канал (прозрачный фон)
 3. Проверить что каждый простой ассет НЕ выглядит как flat/emoji/clipart/logo; провал →
-   перегенерировать через GPT Images 2.0 до Phase 3.6
+   перегенерировать через GPT Images 2.0, а при сбое через GPT Images/default fallback, до Phase 3.6
 4. Проверить что `design/asset-prompts.md` содержит prompt+style ledger для каждого PNG
 5. Проверить что все файлы, указанные в коде (`lib/assets.dart`), физически существуют
 6. Проверить что Codex PNG-режим НЕ создал `.svg` в `assets/images/**`. SVG здесь означает
    ошибочный fallback; удалить из манифеста/кода и перегенерировать нужный PNG напрямую через
-   GPT Images 2.0 из концепта.
+   GPT Images 2.0 или GPT Images/default fallback из концепта.
 7. Запустить `flutter pub get` для валидации путей ассетов
 
 ```bash
@@ -760,7 +764,7 @@ sfx_win_mega` (в `assets/audio/sfx/`) + `bgm_main` (в `assets/audio/bgm/`).
    опознаётся, нет AI-артефактов).
 3. `design/asset-review.md` — вердикт по каждому ассету.
 4. Перегенерация ТОЛЬКО FAIL-ассетов с исправленным промптом + «якорем стиля» набора
-   (Codex: GPT Images 2.0 + rembg; SVG: правка кода). Максимум **2 итерации**, затем
+   (Codex: GPT Images 2.0 → GPT Images fallback + rembg; SVG: правка кода). Максимум **2 итерации**, затем
    принять лучшее и записать остаточные риски.
 
 **Критерий выхода:** `design/asset-review.md` существует с вердиктом PASS (или REGENERATE
@@ -958,7 +962,7 @@ Agent B компонует ВСЕ экраны по этому архетипу 
 [Вставить из design/asset-format.md: format=png|svg, generator, render profile]
 - format=png: использовать Image.asset и .png пути; не использовать SvgPicture/flame_svg в коде.
 - format=svg: использовать SvgPicture/flame_svg fallback.
-- В Codex `/autocreate` PNG создаются напрямую через GPT Images 2.0 из концепта, НЕ через
+- В Codex `/autocreate` PNG создаются напрямую через GPT Images 2.0 / GPT Images fallback из концепта, НЕ через
   промежуточный SVG→PNG.
 
 ## File Paths (EXACT) — из design/structure.md
@@ -1887,7 +1891,7 @@ Agent(
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
 | 2. Bootstrap | `flutter pub get` — 0 errors; структура+layout выбраны | 3 |
-| 3. Assets | Codex: realistic PNG через GPT Images 2.0, валидные файлы, alpha для sprites/icons, `design/asset-prompts.md`; fallback: SVG валидны | 2 |
+| 3. Assets | Codex: realistic PNG через GPT Images 2.0 → GPT Images fallback, белый фон вырезан, alpha для sprites/icons, `design/asset-prompts.md`; fallback вне Codex: SVG валидны | 2 |
 | 3.5. Audio | 9 `.wav` синтезированы и непустые (`tools/synth_sfx.py`) | 2 |
 | 3.6. Asset Review | `design/asset-review.md` — PASS, альфа подтверждена | 2 |
 | 3.7. Content Data | `assets/data/*.json` валидны, N>1 уровней + economy | 2 |

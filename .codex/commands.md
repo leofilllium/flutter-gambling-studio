@@ -11,7 +11,7 @@ Skill tool, hooks, vision, image generation) — см. `AGENTS.md` → «Executi
 | `/start` | `.claude/skills/start/SKILL.md` | Онбординг, маршрутизация, выбор следующего шага |
 | `/brainstorm` | `.claude/skills/brainstorm/SKILL.md` | Интерактивный концепт мини-игры |
 | `/auto-idea` | `.claude/skills/auto-idea/SKILL.md` | Автогенерация идеи из 30+ архетипов A–AF (вкл. Reference Bar, Design DNA, Production Plan) |
-| `/autocreate` | `.claude/skills/autocreate/SKILL.md` | **Zero-to-Production конвейер.** В Codex три «сессии» выполняются как три чекпоинта ОДНОЙ сессии: Фазы 1–3.8 → handoff-1 → `autocreate-implement` (Фазы 4–10.7) → handoff → `autocreate-finalize` (Фазы 10.5–12). «5 параллельных агентов» Фазы 4 = последовательные persona-проходы A→E→D→B→C. Ассеты — PNG через GPT Images 2.0 + rembg |
+| `/autocreate` | `.claude/skills/autocreate/SKILL.md` | **Zero-to-Production конвейер.** В Codex три «сессии» выполняются как три чекпоинта ОДНОЙ сессии: Фазы 1–3.8 → handoff-1 → `autocreate-implement` (Фазы 4–10.7) → handoff → `autocreate-finalize` (Фазы 10.5–12). «5 параллельных агентов» Фазы 4 = последовательные persona-проходы A→E→D→B→C. Ассеты — PNG через GPT Images 2.0 → GPT Images/default fallback; простые ассеты на белом фоне + rembg |
 | `/autocreate-implement` | `.claude/skills/autocreate-implement/SKILL.md` | Сессия 2 (имплементация, Фазы 4–10.7) — также ручной перезапуск после сбоя (`--resume`) |
 | `/autocreate-finalize` | `.claude/skills/autocreate-finalize/SKILL.md` | Сессия 3 (runtime+soak, playtest, release-eng PREP, отчёт) — также ручной перезапуск |
 | `/continue-project` | `.claude/skills/continue-project/SKILL.md` | Возобновление работы по текущему состоянию |
@@ -26,8 +26,8 @@ Skill tool, hooks, vision, image generation) — см. `AGENTS.md` → «Executi
 | Команда | Skill file | Назначение |
 |---------|------------|------------|
 | `/generate-asset` | `.claude/skills/generate-asset/SKILL.md` | SVG по умолчанию; PNG только по явному запросу |
-| `/generate-png-asset` | `.claude/skills/generate-png-asset/SKILL.md` | В Codex растровые ассеты через GPT Images 2.0 + rembg |
-| `/svg-to-png` | `.claude/skills/svg-to-png/SKILL.md` | В Codex конвертация SVG в PNG через GPT Images 2.0 |
+| `/generate-png-asset` | `.claude/skills/generate-png-asset/SKILL.md` | В Codex растровые ассеты через GPT Images 2.0 → GPT Images/default fallback; белый фон + rembg для простых ассетов |
+| `/svg-to-png` | `.claude/skills/svg-to-png/SKILL.md` | В Codex конвертация SVG в PNG через GPT Images 2.0 → GPT Images/default fallback |
 | `/asset-review` | `.claude/skills/asset-review/SKILL.md` | **Vision-ревью набора ассетов** (контактные листы, критерии AR1–AR10, перегенерация бракованных). Фаза 3.6 в `/autocreate` |
 
 ## Качество и верификация
@@ -71,4 +71,4 @@ Skill tool, hooks, vision, image generation) — см. `AGENTS.md` → «Executi
    - Claude Agent tool → инлайн persona-проход / продолжение в этой же сессии
    - Claude Skill tool → открыть SKILL.md как runbook
    - Claude hook → `bash tools/codex-hooks.sh ...`
-   - Vision-анализ → встроенный vision Codex; PNG-генерация → GPT Images 2.0
+   - Vision-анализ → встроенный vision Codex; PNG-генерация → GPT Images 2.0, затем GPT Images/default fallback при сбое
