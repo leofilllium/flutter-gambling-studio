@@ -445,7 +445,7 @@ Splash → Menu → Game ←→ Paytable/Rules
 ```markdown
 ## Asset Manifest
 
-**Default for Codex `/autocreate`: PNG через GPT Images 2.0.**
+**Default for Codex `/autocreate`: PNG через GPT Images 2.0 → GPT Images/default fallback.**
 SVG допустим только как fallback вне Codex или при явном `--svg`. В концепте НЕ называй
 ассеты `.svg`, если игра будет идти через `/autocreate` в Codex: downstream-агенты читают этот
 манифест буквально.
@@ -455,7 +455,7 @@ SVG допустим только как fallback вне Codex или при я�
 - Lighting: [единый источник, например soft top-left key + subtle rim]
 - Palette: [3-5 цветов из Design DNA]
 - Camera/composition: single centered hero object for sprites/icons; 9:16 layered scene for backgrounds
-- Alpha policy: sprites/icons/tiles/items = transparent alpha; backgrounds = full scene, no alpha removal
+- Cutout policy: sprites/icons/tiles/items = generate on plain solid pure-white background, then remove background to alpha; backgrounds = full scene, no alpha removal
 - Negative prompt: no flat vector icon, no emoji/sticker, no logo, no text, no sprite sheet,
   no generic casino/neon unless this is explicitly in Design DNA
 

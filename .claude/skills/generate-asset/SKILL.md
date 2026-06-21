@@ -1,6 +1,6 @@
 ---
 name: generate-asset
-description: "Генерация ассетов для мини-игр любого жанра: SVG по умолчанию; PNG только по явному запросу. В Codex PNG/image generation выполняется через GPT Images 2.0."
+description: "Генерация ассетов для мини-игр любого жанра: SVG по умолчанию; PNG только по явному запросу. В Codex PNG/image generation выполняется через GPT Images 2.0 с fallback на GPT Images/default Codex image generation."
 allowed-tools: Write, Read, Bash, AskUserQuestion
 argument-hint: "[тип (symbol/ui/background)] [название] [--png]"
 user-invocable: true
@@ -17,7 +17,8 @@ user-invocable: true
 
 **Исключение:** когда ассеты создаются из `/autocreate` в Codex или команда пришла как
 `--from-concept` для полного проекта, PNG/image generation — дефолт. В этом случае сразу
-использовать GPT Images 2.0 и правила `generate-png-asset`; SVG не выбирать без явного `--svg`.
+использовать GPT Images 2.0 → GPT Images/default fallback и правила `generate-png-asset`;
+SVG не выбирать без явного `--svg`.
 
 PNG/image generation включается только если:
 - пользователь передал `--png`;
@@ -26,12 +27,12 @@ PNG/image generation включается только если:
 - вызов идёт из `/autocreate` в Codex или `--from-concept` для полного проекта.
 
 Если выбран PNG/image generation:
-- в **Codex** использовать встроенную image generation возможность Codex: **GPT Images 2.0**;
+- в **Codex** использовать встроенную image generation возможность Codex: **GPT Images 2.0** первым; если он не сработал, повторить тот же prompt через **GPT Images / default Codex image generation**;
 - не спрашивать API ключ для Google/Pollinations/remove.bg;
 - следовать логике скилла `generate-png-asset`;
-- внешние провайдеры допустимы только если пользователь явно попросил конкретный legacy-provider или Codex image generation недоступна.
+- внешние провайдеры допустимы только если пользователь явно попросил конкретный legacy-provider или оба Codex image-generation пути недоступны.
 
-Для простых ассетов (`symbol`, `sprite`, `icon`, `wild`, `scatter`) запрашивать прозрачный фон. Если фон всё же появился, удалять его локальной библиотекой/CLI (`rembg`), при необходимости fallback на ImageMagick. Для `background` и полноэкранных сцен фон не удалять.
+Для простых ассетов (`symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`) запрашивать чистый белый фон (`plain solid pure-white background`) без теней, градиентов и сцены, затем удалять его локальной библиотекой/CLI (`rembg`), при необходимости fallback на ImageMagick. Для `background` и полноэкранных сцен фон не удалять.
 
 ---
 

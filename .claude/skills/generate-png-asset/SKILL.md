@@ -1,6 +1,6 @@
 ---
 name: generate-png-asset
-description: "Генерация PNG-ассетов. В Codex основной путь — встроенная image generation через GPT Images 2.0; внешние API только как legacy fallback. Фон простых ассетов удаляется локальной библиотекой при необходимости."
+description: "Генерация PNG-ассетов. В Codex основной путь — GPT Images 2.0, fallback — GPT Images/default Codex image generation; внешние API только как legacy fallback. Простые ассеты генерируются на чистом белом фоне для локального вырезания."
 allowed-tools: Write, Read, Bash, AskUserQuestion, Glob
 argument-hint: "[описание] | [--batch список] | [--from-concept] | [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
 user-invocable: true
@@ -15,7 +15,7 @@ user-invocable: true
    запрещён без явного `--svg`.
 2. Если пользователь не просил PNG/image generation и это НЕ `/autocreate` — вернуться к
    `/generate-asset` и создать **SVG**.
-3. Если пользователь явно просил PNG/image generation и агент работает в **Codex** — использовать **GPT Images 2.0**, доступный как встроенная image generation возможность Codex.
+3. Если пользователь явно просил PNG/image generation и агент работает в **Codex** — использовать **GPT Images 2.0** первым. Если GPT Images 2.0 недоступен, вернул ошибку или не создал файл, повторить тот же prompt через **GPT Images / default Codex image generation**. Только после провала обоих Codex-путей переходить к legacy fallback.
 4. Не спрашивать ключи Google, Pollinations или remove.bg в Codex-пути.
 5. Внешние провайдеры ниже считаются legacy fallback и используются только по явной просьбе пользователя или если Codex image generation недоступна.
 
@@ -24,6 +24,7 @@ user-invocable: true
 | Сервис | Когда использовать | Требования |
 |--------|--------------------|------------|
 | **Codex GPT Images 2.0** | Основной PNG/image-generation путь в Codex | Встроенный Codex image generation tool |
+| **Codex GPT Images / default image generation** | Первый fallback, если GPT Images 2.0 не сработал | Встроенный Codex image generation tool |
 | **SVG** | Режим по умолчанию, если PNG не нужен | Ничего |
 | **Pollinations.ai / Google Gemini** | Только legacy fallback или явный запрос пользователя | Внешний API ключ / billing |
 
@@ -35,10 +36,10 @@ user-invocable: true
 
 ### Если агент работает в Codex
 
-- Всегда выбрать **Codex GPT Images 2.0**.
+- Всегда выбрать Codex image-generation chain: **GPT Images 2.0 → GPT Images/default Codex image generation**.
 - Создавать один PNG за один вызов image generation.
 - Сохранять результат в `assets/images/pngs/`, `assets/images/sprites/`, `assets/images/ui/` или `assets/images/backgrounds/` по типу ассета.
-- Для `symbol`, `sprite`, `icon`, `wild`, `scatter` просить transparent background / alpha channel.
+- Для `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item` просить **plain solid pure-white background** без теней, градиентов и сцены; прозрачность появляется только после локального удаления фона.
 - Для `background`, `main_menu_bg`, `game_bg`, полноэкранных иллюстраций фон НЕ вырезать.
 - Для `/autocreate` создать/обновить `design/asset-prompts.md`: полный prompt, subject,
   material, lighting, render style, путь файла и post-processing verdict для каждого ассета.
@@ -46,7 +47,7 @@ user-invocable: true
 ### Если переданы legacy-флаги:
 - `--cheap POLL_API_TOKEN` → Pollinations.ai с ключом (legacy fallback)
 - `--cheap POLL_API_TOKEN --free REMOVE_BG_TOKEN` → Pollinations + remove.bg только если пользователь явно просит этот сервис
-- Без флагов в Codex → не спрашивать, использовать GPT Images 2.0
+- Без флагов в Codex → не спрашивать, использовать GPT Images 2.0; если он не сработал, GPT Images/default Codex image generation
 
 ### Если флагов нет и агент НЕ работает в Codex — спросить:
 
@@ -60,9 +61,12 @@ user-invocable: true
 
 ---
 
-## Codex-режим: GPT Images 2.0
+## Codex-режим: GPT Images 2.0 → GPT Images fallback
 
-**Использовать первым в Codex.** Не нужен API ключ.
+**Использовать GPT Images 2.0 первым в Codex.** Не нужен API ключ. Если вызов не сработал
+или не дал валидный PNG, повторить с тем же prompt через **GPT Images / default Codex image
+generation**. Внешние провайдеры разрешены только после провала обоих Codex-путей или по явной
+просьбе пользователя.
 
 ### Realism & concept fidelity (читать ПЕРЕД построением промпта)
 
@@ -96,14 +100,14 @@ single hero object centered, [MATERIAL/TEXTURE] with believable
 [RENDER STYLE from DNA or default realistic 3D product render], shared soft
 [LIGHTING: key from top-left + subtle rim], rich [DNA PALETTE] colors,
 crisp clean silhouette readable at 64 px, sharp focus, premium studio product shot,
-transparent background, alpha channel, NO scene, NO ground shadow, NO text, NO border,
-NO logo, NO sprite sheet, 1024x1024 PNG.
+plain solid pure-white background, transparent-ready cutout, NO scene, NO ground shadow,
+NO background gradient, NO text, NO border, NO logo, NO sprite sheet, 1024x1024 PNG.
 [TYPE_DETAILS]
 ```
 
-> Если Codex не дал прозрачность напрямую — перегенерируй с **plain solid pure-white background**
-> и затем вырежи фон локально. Никогда не проси сложную сцену/тени под объектом у простого
-> ассета — это ломает вырезание фона.
+> Для простых ассетов белый фон — дефолт. Сразу после генерации вырезай фон локально
+> (`rembg`, затем ImageMagick fallback) и проверяй альфу. Никогда не проси сложную сцену,
+> тени под объектом или градиентный фон у простого ассета — это ломает вырезание.
 
 ### Промпт для background (без вырезания фона)
 
@@ -118,7 +122,7 @@ calm readable empty area in the vertical center for gameplay, high quality PNG.
 
 1. Сохранить PNG в целевую папку.
 2. Проверить файл через `file path/to/asset.png`.
-3. Если это простой ассет и фон не прозрачный — применить локальное удаление фона.
+3. Если это простой ассет — применить локальное удаление белого фона.
 4. Добавить папку в `pubspec.yaml`, если она новая.
 
 ### Локальное удаление фона (с проверкой результата)
@@ -129,7 +133,7 @@ calm readable empty area in the vertical center for gameplay, high quality PNG.
 > **Порядок предпочтения строгий:** `rembg` (нейросетевое вырезание — даёт чистую альфу даже
 > на сложных краях) → ImageMagick fuzz **только как последний резерв** (грубый, рвёт мягкие
 > края и полупрозрачность). После вырезания **обязательно проверить, что альфа реально
-> появилась**; если нет — перегенерировать ассет с чистым белым фоном и повторить.
+> появилась**; если нет — перегенерировать ассет с тем же чистым белым фоном и повторить.
 
 ```bash
 INPUT_PNG="assets/images/pngs/cherry.png"
@@ -147,7 +151,7 @@ elif command -v convert >/dev/null 2>&1; then
   echo "⚠ rembg не найден — грубый ImageMagick fallback (мягкие края могут пострадать)"
   convert "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
 else
-  echo "Фон не удалён: установи rembg (pip install rembg) или ImageMagick, либо перегенерируй с transparent background"
+  echo "Фон не удалён: установи rembg (pip install rembg) или ImageMagick, либо перегенерируй с чистым белым фоном"
 fi
 
 # Проверка: действительно ли в PNG появились прозрачные пиксели
@@ -323,8 +327,8 @@ echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
 | main_menu_bg | background | `[DNA theme] background, [DNA palette], atmospheric, no characters` — яркость и мир из DNA, не «всегда тёмное казино» |
 
 ### Особенности:
-- В Codex просить прозрачный фон сразу через GPT Images 2.0
-- Белый фон в legacy-промпте допустим только когда нужен локальный background cutout
+- В Codex для простых ассетов просить чистый белый фон сразу, затем вырезать его локально
+- Прозрачный фон напрямую больше не является дефолтом для простых ассетов: белый фон стабильнее для `rembg`/ImageMagick
 - Модели legacy fallback: `flux`, `zimage`, `gptimage`
 - Каждый Bash call = один ассет (не объединять в цикл)
 - `seed=-1` для случайного результата каждый раз
@@ -466,7 +470,7 @@ elif command -v convert >/dev/null 2>&1; then
   convert "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
   echo "✓ Фон удалён (ImageMagick): ${INPUT_PNG}"
 else
-  echo "Фон не удалён: нет rembg/ImageMagick. Перегенерируй с transparent background."
+  echo "Фон не удалён: нет rembg/ImageMagick. Перегенерируй с чистым белым фоном."
 fi
 ```
 
@@ -485,7 +489,7 @@ fi
 - Один Bash tool call = один ассет
 - Для Gemini: `sleep 65` после каждого (rate limit 10 RPM)
 - Для Pollinations: `sleep 3` после каждого (быстрее)
-- Для Codex GPT Images 2.0: один вызов image generation = один ассет
+- Для Codex GPT Images 2.0 / GPT Images fallback: один вызов image generation = один ассет
 - Следующий Bash tool call только ПОСЛЕ того как предыдущий вернул результат
 
 ---

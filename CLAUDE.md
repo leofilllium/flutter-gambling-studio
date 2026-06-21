@@ -68,11 +68,11 @@
 | `/design-system [система]` | GDD для одной системы игры | По одной системе за раз |
 | `/prototype [механика]` | Прототип juiciness / feel | Перед полной реализацией |
 | `/generate-asset [тип] [имя]` | SVG ассеты по умолчанию, без вопроса о формате | Перед кодом |
-| `/generate-asset [тип] [имя] --png` | PNG/image generation; в Codex использовать GPT Images 2.0 | Когда нужен растр |
-| `/generate-png-asset [описание]` | PNG через Codex GPT Images 2.0; фон простых ассетов вырезать локально при необходимости | Нужен качественный растр быстро |
+| `/generate-asset [тип] [имя] --png` | PNG/image generation; в Codex использовать GPT Images 2.0 → GPT Images/default fallback | Когда нужен растр |
+| `/generate-png-asset [описание]` | PNG через Codex GPT Images 2.0 → GPT Images/default fallback; простые ассеты на белом фоне, затем локальный cutout | Нужен качественный растр быстро |
 | `/generate-png-asset --batch "items"` | Batch-генерация нескольких PNG за раз | Генерация всех ассетов |
 | `/generate-png-asset --from-concept` | Генерировать все PNG из концепта | После дизайна |
-| `/svg-to-png [путь]` | Конвертация SVG в PNG через Codex GPT Images 2.0 | Есть SVG, нужен растр |
+| `/svg-to-png [путь]` | Конвертация SVG в PNG через Codex GPT Images 2.0 → GPT Images/default fallback | Есть SVG, нужен растр |
 
 ### Ворота качества (проходить перед каждым переходом)
 

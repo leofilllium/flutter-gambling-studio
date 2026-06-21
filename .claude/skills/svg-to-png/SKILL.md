@@ -1,6 +1,6 @@
 ---
 name: svg-to-png
-description: "Конвертация SVG-ассетов в PNG. В Codex основной путь — GPT Images 2.0; внешние API только legacy fallback. Фон простых ассетов удаляется локально при необходимости."
+description: "Конвертация SVG-ассетов в PNG. В Codex основной путь — GPT Images 2.0, fallback — GPT Images/default Codex image generation; внешние API только legacy fallback. Простые ассеты генерируются на чистом белом фоне для локального вырезания."
 allowed-tools: Write, Read, Bash, AskUserQuestion, Glob
 argument-hint: "[путь_к_svg] [--bulk папка] [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
 user-invocable: true
@@ -16,24 +16,24 @@ user-invocable: true
 
 ### Codex default
 
-Если агент работает в Codex, всегда использовать **GPT Images 2.0** через встроенную image generation возможность Codex.
+Если агент работает в Codex, всегда использовать **GPT Images 2.0** через встроенную image generation возможность Codex. Если GPT Images 2.0 не сработал или не дал валидный PNG, повторить тот же prompt через **GPT Images / default Codex image generation**.
 
 - Не спрашивать ключи Google/Pollinations/remove.bg.
 - Один SVG → один вызов image generation → один PNG.
-- Для `sprite`, `symbol`, `icon`, `wild`, `scatter`, `tile`, `item` просить transparent background / alpha channel.
+- Для `sprite`, `symbol`, `icon`, `wild`, `scatter`, `tile`, `item` просить чистый белый фон (`plain solid pure-white background`) без теней, градиентов и сцены.
 - Для `background`, `ui_panel`, полноэкранной сцены фон не вырезать.
 - Если у простого ассета фон всё же появился, удалить его локальной библиотекой/CLI (`rembg`), fallback на ImageMagick.
 
 ### Legacy flags:
 - `--cheap POLL_API_TOKEN` → Pollinations.ai (только если пользователь явно просит legacy fallback)
 - `--free REMOVE_BG_TOKEN` → remove.bg только если пользователь явно передал ключ и попросил этот сервис
-- Без флагов в Codex → не спрашивать, использовать GPT Images 2.0
+- Без флагов в Codex → не спрашивать, использовать GPT Images 2.0; если он не сработал, GPT Images/default Codex image generation
 
 ### Если флагов нет и агент НЕ работает в Codex — спросить:
 
 > "Как конвертировать SVG → PNG?
 >
-> **1. Codex GPT Images 2.0** — если доступен в текущем агенте
+> **1. Codex GPT Images 2.0 → GPT Images fallback** — если доступен в текущем агенте
 > **2. Legacy external provider** — Pollinations.ai или Google, нужен API ключ / billing
 > **3. Ручной режим** — сгенерирую промпт, вы генерируете PNG сами
 >
@@ -76,9 +76,10 @@ transparent-ready, 1024x1024.
 
 **3. Генерация PNG:**
 
-### Режим 1: Codex GPT Images 2.0
+### Режим 1: Codex GPT Images 2.0 → GPT Images fallback
 
-В Codex использовать этот режим первым.
+В Codex использовать GPT Images 2.0 первым. Если он не сработал, повторить тот же prompt через
+GPT Images / default Codex image generation.
 
 1. Передать prompt из шага 2 во встроенную image generation возможность Codex.
 2. Сохранить результат рядом с исходником или в `assets/images/pngs/`.
@@ -101,7 +102,7 @@ elif command -v convert >/dev/null 2>&1; then
   echo "⚠ rembg не найден — грубый ImageMagick fallback"
   convert "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
 else
-  echo "Фон не удалён: установи rembg (pip install rembg) или ImageMagick. Перегенерируй с transparent background."
+  echo "Фон не удалён: установи rembg (pip install rembg) или ImageMagick. Перегенерируй с чистым белым фоном."
 fi
 
 # Проверка, что прозрачность действительно появилась
@@ -180,7 +181,7 @@ elif command -v convert >/dev/null 2>&1; then
     "${OUTPUT_DIR}/${ASSET_NAME}.png"
   echo "✓ Фон удалён (ImageMagick)"
 else
-  echo "Фон не удалён: нет rembg/ImageMagick. Перегенерируй с transparent background."
+  echo "Фон не удалён: нет rembg/ImageMagick. Перегенерируй с чистым белым фоном."
 fi
 
 FINAL_SIZE=$(ls -lh "${OUTPUT_DIR}/${ASSET_NAME}.png" | awk '{print $5}')
@@ -192,7 +193,7 @@ echo "✓ Готово: ${OUTPUT_DIR}/${ASSET_NAME}.png (${FINAL_SIZE})"
 ```bash
 API_KEY="[ключ от пользователя]"
 ASSET_NAME="cherry"
-PROMPT="Professional game asset: cherry. Single isolated object on transparent background, 2D game sprite, vibrant style, 512x512."
+PROMPT="Professional game asset: cherry. Single isolated object on plain solid pure-white background, 2D game sprite, vibrant style, no scene, no ground shadow, 512x512."
 OUTPUT_DIR="assets/images/sprites"
 mkdir -p "${OUTPUT_DIR}"
 
@@ -236,12 +237,12 @@ file ${OUTPUT_DIR}/${ASSET_NAME}.png
 1. Находит все `.svg` файлы в папке через Glob
 2. Определяет API ключи из флагов или запрашивает **один раз**
 3. Обрабатывает каждый файл последовательно (один Bash call = один файл)
-4. В Codex использовать GPT Images 2.0 для каждого SVG.
+4. В Codex использовать GPT Images 2.0 для каждого SVG; при сбое повторить через GPT Images/default fallback.
 5. Для legacy Pollinations: пауза 3 сек между запросами.
 6. Для legacy Google Imagen: пауза 4 сек (лимит Free tier: 15 RPM).
 7. Сохраняет PNG в `assets/images/pngs/` или рядом с исходниками
 
-### Bulk через Codex GPT Images 2.0:
+### Bulk через Codex GPT Images 2.0 → GPT Images fallback:
 
 Агент делает отдельный image-generation call для каждого SVG файла, используя шаблон из Режима 1.
 **Не объединять в один запрос** — один SVG = один PNG.
@@ -259,7 +260,7 @@ file ${OUTPUT_DIR}/${ASSET_NAME}.png
 ```
 Professional game asset: [название].
 Single isolated object, clean edges, vibrant colors.
-2D game sprite style, transparent background, 1024x1024 pixels.
+2D game sprite style, plain solid pure-white background, no scene, no ground shadow, 1024x1024 pixels.
 [описание цветов и формы из SVG]
 ```
 
@@ -279,7 +280,7 @@ Single isolated object, clean edges, vibrant colors.
 
 ## Важные правила
 
-1. В Codex использовать GPT Images 2.0 первым.
+1. В Codex использовать GPT Images 2.0 первым; если он не сработал, GPT Images/default fallback.
 2. **Один image-generation call = один ассет** — не объединять SVG в один запрос.
 3. API ключ legacy-provider никогда не записывается в файлы.
 4. Если legacy API вернул ошибку — показать пользователю полный ответ.
@@ -294,4 +295,4 @@ Single isolated object, clean edges, vibrant colors.
 | HTTP 402 (Pollinations) | Недостаточно pollen | Пополнить или использовать бесплатную модель (flux) |
 | Пустой PNG | Сервер не вернул данные | Попробовать другую модель или промпт |
 | Плохое качество | Промпт слишком простой | Добавить детали из SVG (цвета, форма, стиль) |
-| Фон не удалился | Нет `rembg`/ImageMagick или сложный фон | Перегенерировать с transparent background, затем повторить локальный cutout |
+| Фон не удалился | Нет `rembg`/ImageMagick или сложный фон | Перегенерировать с чистым белым фоном, затем повторить локальный cutout |

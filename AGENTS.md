@@ -46,7 +46,7 @@ SKILL.md-файлы написаны для Claude Code и упоминают и
 | Skill tool / вызов `/команды` изнутри skill | Открыть соответствующий SKILL.md и выполнить как runbook |
 | Claude hooks (session-start, validate-*) | `bash tools/codex-hooks.sh <hook>` (реестр: `.codex/hooks.md`) |
 | Read с vision (анализ скриншотов/ассетов) | Встроенный vision Codex — прикладывать изображение и анализировать |
-| Генерация PNG-ассетов | **GPT Images 2.0** (встроенная image generation) + `rembg` для вырезания фона. PNG — режим по умолчанию в Codex (`design/asset-format.md: format: png`) |
+| Генерация PNG-ассетов | **GPT Images 2.0 → GPT Images/default fallback** (встроенная image generation) + белый фон простых ассетов + `rembg` для вырезания. PNG — режим по умолчанию в Codex (`design/asset-format.md: format: png`) |
 
 ### /autocreate в Codex: три «сессии» = три чекпоинта одной сессии
 

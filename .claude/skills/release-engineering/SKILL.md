@@ -48,7 +48,7 @@ launcher label и листинга), цвет фона splash (из Design DNA �
 1. Если есть подходящий PNG-логотип в `assets/` — взять его.
 2. Иначе — растрировать `assets/images/ui/ui_app_icon.svg` (если есть) или фирменный sprite/лого
    в 1024×1024. Конвертация: `rsvg-convert`/`inkscape`/ImageMagick (`magick -density 384`),
-   либо в Codex — GPT Images 2.0 (см. `/svg-to-png`). Положить в `assets/branding/app_icon.png`.
+   либо в Codex — GPT Images 2.0 → GPT Images/default fallback (см. `/svg-to-png`). Положить в `assets/branding/app_icon.png`.
 3. Для adaptive-иконки Android — отдельный foreground (прозрачный фон) `app_icon_fg.png` +
    цвет фона из Design DNA.
 
