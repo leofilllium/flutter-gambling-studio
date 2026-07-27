@@ -455,7 +455,9 @@ SVG допустим только как fallback вне Codex или при я�
 - Lighting: [единый источник, например soft top-left key + subtle rim]
 - Palette: [3-5 цветов из Design DNA]
 - Camera/composition: single centered hero object for sprites/icons; 9:16 layered scene for backgrounds
-- Cutout policy: sprites/icons/tiles/items = generate on plain solid pure-white background, then remove background to alpha; backgrounds = full scene, no alpha removal
+- Cutout policy: sprites/icons/tiles/items = generate on a flat solid chroma-key background
+  (default pure magenta #FF00FF; pure green #00FF00 if the palette contains magenta/pink/purple),
+  then cut with `tools/cutout.py`; backgrounds = full scene, no alpha removal
 - Negative prompt: no flat vector icon, no emoji/sticker, no logo, no text, no sprite sheet,
   no generic casino/neon unless this is explicitly in Design DNA
 

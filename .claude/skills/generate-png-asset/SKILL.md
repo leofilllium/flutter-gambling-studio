@@ -1,6 +1,6 @@
 ---
 name: generate-png-asset
-description: "Генерация PNG-ассетов. В Codex основной путь — GPT Images 2.0, fallback — GPT Images/default Codex image generation; внешние API только как legacy fallback. Простые ассеты генерируются на чистом белом фоне для локального вырезания."
+description: "Генерация PNG-ассетов. В Codex основной путь — GPT Images 2.0, fallback — GPT Images/default Codex image generation; внешние API только как legacy fallback. Простые ассеты генерируются на плоском ключевом фоне (chroma key) и вырезаются через tools/cutout.py."
 allowed-tools: Write, Read, Bash, AskUserQuestion, Glob
 argument-hint: "[описание] | [--batch список] | [--from-concept] | [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
 user-invocable: true
@@ -28,7 +28,32 @@ user-invocable: true
 | **SVG** | Режим по умолчанию, если PNG не нужен | Ничего |
 | **Pollinations.ai / Google Gemini** | Только legacy fallback или явный запрос пользователя | Внешний API ключ / billing |
 
-**Удаление фона:** для простых ассетов использовать локальную библиотеку/CLI (`rembg`) при необходимости. `remove.bg` не является дефолтом; использовать только если пользователь явно дал ключ и попросил этот сервис.
+**Удаление фона:** только `python3 tools/cutout.py`. Ручной `magick -fuzz`, голый `rembg i`
+и `remove.bg` запрещены (см. «Локальное удаление фона» ниже).
+
+---
+
+## Ключевой цвет фона (chroma key) — выбирать ДО генерации
+
+Белый фон нельзя вырезать у белого объекта: курица, перо, лёд, стекло, хром, пена, снег
+сливаются с фоном, и от них остаются дыры. Поэтому простые ассеты генерируются на
+**плоском ключевом цвете, максимально далёком от палитры объекта**.
+
+Правило выбора (выполнять для КАЖДОГО ассета, писать выбор в `design/asset-prompts.md`):
+
+| Палитра объекта (Design DNA) | Ключ | В промпте |
+|------------------------------|------|-----------|
+| нет пурпурного/розового/фиолетового | **magenta** (по умолчанию) | `flat solid pure magenta #FF00FF background` |
+| есть пурпур/розовый/фиолетовый, нет зелёного | **green** | `flat solid pure green #00FF00 background` |
+| есть и пурпур, и зелёный | **blue** | `flat solid pure blue #0000FF background` |
+| объект яркий, насыщенный, без белого и светлых бликов | white (допустим) | `flat solid pure white background` |
+
+Всегда добавлять в промпт: `flat solid single-colour background, no gradient, no vignette,
+no shadow on the background, subject fully inside frame`.
+
+Ключ определяется автоматически при вырезании — но выбрать его правильно всё равно
+обязательно: измеренная ошибка вырезания при плохом ключе (фон того же тона, что объект)
+в разы выше, чем при правильном.
 
 ---
 
@@ -39,7 +64,7 @@ user-invocable: true
 - Всегда выбрать Codex image-generation chain: **GPT Images 2.0 → GPT Images/default Codex image generation**.
 - Создавать один PNG за один вызов image generation.
 - Сохранять результат в `assets/images/pngs/`, `assets/images/sprites/`, `assets/images/ui/` или `assets/images/backgrounds/` по типу ассета.
-- Для `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item` просить **plain solid pure-white background** без теней, градиентов и сцены; прозрачность появляется только после локального удаления фона.
+- Для `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item` просить **плоский ключевой фон** (см. «Ключевой цвет фона» выше) без теней, градиентов и сцены; прозрачность появляется только после `tools/cutout.py`.
 - Для `background`, `main_menu_bg`, `game_bg`, полноэкранных иллюстраций фон НЕ вырезать.
 - Для `/autocreate` создать/обновить `design/asset-prompts.md`: полный prompt, subject,
   material, lighting, render style, путь файла и post-processing verdict для каждого ассета.
@@ -100,14 +125,16 @@ single hero object centered, [MATERIAL/TEXTURE] with believable
 [RENDER STYLE from DNA or default realistic 3D product render], shared soft
 [LIGHTING: key from top-left + subtle rim], rich [DNA PALETTE] colors,
 crisp clean silhouette readable at 64 px, sharp focus, premium studio product shot,
-plain solid pure-white background, transparent-ready cutout, NO scene, NO ground shadow,
-NO background gradient, NO text, NO border, NO logo, NO sprite sheet, 1024x1024 PNG.
+flat solid single-colour [KEY COLOUR] background, no gradient, no vignette, subject fully
+inside frame, transparent-ready cutout, NO scene, NO ground shadow, NO shadow on the
+background, NO text, NO border, NO logo, NO sprite sheet, 1024x1024 PNG.
 [TYPE_DETAILS]
 ```
 
-> Для простых ассетов белый фон — дефолт. Сразу после генерации вырезай фон локально
-> (`rembg`, затем ImageMagick fallback) и проверяй альфу. Никогда не проси сложную сцену,
-> тени под объектом или градиентный фон у простого ассета — это ломает вырезание.
+> `[KEY COLOUR]` подставляется по таблице из «Ключевой цвет фона» (по умолчанию
+> `pure magenta #FF00FF`). Сразу после генерации — `python3 tools/cutout.py <файл>
+> --type sprite`. Никогда не проси сложную сцену, тень под объектом или градиентный
+> фон у простого ассета — это ломает вырезание, и cutout.py такой ассет отклонит.
 
 ### Промпт для background (без вырезания фона)
 
@@ -125,56 +152,38 @@ calm readable empty area in the vertical center for gameplay, high quality PNG.
 3. Если это простой ассет — применить локальное удаление белого фона.
 4. Добавить папку в `pubspec.yaml`, если она новая.
 
-### Локальное удаление фона (с проверкой результата)
+### Локальное удаление фона — ТОЛЬКО через `tools/cutout.py`
 
 Только для `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`.
-Не применять к `background`, `ui_panel`, полноэкранным сценам и иллюстрациям.
+Не применять к `background`, `ui_panel`, полноэкранным сценам и иллюстрациям
+(эти типы навык сам пропустит).
 
-> **Порядок предпочтения строгий:** `rembg` (нейросетевое вырезание — даёт чистую альфу даже
-> на сложных краях) → ImageMagick fuzz **только как последний резерв** (грубый, рвёт мягкие
-> края и полупрозрачность). После вырезания **обязательно проверить, что альфа реально
-> появилась**; если нет — перегенерировать ассет с тем же чистым белым фоном и повторить.
+> **Запрещено вырезать фон вручную** — ни `magick -fuzz ... -transparent white`,
+> ни голый `rembg i`. Глобальный fuzz-матч пробивает дыры в белых бликах, глазах,
+> хроме и пене, даёт бинарную (рваную) альфу и оставляет белый ореол по краю.
+> `tools/cutout.py` делает то, что делает компоузер: заливка фона от границы кадра
+> (внутренние белые пиксели не трогаются), дробная альфа на краю, декантаминация
+> (снятие цвета фона с полупрозрачных пикселей), despill, обрезка по контенту и
+> нормализация кадра. `rembg`, если установлен, используется как ассист.
 
 ```bash
-INPUT_PNG="assets/images/pngs/cherry.png"
-TMP_PNG="${INPUT_PNG%.png}_nobg.png"
-
-removed=0
-if command -v rembg >/dev/null 2>&1; then
-  rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}" && removed=1
-elif python3 -c "import rembg" >/dev/null 2>&1; then
-  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))" && removed=1
-elif command -v magick >/dev/null 2>&1; then
-  echo "⚠ rembg не найден — грубый ImageMagick fallback (мягкие края могут пострадать)"
-  magick "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
-elif command -v convert >/dev/null 2>&1; then
-  echo "⚠ rembg не найден — грубый ImageMagick fallback (мягкие края могут пострадать)"
-  convert "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
-else
-  echo "Фон не удалён: установи rembg (pip install rembg) или ImageMagick, либо перегенерируй с чистым белым фоном"
-fi
-
-# Проверка: действительно ли в PNG появились прозрачные пиксели
-if [ "${removed}" = "1" ]; then
-  python3 - "${INPUT_PNG}" <<'PYEOF'
-import sys
-try:
-    from PIL import Image
-    im = Image.open(sys.argv[1]).convert("RGBA")
-    amin, amax = im.getchannel("A").getextrema()
-    if amin == 255:
-        print("⚠ Альфа НЕ появилась (фон не вырезан). Перегенерируй ассет с чистым белым фоном и повтори rembg.")
-    else:
-        print(f"✓ Прозрачность подтверждена (alpha min={amin})")
-except Exception as e:
-    print(f"ℹ Проверку альфы пропустил ({e}); установи Pillow (pip install pillow) для авто-проверки")
-PYEOF
-fi
+python3 tools/cutout.py assets/images/pngs/cherry.png --type sprite
 ```
 
-> **Установка rembg, если отсутствует** (лучшее качество вырезания):
-> `pip install rembg` или `pip install "rembg[cpu]"`. После установки — повторить вырезание,
-> не оставляя грубый ImageMagick-результат для финальных ассетов.
+Вывод: `✅ cherry.png 512×512 flood+matte` — фон снят и проверен.
+`✗` означает, что ассет непригоден (фон не плоский / ключевой цвет не тот) —
+**перегенерировать**, а не «дожимать» руками.
+
+| Флаг | Зачем |
+|------|-------|
+| `--type sprite\|icon\|ui\|tile\|background` | пресет холста и полей; `background`/`ui_panel` пропускаются |
+| `--key auto\|magenta\|green\|blue\|white\|#RRGGBB` | ключевой цвет; `auto` определяет его по рамке кадра |
+| `--dir assets/images/sprites` | пакетно по папке |
+| `--check` | только аудит альфы, без записи (используется в `/asset-review`) |
+| `--no-trim` | не перекадрировать (когда важна исходная композиция) |
+| `--backup` | сохранить оригинал как `*.orig.png` |
+
+Один вызов на ассет сразу после генерации; для всего набора — `--dir` в конце.
 
 ---
 
@@ -192,9 +201,8 @@ fi
 
 ### Удаление фона в legacy fallback
 
-Предпочитать локальный `rembg` / ImageMagick. `remove.bg` использовать только если пользователь явно передал `--free REMOVE_BG_TOKEN`.
-
-Не спрашивать ключ remove.bg. Сохрани `REMBG_KEY` только если пользователь уже передал `--free REMOVE_BG_TOKEN`; иначе `REMBG_KEY=""` и используй локальный fallback.
+Тот же `python3 tools/cutout.py` — он не зависит от провайдера генерации.
+`remove.bg` и ручной ImageMagick не используются даже в legacy-пути.
 
 ---
 
@@ -207,10 +215,9 @@ fi
 POLL_API_KEY="[ключ от --cheap или от пользователя]"
 ASSET_NAME="cherry"
 ASSET_TYPE="symbol"   # symbol | icon | wild | scatter | background | ui_panel
-PROMPT="red glossy cherries fruit, game sprite icon, pure white background, vibrant colors, cartoon style, isolated object"
+PROMPT="red glossy cherries fruit, game sprite icon, flat solid pure magenta #FF00FF background, no gradient, vibrant colors, cartoon style, isolated object"
 OUTPUT_DIR="assets/images/pngs"
 MODEL="flux"          # legacy: flux | zimage | gptimage | klein
-REMBG_KEY=""          # только если пользователь явно передал --free
 mkdir -p "${OUTPUT_DIR}"
 
 echo "━━━ [${ASSET_TYPE}] Генерирую: ${ASSET_NAME} (модель: ${MODEL}) ━━━"
@@ -231,48 +238,7 @@ echo "✓ Сгенерирован: ${SIZE}"
 
 # 2. Удаление фона (только для symbol/icon/wild/scatter)
 if [[ "${ASSET_TYPE}" == "symbol" || "${ASSET_TYPE}" == "icon" || "${ASSET_TYPE}" == "wild" || "${ASSET_TYPE}" == "scatter" ]]; then
-  echo "Удаляю фон..."
-
-  if command -v rembg >/dev/null 2>&1; then
-    rembg i "${OUTPUT_DIR}/${ASSET_NAME}.png" "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" &&
-      mv "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" "${OUTPUT_DIR}/${ASSET_NAME}.png"
-    echo "✓ Фон удалён (rembg)"
-  elif python3 -c "import rembg" >/dev/null 2>&1; then
-    python3 -c "from rembg import remove; from pathlib import Path; p=Path('${OUTPUT_DIR}/${ASSET_NAME}.png'); p.write_bytes(remove(p.read_bytes()))"
-    echo "✓ Фон удалён (rembg python)"
-  elif [ -n "${REMBG_KEY}" ]; then
-    # remove.bg только по явному ключу пользователя
-    curl -s -X POST "https://api.remove.bg/v1.0/removebg" \
-      -H "X-Api-Key: ${REMBG_KEY}" \
-      -F "image_file=@${OUTPUT_DIR}/${ASSET_NAME}.png" \
-      -F "size=auto" \
-      -o "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png"
-
-    if [ -s "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" ]; then
-      mv "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" "${OUTPUT_DIR}/${ASSET_NAME}.png"
-      echo "✓ Фон удалён (remove.bg)"
-    else
-      echo "⚠ remove.bg не сработал — оставляю оригинал"
-    fi
-  else
-    # ImageMagick fallback для простого белого/светлого фона
-    if command -v magick &>/dev/null; then
-      magick "${OUTPUT_DIR}/${ASSET_NAME}.png" \
-        -fuzz 15% -transparent white \
-        -fuzz 10% -transparent "#f0f0f0" \
-        "${OUTPUT_DIR}/${ASSET_NAME}.png"
-      echo "✓ Фон удалён (ImageMagick)"
-    elif command -v convert &>/dev/null; then
-      convert "${OUTPUT_DIR}/${ASSET_NAME}.png" \
-        -fuzz 15% -transparent white \
-        -fuzz 10% -transparent "#f0f0f0" \
-        "${OUTPUT_DIR}/${ASSET_NAME}.png"
-      echo "✓ Фон удалён (ImageMagick)"
-    else
-      echo "⚠ ImageMagick не установлен. Установить: brew install imagemagick"
-      echo "  Фон не удалён — файл сохранён как есть"
-    fi
-  fi
+  python3 tools/cutout.py "${OUTPUT_DIR}/${ASSET_NAME}.png" --type sprite
 else
   echo "⏭ Тип '${ASSET_TYPE}' — удаление фона пропущено"
 fi
@@ -288,7 +254,7 @@ echo "✓ Готово: ${OUTPUT_DIR}/${ASSET_NAME}.png (${FINAL_SIZE})"
 ```bash
 POLL_API_KEY="[ключ]"
 ASSET_NAME="cherry"
-PROMPT="red glossy cherries fruit, game sprite icon, pure white background"
+PROMPT="red glossy cherries fruit, game sprite icon, flat solid pure magenta #FF00FF background, no gradient"
 OUTPUT_DIR="assets/images/pngs"
 mkdir -p "${OUTPUT_DIR}"
 
@@ -318,17 +284,18 @@ echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
 
 | Символ (пример-слот) | ASSET_TYPE | Промпт (стиль/палитра — подставить из DNA) |
 |--------|-----------|--------|
-| cherry | symbol | `red glossy cherries fruit, game sprite, pure white background, vibrant cartoon` |
-| bar | symbol | `chrome metallic BAR text, slot machine symbol, pure white background, shiny 3D` |
-| seven | symbol | `lucky number seven, red with gold outline, bold game icon, pure white background` |
-| diamond | symbol | `blue diamond gemstone, crystal faceted, game icon, pure white background, glossy` |
-| wild | wild | `golden star wild, glowing rainbow aura, game icon, pure white background` |
-| scatter | scatter | `purple hexagon lightning bolt, scatter symbol, game icon, pure white background` |
+| cherry | symbol | `red glossy cherries fruit, game sprite, flat solid [KEY] background, vibrant cartoon` |
+| bar | symbol | `chrome metallic BAR text, slot machine symbol, flat solid [KEY] background, shiny 3D` |
+| seven | symbol | `lucky number seven, red with gold outline, bold game icon, flat solid [KEY] background` |
+| diamond | symbol | `blue diamond gemstone, crystal faceted, game icon, flat solid green #00FF00 background, glossy` |
+| wild | wild | `golden star wild, glowing rainbow aura, game icon, flat solid green #00FF00 background` |
+| scatter | scatter | `purple hexagon lightning bolt, scatter symbol, game icon, flat solid green #00FF00 background` |
 | main_menu_bg | background | `[DNA theme] background, [DNA palette], atmospheric, no characters` — яркость и мир из DNA, не «всегда тёмное казино» |
 
 ### Особенности:
-- В Codex для простых ассетов просить чистый белый фон сразу, затем вырезать его локально
-- Прозрачный фон напрямую больше не является дефолтом для простых ассетов: белый фон стабильнее для `rembg`/ImageMagick
+- В Codex для простых ассетов просить плоский ключевой фон сразу, затем `tools/cutout.py`
+- Прозрачный фон напрямую не является дефолтом: плоский ключ даёт предсказуемо чистую альфу,
+  а «transparent background» модели выполняют через раз и часто отдают белый JPEG-подобный фон
 - Модели legacy fallback: `flux`, `zimage`, `gptimage`
 - Каждый Bash call = один ассет (не объединять в цикл)
 - `seed=-1` для случайного результата каждый раз
@@ -382,8 +349,8 @@ Highly detailed mobile game asset of [SUBJECT IDENTITY из концепта],
 single hero object centered, realistic [MATERIAL/TEXTURE: металл/стекло/камень/дерево/неон],
 believable [reflections / roughness / subsurface glow], [АРТ-СТИЛЬ из DNA] render,
 soft [LIGHTING: key верх-слева + лёгкий rim], rich [ПАЛИТРА из DNA] colors,
-crisp clean silhouette, sharp focus, isolated on plain solid pure-white background,
-no scene, no ground shadow, no text, transparent-ready, 1024x1024.
+crisp clean silhouette, sharp focus, isolated on flat solid single-colour [KEY COLOUR]
+background, no gradient, no scene, no ground shadow, no text, transparent-ready, 1024x1024.
 [ТИП-ДЕТАЛИ]
 ```
 
@@ -397,7 +364,7 @@ no scene, no ground shadow, no text, transparent-ready, 1024x1024.
 | `background` | мир и **яркость** из DNA (не «всегда тёмное казино»), не отвлекает от игрового поля |
 
 > **Важно для прозрачного фона:** legacy Imagen/Gemini не всегда генерирует RGBA.
-> Если alpha не получилась, используй локальный `rembg` / ImageMagick на Шаге 5.
+> Если alpha не получилась, вырежи фон через `tools/cutout.py` на Шаге 5.
 
 ---
 
@@ -454,25 +421,11 @@ PYEOF
 Не спрашивать отдельный сервис. Применять только к простым ассетам (`symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`). Для `background` / полноэкранной иллюстрации пропустить.
 
 ```bash
-INPUT_PNG="${OUTPUT_DIR}/${ASSET_NAME}.png"
-TMP_PNG="${OUTPUT_DIR}/${ASSET_NAME}_nobg.png"
-
-if command -v rembg >/dev/null 2>&1; then
-  rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}"
-  echo "✓ Фон удалён (rembg): ${INPUT_PNG}"
-elif python3 -c "import rembg" >/dev/null 2>&1; then
-  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))"
-  echo "✓ Фон удалён (rembg python): ${INPUT_PNG}"
-elif command -v magick >/dev/null 2>&1; then
-  magick "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
-  echo "✓ Фон удалён (ImageMagick): ${INPUT_PNG}"
-elif command -v convert >/dev/null 2>&1; then
-  convert "${INPUT_PNG}" -fuzz 10% -transparent white "${INPUT_PNG}"
-  echo "✓ Фон удалён (ImageMagick): ${INPUT_PNG}"
-else
-  echo "Фон не удалён: нет rembg/ImageMagick. Перегенерируй с чистым белым фоном."
-fi
+python3 tools/cutout.py "${OUTPUT_DIR}/${ASSET_NAME}.png" --type sprite
 ```
+
+Ненулевой код возврата = ассет непригоден (фон не плоский или ключ не тот) → перегенерировать
+с плоским ключевым фоном, не пытаться чинить вручную.
 
 ---
 

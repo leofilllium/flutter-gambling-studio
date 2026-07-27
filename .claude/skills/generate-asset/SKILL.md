@@ -32,7 +32,7 @@ PNG/image generation включается только если:
 - следовать логике скилла `generate-png-asset`;
 - внешние провайдеры допустимы только если пользователь явно попросил конкретный legacy-provider или оба Codex image-generation пути недоступны.
 
-Для простых ассетов (`symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`) запрашивать чистый белый фон (`plain solid pure-white background`) без теней, градиентов и сцены, затем удалять его локальной библиотекой/CLI (`rembg`), при необходимости fallback на ImageMagick. Для `background` и полноэкранных сцен фон не удалять.
+Для простых ассетов (`symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`) запрашивать плоский ключевой фон (`flat solid pure magenta #FF00FF background`, либо `pure green #00FF00`, если в палитре есть пурпур/розовый) без теней, градиентов и сцены, затем вырезать его через `python3 tools/cutout.py <файл> --type sprite`. Белый фон не использовать у объектов со светлыми областями. Для `background` и полноэкранных сцен фон не удалять.
 
 ---
 

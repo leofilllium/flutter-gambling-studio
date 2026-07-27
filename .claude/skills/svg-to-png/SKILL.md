@@ -20,9 +20,9 @@ user-invocable: true
 
 - Не спрашивать ключи Google/Pollinations/remove.bg.
 - Один SVG → один вызов image generation → один PNG.
-- Для `sprite`, `symbol`, `icon`, `wild`, `scatter`, `tile`, `item` просить чистый белый фон (`plain solid pure-white background`) без теней, градиентов и сцены.
+- Для `sprite`, `symbol`, `icon`, `wild`, `scatter`, `tile`, `item` просить плоский ключевой фон (`flat solid pure magenta #FF00FF background`, либо `pure green #00FF00`, если в палитре есть пурпур) без теней, градиентов и сцены.
 - Для `background`, `ui_panel`, полноэкранной сцены фон не вырезать.
-- Если у простого ассета фон всё же появился, удалить его локальной библиотекой/CLI (`rembg`), fallback на ImageMagick.
+- Если у простого ассета фон всё же появился, вырезать его через `python3 tools/cutout.py <файл> --type sprite`.
 
 ### Legacy flags:
 - `--cheap POLL_API_TOKEN` → Pollinations.ai (только если пользователь явно просит legacy fallback)
@@ -67,7 +67,7 @@ Highly detailed game asset of [SUBJECT identity], single hero object centered,
 realistic [MATERIAL/TEXTURE] with believable [reflections / roughness / subsurface glow],
 [RENDER STYLE from DNA] render, soft [LIGHTING] light, rich [DNA PALETTE] colors,
 crisp clean silhouette, sharp focus, faithful to the original shape/colors,
-isolated on plain solid pure-white background, no scene, no ground shadow, no text,
+isolated on flat solid single-colour [KEY COLOUR] background, no gradient, no scene, no ground shadow, no text,
 transparent-ready, 1024x1024.
 ```
 
@@ -83,41 +83,15 @@ GPT Images / default Codex image generation.
 
 1. Передать prompt из шага 2 во встроенную image generation возможность Codex.
 2. Сохранить результат рядом с исходником или в `assets/images/pngs/`.
-3. Если тип ассета простой и PNG содержит фон, применить локальное удаление фона с проверкой
-   (rembg — приоритет; ImageMagick — последний резерв; затем проверить, что альфа появилась):
+3. Если тип ассета простой и PNG содержит фон — вырезать его через `tools/cutout.py`
+   (ручной `magick -fuzz` и голый `rembg i` запрещены: см. `generate-png-asset/SKILL.md`):
 
 ```bash
-INPUT_PNG="assets/images/sprites/cherry.png"
-TMP_PNG="${INPUT_PNG%.png}_nobg.png"
+python3 tools/cutout.py assets/images/sprites/cherry.png --type sprite
+```
 
-removed=0
-if command -v rembg >/dev/null 2>&1; then
-  rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}" && removed=1
-elif python3 -c "import rembg" >/dev/null 2>&1; then
-  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))" && removed=1
-elif command -v magick >/dev/null 2>&1; then
-  echo "⚠ rembg не найден — грубый ImageMagick fallback"
-  magick "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
-elif command -v convert >/dev/null 2>&1; then
-  echo "⚠ rembg не найден — грубый ImageMagick fallback"
-  convert "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
-else
-  echo "Фон не удалён: установи rembg (pip install rembg) или ImageMagick. Перегенерируй с чистым белым фоном."
-fi
-
-# Проверка, что прозрачность действительно появилась
-if [ "${removed}" = "1" ]; then
-  python3 - "${INPUT_PNG}" <<'PYEOF'
-import sys
-try:
-    from PIL import Image
-    amin, _ = Image.open(sys.argv[1]).convert("RGBA").getchannel("A").getextrema()
-    print("⚠ Альфа НЕ появилась — перегенерируй с белым фоном и повтори rembg." if amin == 255
-          else f"✓ Прозрачность подтверждена (alpha min={amin})")
-except Exception as e:
-    print(f"ℹ Проверку альфы пропустил ({e}); pip install pillow для авто-проверки")
-PYEOF
-fi
+Ненулевой код возврата = ассет непригоден → перегенерировать на плоском ключевом фоне
+(по умолчанию `pure magenta #FF00FF`; если в палитре есть пурпур — `pure green #00FF00`).
 ```
 
 ### Режим 2: Legacy fallback Pollinations.ai (--cheap)
@@ -147,42 +121,7 @@ SIZE=$(ls -lh "${OUTPUT_DIR}/${ASSET_NAME}.png" | awk '{print $5}')
 echo "✓ Сгенерирован: ${SIZE}"
 
 # Удаление фона для простого ассета
-if command -v rembg >/dev/null 2>&1; then
-  rembg i "${OUTPUT_DIR}/${ASSET_NAME}.png" "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" &&
-    mv "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" "${OUTPUT_DIR}/${ASSET_NAME}.png"
-  echo "✓ Фон удалён (rembg)"
-elif python3 -c "import rembg" >/dev/null 2>&1; then
-  python3 -c "from rembg import remove; from pathlib import Path; p=Path('${OUTPUT_DIR}/${ASSET_NAME}.png'); p.write_bytes(remove(p.read_bytes()))"
-  echo "✓ Фон удалён (rembg python)"
-elif [ -n "${REMBG_KEY}" ]; then
-  echo "Удаляю фон (remove.bg, explicit legacy key)..."
-  curl -s -X POST "https://api.remove.bg/v1.0/removebg" \
-    -H "X-Api-Key: ${REMBG_KEY}" \
-    -F "image_file=@${OUTPUT_DIR}/${ASSET_NAME}.png" \
-    -F "size=auto" \
-    -o "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png"
-
-  if [ -s "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" ]; then
-    mv "${OUTPUT_DIR}/${ASSET_NAME}_nobg.png" "${OUTPUT_DIR}/${ASSET_NAME}.png"
-    echo "✓ Фон удалён"
-  else
-    echo "⚠ remove.bg не сработал — оставляю оригинал"
-  fi
-elif command -v magick >/dev/null 2>&1; then
-  magick "${OUTPUT_DIR}/${ASSET_NAME}.png" \
-    -fuzz 15% -transparent white \
-    -fuzz 10% -transparent "#f0f0f0" \
-    "${OUTPUT_DIR}/${ASSET_NAME}.png"
-  echo "✓ Фон удалён (ImageMagick)"
-elif command -v convert >/dev/null 2>&1; then
-  convert "${OUTPUT_DIR}/${ASSET_NAME}.png" \
-    -fuzz 15% -transparent white \
-    -fuzz 10% -transparent "#f0f0f0" \
-    "${OUTPUT_DIR}/${ASSET_NAME}.png"
-  echo "✓ Фон удалён (ImageMagick)"
-else
-  echo "Фон не удалён: нет rembg/ImageMagick. Перегенерируй с чистым белым фоном."
-fi
+python3 tools/cutout.py "${OUTPUT_DIR}/${ASSET_NAME}.png" --type sprite
 
 FINAL_SIZE=$(ls -lh "${OUTPUT_DIR}/${ASSET_NAME}.png" | awk '{print $5}')
 echo "✓ Готово: ${OUTPUT_DIR}/${ASSET_NAME}.png (${FINAL_SIZE})"
@@ -193,7 +132,7 @@ echo "✓ Готово: ${OUTPUT_DIR}/${ASSET_NAME}.png (${FINAL_SIZE})"
 ```bash
 API_KEY="[ключ от пользователя]"
 ASSET_NAME="cherry"
-PROMPT="Professional game asset: cherry. Single isolated object on plain solid pure-white background, 2D game sprite, vibrant style, no scene, no ground shadow, 512x512."
+PROMPT="Professional game asset: cherry. Single isolated object on flat solid pure magenta #FF00FF background, no gradient, 2D game sprite, vibrant style, no scene, no ground shadow, 512x512."
 OUTPUT_DIR="assets/images/sprites"
 mkdir -p "${OUTPUT_DIR}"
 
@@ -260,7 +199,7 @@ file ${OUTPUT_DIR}/${ASSET_NAME}.png
 ```
 Professional game asset: [название].
 Single isolated object, clean edges, vibrant colors.
-2D game sprite style, plain solid pure-white background, no scene, no ground shadow, 1024x1024 pixels.
+2D game sprite style, flat solid pure magenta #FF00FF background, no gradient, no scene, no ground shadow, 1024x1024 pixels.
 [описание цветов и формы из SVG]
 ```
 
@@ -295,4 +234,5 @@ Single isolated object, clean edges, vibrant colors.
 | HTTP 402 (Pollinations) | Недостаточно pollen | Пополнить или использовать бесплатную модель (flux) |
 | Пустой PNG | Сервер не вернул данные | Попробовать другую модель или промпт |
 | Плохое качество | Промпт слишком простой | Добавить детали из SVG (цвета, форма, стиль) |
-| Фон не удалился | Нет `rembg`/ImageMagick или сложный фон | Перегенерировать с чистым белым фоном, затем повторить локальный cutout |
+| `cutout.py` вернул FAIL | Фон не плоский, или ключ совпал с палитрой объекта | Перегенерировать на плоском ключевом фоне (magenta → green → blue), затем повторить cutout |
+| `cutout.py: requires numpy + Pillow` | Нет зависимостей | `apt-get install -y python3-numpy python3-pil` (или `pip install numpy pillow`) |
