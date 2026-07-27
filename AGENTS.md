@@ -1,108 +1,59 @@
-# Flutter Game Studio — Инструкции для OpenAI Codex
+# Repository Guidelines
 
-> Это главный entrypoint для **OpenAI Codex CLI** в этом репозитории. Codex читает этот файл
-> автоматически. Канонический источник правил — `CLAUDE.md` + `.claude/` (rules/docs/skills/
-> agents); этот файл НЕ дублирует их, а говорит, КАК их исполнять в Codex.
+## Codex CLI Instructions
 
-## Что это за репозиторий
+All agent responses must be in Russian. Keep Dart/Flutter code, file paths, class names, and CLI commands in English. Before writing code, read `CLAUDE.md`, `.claude/rules/game-code.md`, `.claude/rules/engine-code.md`, `.claude/rules/ui-code.md`, `.claude/rules/anti-slop-design.md`, `.claude/rules/test-standards.md`, `.claude/rules/data-files.md`, `.claude/rules/design-docs.md`, `.claude/docs/technical-preferences.md`, `.claude/docs/coding-standards.md`, `.claude/docs/directory-structure.md`, and `.claude/docs/coordination-rules.md`.
 
-Универсальная агентная студия для создания **полных, публикуемых мини-игр** (гемблинг, пазлы,
-аркады, физика, казуальные, карточные) на **Flutter 3.27+ / Flame 1.18+**. Главный конвейер —
-`/autocreate`: Zero-to-Production игра за один запуск (концепт → ассеты → аудио → код →
-тесты → аудиты → playtest → release-ready).
+Treat slash commands as manual runbooks. When a user types `/brainstorm`, `/autocreate`, `/team-dev`, `/code-review`, `/ui-audit`, `/emulator-test`, `/balance-check`, `/release-package`, `/release-checklist`, or another studio command, open the matching file in `.claude/skills/*/SKILL.md` and follow it. For specialized roles, use the persona briefs in `.claude/agents/*.md`. If needed, run helper checks with `bash tools/codex-hooks.sh <hook-name>`.
 
-## Язык
+Note on `/autocreate`: это полный конвейер Zero-to-Android-APK. Он ОБЯЗАН выполнить ВСЕ 12 фаз без пропусков:
+1. `flutter create --platforms android,ios,web` (Android — primary)
+2. Сгенерировать ассеты
+3. Написать код (4 параллельных агента)
+4. `dart analyze lib/` → цикл исправлений до 0 errors
+5. `flutter test` → все зелёные
+6. **Фаза 10.5**: автоматически запустить AVD (если не запущен) и `/emulator-test --quick` — скриншоты, vision-анализ, auto-fix
+7. **Фаза 10.6**: автоматически запустить `/release-package` — финальные скриншоты + `flutter build apk --release` + `flutter clean` + архивирование в **`.tar.gz`** в `project_zip/`
 
-**Всё общение с пользователем — на русском.** На английском: код Dart, пути, имена классов, CLI.
+Финальный deliverable: `project_zip/<name>-<ts>.tar.gz` должен содержать `source/`, `apk/app-release.apk`, `screenshots/`, `RELEASE_INFO.md`. Формат архива — строго `.tar.gz` (НЕ `.zip`).
 
-## Порядок чтения при старте сессии
+Эти фазы **НЕ** оставляются пользователю — они часть конвейера. Если нет Android-девайса, `/autocreate` пытается автозапустить первый доступный AVD (`emulator -list-avds | head -1`). В финальном отчёте эти команды упоминаются также как опции повторного запуска после ручных правок.
 
-1. Этот файл (вы уже здесь).
-2. `CLAUDE.md` — стек, жанры, команды, критические правила game integrity.
-3. По мере необходимости: `.claude/rules/*` (game-code, ui-code, engine-code, data-files,
-   test-standards, design-docs, anti-slop-design) и `.claude/docs/*` (coding-standards,
-   technical-preferences, directory-structure, layout-archetypes, **quality-bar**).
-4. `bash tools/codex-hooks.sh session-start` — покажет состояние проекта и `active.md`.
+If Codex CLI does not detect this project or local skills, run:
 
-## Slash-команды (skills)
+- `bash tools/setup-codex-cli.sh link`
+- `bash tools/codex-doctor.sh`
 
-Пользователь вызывает команды как `$name` или `/name` (например `$autocreate --from-concept
-"идея"`). Любая такая команда = **runbook** `.claude/skills/<name>/SKILL.md`:
+Then restart Codex CLI.
 
-1. Открыть SKILL.md, выполнить фазы по порядку, соблюдая критерии выхода каждой фазы.
-2. Полный реестр команд — `.codex/commands.md`. Если команда не найдена — сказать об этом,
-   не угадывать.
-3. Frontmatter-поля `allowed-tools`/`user-invocable` — Claude-специфичны, игнорировать.
+## Project Structure & Module Organization
 
-## Execution Model — адаптация Claude-механик к Codex
+This repository is a Flutter + Flame game studio template. Core guidance lives in [`CLAUDE.md`](/Users/leofillium/codex-game/CLAUDE.md), with canonical rules in [`.claude/rules/`](/Users/leofillium/codex-game/.claude/rules), role briefs in [`.claude/agents/`](/Users/leofillium/codex-game/.claude/agents), reusable runbooks in [`.claude/skills/`](/Users/leofillium/codex-game/.claude/skills), and helper scripts in [`.claude/hooks/`](/Users/leofillium/codex-game/.claude/hooks). Codex compatibility docs live in [`.codex/`](/Users/leofillium/codex-game/.codex). Store design docs in [`design/`](/Users/leofillium/codex-game/design), process notes in [`docs/`](/Users/leofillium/codex-game/docs), and session artifacts in [`production/`](/Users/leofillium/codex-game/production). Generated game apps should use `lib/game/`, `lib/components/`, `lib/systems/`, `lib/models/`, `lib/screens/`, `assets/`, and `test/`.
 
-SKILL.md-файлы написаны для Claude Code и упоминают инструменты, которых в Codex нет.
-Замены (ОБЯЗАТЕЛЬНЫЕ, конвейер никогда не останавливается из-за отсутствия инструмента):
+## Build, Test, and Development Commands
 
-| В SKILL.md написано | Что делает Codex |
-|---------------------|------------------|
-| `Agent(...)` — spawn субагента/сессии | **Продолжить инлайн в этой же сессии**: прочитать указанный в промпте SKILL.md / agent-файл и выполнить его самому, от лица этой роли |
-| «5 параллельных агентов» (Фаза 4 autocreate) | **Последовательные persona-проходы** в порядке **A → E → D → B → C** (логика и сервисы раньше UI). Перед каждым проходом: прочитать `.claude/agents/<роль>.md` + `lib/contracts.md`; после — записать 3–5-строчное резюме в `production/session-state/active.md` |
-| Skill tool / вызов `/команды` изнутри skill | Открыть соответствующий SKILL.md и выполнить как runbook |
-| Claude hooks (session-start, validate-*) | `bash tools/codex-hooks.sh <hook>` (реестр: `.codex/hooks.md`) |
-| Read с vision (анализ скриншотов/ассетов) | Встроенный vision Codex — прикладывать изображение и анализировать |
-| Генерация PNG-ассетов | **GPT Images 2.0 → GPT Images/default fallback** (встроенная image generation) + белый фон простых ассетов + `rembg` для вырезания. PNG — режим по умолчанию в Codex (`design/asset-format.md: format: png`) |
+Use these commands after initializing or opening a Flutter app in this repo:
 
-### /autocreate в Codex: три «сессии» = три чекпоинта одной сессии
+- `flutter create . --project-name game_app`: scaffold the Flutter project.
+- `flutter pub get`: install dependencies.
+- `dart format .`: format Dart files.
+- `dart analyze` or `flutter analyze`: run static analysis.
+- `flutter test`: run unit and widget tests.
+- `flutter run`: launch the game locally.
+- `bash tools/codex-hooks.sh detect-gaps`: check for missing required files.
 
-Конвейер `/autocreate` в Claude разбит на 3 context-сессии, связанные Agent tool. В Codex —
-**один непрерывный прогон с теми же чекпоинтами**:
+## Coding Style & Naming Conventions
 
-```
-Фазы 1–3.8 (autocreate/SKILL.md)
-  → записать autocreate-handoff-1.md           [чекпоинт 1]
-  → прочитать autocreate-implement/SKILL.md и продолжить (Фазы 4–10.7)
-  → записать autocreate-handoff.md             [чекпоинт 2]
-  → прочитать autocreate-finalize/SKILL.md и продолжить (Фазы 10.5–12)
-  → финальный отчёт
-```
+Use Dart 3.6+ with null safety, sealed classes, and pattern matching. Indent with 2 spaces. Prefer `const` and `final`; use `var` only when reassignment is required. Name files in `snake_case.dart`, classes in `PascalCase`, and fields or methods in `camelCase`. Keep gameplay constants in `lib/game/game_config.dart` or a genre-specific config file. Use a logger instead of `print()`.
 
-- Handoff-файлы ОБЯЗАТЕЛЬНЫ даже без spawn — это чекпоинты восстановления: если сессия
-  оборвалась, новый запуск `$autocreate-implement` / `$autocreate-finalize` продолжает с них.
-- `/compact` (если доступен) — на чекпоинтах; вся важная информация уже в файлах
-  (`design/*`, `production/session-state/*`), разговор можно сжимать смело.
+## Testing Guidelines
 
-### Дисциплина контекста (в Codex критична — контекст один на весь конвейер)
+Place tests under `test/` and name them `*_test.dart`, for example `test/systems/weighted_rng_test.dart`. Cover pure game logic, state transitions, and edge cases. Gambling games must verify `Random.secure()`, stateless outcomes, and RTP assumptions. Run `flutter test` before opening a pull request.
 
-- **Файлы — память, разговор — нет**: решения немедленно в `design/*` и
-  `production/session-state/active.md` (см. `.claude/docs/context-management.md`).
-- НЕ читать `lib/` массово: оперировать выводами `dart analyze` / `flutter test` /
-  `grep`, точечный Read 1–2 файлов для диагностики.
-- В persona-проходах держать в контексте только файлы СВОЕЙ зоны ответственности.
+## Commit & Pull Request Guidelines
 
-## Несгораемые правила (полный список — CLAUDE.md и .claude/rules/)
+The repository does not yet have commit history, so follow the documented convention: use focused conventional commits such as `feat: add free spins overlay` or `fix: move reel speed constants into game config`. Pull requests should state the purpose, affected areas, test status, linked issues, and include screenshots or recordings for UI changes.
 
-1. `GameState` — sealed class; все константы — только в `GameConfig`/JSON-конфигах.
-2. Gambling: ТОЛЬКО `Random.secure()`; RTP 95–97%; Stateless Outcomes; age-gate/disclaimer.
-3. Никаких stub-экранов и TODO-заглушек в результатах конвейера.
-4. Дизайн — из Design DNA игры, не house-style (см. anti-slop-design.md).
-5. Планка качества — `.claude/docs/quality-bar.md`: «поставил бы игрок 4+ звезды,
-   не зная, что игру сделал ИИ?». Фазы 3.6 (asset-review), 6.5 (feel pass), 8 (ui-audit),
-   10.6 (playtest) проверяют её инструментально — их нельзя пропускать или имитировать.
-6. Отчитываться о результатах ЧЕСТНО: красный тест/упавшая фаза — называется красной,
-   SKIPPED — называется SKIPPED. Не «в целом готово».
+## Architecture & Safety Notes
 
-## Роли (агенты)
-
-Реестр: `.codex/agents.md` → файлы `.claude/agents/*.md`. В Codex роль = persona-проход:
-прочитать файл роли, выполнить её зону, вернуть короткое резюме. Ключевые:
-`mechanics-programmer`, `ui-programmer`, `juice-artist`, `sound-designer`,
-`meta-systems-programmer`, `art-director` (визуальная целостность ассетов),
-`game-mathematician`, `qa-tester`, `lead-programmer`, `release-manager`.
-
-## Верификация (web-first, без эмулятора)
-
-Runtime-проверки идут через **headless Chrome + CDP**: `flutter run -d web-server` +
-`node tools/web_verify.mjs` (тур по экранам, скриншоты, soak). Нужны `node` ≥21 и
-Chrome/Chromium. Android/эмулятор — только явный fallback. Если node/Chrome нет —
-фаза честно SKIPPED, конвейер продолжается.
-
-## Setup (однократно на машине)
-
-`bash tools/setup-codex-cli.sh` — добавит проект в trusted, выставит sandbox-дефолты
-и установит skills в `~/.codex/skills` (symlink). После — перезапустить Codex CLI.
+Follow [`.claude/rules/game-code.md`](/Users/leofillium/codex-game/.claude/rules/game-code.md), [`.claude/rules/engine-code.md`](/Users/leofillium/codex-game/.claude/rules/engine-code.md), and [`.claude/rules/ui-code.md`](/Users/leofillium/codex-game/.claude/rules/ui-code.md). Do not `await` inside `update()` or `render()`, avoid allocations in hot paths, never use `Random()` in gambling logic, and keep gameplay values out of inline magic numbers.
