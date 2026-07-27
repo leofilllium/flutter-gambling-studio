@@ -82,7 +82,7 @@ montage assets/images/ui/* -tile 4x -geometry 256x256+8+8 -background '#202020' 
 Для каждого FAIL — сформулировать ИСПРАВЛЕННЫЙ промпт (PNG/GPT Images 2.0) или конкретную
 правку кода (SVG): что именно добавить в описание света/стиля/материала, чтобы ассет встал
 в набор. Перегенерировать ТОЛЬКО бракованные (не весь набор), повторить вырезание фона
-(rembg) и проверку альфы, затем повторить ревью бракованных. **Максимум 2 итерации** —
+(`tools/cutout.py`) и проверку альфы, затем повторить ревью бракованных. **Максимум 2 итерации** —
 после второй принять лучшее из имеющегося и записать остаточные риски в отчёт.
 
 ## Правила промпт-инжиниринга (для перегенерации)
@@ -90,7 +90,8 @@ montage assets/images/ui/* -tile 4x -geometry 256x256+8+8 -background '#202020' 
 - В КАЖДОМ промпте серии повторять «якорь стиля»: одна и та же фраза о стиле рендера,
   материале, источнике света, палитре (например: «glossy 2.5D game asset, soft studio
   lighting from upper right, rich amber-and-teal palette, centered, single object»).
-- Спрайты: `transparent background` или `plain solid pure-white background` (под rembg),
+- Спрайты: `flat solid single-colour chroma-key background` (по умолчанию `pure magenta #FF00FF`,
+  `pure green #00FF00` если в палитре есть пурпур) — под `tools/cutout.py`,
   один объект по центру, без текста, без рамок.
 - Фоны: указывать «background for a mobile game, soft low-contrast, no focal subject in
   center» — фон обязан уступать фокус игровому полю.

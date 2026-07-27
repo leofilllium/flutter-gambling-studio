@@ -64,7 +64,7 @@ Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` 
 1. ✅ **Flutter-проект создан с нуля** (`flutter create --platforms web,android,ios`)
 2. ✅ **Структура + Layout Archetype выбраны** (`design/structure.md`, `design/art-direction.md`)
 3. ✅ **Все ассеты сгенерированы** (Codex default → realistic PNG через GPT Images 2.0 →
-   GPT Images fallback + white-background cutout/rembg; не-Codex → SVG fallback; формат записан в `design/asset-format.md`,
+   GPT Images fallback + chroma-key cutout через `tools/cutout.py`; не-Codex → SVG fallback; формат записан в `design/asset-format.md`,
    промпты и стиль набора — в `design/asset-prompts.md`)
 4. ✅ **Реальное аудио синтезировано** (Фаза 3.5: `tools/synth_sfx.py` → `.wav` SFX + BGM)
 5. ✅ **Asset Cohesion Review пройден** (Фаза 3.6: art-director, vision-ревью AR1–AR10,
@@ -519,7 +519,7 @@ image generation Codex). Если GPT Images 2.0 не сработал или н
   ground shadow that мешает вырезанию. Такой ассет сразу перегенерировать до asset-review.
 - **Ledger:** создать `design/asset-prompts.md` и записывать для каждого ассета:
   `name`, `type`, `path`, `subject identity`, `material`, `lighting anchor`, `render style`,
-  полный prompt, post-processing (`white-bg`/`rembg`), validation verdict.
+  полный prompt, выбранный key colour, post-processing (`cutout.py`), validation verdict.
 
 ```bash
 cat > design/asset-prompts.md << 'EOF'
@@ -538,8 +538,9 @@ single hero object centered, [MATERIAL/TEXTURE] with believable reflections,
 roughness and small surface imperfections, [RENDER STYLE FROM DNA OR DEFAULT REALISTIC 3D]
 render, shared soft top-left key light and subtle rim light, rich [DNA PALETTE] colors,
 crisp clean silhouette readable at 64 px, sharp focus, premium studio product shot,
-plain solid pure-white background, transparent-ready cutout, no scene, no ground shadow,
-no background gradient, no text, no border, no logo, no sprite sheet, 1024x1024 PNG.
+flat solid single-colour [KEY COLOUR] background, no gradient, no vignette, subject fully
+inside frame, transparent-ready cutout, no scene, no ground shadow, no shadow on the
+background, no text, no border, no logo, no sprite sheet, 1024x1024 PNG.
 [TYPE_DETAILS]
 ```
 
@@ -547,7 +548,7 @@ Fallback, если GPT Images 2.0 не сработал:
 
 ```text
 Повторить тот же prompt через GPT Images / default Codex image generation.
-Не менять белый фон на прозрачный: белый фон нужен для стабильного `rembg`/ImageMagick cutout.
+Не менять ключевой фон на прозрачный: плоский ключевой цвет нужен для стабильного cutout.
 ```
 
 #### Промпт-инжиниринг (обязательно для КАЖДОГО ассета)
@@ -566,7 +567,10 @@ Fallback, если GPT Images 2.0 не сработал:
 - Минимум 5-8 игровых элементов (символы для слота, тайлы для match-3, и т.д.)
 - Каждый: 1024x1024 PNG, затем при необходимости resize до 256x256 для runtime
 - **Генерация**: один вызов GPT Images 2.0 на каждый ассет; при сбое один fallback-вызов GPT Images/default
-- **Фон**: просить `plain solid pure-white background`, без теней/градиентов/сцены, затем rembg post-processing
+- **Фон**: просить плоский ключевой цвет (chroma key, по умолчанию `pure magenta #FF00FF`;
+  если в палитре есть пурпур/розовый — `pure green #00FF00`), без теней/градиентов/сцены,
+  затем `tools/cutout.py`. Белый фон использовать НЕЛЬЗЯ, если у объекта есть белые или
+  светлые области — они сольются с фоном и получатся дыры
 - Стиль рендера и детализация — из Design DNA, единый для всего набора
 
 #### UI Elements PNG (`assets/images/ui/`)
@@ -588,63 +592,32 @@ Fallback, если GPT Images 2.0 не сработал:
 Применяется ТОЛЬКО к: `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`.
 НЕ применяется к: `background_*`, `ui_panel`, полноэкранным сценам.
 
-> **Порядок предпочтения строгий:** `rembg` (нейросетевое вырезание — даёт чистую альфу
-> даже на сложных краях) → ImageMagick fuzz **только как последний резерв** (грубый, рвёт
-> мягкие края). После вырезания **обязательно проверить, что альфа реально появилась**;
-> если нет — перегенерировать ассет с чистым белым фоном и повторить.
+> **Единственный способ вырезания — `python3 tools/cutout.py`.** Ручной
+> `magick -fuzz ... -transparent white` ЗАПРЕЩЁН: это глобальный матч по цвету, он
+> пробивает дыры в белых бликах/глазах/хроме, даёт бинарную (рваную) альфу и оставляет
+> белый ореол. cutout.py заливает фон от границы кадра (внутренние светлые пиксели не
+> трогает), считает дробную альфу на краю, снимает цвет фона с полупрозрачных пикселей,
+> убирает despill, обрезает по контенту и нормализует кадр. `rembg`, если установлен,
+> используется им как ассист.
 
 ```bash
-# Функция удаления фона — вызывать после генерации каждого sprite/icon/symbol PNG
+# Функция вырезания фона — вызывать после генерации каждого sprite/icon/symbol PNG
 remove_bg_if_needed() {
   local INPUT_PNG="$1"
-  local ASSET_TYPE="$2"  # symbol | icon | sprite | wild | scatter | tile | item | background | ui_panel
-
-  # Пропускаем фоны и панели
-  case "$ASSET_TYPE" in
-    background*|ui_panel|scene) echo "⏭ Тип '${ASSET_TYPE}' — удаление фона пропущено"; return 0 ;;
-  esac
-
-  local TMP_PNG="${INPUT_PNG%.png}_nobg.png"
-  local removed=0
-
-  if command -v rembg >/dev/null 2>&1; then
-    rembg i "${INPUT_PNG}" "${TMP_PNG}" && mv "${TMP_PNG}" "${INPUT_PNG}" && removed=1
-    echo "✓ Фон удалён (rembg CLI): ${INPUT_PNG}"
-  elif python3 -c "import rembg" >/dev/null 2>&1; then
-    python3 -c "from rembg import remove; from pathlib import Path; p=Path('${INPUT_PNG}'); p.write_bytes(remove(p.read_bytes()))" && removed=1
-    echo "✓ Фон удалён (rembg python): ${INPUT_PNG}"
-  elif command -v magick >/dev/null 2>&1; then
-    echo "⚠ rembg не найден — грубый ImageMagick fallback"
-    magick "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
-  elif command -v convert >/dev/null 2>&1; then
-    echo "⚠ rembg не найден — грубый ImageMagick fallback"
-    convert "${INPUT_PNG}" -fuzz 12% -transparent white "${INPUT_PNG}" && removed=1
-  else
-    echo "⚠ Ни rembg, ни ImageMagick не установлены. Фон не удалён."
-    echo "  Установи: pip install rembg   или   apt install imagemagick"
-    return 1
-  fi
-
-  # Проверка: действительно ли в PNG появились прозрачные пиксели
-  if [ "${removed}" = "1" ]; then
-    python3 - "${INPUT_PNG}" <<'PYEOF'
-import sys
-try:
-    from PIL import Image
-    im = Image.open(sys.argv[1]).convert("RGBA")
-    amin, amax = im.getchannel("A").getextrema()
-    if amin == 255:
-        print("⚠ Альфа НЕ появилась (фон не вырезан). Перегенерируй ассет с чистым белым фоном и повтори rembg.")
-        sys.exit(1)
-    else:
-        print(f"✓ Прозрачность подтверждена (alpha min={amin})")
-except ImportError:
-    print("ℹ Pillow не установлен — пропускаю проверку альфы (pip install pillow)")
-except Exception as e:
-    print(f"ℹ Проверку альфы пропустил ({e})")
-PYEOF
-  fi
+  local ASSET_TYPE="${2:-sprite}"  # sprite|symbol|icon|wild|scatter|tile|item|ui|background|ui_panel
+  python3 tools/cutout.py "${INPUT_PNG}" --type "${ASSET_TYPE}"
 }
+```
+
+Ненулевой код возврата = ассет непригоден (фон не плоский, ключ совпал с палитрой объекта,
+вырезано всё или ничего). Тогда **перегенерировать ассет** с плоским ключевым фоном —
+не пытаться исправить постобработкой.
+
+Проверить весь набор одной командой в конце Фазы 3:
+
+```bash
+python3 tools/cutout.py --dir assets/images/sprites --check
+python3 tools/cutout.py --dir assets/images/ui --check
 ```
 
 #### Post-Generation Validation (PNG)
@@ -764,7 +737,7 @@ sfx_win_mega` (в `assets/audio/sfx/`) + `bgm_main` (в `assets/audio/bgm/`).
    опознаётся, нет AI-артефактов).
 3. `design/asset-review.md` — вердикт по каждому ассету.
 4. Перегенерация ТОЛЬКО FAIL-ассетов с исправленным промптом + «якорем стиля» набора
-   (Codex: GPT Images 2.0 → GPT Images fallback + rembg; SVG: правка кода). Максимум **2 итерации**, затем
+   (Codex: GPT Images 2.0 → GPT Images fallback + `tools/cutout.py`; SVG: правка кода). Максимум **2 итерации**, затем
    принять лучшее и записать остаточные риски.
 
 **Критерий выхода:** `design/asset-review.md` существует с вердиктом PASS (или REGENERATE
@@ -831,7 +804,7 @@ done
 - [x] Bootstrap: flutter create (web,android,ios), pubspec, директории
 - [x] Структура+Layout: design/structure.md, design/art-direction.md
 - [x] Ассеты: [N] [PNG/SVG] в assets/images/** (формат: [png/svg], см. design/asset-format.md)
-- [x] [Если PNG] Фон удалён для sprites/icons через rembg, прозрачность подтверждена
+- [x] [Если PNG] Фон удалён для sprites/icons через `tools/cutout.py`, `--check` по всем папкам чист
 - [x] Аудио: 9 .wav (assets/audio/sfx + bgm)
 - [x] Asset Cohesion Review: design/asset-review.md — вердикт [PASS / N перегенерировано]
 - [x] Контент-данные: assets/data/*.json — [N] уровней, режимы [список], economy
@@ -1891,7 +1864,7 @@ Agent(
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
 | 2. Bootstrap | `flutter pub get` — 0 errors; структура+layout выбраны | 3 |
-| 3. Assets | Codex: realistic PNG через GPT Images 2.0 → GPT Images fallback, белый фон вырезан, alpha для sprites/icons, `design/asset-prompts.md`; fallback вне Codex: SVG валидны | 2 |
+| 3. Assets | Codex: realistic PNG через GPT Images 2.0 → GPT Images fallback, ключевой фон вырезан через `tools/cutout.py`, alpha для sprites/icons, `design/asset-prompts.md`; fallback вне Codex: SVG валидны | 2 |
 | 3.5. Audio | 9 `.wav` синтезированы и непустые (`tools/synth_sfx.py`) | 2 |
 | 3.6. Asset Review | `design/asset-review.md` — PASS, альфа подтверждена | 2 |
 | 3.7. Content Data | `assets/data/*.json` валидны, N>1 уровней + economy | 2 |
