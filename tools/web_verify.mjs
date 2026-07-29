@@ -52,10 +52,20 @@ const QUICK = arg('quick', false) === true;
 const SOAK = Number(arg('soak', '0')) || 0;   // N stress taps for leak detection (0 = off)
 const SIZE = String(arg('size', '390x844'));
 const [VW, VH] = SIZE.split('x').map(Number);
+// Capture at real device resolution. At dpr 1 a 390x844 viewport yields a 390px-wide
+// PNG, which the store compositor then has to upscale ~3x. Default 2 (780x1688) is
+// already big enough for a 1080-wide store canvas while keeping the software-rendered
+// (swiftshader) fill rate near what verification runs have always used; --dpr 3 gives
+// the crispest store frames but triples the per-frame pixel cost.
+const DPR = Math.max(1, Math.min(4, Number(arg('dpr', '2')) || 2));
 const CHROME = resolveChrome(arg('chrome'));
 
 if (!URL || !OUT) {
-  console.error('usage: web_verify.mjs --url <url> --out <dir> [--budget s] [--size WxH] [--quick] [--soak N] [--chrome path]');
+  console.error('usage: web_verify.mjs --url <url> --out <dir> [--budget s] [--size WxH] [--dpr N] [--quick] [--soak N] [--chrome path]');
+  process.exit(3);
+}
+if (!Number.isFinite(VW) || !Number.isFinite(VH) || VW < 64 || VH < 64) {
+  console.error(`bad --size "${SIZE}"; expected WIDTHxHEIGHT, e.g. 390x844`);
   process.exit(3);
 }
 mkdirSync(OUT, { recursive: true });
@@ -74,7 +84,8 @@ function resolveChrome(explicit) {
 
 // ─── tiny logger + manifest ──────────────────────────────────────────────
 const manifest = {
-  url: URL, size: SIZE, startedAt: new Date().toISOString(),
+  url: URL, size: SIZE, dpr: DPR, capture: `${VW * DPR}x${VH * DPR}`,
+  startedAt: new Date().toISOString(),
   steps: [], semanticLabels: [], consoleErrors: [], shots: [], notes: [],
 };
 const consoleLines = [];
@@ -265,6 +276,23 @@ async function main() {
   await send('Runtime.enable');
   await send('Log.enable');
   await send('DOM.enable');
+
+  // Pin the viewport explicitly. `--window-size` alone is only advisory: headless has
+  // been observed laying out at its own default instead, which produced near-square
+  // captures (h/w ~1.5) rather than a phone's ~2.16 — those are unusable as store
+  // screenshots, because the device mockup ends up looking like a squat tablet.
+  // Taps below use CSS pixels, which this override defines, so they stay correct.
+  try {
+    await send('Emulation.setDeviceMetricsOverride', {
+      width: VW, height: VH, deviceScaleFactor: DPR, mobile: true,
+      screenWidth: VW, screenHeight: VH,
+    });
+    log(`📐 viewport ${VW}x${VH} @${DPR}x → capture ${VW * DPR}x${VH * DPR}`);
+  } catch (e) {
+    manifest.viewportOverrideFailed = true;
+    log(`⚠️ setDeviceMetricsOverride failed (${e.message}) — falling back to --window-size, ` +
+        'captures may not be phone-shaped');
+  }
 
   const ready = await waitForFlutter();
   manifest.steps.push({ action: 'ready', flutterDetected: ready });

@@ -97,7 +97,7 @@
 | `/release-checklist` | Финальный GO/NO-GO чеклист перед релизом (агент release-manager) |
 | `/release-engineering` | Ship-engineering: app-иконки (adaptive+iOS) + native splash + версия + **signed AAB** (формат Google Play) + iOS-каркас + store-metadata + CI |
 | `/release-package` | Упаковка релиза: скрины всех экранов + release APK/AAB + `flutter clean` + `.zip` в `project_zip/` |
-| `/store-screenshots` | Маркетинговые скрины для стора: кадры игры в рамке телефона на фоне (GPT Images 2.0) + подписи + feature graphic → `.zip` в `project_zip/` |
+| `/store-screenshots` | Витрина для стора: концепт-триптих (одна панорама, нарезанная на панели — вместе складываются в общую картину) + кадры игры в рамке телефона + feature graphic + app-иконка и игровая эмблема (генерируются И применяются к проекту) → `.zip` в `project_zip/` |
 
 ### Диагностика и долг
 

@@ -45,12 +45,21 @@ launcher label и листинга), цвет фона splash (из Design DNA �
 
 ### 1.1 — Подготовить иконку-источник (1024×1024 PNG)
 Иконка ОБЯЗАНА быть растровой 1024×1024 без альфа-канала для iOS. Источник:
-1. Если есть подходящий PNG-логотип в `assets/` — взять его.
-2. Иначе — растрировать `assets/images/ui/ui_app_icon.svg` (если есть) или фирменный sprite/лого
-   в 1024×1024. Конвертация: `rsvg-convert`/`inkscape`/ImageMagick (`magick -density 384`),
-   либо в Codex — GPT Images 2.0 → GPT Images/default fallback (см. `/svg-to-png`). Положить в `assets/branding/app_icon.png`.
-3. Для adaptive-иконки Android — отдельный foreground (прозрачный фон) `app_icon_fg.png` +
-   цвет фона из Design DNA.
+1. **Если `/store-screenshots` уже отработал** — `assets/branding/app_icon.png` и
+   `assets/branding/app_icon_fg.png` уже собраны им (и, скорее всего, уже применены).
+   Взять их как есть, ничего не перегенерировать.
+2. Если есть подходящий PNG-логотип в `assets/` — взять его.
+3. Иначе — сгенерировать арт иконки (Codex: GPT Images 2.0 → GPT Images/default fallback)
+   или растрировать `assets/images/ui/ui_app_icon.svg` (`rsvg-convert`/`inkscape`/`magick -density 384`),
+   затем собрать комплект одним вызовом:
+   ```bash
+   python3 tools/store_compose.py icon --src <арт>.png [--fg-src <эмблема с альфой>.png] \
+     --out-dir assets/branding --bg "[DNA Background]"
+   ```
+   Он даст `app_icon.png` (1024, без альфы), `app_icon_fg.png` (adaptive foreground в safe-zone)
+   и `store_icon_512.png` (иконка листинга Play).
+4. Для adaptive-иконки Android нужен foreground с прозрачным фоном — если `app_icon_fg.png`
+   не создан, убрать ОБЕ строки `adaptive_icon_*` из конфига ниже, иначе Android обрежет артворк.
 
 ```bash
 mkdir -p assets/branding

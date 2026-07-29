@@ -1,413 +1,584 @@
 ---
 name: store-screenshots
-description: "Генерация маркетинговых скриншотов для стора (Google Play / App Store): реальные кадры игры помещаются в рамку устройства на тематический фон с заголовком-подписью. Фоны генерируются через GPT Images 2.0 (Codex image generation), композитинг — через ImageMagick. Результат — набор store-ready PNG нужных размеров + feature graphic, упакованный в .zip в project_zip/ для скачивания."
-argument-hint: "[--count N] [--lang ru|en] [--platform play|appstore] [--no-frame] [--device <id>]"
+description: "Полный комплект витринных материалов для Google Play / App Store: первые N скринов — ОДНА широкая концепт-иллюстрация игры, нарезанная на панели (вместе складываются в общую картину), дальше — реальные кадры игры в рамке телефона, плюс app-иконка, игровой эмблема-логотип и feature-graphic баннер. Иконка и логотип не только генерируются, но и ПРИМЕНЯЮТСЯ к проекту (flutter_launcher_icons + assets). Арт — через GPT Images 2.0, композитинг — через tools/store_compose.py. Результат — .zip в project_zip/ для скачивания."
+argument-hint: "[--count 8] [--panels 3] [--platform play|appstore] [--lang ru|en] [--frame ios|android|none] [--no-captions] [--no-apply] [--no-wire-logo] [--size WxH]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
 
-# Store Screenshots — Маркетинговые скрины для стора
+# Store Screenshots — витрина игры для стора
 
-**Цель**: подготовить готовые к загрузке в стор скриншоты, которые показывают игру «лицом»:
-1. Реальные кадры геймплея (снятые на эмуляторе/устройстве)
-2. Помещённые в рамку телефона (device frame) с тенью и скруглением
-3. На тематическом фоне, сгенерированном через **GPT Images 2.0**
-4. С коротким маркетинговым заголовком (подписью) сверху
-5. Плюс Google Play **feature graphic** (1024×500)
-6. Всё упаковано в `.zip` в `project_zip/` — этот архив автоматически становится скачиваемым артефактом в чате
+**Цель**: собрать всё, что стор просит показать на карточке приложения:
 
-> Это НЕ то же самое, что `/release-package`. `release-package` снимает «сырые» кадры экранов для документации.
-> `store-screenshots` делает из них **полированные витринные изображения** для публикации в сторе.
+| # | Что | Откуда |
+|---|-----|--------|
+| 1…P | **Концепт-триптих** — ОДНА широкая иллюстрация мира игры, нарезанная на `P` панелей. Рядом в сторе они читаются как одна общая картина | GPT Images 2.0 → `store_compose.py triptych` |
+| P+1…N | **Реальные кадры игры** в рамке телефона на тематическом фоне | web_verify/эмулятор → `store_compose.py showcase` |
+| — | **Feature graphic** 1024×500 (Google Play) | `store_compose.py banner` |
+| — | **App-иконка** (launcher, все плотности + adaptive + iOS) — генерируется И применяется | GPT Images 2.0 → `store_compose.py icon` → `flutter_launcher_icons` |
+| — | **Игровая эмблема** (лого игры) — ассет проекта + оверлей на триптихе | GPT Images 2.0 → `tools/cutout.py` |
 
-**Важно**: навык НЕ меняет исходный код игры. Он только снимает кадры, генерирует фоны и собирает композиты.
+Всё складывается в `.zip` в `project_zip/` — worker веб-сервиса автоматически регистрирует
+его как скачиваемый артефакт в чате (как у `/release-package`).
+
+> **Триптих — это НЕ экраны приложения.** Первые панели продают *мир и идею* игры: герой,
+> ключевой объект механики, награда. Скриншоты интерфейса начинаются с панели P+1.
+> Именно так устроены витрины топовых мобильных игр — сначала постер, потом продукт.
+
+> Не путать с `/release-package` (сырые кадры + APK для документации) и
+> `/release-engineering` (подпись, AAB, метаданные). Здесь — **витрина**.
 
 ---
 
-## Размеры выходных изображений
+## Универсальность (жёсткое правило)
 
-| Платформа | Что | Размер (px) | Ориентация |
-|-----------|-----|-------------|------------|
-| Google Play (default) | Phone screenshot | **1080×1920** | портрет |
-| Google Play | Feature graphic | **1024×500** | альбом |
-| App Store (`--platform appstore`) | iPhone 6.7" | **1290×2796** | портрет |
+Навык обслуживает ЛЮБОЙ жанр и ЛЮБУЮ тему студии. Весь арт-дирекшен берётся из
+`design/gdd/game-concept.md` (Design DNA) и `design/art-direction.md`.
 
-Если игра альбомная (landscape) — поменять местами ширину/высоту скриншотов (1920×1080).
+- ❌ Нельзя по умолчанию рисовать казино/неон/золото/фиолетовый градиент.
+- ✅ Лесной пазл → лес. Космический раннер → космос. Уютный кликер → уют.
+- Тест: если триптих можно переставить на другую игру студии без изменений — он провален.
+
+@.claude/rules/anti-slop-design.md
 
 ---
 
 ## Аргументы
 
-- `--count N` — сколько витринных скринов сделать (default 5, максимум 8)
-- `--lang ru|en` — язык подписей (default: язык концепта, обычно `ru`)
-- `--platform play|appstore` — целевой размер (default: `play`)
-- `--no-frame` — без рамки телефона (только скруглённая карточка кадра на фоне)
-- `--device <id>` — конкретное устройство из `flutter devices`
-- `--name <custom>` — переопределить имя архива (иначе из pubspec.yaml)
+| Аргумент | По умолчанию | Смысл |
+|----------|--------------|-------|
+| `--count N` | `8` | Всего скринов (Play: 2–8, App Store: до 10) |
+| `--panels P` | `3` | Панелей в концепт-триптихе (`0` — выключить триптих) |
+| `--platform play\|appstore` | `play` | Целевой размер |
+| `--size WxH` | из platform | Явное переопределение размера панели |
+| `--lang ru\|en` | язык концепта | Язык подписей и тайтла |
+| `--frame ios\|android\|none` | `ios` | Рамка устройства на витринных кадрах |
+| `--no-captions` | выкл | Без маркетинговых подписей (чистые кадры) |
+| `--no-apply` | выкл | Не трогать проект: только сгенерировать файлы в архив |
+| `--no-wire-logo` | выкл | Не подключать эмблему в главное меню |
+| `--name <custom>` | из pubspec | Имя архива |
+
+### Размеры
+
+| Платформа | Скриншот | Feature graphic |
+|-----------|----------|-----------------|
+| `play` | **1080×1920** (ровно 9:16 — проходит все проверки Play) | 1024×500 |
+| `appstore` | **1290×2796** (iPhone 6.7"; 6.5" — `--size 1242x2688`) | — |
+
+Если игра альбомная (`design/structure.md` → landscape) — поменять W и H местами
+и ставить `--panels 0` (горизонтальный триптих из портретных панелей не читается).
 
 ---
 
-## Фаза 0 — Preflight [~15 сек]
+## Фаза 0 — Preflight [~20 сек]
 
-### 0.1. Проверка проекта и извлечение метаданных
+### 0.1. Проект и инструменты
 
 ```bash
-if [[ ! -f pubspec.yaml ]]; then
-  echo "❌ pubspec.yaml не найден — store-screenshots требует Flutter-проект"
-  exit 1
-fi
+[[ -f pubspec.yaml ]] || { echo "❌ Нет pubspec.yaml — нужен Flutter-проект"; exit 1; }
 
-PROJECT_NAME=$(grep -E "^name:" pubspec.yaml | awk '{print $2}')
+python3 -c "import PIL, numpy" 2>/dev/null || {
+  echo "❌ Нужны Pillow + numpy (их же требует tools/cutout.py)."
+  echo "   apt-get install -y python3-pil python3-numpy"
+  exit 1
+}
+[[ -f tools/store_compose.py ]] || { echo "❌ Нет tools/store_compose.py"; exit 1; }
+
+PROJECT_NAME=$(grep -m1 -E "^name:" pubspec.yaml | awk '{print $2}')
 [[ -z "$PROJECT_NAME" ]] && PROJECT_NAME="game"
 
 TS=$(date +%Y%m%d-%H%M%S)
 STORE_ROOT="project_zip"
 STORE_DIR="$STORE_ROOT/$PROJECT_NAME-store-$TS"
 RAW_DIR="$STORE_DIR/raw"          # сырые кадры игры
-BG_DIR="$STORE_DIR/backgrounds"   # фоны от GPT Images 2.0
+ART_DIR="$STORE_DIR/art"          # сгенерированный бренд-арт
 OUT_DIR="$STORE_DIR/store"        # финальные витринные PNG
-mkdir -p "$STORE_DIR" "$RAW_DIR" "$BG_DIR" "$OUT_DIR"
-echo "📁 Store-директория: $STORE_DIR"
+mkdir -p "$RAW_DIR" "$ART_DIR" "$OUT_DIR" assets/branding
+echo "📁 $STORE_DIR"
 
-# project_zip в .gitignore (архивы не место в git)
 if [[ -f .gitignore ]] && ! grep -q "^project_zip/" .gitignore; then
   printf '\n# Store/release archives\nproject_zip/\n' >> .gitignore
 fi
 ```
 
-### 0.2. Проверка ImageMagick (нужен для композитинга)
+### 0.2. Бренд-бриф из концепта
 
-```bash
-if command -v magick >/dev/null 2>&1; then
-  IM="magick"
-elif command -v convert >/dev/null 2>&1; then
-  IM="convert"   # ImageMagick 6
-else
-  echo "❌ ImageMagick не найден. Установить: apt-get install -y imagemagick"
-  echo "   Без него композитинг невозможен."
-  exit 1
-fi
-echo "🖼️  ImageMagick: $IM"
-```
+Прочитать через Read (если есть): `design/gdd/game-concept.md`, `design/art-direction.md`,
+`design/structure.md`. Извлечь и **записать в `$STORE_DIR/STORE_BRIEF.md`**:
 
-### 0.3. Контекст игры для темы и подписей
+| Переменная | Что это | Пример (условная игра про лес) |
+|-----------|---------|-------------------------------|
+| `TITLE` | Человекочитаемое имя игры | «Лесной Шёпот» |
+| `TAGLINE` | ≤ 42 симв., одна выгода игрока | «Собирай руны. Буди лес.» |
+| `GENRE` | Жанр из CLAUDE.md | puzzle / match-3 |
+| `HERO` | Главный герой/субъект мира | древний дух-олень с рунами на рогах |
+| `MECHANIC_OBJECT` | Предмет, олицетворяющий механику | светящаяся руна-кристалл |
+| `REWARD` | Награда/цель мира | пробуждённое Древо-сердце |
+| `PALETTE` | 3–5 цветов из DNA | мшисто-зелёный, янтарь, тёплый белый |
+| `MOOD` | Настроение | тёплое, живое, чуть волшебное |
+| `RENDER` | Стиль рендера из DNA | material-grounded 3D, мягкий свет |
+| `DNA_BG` | HEX фона из DNA (для adaptive-иконки) | `#122015` |
 
-Прочитать через Read, если есть:
-- `design/gdd/game-concept.md` → название игры, жанр, тема, цвета, настроение
-- `design/structure.md` → ориентация (portrait/landscape), если указана
-
-Извлечь и запомнить:
-- **TITLE** — название игры (для feature graphic и подписей)
-- **THEME** — визуальная вселенная (неоновое казино / зачарованный лес / космос / …)
-- **COLORS** — палитра (для фона и текста)
-- **MOOD** — настроение (электрическое / уютное / минимализм / …)
-
-Если файлов нет — вывести найденное из `pubspec.yaml` (`name`, `description`) и продолжить с нейтральной темой.
+Если концепта нет — вывести из `pubspec.yaml` (`name`, `description`) + прочитать 2–3
+ассета игры через Read (vision) и описать стиль по ним. **Нейтральная тема, не казино.**
 
 ---
 
-## Фаза 1 — Базовые кадры игры [~3-5 мин]
+## Фаза 1 — Сырые кадры игры [~1–5 мин]
 
-Сначала **переиспользовать** уже снятые кадры, если они свежие:
+> **Кадр обязан быть в пропорции телефона** — высота/ширина ≈ **2.0–2.2** (390×844 → 2.16).
+> Почти квадратный кадр (≈1.5) превращает мокап в приплюснутый планшет, и витрина
+> разваливается — никакой композитинг это не чинит. Причина такого кадра: старые версии
+> снимали по `--window-size`, который headless Chrome трактует как пожелание.
+> Сейчас `web_verify.mjs` жёстко задаёт вьюпорт через `Emulation.setDeviceMetricsOverride`.
+
+### 1.1. Переиспользовать готовые кадры — только если они правильной формы
 
 ```bash
-# Ищем готовые кадры от release-package или emulator-test
 FOUND=""
-for d in project_zip/*/screenshots production/runtime-screenshots/*/ .claude/runtime-screenshots/*/; do
-  [[ -d "$d" ]] || continue
-  if ls "$d"/*.png >/dev/null 2>&1; then FOUND="$d"; fi
+for d in production/runtime-screenshots/*/ .claude/runtime-screenshots/*/ project_zip/*/screenshots; do
+  [[ -d "$d" ]] && ls "$d"/*.png >/dev/null 2>&1 && FOUND="$d"
 done
-
 if [[ -n "$FOUND" ]]; then
-  echo "♻️  Найдены готовые кадры: $FOUND — копирую в raw/"
   cp "$FOUND"/*.png "$RAW_DIR/" 2>/dev/null || true
+  # Отбраковать всё, что не в пропорции телефона (старые «квадратные» кадры)
+  python3 - "$RAW_DIR" <<'PY'
+import sys, pathlib
+from PIL import Image
+bad = 0
+for p in sorted(pathlib.Path(sys.argv[1]).glob("*.png")):
+    with Image.open(p) as im:
+        w, h = im.size
+    ar = h / w
+    if not (1.9 <= ar <= 2.35):
+        print(f"🗑  {p.name}: {w}x{h} (h/w={ar:.2f}) — не телефон, удаляю")
+        p.unlink(); bad += 1
+print(f"отбраковано: {bad}")
+PY
 fi
 RAW_COUNT=$(ls -1 "$RAW_DIR"/*.png 2>/dev/null | wc -l | tr -d ' ')
-echo "Кадров в raw/: $RAW_COUNT"
+echo "Пригодных кадров в raw/: $RAW_COUNT"
 ```
 
-Если кадров **нет** (`RAW_COUNT == 0`) — снять свежий тур. Использовать логику захвата из
-`.claude/skills/emulator-test/SKILL.md` (Фаза 1) и функцию `shoot()` с тройным fallback
-(`flutter screenshot` ↔ `adb exec-out screencap` ↔ `adb pull`) и валидацией PNG-сигнатуры `89 50 4E 47`.
+### 1.2. Снять свежий тур, если пригодных кадров нет
 
-Снять минимально нужный набор «продающих» экранов (этого достаточно для витрины):
+**Через Chrome/CDP** (эмулятор не нужен):
 
-| Файл | Экран | Навигация |
-|------|-------|-----------|
-| 01-main-menu.png | Главное меню | sleep 3 после старта |
-| 02-gameplay.png | Активный геймплей | тап PLAY, дождаться действия |
-| 03-win.png | Выигрыш / победа / комбо | спровоцировать win overlay |
-| 04-paytable.png | Правила / выплаты / прогресс | меню → Paytable/Rules |
-| 05-extra.png | Любой яркий экран (бонус/лидерборд/профиль) | по ситуации |
+```bash
+flutter run -d web-server --web-port=0 > .claude/runtime-logs/flutter-run.log 2>&1 &
+# дождаться URL, затем:
+node tools/web_verify.mjs --url "$WEB_URL" --out "$RAW_DIR" \
+  --size 390x844 --dpr 3 --budget 180 --quick
+```
 
-Если устройство недоступно и кадров нет — **остановиться** и сообщить пользователю:
-запустить эмулятор или сначала выполнить `/release-package`/`/emulator-test`, затем повторить.
+| Флаг | Зачем именно здесь |
+|------|--------------------|
+| `--size 390x844` | пропорция телефона 2.16 — то, во что рисуется мокап |
+| `--dpr 3` | кадр 1170×2532: в витринный слот (~890 px) идёт с запасом, без апскейла. По умолчанию `--dpr 2` — этого хватает; `3` берём ради максимальной чёткости, т.к. здесь важна только картинка, а не скорость прогона |
+
+Полная процедура запуска/ожидания — `.claude/skills/autocreate-finalize/SKILL.md` (Фаза 10.5).
+Android-fallback (`flutter screenshot` / `adb exec-out screencap`) — `.claude/skills/emulator-test/SKILL.md`.
+
+Нужный минимум «продающих» кадров: главное меню, активный геймплей, момент выигрыша/успеха,
+правила/прогресс, любой яркий экран (бонус/лидерборд/профиль).
 
 ```bash
 RAW_COUNT=$(ls -1 "$RAW_DIR"/*.png 2>/dev/null | wc -l | tr -d ' ')
-if [[ "$RAW_COUNT" -eq 0 ]]; then
-  echo "❌ Нет кадров игры и нет активного устройства."
-  echo "   Запустите эмулятор или сначала /emulator-test, затем повторите /store-screenshots."
-  exit 1
+[[ "$RAW_COUNT" -eq 0 ]] && { echo "❌ Нет кадров игры. Запустите /emulator-test и повторите."; exit 1; }
+head -c 400 "$RAW_DIR/manifest.json" 2>/dev/null   # поле "capture" — фактический размер
+```
+
+**Обязательно** прочитать отобранные кадры через Read (vision): пустой/чёрный/сломанный
+кадр на витрину не идёт. Битые — исключить из отбора.
+
+---
+
+## Фаза 2 — Генерация бренд-арта [~3–5 мин]
+
+**Codex-путь (основной)**: встроенная image generation — **GPT Images 2.0**, fallback
+**GPT Images / default**. Ключи не нужны. Правила и fallback-цепочка — `/generate-png-asset`.
+**Один вызов image generation = один ассет.** Все промпты дописать в `design/asset-prompts.md`.
+
+### 2.1. Панорама-концепт (самый важный ассет)
+
+Просить **самый широкий landscape**, который отдаёт модель (обычно 1536×1024). Нарезку на
+панели делаем мы — модель об этом знать НЕ должна, иначе она нарисует коллаж с рамками.
+
+```
+One single seamless ultra-wide landscape key-art illustration for a [GENRE] mobile game — [MOOD] [THEME] world.
+Composition: [HERO] as the dominant figure just left of centre; [MECHANIC_OBJECT] glowing in the middle;
+[REWARD] rising on the right — three distinct focal points spread evenly across the width, so that ANY
+vertical third of this picture is a strong standalone image. Keep faces and key silhouettes AWAY from the
+vertical lines at 1/3 and 2/3 of the width. [PALETTE] palette, [RENDER] render, dramatic key light from the
+upper left, volumetric depth, believable materials, full-bleed edge-to-edge artwork, poster quality.
+NO text, NO words, NO numbers, NO letters, NO logo, NO watermark, NO UI, NO phone, NO device mockup,
+NO frame, NO border, NO panels, NO split-screen, NO collage, NO grid, NO diptych, NO triptych divisions.
+Widest landscape aspect available, highest resolution.
+```
+
+Сохранить в `$ART_DIR/keyart.png`, проверить: `file "$ART_DIR/keyart.png"` → PNG.
+
+> Запреты на текст/панели — не украшение промпта. Без них модель рисует «постер» с
+> нечитаемыми буквами и разделительными рамками, и триптих разваливается.
+
+### 2.2. Арт app-иконки
+
+```
+Square full-bleed app icon artwork for a [GENRE] mobile game — [THEME].
+[MECHANIC_OBJECT or HERO head] as one bold hero object, centred, filling most of the frame,
+[RENDER] render, [PALETTE] palette, rich materials, dramatic rim light, atmospheric background
+consistent with the game world. Instantly readable as a 48 px launcher icon: ONE clear subject,
+strong silhouette, high contrast. NO text, NO words, NO letters, NO logo, NO UI, NO border,
+NO rounded-corner mask, NO drop shadow outside the artwork. 1024x1024.
+```
+
+Сохранить в `$ART_DIR/icon_art.png`.
+
+### 2.3. Игровая эмблема (лого игры)
+
+Генерируется на **плоском ключевом фоне** и вырезается — правила ключа см.
+«Ключевой цвет фона» в `/generate-png-asset` (по умолчанию `pure magenta #FF00FF`;
+если в палитре есть пурпур/розовый — `pure green #00FF00`).
+
+```
+Single hero emblem for a [GENRE] game — [MECHANIC_OBJECT / crest of THEME], one centred object,
+[RENDER] render, [PALETTE] palette, believable materials, soft key light from top-left plus subtle rim,
+crisp clean silhouette readable at 64 px, premium studio product shot,
+flat solid single-colour [KEY COLOUR] background, no gradient, no vignette, no shadow on the background,
+subject fully inside frame, NO text, NO letters, NO border, NO scene, NO sprite sheet. 1024x1024.
+```
+
+Сохранить в `$ART_DIR/emblem.png`, затем **обязательно** вырезать фон:
+
+```bash
+python3 tools/cutout.py "$ART_DIR/emblem.png" --type icon
+```
+
+Вывод `✗` = ассет непригоден (фон не плоский / не тот ключ) → **перегенерировать**,
+не «дожимать» вручную.
+
+---
+
+## Фаза 3 — Иконка и эмблема: сборка и ПРИМЕНЕНИЕ [~2 мин]
+
+Пропустить всю фазу при `--no-apply` (тогда файлы только кладутся в архив).
+
+### 3.1. Сборка комплекта иконок
+
+```bash
+cp "$ART_DIR/icon_art.png" assets/branding/icon_art.png
+cp "$ART_DIR/emblem.png"   assets/branding/emblem.png
+
+python3 tools/store_compose.py icon \
+  --src assets/branding/icon_art.png \
+  --fg-src assets/branding/emblem.png \
+  --out-dir assets/branding \
+  --bg "$DNA_BG"
+```
+
+Получаем:
+- `assets/branding/app_icon.png` — 1024×1024 мастер (без альфы, годится для iOS)
+- `assets/branding/app_icon_fg.png` — adaptive foreground (субъект в safe-zone 62%)
+- `assets/branding/store_icon_512.png` — иконка листинга Play (512×512)
+
+### 3.2. Применение иконки к проекту
+
+```yaml
+# pubspec.yaml
+dev_dependencies:
+  flutter_launcher_icons: ^0.14.1
+
+flutter_launcher_icons:
+  image_path: "assets/branding/app_icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  web: { generate: true }
+  adaptive_icon_background: "[DNA_BG]"
+  adaptive_icon_foreground: "assets/branding/app_icon_fg.png"
+```
+
+```bash
+flutter pub get
+dart run flutter_launcher_icons 2>&1 | tail -5
+ls android/app/src/main/res/mipmap-xxxhdpi/ | head   # проверка, что иконки реально легли
+```
+
+> Если `app_icon_fg.png` не создан (эмблема без альфы) — убрать ОБЕ строки
+> `adaptive_icon_*`, иначе Android обрежет артворк по маске.
+
+### 3.3. Эмблема как ассет игры
+
+```bash
+mkdir -p assets/images/ui
+cp assets/branding/emblem.png assets/images/ui/ui_game_logo.png
+grep -q "assets/images/ui/" pubspec.yaml || echo "⚠️ добавить assets/images/ui/ в pubspec assets"
+```
+
+Добавить константу в `lib/assets.dart` (или его аналог по `design/structure.md`):
+
+```dart
+static const String uiGameLogo = 'assets/images/ui/ui_game_logo.png';
+```
+
+### 3.4. Подключение эмблемы в главное меню (пропустить при `--no-wire-logo`)
+
+**Только если** в главном меню сейчас нет брендового изображения (заголовок — голый `Text`).
+Если лого уже есть — ничего не трогать, только сообщить.
+
+Вставить над заголовком, с обязательными размерами и fallback (правила `ui-code.md` §2.4):
+
+```dart
+Image.asset(
+  GameAssets.uiGameLogo,
+  width: 128,
+  height: 128,
+  errorBuilder: (_, __, ___) => const SizedBox(width: 128, height: 128),
+),
+```
+
+Затем **обязательная проверка и откат при ошибке**:
+
+```bash
+dart analyze lib/ 2>&1 | tee /tmp/store_analyze.log
+if grep -q " error " /tmp/store_analyze.log; then
+  echo "❌ Правка меню сломала анализ — откатываю"
+  git checkout -- <изменённый файл>   # или Edit-ом вернуть исходный текст
 fi
 ```
 
----
-
-## Фаза 2 — Отбор кадров и маркетинговые подписи [~30 сек]
-
-1. Выбрать `COUNT` (default 5) лучших кадров из `raw/` — приоритет: геймплей, выигрыш, главное меню, правила, бонус.
-2. Прочитать выбранные кадры через Read (vision) и убедиться, что они не пустые/не сломанные.
-3. Для каждого выбранного кадра написать **короткий маркетинговый заголовок** на языке `--lang`
-   (default — язык концепта, обычно русский). Заголовки ≤ 32 символов, в духе сторов:
-
-   Примеры (адаптировать под конкретную игру и жанр):
-   - «Крути и выигрывай!»
-   - «Захватывающий геймплей»
-   - «Сорви джекпот»
-   - «Прозрачные правила»
-   - «Ежедневные бонусы»
-
-Записать соответствие «кадр → заголовок» в переменные для Фазы 4 (массивы `SHOTS` и `CAPTIONS`).
+Игровую логику, состояния, конфиги — **не трогать**. Разрешена ровно одна вставка виджета.
 
 ---
 
-## Фаза 3 — Тематические фоны через GPT Images 2.0 [~2-4 мин]
-
-**Codex-путь (основной)**: использовать встроенную image generation Codex (**GPT Images 2.0**) — как в `/generate-png-asset`. Ключи не нужны.
-
-Сгенерировать **один общий брендовый фон** на портретный размер (можно несколько — по одному на кадр, если нужна вариативность). Фон БЕЗ текста, БЕЗ телефонов, БЕЗ UI — только атмосфера, с читаемой/спокойной центральной зоной (туда ляжет рамка с кадром).
-
-Промпт фона (подставить THEME/COLORS/MOOD из Фазы 0):
-
-```
-Vertical 9:16 mobile app store marketing background for a [THEME] game.
-Rich atmospheric [THEME] scene, [COLORS] color palette, [MOOD] mood,
-soft depth, subtle gradient, gentle vignette, empty calm center area
-reserved for a phone mockup, NO text, NO words, NO phone, NO UI elements,
-NO characters in the center, premium polished poster look, high quality, 1080x1920.
-```
-
-- В Codex: один вызов image generation = один фон. Сохранять в `$BG_DIR/bg.png` (или `bg-01.png`, `bg-02.png`…).
-- Проверить файл: `file "$BG_DIR/bg.png"` должен показать PNG.
-- Если Codex image generation недоступна → **legacy fallback**: Pollinations.ai `gptimage`/`flux` (см. `/generate-png-asset`), либо одноцветный/градиентный фон через ImageMagick:
+## Фаза 4 — Концепт-триптих: скрины 1…P [~1 мин]
 
 ```bash
-# Фолбэк-фон: тематический градиент (если генерация изображений недоступна)
-"$IM" -size 1080x1920 gradient:'#0b1026'-'#1b2a6b' "$BG_DIR/bg.png" 2>/dev/null || \
-  convert -size 1080x1920 gradient:'#0b1026'-'#1b2a6b' "$BG_DIR/bg.png"
-echo "⚠️ Использован градиентный фолбэк-фон (image generation недоступна)"
+# Размер панели
+case "${PLATFORM:-play}" in
+  appstore) SW=1290; SH=2796 ;;
+  *)        SW=1080; SH=1920 ;;
+esac
+# --size WxH переопределяет
+
+python3 tools/store_compose.py triptych \
+  --src "$ART_DIR/keyart.png" \
+  --out "$OUT_DIR" \
+  --panels "${PANELS:-3}" \
+  --size "${SW}x${SH}" \
+  --title "$TITLE" \
+  --tagline "$TAGLINE" \
+  --logo assets/images/ui/ui_game_logo.png \
+  --title-panel 1 \
+  --title-pos bottom \
+  --title-color "#FFFFFF"
 ```
 
-Цвета градиента подбирать под COLORS темы игры.
+Даёт `store-01.png … store-0P.png` + `_panorama-preview.png` (склейка со швами).
+
+### Обязательный vision-контроль швов
+
+Прочитать `_panorama-preview.png` через Read и проверить:
+
+| Проверка | Провал → действие |
+|----------|-------------------|
+| Лицо/голова героя рассечены розовой линией шва | сдвинуть кадрирование (ниже) |
+| Панель целиком пустая (небо/фон, нет фокуса) | перегенерировать панораму с акцентом на 3 фокуса |
+| В арте появились буквы/цифры/рамки/коллаж | перегенерировать, усилив NO-text/NO-panels |
+| Тайтл не читается на фоне | поднять `--scrim` до `0.85` или `--title-pos top` |
+
+Сдвиг кадрирования **без перегенерации** (дешёвый фикс, пробовать первым):
+
+```bash
+python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" --out "$OUT_DIR" \
+  --panels 3 --size "${SW}x${SH}" --zoom 1.12 --offset -0.6 \
+  --title "$TITLE" --tagline "$TAGLINE" --logo assets/images/ui/ui_game_logo.png
+```
+
+`--offset` от `-1` (влево) до `1` (вправо); `--zoom > 1` создаёт запас для сдвига.
+Максимум **2** итерации, потом принять лучший вариант и отметить в отчёте.
+
+При `--panels 0` фаза пропускается целиком, все скрины — витринные кадры (Фаза 5).
 
 ---
 
-## Фаза 4 — Композитинг витринных скринов [~1-2 мин]
+## Фаза 5 — Витринные кадры игры: скрины P+1…N [~1 мин]
 
-Параметры размера (из `--platform`):
+### 5.1. Отбор и подписи
+
+Выбрать `COUNT - PANELS` лучших кадров из `raw/`. Приоритет: активный геймплей → момент
+выигрыша/успеха → главное меню → правила/прогресс → бонус/лидерборд.
+
+Для каждого написать подпись на `--lang` (по умолчанию язык концепта, обычно русский),
+**≤ 32 символов**, про выгоду игрока, а не про экран:
+
+- ✅ «Собирай цепочки из 3+» / «Один тап — и буря» / «Открывай новые миры»
+- ❌ «Главное меню» / «Экран правил» / «Скриншот 3»
+
+При `--no-captions` подписи не рисуются (чистые кадры, как в референсных витринах).
+
+### 5.2. Композитинг
+
+Фон витринных кадров — **та же панорама**: витрина читается как единый набор.
 
 ```bash
-# Google Play phone (default)
-SW=1080; SH=1920
-# App Store 6.7": SW=1290; SH=2796   (выставить при --platform appstore)
-
-CAP_H=$(( SH / 6 ))            # высота зоны заголовка сверху
-RADIUS=40                      # скругление кадра
-BEZEL=28                       # толщина рамки телефона
-TEXT_COLOR="#ffffff"           # цвет подписи (подобрать контрастный к фону)
+i=$((PANELS + 1))
+for pair in "02-menu.png|Играй с первого тапа" "04-game-action.png|Собирай цепочки из 3+"; do
+  SHOT="${pair%%|*}"; CAP="${pair##*|}"
+  python3 tools/store_compose.py showcase \
+    --shot "$RAW_DIR/$SHOT" \
+    --bg "$ART_DIR/keyart.png" \
+    --out "$OUT_DIR/$(printf 'store-%02d.png' "$i")" \
+    --size "${SW}x${SH}" \
+    --caption "$CAP" \
+    --frame "${FRAME:-ios}" \
+    --bg-treatment soft
+  i=$((i + 1))
+done
 ```
 
-### Хелпер: одна витрина из одного кадра
+| Флаг | Когда менять |
+|------|--------------|
+| `--fit bleed` | Нужен телефон крупнее: он занимает всю ширину, а низ уходит за край кадра. **Осторожно с играми, где управление внизу экрана** — оно обрежется |
+| `--frame android` | Игра позиционируется под Android / DNA просит punch-hole |
+| `--frame none` | Нужен чистый скруглённый кадр без телефона |
+| `--bg-treatment blur` | Кадр теряется на слишком детальном фоне |
+| `--scale 0.88` | Телефон кажется мелким, по бокам много пустого фона |
 
-Для каждого выбранного кадра выполнить (подставляя `SHOT`, `CAPTION`, `BG`, `OUT`):
+По умолчанию `--fit contain`: телефон виден целиком, ничего не обрезается. Полоса подписи
+подстраивается под реальную высоту текста (одна строка не съедает столько же, сколько две),
+поэтому на короткой подписи телефон автоматически становится крупнее.
 
-```bash
-make_store_shot() {
-  local SHOT="$1" CAPTION="$2" BG="$3" OUT="$4"
-
-  # Целевая ширина кадра внутри рамки (с полями по бокам)
-  local INNER_W=$(( SW * 78 / 100 ))
-
-  # 1) Подогнать кадр по ширине, сохранив пропорции
-  "$IM" "$SHOT" -resize "${INNER_W}x" /tmp/ss_resized.png
-
-  # 2) Скруглить углы кадра (классический IM-рецепт через alpha-маску)
-  local W H
-  W=$(identify -format "%w" /tmp/ss_resized.png)
-  H=$(identify -format "%h" /tmp/ss_resized.png)
-  "$IM" /tmp/ss_resized.png \
-    \( +clone -alpha extract -draw \
-       "fill black polygon 0,0 0,$RADIUS $RADIUS,0 fill white circle $RADIUS,$RADIUS $RADIUS,0" \
-       \( +clone -flip \) -compose Multiply -composite \
-       \( +clone -flop \) -compose Multiply -composite \) \
-    -alpha off -compose CopyOpacity -composite /tmp/ss_rounded.png
-
-  # 3) Рамка телефона: тёмная скруглённая подложка чуть больше кадра
-  if [[ "$NO_FRAME" != "1" ]]; then
-    local FW=$(( W + BEZEL*2 )) FH=$(( H + BEZEL*2 )) FR=$(( RADIUS + BEZEL/2 ))
-    "$IM" -size "${FW}x${FH}" xc:none \
-      -fill '#0d0d12' -draw "roundrectangle 0,0 $((FW-1)),$((FH-1)) $FR,$FR" /tmp/ss_frame.png
-    "$IM" /tmp/ss_frame.png /tmp/ss_rounded.png -gravity center -compose over -composite /tmp/ss_device.png
-  else
-    cp /tmp/ss_rounded.png /tmp/ss_device.png
-  fi
-
-  # 4) Тень устройства
-  "$IM" /tmp/ss_device.png \
-    \( +clone -background black -shadow 60x18+0+10 \) \
-    +swap -background none -layers merge +repage /tmp/ss_shadow.png
-
-  # 5) Фон → нужный размер
-  "$IM" "$BG" -resize "${SW}x${SH}^" -gravity center -extent "${SW}x${SH}" /tmp/ss_bg.png
-
-  # 6) Положить устройство на фон, ниже зоны заголовка
-  "$IM" /tmp/ss_bg.png /tmp/ss_shadow.png \
-    -gravity north -geometry "+0+${CAP_H}" -compose over -composite /tmp/ss_comp.png
-
-  # 7) Заголовок сверху по центру (caption: автоперенос + масштаб)
-  "$IM" /tmp/ss_comp.png \
-    \( -background none -fill "$TEXT_COLOR" -gravity center \
-       -size "$(( SW * 86 / 100 ))x$(( CAP_H * 70 / 100 ))" \
-       caption:"$CAPTION" \) \
-    -gravity north -geometry "+0+$(( CAP_H / 5 ))" -compose over -composite \
-    "$OUT"
-
-  if [[ -s "$OUT" ]]; then
-    echo "✅ $(basename "$OUT")"
-  else
-    echo "⚠️ Не удалось собрать $(basename "$OUT")"
-  fi
-}
-```
-
-> Для ImageMagick 6 (`convert`) `\( +clone ... \)` синтаксис тот же; `identify` доступен отдельной командой.
-> Если рецепт скругления падает — сделать прямые углы (шаг 2 пропустить, использовать `/tmp/ss_resized.png`).
-
-Прогнать `make_store_shot` для всех выбранных кадров (по одному вызову на кадр), нумеруя выход:
-`$OUT_DIR/store-01.png`, `store-02.png`, …
+Если инструмент печатает `⚠️ ... is 1.5 tall/wide — that is not phone-shaped`, значит в
+`raw/` просочился старый квадратный кадр — вернуться к Фазе 1.2 и переснять.
 
 ---
 
-## Фаза 5 — Feature graphic (Google Play, 1024×500) [~30 сек]
+## Фаза 6 — Feature graphic 1024×500 [~20 сек]
 
-Сделать горизонтальный баннер: тематический фон (можно отдельный GPT-фон 1024×500 или кроп общего) + название игры.
+Google Play. Безопасная зона — центральные 924×432; по краям текст не ставить.
 
 ```bash
-# Фон 1024x500 (GPT Images 2.0 — промпт landscape, либо кроп существующего bg)
-"$IM" "$BG_DIR/bg.png" -resize "1024x500^" -gravity center -extent 1024x500 /tmp/fg_bg.png
-
-# Название игры крупно, по центру
-"$IM" /tmp/fg_bg.png \
-  \( -background none -fill "$TEXT_COLOR" -gravity center -size 900x360 caption:"$TITLE" \) \
-  -gravity center -compose over -composite \
-  "$OUT_DIR/feature-graphic-1024x500.png"
-echo "✅ feature-graphic-1024x500.png"
+python3 tools/store_compose.py banner \
+  --keyart "$ART_DIR/keyart.png" \
+  --shot "$RAW_DIR/02-menu.png" \
+  --out "$OUT_DIR/feature-graphic-1024x500.png" \
+  --title "$TITLE" \
+  --tagline "$TAGLINE" \
+  --frame "${FRAME:-ios}"
 ```
 
-Для feature graphic предпочтительно сгенерировать отдельный landscape-фон через GPT Images 2.0
-(промпт: `Horizontal 1024x500 app store feature banner for a [THEME] game, [COLORS], [MOOD], empty area for title text, no text, high quality`).
+`--shot` не обязателен: без него баннер — чистая панорама с тайтлом.
+Для App Store feature graphic не нужен — при `--platform appstore` шаг можно пропустить.
 
 ---
 
-## Фаза 6 — STORE_INFO.md [~10 сек]
+## Фаза 7 — Верификация [~30 сек]
 
-Создать `$STORE_DIR/STORE_INFO.md`:
+```bash
+python3 tools/store_compose.py check --dir "$OUT_DIR"
+```
+
+Проверяет: файлы читаются, стороны 320…3840 px, размер ≤ 8 МБ, единый размер у всех `store-*`.
+
+Плюс **vision-проверка** через Read по каждому финальному PNG:
+
+- [ ] Панели 1…P складываются в одну картину, швы не рвут ключевые объекты
+- [ ] На витринных кадрах виден РЕАЛЬНЫЙ интерфейс игры, не заглушка
+- [ ] Подписи читаются (контраст ≥ 4.5:1), не обрезаны, без опечаток
+- [ ] Нигде нет сгенерированных букв-артефактов
+- [ ] Иконка узнаваема в 48 px (уменьшить `store_icon_512.png` и посмотреть)
+- [ ] Стиль триптиха, кадров, баннера и иконки — один мир
+
+Любой провал → исправить и пересобрать конкретный файл. Не прятать проблему в отчёте.
+
+---
+
+## Фаза 8 — STORE_INFO.md [~10 сек]
 
 ```markdown
-# Store Screenshots — [TITLE]
+# Store Kit — [TITLE]
 
-**Сборка**: [TS]
-**Платформа**: [play|appstore]
-**Размер скринов**: [SW]×[SH]
-**Feature graphic**: 1024×500
-**Язык подписей**: [lang]
-**Фоны**: GPT Images 2.0 ([N] шт.) | fallback: [да/нет]
+**Сборка**: [TS] • **Платформа**: [play|appstore] • **Скрины**: [SW]×[SH]
 
-## Содержимое
-- `store/` — [N] витринных скриншотов + feature graphic
-- `raw/` — исходные кадры игры
-- `backgrounds/` — сгенерированные фоны
-- `STORE_INFO.md` — этот файл
+## Состав
+| Файл | Что |
+|------|-----|
+| store-01…0P.png | Концепт-триптих — одна панорама, [P] панелей |
+| store-0(P+1)…N.png | Кадры игры в рамке телефона |
+| feature-graphic-1024x500.png | Feature graphic (Google Play) |
+| branding/store_icon_512.png | Иконка листинга 512×512 |
+| _panorama-preview.png | Склейка триптиха со швами (проверочная, НЕ загружать) |
 
 ## Подписи
 | Файл | Заголовок |
 |------|-----------|
-| store-01.png | [caption 1] |
-| store-02.png | [caption 2] |
 | … | … |
 
-## Как использовать
-1. Google Play Console → Store presence → Main store listing → Phone screenshots → загрузить `store/store-*.png`
-2. Feature graphic → загрузить `store/feature-graphic-1024x500.png`
-3. App Store Connect → соответствующий размер дисплея
+## Применено к проекту
+- App-иконка: `flutter_launcher_icons` → Android (adaptive) + iOS + web — [да/нет]
+- Эмблема: `assets/images/ui/ui_game_logo.png` — [зарегистрирована / подключена в меню / нет]
 
-> Требования Google Play: 2–8 phone screenshots, JPEG/24-bit PNG, 320–3840 px по стороне.
+## Порядок загрузки
+1. Play Console → Store presence → Main store listing → Phone screenshots →
+   `store-01 … store-0N.png` **строго по порядку номеров** (иначе триптих развалится).
+2. Feature graphic → `feature-graphic-1024x500.png`
+3. App icon → `branding/store_icon_512.png`
+4. App Store Connect → тот же порядок в нужном размере дисплея.
+
+> Play: 2–8 скринов, PNG/JPEG, сторона 320–3840 px, ≤ 8 МБ. App Store: до 10.
+> `_panorama-preview.png` — служебный файл, в стор его не грузить.
 ```
 
 ---
 
-## Фаза 7 — Упаковка в .zip [~30 сек]
+## Фаза 9 — Упаковка [~30 сек]
 
 ```bash
+mkdir -p "$STORE_DIR/branding"
+cp assets/branding/store_icon_512.png assets/branding/app_icon.png "$STORE_DIR/branding/" 2>/dev/null || true
+cp assets/branding/app_icon_fg.png "$STORE_DIR/branding/" 2>/dev/null || true
+
 ARCHIVE_NAME="$PROJECT_NAME-store-$TS.zip"
 ARCHIVE_PATH="$STORE_ROOT/$ARCHIVE_NAME"
+(cd "$STORE_ROOT" && zip -r "$ARCHIVE_NAME" "$(basename "$STORE_DIR")" -x "*.DS_Store")
 
-(cd "$STORE_ROOT" && zip -r "$ARCHIVE_NAME" "$(basename "$STORE_DIR")" \
-  -x "*.DS_Store" -x "*/__pycache__/*")
-
-if [[ ! -s "$ARCHIVE_PATH" ]]; then
-  echo "❌ zip не создан — критическая ошибка упаковки"
-  exit 1
-fi
-
-# Целостность
+[[ -s "$ARCHIVE_PATH" ]] || { echo "❌ zip не создан"; exit 1; }
 unzip -t "$ARCHIVE_PATH" >/dev/null 2>&1 || { echo "❌ Архив повреждён"; exit 1; }
 
-# КРИТИЧНО: витринные PNG ДОЛЖНЫ быть внутри архива
-CONTENTS=$(unzip -Z1 "$ARCHIVE_PATH")
-STORE_PNG=$(echo "$CONTENTS" | grep -c "/store/.*\.png$" || true)
-if [[ "$STORE_PNG" -lt 1 ]]; then
-  echo "❌ В архиве нет витринных PNG (store/*.png)"
-  echo "$CONTENTS" | head -20
-  exit 1
-fi
+STORE_PNG=$(unzip -Z1 "$ARCHIVE_PATH" | grep -c "/store/store-.*\.png$" || true)
+[[ "$STORE_PNG" -lt 1 ]] && { echo "❌ В архиве нет витринных PNG"; unzip -Z1 "$ARCHIVE_PATH" | head -20; exit 1; }
 
-ARCHIVE_SIZE=$(du -h "$ARCHIVE_PATH" | awk '{print $1}')
 if command -v sha256sum >/dev/null 2>&1; then
   ARCHIVE_SHA=$(sha256sum "$ARCHIVE_PATH" | awk '{print $1}')
 else
   ARCHIVE_SHA=$(shasum -a 256 "$ARCHIVE_PATH" | awk '{print $1}')
 fi
 echo "$ARCHIVE_SHA  $ARCHIVE_NAME" > "$ARCHIVE_PATH.sha256"
-
-echo "✅ Архив готов: $ARCHIVE_PATH ($ARCHIVE_SIZE), внутри store-PNG: $STORE_PNG"
-echo "SHA256: $ARCHIVE_SHA"
+echo "✅ $ARCHIVE_PATH ($(du -h "$ARCHIVE_PATH" | awk '{print $1}')), store-PNG: $STORE_PNG"
 ```
-
-> Архив сохраняется в `project_zip/` — worker веб-сервиса автоматически забирает оттуда
-> `.zip` и регистрирует его как скачиваемый артефакт в чате (как у `/release-package`).
 
 ---
 
-## Фаза 8 — Финальный отчёт
+## Фаза 10 — Финальный отчёт
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🖼️  STORE SCREENSHOTS COMPLETE
+🖼️  STORE KIT COMPLETE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 Игра: [TITLE]
-📐 Размер: [SW]×[SH]  •  Платформа: [play|appstore]
-🎨 Фоны: GPT Images 2.0 ([N])
+🎯 [TITLE] — [TAGLINE]
+📐 [SW]×[SH] • [play|appstore]
 
-📦 Архив: project_zip/[PROJECT_NAME]-store-[TS].zip ([SIZE])
-   📂 store/ — [N] витринных PNG + feature-graphic-1024x500.png
-   📂 raw/ — исходные кадры
-   📂 backgrounds/ — фоны
-   📄 STORE_INFO.md
+🎨 Концепт-триптих: панели 01–0[P] = одна панорама [3*SW]×[SH]
+📱 Кадры игры:      панели 0[P+1]–0[N], рамка [ios|android|none]
+🏞️  Feature graphic: 1024×500
+🎭 Иконка:          применена (Android adaptive + iOS + web) [или: только файлы]
+🔰 Эмблема:         assets/images/ui/ui_game_logo.png [подключена в меню / зарегистрирована]
 
+📦 project_zip/[PROJECT_NAME]-store-[TS].zip ([SIZE])
 🔒 SHA256: [SHA]
 
-📋 Следующий шаг: скачать архив из чата и загрузить store/*.png в Google Play Console / App Store Connect.
+📋 Дальше: скачать архив из чата → загрузить store-*.png ПО ПОРЯДКУ в Play Console.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -417,22 +588,30 @@ echo "SHA256: $ARCHIVE_SHA"
 
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|----------------|
-| 0. Preflight | pubspec.yaml + ImageMagick есть | 1 (иначе abort) |
-| 1. Кадры | ≥1 валидный PNG в raw/ | 2 (abort если 0 и нет устройства) |
-| 2. Отбор/подписи | По заголовку на каждый выбранный кадр | 1 |
-| 3. Фоны | ≥1 фон (GPT или fallback) | 2 |
-| 4. Композиты | ≥1 store-*.png собран | 2 |
-| 5. Feature graphic | feature-graphic-1024x500.png собран | 1 (non-fatal) |
-| 6. Metadata | STORE_INFO.md создан | 1 |
-| 7. Archive | .zip создан, store/*.png внутри, SHA256 записан | 1 |
+| 0. Preflight | pubspec + Pillow/numpy + store_compose.py | 1 (иначе abort) |
+| 1. Кадры | ≥ 1 непустой PNG в `raw/`, **все в пропорции телефона h/w 1.9–2.35** | 2 (abort если 0) |
+| 2. Арт | keyart + icon_art + emblem сгенерированы, emblem с альфой | 2 на ассет |
+| 3. Иконка | `flutter_launcher_icons` отработал, mipmap непустой | 2 |
+| 3.4. Меню | `dart analyze` без errors (иначе откат) | 1 |
+| 4. Триптих | P панелей + швы не рвут ключевые объекты (vision) | 2 |
+| 5. Витрина | `COUNT-P` кадров собраны, подписи читаемы | 2 |
+| 6. Banner | feature-graphic собран | 1 (non-fatal) |
+| 7. Verify | `check` без ошибок + vision-чеклист пройден | 2 |
+| 9. Archive | zip создан, `store-*.png` внутри, SHA256 записан | 1 |
 
 ---
 
 ## Запрещено в этом навыке
 
-1. **Менять исходный код игры** — навык только снимает, генерирует и собирает.
-2. **Коммитить в git** — только пользователь решает.
-3. **Удалять `project_zip/` или его содержимое** — только добавляем.
-4. **Публиковать что-либо в стор автоматически** — только локальный артефакт для скачивания.
-5. **Вставлять фейковые UI/цифры** в кадры — на витрине только реальные кадры игры.
-6. **Прятать ошибки генерации изображений** — при сбое GPT Images 2.0 показать причину и использовать fallback.
+1. **Менять игровую логику, состояния, конфиги, баланс.** Разрешены ровно: `assets/branding/*`,
+   `assets/images/ui/ui_game_logo.png`, `pubspec.yaml` (иконки/ассеты), константа в `lib/assets.dart`
+   и ОДНА вставка `Image.asset` в главном меню.
+2. **Коммитить в git** — решает только пользователь.
+3. **Удалять `project_zip/`** или существующие ассеты проекта — только добавляем.
+4. **Публиковать что-либо в стор** — только локальный артефакт.
+5. **Рисовать фейковый UI/цифры** в кадрах — на витрине только реальные кадры игры.
+6. **Просить у модели текст, буквы, цифры, рамки или «триптих/панели»** внутри арта —
+   нарезку делает `store_compose.py`, буквы рисует композитор.
+7. **Применять казино/неон по умолчанию** — арт-дирекшен только из Design DNA игры.
+8. **Прятать провалы генерации** — показать причину и fallback.
+9. **Оставлять `_panorama-preview.png` в списке «для загрузки»** — это проверочный файл.
