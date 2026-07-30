@@ -53,7 +53,7 @@ Skill tool, hooks, vision, image generation) — см. `AGENTS.md` → «Executi
 | `/release-checklist` | `.claude/skills/release-checklist/SKILL.md` | GO/NO-GO чеклист (persona release-manager; учитывает playtest и asset-review вердикты) |
 | `/release-engineering` | `.claude/skills/release-engineering/SKILL.md` | Иконки/splash/версия/signed AAB/store-metadata/CI. В конвейере — только `--prep-only --no-keystore` |
 | `/release-package` | `.claude/skills/release-package/SKILL.md` | Скриншоты + release APK/AAB + `flutter clean` + архив в `project_zip/`. **Явный запуск пользователя**, НЕ авто-вызов из конвейера |
-| `/store-screenshots` | `.claude/skills/store-screenshots/SKILL.md` | Витрина стора: концепт-триптих (одна панорама на N панелей) + кадры игры в рамке телефона + feature graphic + иконка/эмблема (генерируются И применяются). Арт — GPT Images 2.0, композитинг — `tools/store_compose.py` → `project_zip/` |
+| `/store-screenshots` | `.claude/skills/store-screenshots/SKILL.md` | Витрина стора: концепт-триптих (одна панорама на N панелей, БЕЗ текста) + кадры игры в рамке телефона с подписями + feature graphic + иконка/эмблема (генерируются И применяются). Арт — GPT Images 2.0, композитинг и типографика — `tools/store_compose.py` → `project_zip/` |
 
 ## Устаревшее
 
