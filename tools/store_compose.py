@@ -8,30 +8,42 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
   triptych  N vertical panels sliced out of ONE wide key-art panorama, so the
             first N store screenshots read as a single continuous picture when
             the store shows them side by side. This is a *conceptual* poster of
-            the game world, not a screen of the app.
+            the game world, not a screen of the app — and it carries NO TEXT:
+            lettering across a panel boundary is cut by the store's gutters,
+            and a lockup inside one panel breaks the single-picture illusion.
   showcase  a real in-game frame placed inside a drawn phone (bezel, notch,
-            home indicator, glass glare, drop shadow) over a themed background.
+            home indicator, glass glare, drop shadow) over a themed background,
+            with the caption typography that sells the frame.
   banner    Google Play feature graphic (1024x500) — key art + optional device
-            mockup + optional title, laid out inside Play's safe area.
+            mockup + title lockup, laid out inside Play's safe area.
   icon      launcher/store icon set derived from generated art: 1024 master,
             1024 adaptive foreground (subject inside Android's 66% safe zone),
             512 store icon.
+  fonts     report which display faces this machine can actually use.
   check     validates a finished directory against store constraints.
 
 Why a tool instead of inline ImageMagick: rounded corners, notches, glare,
-fractional-alpha shadows and auto-fitted text are exactly the steps that
+fractional-alpha shadows and display typography are exactly the steps that
 silently degrade when written as one-off `convert` incantations. Here they are
 deterministic, testable and identical across every game.
+
+Typography is treated as display type, not UI labels: the face is chosen by
+mood (or taken from the game's own assets/fonts via --font-dir), letter spacing
+is tuned per mood, and text is rendered through an alpha mask so the fill can
+be a gradient in the game's palette and the shadow can be a real blur.
 
 Requires: Pillow + numpy (both already required by tools/cutout.py).
 
 Examples:
+  python3 tools/store_compose.py fonts --font-dir assets/fonts
   python3 tools/store_compose.py triptych --src keyart.png --out store/ \\
-      --panels 3 --size 1242x2688 --title "Zeus Slots" --tagline "Match. Chain. Ascend."
+      --panels 3 --size 1080x1920
   python3 tools/store_compose.py showcase --shot raw/02-menu.png --bg keyart.png \\
-      --out store/store-04.png --size 1242x2688 --caption "Собери комбо"
+      --out store/store-04.png --size 1080x1920 --caption "Собери комбо" \\
+      --type-mood epic --caption-color "#FFF6DC" --caption-color2 "#F0B34A"
   python3 tools/store_compose.py banner --keyart keyart.png --shot raw/02-menu.png \\
-      --out store/feature-graphic-1024x500.png --title "Zeus Slots"
+      --out store/feature-graphic-1024x500.png --title "Zeus Slots" \\
+      --tagline "Match. Chain. Ascend." --type-mood epic --title-color2 "#F0B34A"
   python3 tools/store_compose.py icon --src icon_art.png --fg-src emblem.png \\
       --out-dir assets/branding --bg "#2A0E4F"
 """
@@ -40,7 +52,9 @@ from __future__ import annotations
 
 import argparse
 import math
+import re
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 try:
@@ -61,23 +75,99 @@ PLAY_MIN_SIDE = 320
 PLAY_MAX_SIDE = 3840
 PLAY_MAX_BYTES = 8 * 1024 * 1024
 
-FONTS_BOLD = (
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-    "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
-    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-    "/Library/Fonts/Arial Bold.ttf",
-    "C:/Windows/Fonts/arialbd.ttf",
+# ── font discovery ──────────────────────────────────────────────────────────
+#
+# Store titles are DISPLAY typography, not UI labels, and the single biggest
+# reason generated listings look amateur is that they were set in whatever
+# metric-compatible Arial clone the container happened to ship. So instead of a
+# fixed path list we index the machine's fonts and choose by *character*:
+# a mood picks an ordered list of families, and the game's own typeface (via
+# --font-dir assets/fonts) outranks all of them, because that face IS the
+# game's identity.
+
+FONT_DIRS = (
+    "/usr/share/fonts", "/usr/local/share/fonts", "~/.fonts", "~/.local/share/fonts",
+    "/System/Library/Fonts", "/Library/Fonts", "~/Library/Fonts",
+    "C:/Windows/Fonts",
 )
-FONTS_REGULAR = (
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/TTF/DejaVuSans.ttf",
-    "/System/Library/Fonts/Supplemental/Arial.ttf",
-    "/Library/Fonts/Arial.ttf",
-    "C:/Windows/Fonts/arial.ttf",
+
+# Faces that are fine for body copy but read as "no design decision was made"
+# in a 200px store title. Their selection is reported, not silently accepted.
+GENERIC_FACES = ("liberation", "dejavu", "arial", "helvetica", "freesans", "nimbus", "sfns")
+
+# Never set text in these, whatever the directory: a Flutter project's
+# assets/fonts commonly holds an icon font, and titles would render as glyph
+# soup.
+NON_TEXT_FONTS = ("icon", "symbol", "emoji", "awesome", "material", "dingbat", "braille")
+
+# Appended to every mood so resolution always terminates on something readable.
+FALLBACK_FAMILIES = (
+    "Inter", "Roboto", "NotoSans", "OpenSans", "Montserrat",
+    "LiberationSans", "DejaVuSans", "Arial",
+)
+
+# mood -> ordered family preferences + the spacing/case that face wants.
+# Families are listed most-characterful first and span Linux packages, macOS
+# system fonts and Windows, so the same mood degrades gracefully anywhere.
+TYPE_MOODS: dict[str, dict] = {
+    "bold": {  # poster-loud, genre-neutral — the default
+        "display": ("Anton", "ArchivoBlack", "Oswald", "LeagueGothic", "BebasNeue",
+                    "Impact", "Montserrat", "Inter", "Roboto"),
+        "body": ("Montserrat", "Inter", "Roboto", "OpenSans", "NotoSans"),
+        "upper": True, "tracking": 0.02,
+    },
+    "epic": {  # myth, fantasy, high stakes
+        "display": ("Cinzel", "PlayfairDisplay", "EBGaramond", "Bodoni72", "Didot",
+                    "Georgia", "NotoSerif", "LiberationSerif", "DejaVuSerif"),
+        "body": ("EBGaramond", "NotoSerif", "Georgia", "Lato", "NotoSans"),
+        "upper": True, "tracking": 0.06,
+    },
+    "tech": {  # sci-fi, cyber, neon
+        "display": ("Orbitron", "Rajdhani", "Saira", "Exo2", "TitilliumWeb",
+                    "Chakra", "Play", "RobotoCondensed", "Inter", "NotoSans"),
+        "body": ("Inter", "Roboto", "TitilliumWeb", "Play", "NotoSans"),
+        "upper": True, "tracking": 0.12,
+    },
+    "playful": {  # casual, candy, kids, cozy
+        "display": ("Baloo", "Fredoka", "Comfortaa", "Quicksand", "Nunito",
+                    "Rubik", "MarkerFelt", "Montserrat", "NotoSans"),
+        "body": ("Nunito", "Quicksand", "Rubik", "OpenSans", "NotoSans"),
+        "upper": False, "tracking": 0.0,
+    },
+    "elegant": {  # premium, minimal, refined
+        "display": ("Cormorant", "PlayfairDisplay", "EBGaramond", "Didot",
+                    "Optima", "Palatino", "NotoSerif", "Georgia"),
+        "body": ("EBGaramond", "Lato", "NotoSerif", "Georgia", "NotoSans"),
+        "upper": True, "tracking": 0.14,
+    },
+    "retro": {  # arcade, pixel, 8-bit
+        "display": ("PressStart2P", "Silkscreen", "VT323", "Monoton", "Bungee",
+                    "Impact", "Oswald", "JetBrainsMono", "FiraCode", "DejaVuSansMono"),
+        "body": ("VT323", "JetBrainsMono", "FiraCode", "DejaVuSansMono",
+                 "LiberationMono", "Menlo"),
+        "upper": True, "tracking": 0.06,
+    },
+    "clean": {  # modern, neutral, restraint
+        "display": ("Inter", "Montserrat", "HelveticaNeue", "Roboto", "Cantarell",
+                    "Ubuntu", "Lato", "OpenSans", "NotoSans"),
+        "body": ("Inter", "Roboto", "OpenSans", "Lato", "Cantarell", "NotoSans"),
+        "upper": False, "tracking": 0.01,
+    },
+}
+
+# Weight tokens ordered best-first for each intent.
+_HEAVY_ORDER = ("black", "heavy", "ultrabold", "extrabold", "extrabld", "bold",
+                "semibold", "demibold", "medium", "regular", "book")
+_LIGHT_ORDER = ("regular", "normal", "book", "text", "medium", "light", "thin",
+                "semibold", "demibold", "bold", "black", "heavy")
+
+# What may legally follow a family name in a filename. This gate is what stops
+# "NotoSans" from matching NotoSansAdlam-Regular.ttf — a font for the Adlam
+# script, which would set a Latin title entirely in tofu boxes.
+_STYLE_TOKENS = (
+    "black", "heavy", "ultra", "extra", "bold", "bd", "semi", "demi", "medium",
+    "regular", "normal", "book", "light", "thin", "italic", "oblique", "roman",
+    "condensed", "narrow", "display", "text", "mono", "std", "pro", "variable",
 )
 
 
@@ -124,6 +214,11 @@ def hex_rgba(text: str, alpha: int = 255) -> tuple[int, int, int, int]:
         die(f"bad colour {text!r}; expected #RGB, #RRGGBB or #RRGGBBAA")
     r, g, b = (int(s[i:i + 2], 16) for i in (0, 2, 4))
     return (r, g, b, alpha)
+
+
+def opt_rgba(text: str | None, alpha: int = 255):
+    """hex_rgba for optional colours — empty/unset means 'no second stop'."""
+    return hex_rgba(text, alpha) if str(text or "").strip() else None
 
 
 def load_image(path: str | Path, label: str = "image") -> Image.Image:
@@ -193,7 +288,9 @@ def gradient(size: tuple[int, int], stops, horizontal: bool = False) -> Image.Im
         arr = np.repeat(line[None, :, :], h, axis=0)
     else:
         arr = np.repeat(line[:, None, :], w, axis=1)
-    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGBA")
+    out = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGBA")
+    # `n` is floored at 2, so a 1px-thin ramp comes back one row/column too big.
+    return out if out.size == (w, h) else out.resize((max(1, w), max(1, h)), RES)
 
 
 def drop_shadow(img: Image.Image, blur: int, dy: int, opacity: float) -> tuple[Image.Image, int]:
@@ -237,15 +334,185 @@ def save_png(img: Image.Image, path: Path, keep_alpha: bool = False) -> int:
 
 # ───────────────────────────── typography ───────────────────────────────────
 
-def find_font(explicit: str | None, bold: bool) -> str | None:
-    if explicit:
-        if not Path(explicit).is_file():
-            die(f"--font not found: {explicit}")
-        return explicit
-    for candidate in (FONTS_BOLD if bold else FONTS_REGULAR):
-        if Path(candidate).is_file():
-            return candidate
+def _norm(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(text).lower())
+
+
+@lru_cache(maxsize=32)
+def _scan_fonts(root: str) -> tuple[tuple[str, str], ...]:
+    """Index one directory tree as ((normalised stem, path), ...)."""
+    base = Path(root).expanduser()
+    if not base.is_dir():
+        return ()
+    found: set[tuple[str, str]] = set()
+    for path in base.rglob("*"):
+        if path.suffix.lower() not in (".ttf", ".otf", ".ttc") or not path.is_file():
+            continue
+        stem = _norm(path.stem)
+        if any(bad in stem for bad in NON_TEXT_FONTS):
+            continue
+        found.add((stem, str(path)))
+    return tuple(sorted(found))
+
+
+def _face_score(stem: str, path: str, prefer: str) -> int:
+    heavy = prefer == "heavy"
+    order = _HEAVY_ORDER if heavy else _LIGHT_ORDER
+    # A filename with no weight token IS the regular cut (Arial.ttf) — which is
+    # exactly what body text wants, and only a maybe for display, where the
+    # face may instead be single-weight by design (Impact, PressStart2P).
+    score = 40 if heavy else 95
+    for i, token in enumerate(order):
+        if token in stem:
+            score = 100 - i * (4 if heavy else 7)
+            break
+    if "italic" in stem or "oblique" in stem:
+        score -= 50
+    if path.lower().endswith(".ttc"):
+        score -= 8  # collection: Pillow can only address face 0 reliably
+    return score
+
+
+def _is_family(stem: str, key: str) -> bool:
+    """True when `stem` is a cut OF family `key`, not merely prefixed by it."""
+    if not stem.startswith(key):
+        return False
+    rest = stem[len(key):]
+    return rest == "" or rest.startswith(_STYLE_TOKENS)
+
+
+# Two unassigned private-use codepoints. A font renders both with the same
+# .notdef glyph (the tofu box), which gives us a reference bitmap to compare
+# real characters against.
+_NOTDEF_PROBES = ("\uE83A", "\uE9B1")
+
+
+def _render_key(font, char: str) -> bytes:
+    box = Image.new("L", (96, 96), 0)
+    ImageDraw.Draw(box).text((8, 8), char, font=font, fill=255)
+    return box.tobytes()
+
+
+@lru_cache(maxsize=1024)
+def _covers(path: str, charset: str) -> bool:
+    """Can this face actually SET this text, or will it come out as tofu boxes?
+
+    This gate matters more than any other font choice here: the studio's UI
+    language is Russian, and most display faces (Bodoni, Didot, Impact, Anton,
+    Orbitron, Press Start 2P) ship Latin only. Without the check, a Cyrillic
+    caption composites as a row of empty rectangles — which is exactly what it
+    did before this existed.
+    """
+    if not charset:
+        return True
+    try:
+        font = ImageFont.truetype(path, 40)
+        notdef = _render_key(font, _NOTDEF_PROBES[0])
+        if notdef != _render_key(font, _NOTDEF_PROBES[1]):
+            return True  # can't identify this face's .notdef — don't guess
+        return all(ch.isspace() or _render_key(font, ch) != notdef for ch in charset)
+    except Exception:
+        return False
+
+
+def _charset(sample: str) -> str:
+    """Deduplicated, order-stable probe set for a piece of copy."""
+    seen: list[str] = []
+    for ch in str(sample or ""):
+        if not ch.isspace() and ch not in seen:
+            seen.append(ch)
+    return "".join(seen[:64])
+
+
+def _best_face(pool, families, prefer: str, charset: str = "",
+               skipped: list | None = None) -> str | None:
+    """First family that matches AND can set the copy; weight breaks ties."""
+    for family in families:
+        key = _norm(family)
+        hits = [(stem, path) for stem, path in pool if _is_family(stem, key)]
+        if not hits:
+            continue
+        for stem, path in sorted(hits, key=lambda h: _face_score(h[0], h[1], prefer),
+                                 reverse=True):
+            if _covers(path, charset):
+                return path
+        if skipped is not None:
+            skipped.append(family)
     return None
+
+
+def pick_face(families, prefer: str = "heavy", extra_dirs=(), charset: str = "",
+              skipped: list | None = None) -> str | None:
+    project = [entry for d in extra_dirs for entry in _scan_fonts(d)]
+    if project:
+        # The game ships its own typeface — use it even if it matches no mood,
+        # because listing type that differs from in-game type looks like a
+        # different product. Coverage still vetoes: an unreadable title is worse
+        # than an off-brand one.
+        hit = _best_face(project, families, prefer, charset, skipped)
+        if hit:
+            return hit
+        usable = [e for e in project if _covers(e[1], charset)]
+        if usable:
+            return max(usable, key=lambda h: _face_score(h[0], h[1], prefer))[1]
+    system = [entry for d in FONT_DIRS for entry in _scan_fonts(d)]
+    return (_best_face(system, families, prefer, charset, skipped)
+            or _best_face(system, FALLBACK_FAMILIES, prefer, charset))
+
+
+class TypePlan:
+    """Resolved faces + the spacing/case the chosen mood asks for.
+
+    `display_text` / `body_text` are the actual copy about to be set. They are
+    required, not optional: face selection is only correct once it knows which
+    glyphs it has to produce.
+    """
+
+    def __init__(self, args, display_text: str = "", body_text: str = "") -> None:
+        mood = getattr(args, "type_mood", None) or "bold"
+        spec = TYPE_MOODS[mood]
+        dirs = tuple(getattr(args, "font_dir", None) or ())
+        for d in dirs:
+            if not Path(d).expanduser().is_dir():
+                warn(f"--font-dir {d} is not a directory — ignoring")
+        explicit = getattr(args, "font", None)
+        explicit_body = getattr(args, "font_regular", None)
+        for flag, value, copy in (("--font", explicit, display_text),
+                                  ("--font-regular", explicit_body, body_text)):
+            if not value:
+                continue
+            if not Path(value).is_file():
+                die(f"{flag} not found: {value}")
+            missing = [c for c in _charset(copy) if not _covers(value, c)]
+            if missing:
+                die(f"{flag} {Path(value).name} has no glyphs for {''.join(missing)!r} — "
+                    "that text would composite as empty boxes. Choose a face that "
+                    "covers the copy's alphabet, or drop the flag and let --type-mood pick.")
+
+        self.mood = mood
+        display_set, body_set = _charset(display_text), _charset(body_text or display_text)
+        self.skipped: list[str] = []
+        self.display = explicit or pick_face(
+            tuple(spec["display"]) + FALLBACK_FAMILIES, "heavy", dirs,
+            charset=display_set, skipped=self.skipped)
+        self.body = explicit_body or explicit or pick_face(
+            tuple(spec["body"]) + FALLBACK_FAMILIES, "regular", dirs, charset=body_set)
+        tracking = getattr(args, "tracking", None)
+        self.tracking = spec["tracking"] if tracking is None else tracking
+        self.upper = spec["upper"] and not getattr(args, "no_uppercase", False)
+        self.outline = getattr(args, "text_outline", 0.0) or 0.0
+
+    def report(self) -> None:
+        info(f"type: {self.mood} — display {Path(self.display).name if self.display else 'built-in'}"
+             f", body {Path(self.body).name if self.body else 'built-in'}"
+             f", tracking {self.tracking:+.2f}em, {'UPPER' if self.upper else 'sentence'} case")
+        if self.skipped:
+            info(f"skipped {', '.join(self.skipped)} — no glyphs for this copy's alphabet")
+        if self.display and any(g in _norm(Path(self.display).stem) for g in GENERIC_FACES):
+            warn(f"display face {Path(self.display).name} is a generic UI font — a store title "
+                 "set in it reads as 'default Arial'. Point --font-dir at the game's own "
+                 "assets/fonts, or install display faces in the image "
+                 "(fonts-montserrat / fonts-ebgaramond / fonts-inter).")
 
 
 def load_font(path: str | None, size: int) -> ImageFont.ImageFont:
@@ -257,77 +524,222 @@ def load_font(path: str | None, size: int) -> ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
-def wrap_lines(text: str, font, draw: ImageDraw.ImageDraw, max_w: int) -> list[str]:
+_SCRATCH = ImageDraw.Draw(Image.new("RGBA", (8, 8)))
+
+
+def text_width(text: str, font, tracking_px: float) -> float:
+    if not tracking_px:
+        return _SCRATCH.textlength(text, font=font)
+    # Per-glyph advance loses kerning, which is the correct trade at display
+    # sizes where the tracking is an explicit design choice.
+    return (sum(_SCRATCH.textlength(c, font=font) for c in text)
+            + tracking_px * max(0, len(text) - 1))
+
+
+def _greedy_wrap(words, font, max_w: int, tracking_px: float) -> list[str]:
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        probe = f"{current} {word}".strip()
+        if not current or text_width(probe, font, tracking_px) <= max_w:
+            current = probe
+        else:
+            lines.append(current)
+            current = word
+    lines.append(current)
+    return lines
+
+
+def _balance(words, font, max_w: int, tracking_px: float, count: int) -> list[str] | None:
+    """Split `words` into exactly `count` lines with the narrowest widest line.
+
+    Greedy wrapping fills each line to the margin, which for a two-line display
+    setting typically leaves one long line and one orphan — and forces a smaller
+    size than necessary, since the fit is driven by the longest line. Ties go to
+    the longer-line-first shape, which is what centred display type wants.
+    """
+    n = len(words)
+    if count < 2 or n < count:
+        return None
+
+    def width(i: int, j: int) -> float:
+        return text_width(" ".join(words[i:j]), font, tracking_px)
+
+    from functools import lru_cache as _cache
+
+    @_cache(maxsize=None)
+    def solve(start: int, left: int):
+        if left == 1:
+            w = width(start, n)
+            return (w, (n,)) if w <= max_w else (float("inf"), ())
+        best = (float("inf"), ())
+        for cut in range(start + 1, n - left + 2):
+            w = width(start, cut)
+            if w > max_w:
+                break
+            tail, cuts = solve(cut, left - 1)
+            worst = max(w, tail)
+            if worst < best[0]:
+                best = (worst, (cut,) + cuts)
+        return best
+
+    worst, cuts = solve(0, count)
+    solve.cache_clear()
+    if worst == float("inf"):
+        return None
+    out, prev = [], 0
+    for cut in cuts:
+        out.append(" ".join(words[prev:cut]))
+        prev = cut
+    return out
+
+
+def wrap_lines(text: str, font, max_w: int, tracking_px: float = 0.0) -> list[str]:
     lines: list[str] = []
     for paragraph in text.split("\n"):
-        current = ""
-        for word in paragraph.split():
-            probe = f"{current} {word}".strip()
-            if not current or draw.textlength(probe, font=font) <= max_w:
-                current = probe
-            else:
-                lines.append(current)
-                current = word
-        lines.append(current)
+        words = paragraph.split()
+        greedy = _greedy_wrap(words, font, max_w, tracking_px)
+        balanced = _balance(words, font, max_w, tracking_px, len(greedy))
+        lines.extend(balanced or greedy)
     return [ln for ln in lines if ln != ""] or [""]
 
 
 def fit_text(text: str, font_path: str | None, max_w: int, max_h: int,
              max_size: int, min_size: int = 14, spacing: float = 1.16,
-             max_lines: int = 3):
-    """Largest font size at which `text` wraps inside max_w×max_h and max_lines."""
-    scratch = ImageDraw.Draw(Image.new("RGBA", (8, 8)))
+             max_lines: int = 3, tracking: float = 0.0):
+    """Largest size at which `text` wraps inside max_w×max_h and max_lines.
 
+    Returns (font, lines, total_height, line_step, tracking_px).
+    """
     def measure(size: int):
         font = load_font(font_path, size)
-        lines = wrap_lines(text, font, scratch, max_w)
+        tracking_px = tracking * size
+        lines = wrap_lines(text, font, max_w, tracking_px)
         line_h = font.getbbox("Ag")[3] - font.getbbox("Ag")[1]
         step = int(line_h * spacing)
-        widest = max(scratch.textlength(ln, font=font) for ln in lines)
-        return font, lines, len(lines) * step, step, widest
+        widest = max(text_width(ln, font, tracking_px) for ln in lines)
+        return font, lines, len(lines) * step, step, widest, tracking_px
 
     lo, hi, best = min_size, max(min_size, max_size), None
     while lo <= hi:
         mid = (lo + hi) // 2
-        font, lines, total, step, widest = measure(mid)
+        font, lines, total, step, widest, tpx = measure(mid)
         if total <= max_h and widest <= max_w and len(lines) <= max_lines:
-            best = (font, lines, total, step)
+            best = (font, lines, total, step, tpx)
             lo = mid + 1
         else:
             hi = mid - 1
     if best is None:
-        font, lines, total, step, _ = measure(min_size)
-        best = (font, lines, total, step)
+        font, lines, total, step, _, tpx = measure(min_size)
+        best = (font, lines, total, step, tpx)
     return best
+
+
+def _draw_tracked(draw: ImageDraw.ImageDraw, xy, text: str, font,
+                  tracking_px: float, **kw) -> None:
+    if not tracking_px:
+        draw.text(xy, text, font=font, **kw)
+        return
+    x, y = xy
+    for char in text:
+        draw.text((x, y), char, font=font, **kw)
+        x += _SCRATCH.textlength(char, font=font) + tracking_px
+
+
+def _lines_mask(size, lines, font, tracking_px, x, y, w, step,
+                stroke: int = 0) -> Image.Image:
+    """Alpha coverage of the text block — the substrate every effect paints on."""
+    mask = Image.new("L", size, 0)
+    draw = ImageDraw.Draw(mask)
+    cy = y
+    for line in lines:
+        lx = x + (w - text_width(line, font, tracking_px)) / 2
+        _draw_tracked(draw, (lx, cy), line, font, tracking_px, fill=255,
+                      stroke_width=stroke, stroke_fill=255 if stroke else None)
+        cy += step
+    return mask
+
+
+def _shift(mask: Image.Image, dx: int, dy: int) -> Image.Image:
+    out = Image.new("L", mask.size, 0)
+    out.paste(mask, (dx, dy))
+    return out
+
+
+def _scaled(mask: Image.Image, alpha: int) -> Image.Image:
+    return mask if alpha >= 255 else mask.point(lambda v: v * alpha // 255)
+
+
+def _fill_layer(mask: Image.Image, c1, c2=None) -> Image.Image:
+    """Paint `mask` with a flat colour, or a vertical c1→c2 ramp across it.
+
+    The ramp spans the text's own bounding box rather than the canvas, so a
+    caption near the top and a title near the bottom get the same gradient.
+    """
+    if not c2 or tuple(c2[:3]) == tuple(c1[:3]):
+        layer = Image.new("RGBA", mask.size, tuple(c1[:3]) + (0,))
+        layer.putalpha(_scaled(mask, c1[3]))
+        return layer
+    box = mask.getbbox()
+    rgb = Image.new("RGB", mask.size, tuple(c1[:3]))
+    if box:
+        bw, bh = max(1, box[2] - box[0]), max(1, box[3] - box[1])
+        rgb.paste(gradient((bw, bh), [(0.0, c1), (1.0, c2)]).convert("RGB"), (box[0], box[1]))
+    layer = rgb.convert("RGBA")
+    layer.putalpha(_scaled(mask, c1[3]))
+    return layer
 
 
 def draw_text_block(base: Image.Image, text: str, box: tuple[int, int, int, int],
                     font_path: str | None, colour, max_size: int,
-                    valign: str = "center", stroke: int = 0,
-                    stroke_colour=(0, 0, 0, 210), max_lines: int = 3) -> tuple[int, int]:
-    """Draw auto-fitted, centred, shadowed text inside box=(x,y,w,h).
+                    valign: str = "center", max_lines: int = 3,
+                    colour2=None, tracking: float = 0.0, uppercase: bool = False,
+                    outline: float = 0.0, outline_colour=(0, 0, 0, 235),
+                    shadow: float = 0.55, min_size: int = 14) -> tuple[int, int]:
+    """Draw auto-fitted, centred display text inside box=(x,y,w,h).
+
+    Rendering goes through an alpha mask so the fill can be a gradient and the
+    shadow can be a real blur. The old approach — a hard offset copy plus a
+    thick stroke — is what makes generated titles read as clip art.
 
     Returns (top, height) of the drawn block so callers can stack elements.
     """
     x, y, w, h = box
     if not text.strip():
         return (y, 0)
-    font, lines, total, step = fit_text(text, font_path, w, h, max_size, max_lines=max_lines)
+    if uppercase:
+        text = text.upper()
+    font, lines, total, step, tracking_px = fit_text(
+        text, font_path, w, h, max_size, min_size=min_size,
+        max_lines=max_lines, tracking=tracking)
     top = y if valign == "top" else (y + h - total if valign == "bottom" else y + (h - total) // 2)
 
-    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(layer)
-    shadow_off = max(2, font.size // 22)
-    cy = top
-    for line in lines:
-        lw = draw.textlength(line, font=font)
-        lx = x + (w - lw) / 2
-        draw.text((lx + shadow_off, cy + shadow_off), line, font=font, fill=(0, 0, 0, 150))
-        draw.text((lx, cy), line, font=font, fill=colour,
-                  stroke_width=stroke, stroke_fill=stroke_colour if stroke else None)
-        cy += step
-    base.alpha_composite(layer)
+    mask = _lines_mask(base.size, lines, font, tracking_px, x, top, w, step)
+
+    if shadow > 0:
+        blur = max(1.0, font.size * 0.055)
+        drop = max(1, round(font.size * 0.05))
+        smoke = _shift(mask, 0, drop).filter(ImageFilter.GaussianBlur(blur))
+        layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+        layer.putalpha(_scaled(smoke, int(max(0.0, min(1.0, shadow)) * 255)))
+        base.alpha_composite(layer)
+
+    if outline > 0:
+        width = max(1, round(font.size * outline))
+        edge = _lines_mask(base.size, lines, font, tracking_px, x, top, w, step, stroke=width)
+        base.alpha_composite(_fill_layer(edge, outline_colour))
+
+    base.alpha_composite(_fill_layer(mask, colour, colour2))
     return (top, total)
+
+
+def accent_rule(base: Image.Image, cx: int, top: int, width: int, height: int,
+                c1, c2=None) -> None:
+    """Short rounded bar — the cheapest mark that says a human set this type."""
+    width, height = max(4, width), max(2, height)
+    bar = gradient((width, height), [(0.0, c1), (1.0, c2 or c1)], horizontal=True)
+    bar.putalpha(rr_mask((width, height), height // 2))
+    base.alpha_composite(bar, (cx - width // 2, top))
 
 
 def scrim(base: Image.Image, box: tuple[int, int, int, int], strength: float = 0.72,
@@ -473,65 +885,25 @@ def treat_background(bg: Image.Image, treatment: str) -> Image.Image:
 
 # ───────────────────────────── subcommands ──────────────────────────────────
 
-def brand_block(canvas: Image.Image, box: tuple[int, int, int, int], title: str,
-                tagline: str, logo_path: str | None, args) -> None:
-    """Title / tagline / emblem lockup drawn inside one panel of the panorama."""
-    px, py, pw, ph = box
-    bold = find_font(args.font, bold=True)
-    regular = find_font(args.font_regular or args.font, bold=False)
-
-    pos = args.title_pos
-    block_h = int(ph * 0.30)
-    fade = int(ph * 0.14)
-    block_y = {"top": int(ph * 0.07),
-               "center": (ph - block_h) // 2}.get(pos, ph - block_h - int(ph * 0.08))
-
-    # The scrim runs to the panel edge on the text's side, so the lockup never
-    # sits in the fading part of the gradient.
-    if pos == "top":
-        scrim(canvas, (px, py, pw, block_y + block_h + fade), strength=args.scrim,
-              from_top=True, ramp=fade / max(1, block_y + block_h + fade))
-    elif pos == "center":
-        scrim(canvas, (px, py + block_y - fade, pw, block_h + 2 * fade),
-              strength=args.scrim * 0.85, from_top=True, ramp=0.30)
-        scrim(canvas, (px, py + block_y - fade, pw, fade), strength=args.scrim * 0.85,
-              from_top=False, ramp=0.95)
-    else:
-        top = py + block_y - fade
-        scrim(canvas, (px, top, pw, ph - (top - py)), strength=args.scrim,
-              from_top=False, ramp=fade / max(1, ph - (top - py)))
-
-    cursor = py + block_y
-    side = int(pw * 0.08)
-    inner_w = pw - 2 * side
-
-    if logo_path:
-        logo = load_image(logo_path, "logo")
-        logo = contain(logo, int(pw * 0.40), int(ph * 0.125))
-        canvas.alpha_composite(logo, (px + (pw - logo.width) // 2, cursor))
-        cursor += logo.height + int(ph * 0.016)
-
-    if title:
-        _, drawn = draw_text_block(
-            canvas, title.upper(), (px + side, cursor, inner_w, int(ph * 0.13)),
-            bold, hex_rgba(args.title_color), max_size=int(pw * 0.20),
-            valign="top", stroke=max(2, int(pw * 0.004)), max_lines=2,
-        )
-        cursor += drawn + int(ph * 0.018)
-
-    if tagline:
-        draw_text_block(
-            canvas, tagline, (px + side, cursor, inner_w, int(ph * 0.09)),
-            regular, hex_rgba(args.tagline_color), max_size=int(pw * 0.070),
-            valign="top", max_lines=2,
-        )
-
-
 def cmd_triptych(args) -> None:
     w, h = parse_size(args.size)
     n = args.panels
     if not 2 <= n <= 5:
         die(f"--panels {n} out of range (2..5)")
+
+    # The concept panorama is deliberately TEXT-FREE. Typography set across a
+    # panel boundary is cut by the store's gutters, and a lockup inside one
+    # panel breaks the illusion that the panels are one picture. The words
+    # belong on the showcase captions and the feature graphic.
+    refused = [flag for flag, value in (
+        ("--title", args.title), ("--tagline", args.tagline), ("--logo", args.logo),
+        ("--title-panel", args.title_panel), ("--title-pos", args.title_pos),
+    ) if value]
+    if refused:
+        die(f"{', '.join(refused)}: the concept panorama carries no text — it is one "
+            "uninterrupted illustration.\n   Put the words on the game frames "
+            "(`showcase --caption`) and the feature graphic (`banner --title/--tagline`).")
+
     src = load_image(args.src, "key art")
 
     pano_w, pano_h = w * n, h
@@ -544,10 +916,6 @@ def cmd_triptych(args) -> None:
              f"({pano_w / src.width:.1f}× upscale) — generate it as wide as the model allows")
 
     pano = cover(src, pano_w, pano_h, bias_x=args.offset, zoom=args.zoom)
-    if args.title or args.tagline or args.logo:
-        idx = max(1, min(args.title_panel, n)) - 1
-        brand_block(pano, (idx * w, 0, w, h), args.title or "", args.tagline or "",
-                    args.logo, args)
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -575,14 +943,22 @@ def cmd_showcase(args) -> None:
     canvas = treat_background(cover(load_image(args.bg, "background"), w, h), args.bg_treatment)
 
     caption = (args.caption or "").strip()
-    bold = find_font(args.font, bold=True)
+    type_plan = TypePlan(args, display_text=caption)
+    if caption:
+        type_plan.report()
+
     cap_max = int(w * 0.095)
+    pad_top = int(h * 0.030)
+    rule_h = 0 if args.no_rule or not caption else max(3, round(h * 0.0035))
+    rule_gap = int(h * 0.020) if rule_h else 0
     if caption:
         # The band follows the text instead of taking a fixed slice: a one-line
         # caption must not cost the phone the same height as a two-line one.
-        _, _, cap_text_h, _ = fit_text(caption, bold, int(w * 0.86), int(h * 0.12),
-                                       cap_max, max_lines=2)
-        cap_h = cap_text_h + int(h * 0.052)
+        _, _, cap_text_h, _, _ = fit_text(
+            caption.upper() if type_plan.upper else caption, type_plan.display,
+            int(w * 0.86), int(h * 0.12), cap_max, max_lines=2,
+            tracking=type_plan.tracking)
+        cap_h = pad_top + rule_h + rule_gap + cap_text_h + int(h * 0.032)
     else:
         cap_h = int(h * 0.040)
     bottom_margin = int(h * 0.038)
@@ -611,12 +987,19 @@ def cmd_showcase(args) -> None:
     paste_clipped(canvas, shadowed, (w - shadowed.width) // 2, top - pad)
 
     if caption:
-        scrim(canvas, (0, 0, w, int(cap_h * 1.35)), strength=args.scrim, from_top=True)
-        pad_t = int(h * 0.026)
-        draw_text_block(canvas, caption,
-                        (int(w * 0.07), pad_t, int(w * 0.86), max(1, cap_h - 2 * pad_t)),
-                        bold, hex_rgba(args.caption_color), max_size=cap_max,
-                        valign="center", stroke=max(2, int(w * 0.003)), max_lines=2)
+        scrim(canvas, (0, 0, w, int(cap_h * 1.45)), strength=args.scrim, from_top=True)
+        c1 = hex_rgba(args.caption_color)
+        c2 = opt_rgba(args.caption_color2)
+        if rule_h:
+            accent_rule(canvas, w // 2, pad_top, int(w * 0.13), rule_h,
+                        opt_rgba(args.accent) or c2 or c1, c2)
+        draw_text_block(
+            canvas, caption,
+            (int(w * 0.07), pad_top + rule_h + rule_gap, int(w * 0.86),
+             max(1, cap_h - pad_top - rule_h - rule_gap - int(h * 0.032))),
+            type_plan.display, c1, max_size=cap_max, valign="top", max_lines=2,
+            colour2=c2, tracking=type_plan.tracking, uppercase=type_plan.upper,
+            outline=type_plan.outline)
 
     size = save_png(canvas, Path(args.out))
     ok(f"{Path(args.out).name}  {w}×{h}  {size // 1024} KB  "
@@ -644,26 +1027,41 @@ def cmd_banner(args) -> None:
         ], horizontal=True), (w - int(w * 0.42), 0))
 
     if args.title or args.tagline:
+        type_plan = TypePlan(args, display_text=args.title, body_text=args.tagline)
+        type_plan.report()
         text_w = int(w * 0.50) if args.shot else int(w * 0.80)
         x = int(w * 0.06)
-        canvas.alpha_composite(gradient((text_w + int(w * 0.10), h), [
-            (0.0, (0, 0, 0, int(0.55 * 255))), (1.0, (0, 0, 0, 0))
+        # Hold full strength across the whole text column, then fade. A scrim
+        # that is still fading where the words are is the classic unreadable-
+        # tagline bug — the tagline sits low and light, so it needs the floor.
+        veil = int(max(0.0, min(1.0, args.scrim)) * 255)
+        veil_w = text_w + int(w * 0.16)
+        canvas.alpha_composite(gradient((veil_w, h), [
+            (0.0, (0, 0, 0, veil)),
+            (float(text_w) / veil_w, (0, 0, 0, veil)),
+            (1.0, (0, 0, 0, 0)),
         ], horizontal=True), (0, 0))
-        block_h = int(h * 0.46)
-        y = (h - block_h) // 2
-        cursor = y
+        title_c = hex_rgba(args.title_color)
+        title_c2 = opt_rgba(args.title_color2)
+        accent = opt_rgba(args.accent) or title_c2 or title_c
+        block_h = int(h * 0.52)
+        cursor = (h - block_h) // 2
         if args.title:
             _, drawn = draw_text_block(
-                canvas, args.title.upper(), (x, cursor, text_w, int(h * 0.30)),
-                find_font(args.font, bold=True), hex_rgba(args.title_color),
-                max_size=int(h * 0.26), valign="top", stroke=max(2, int(h * 0.006)),
-                max_lines=2)
-            cursor += drawn + int(h * 0.04)
+                canvas, args.title, (x, cursor, text_w, int(h * 0.30)),
+                type_plan.display, title_c, max_size=int(h * 0.26), valign="top",
+                max_lines=2, colour2=title_c2, tracking=type_plan.tracking,
+                uppercase=type_plan.upper, outline=type_plan.outline)
+            cursor += drawn + int(h * 0.035)
+            if not args.no_rule:
+                accent_rule(canvas, x + text_w // 2, cursor, int(h * 0.18),
+                            max(2, round(h * 0.008)), accent, title_c2)
+                cursor += max(2, round(h * 0.008)) + int(h * 0.035)
         if args.tagline:
             draw_text_block(
                 canvas, args.tagline, (x, cursor, text_w, int(h * 0.16)),
-                find_font(args.font_regular or args.font, bold=False),
-                hex_rgba(args.tagline_color), max_size=int(h * 0.10), valign="top")
+                type_plan.body, hex_rgba(args.tagline_color),
+                max_size=int(h * 0.10), valign="top", max_lines=2, shadow=0.45)
 
     size = save_png(canvas, Path(args.out))
     ok(f"{Path(args.out).name}  {w}×{h}  {size // 1024} KB (feature graphic)")
@@ -702,6 +1100,46 @@ def cmd_icon(args) -> None:
              "WITHOUT adaptive_icon_foreground, or Android will crop the artwork")
 
     info(f"adaptive background colour: {args.bg}")
+
+
+def cmd_fonts(args) -> None:
+    """Show what typography this machine can actually deliver, before compositing.
+
+    Always run this with the real copy (--sample) before a listing: a face that
+    is perfect for a Latin title may have no Cyrillic at all, and the report is
+    the cheap way to find that out.
+    """
+    system = [entry for d in FONT_DIRS for entry in _scan_fonts(d)]
+    project = [entry for d in (args.font_dir or []) for entry in _scan_fonts(d)]
+    pool = project or system
+    charset = _charset(args.sample)
+    info(f"indexed {len(system)} system face(s)"
+         + (f" + {len(project)} in {', '.join(args.font_dir)}" if args.font_dir else ""))
+    info(f"coverage probe: {args.sample!r}")
+
+    characterful = 0
+    for mood in ((args.type_mood,) if args.mood_only else tuple(TYPE_MOODS)):
+        spec = TYPE_MOODS[mood]
+        skipped: list[str] = []
+        display = _best_face(pool, tuple(spec["display"]) + FALLBACK_FAMILIES,
+                             "heavy", charset, skipped)
+        body = _best_face(pool, tuple(spec["body"]) + FALLBACK_FAMILIES,
+                          "regular", charset)
+        generic = not display or any(g in _norm(Path(display).stem) for g in GENERIC_FACES)
+        characterful += not generic
+        print(f"{'⚠️ ' if generic else '✅'} {mood:8s} "
+              f"display={Path(display).name if display else '—':30s}"
+              f" body={Path(body).name if body else '—'}")
+        if skipped:
+            print(f"   no glyphs for the probe: {', '.join(skipped)}")
+        if generic:
+            print(f"   '{mood}' has no characterful face here — titles fall back to a UI font")
+
+    if not characterful:
+        warn("no display face on this machine can set that text — every store title would "
+             "be an Arial clone. Install faces that cover the alphabet (apt-get install "
+             "fonts-montserrat fonts-inter fonts-ebgaramond) or pass --font-dir with the "
+             "game's own fonts.")
 
 
 def cmd_check(args) -> None:
@@ -752,10 +1190,31 @@ def cmd_check(args) -> None:
 # ───────────────────────────── cli ──────────────────────────────────────────
 
 def add_text_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--font", help="TTF for headings (default: Liberation/DejaVu/Arial Bold)")
-    p.add_argument("--font-regular", help="TTF for body text")
+    p.add_argument("--font", help="explicit TTF/OTF for display text (skips mood matching)")
+    p.add_argument("--font-regular", help="explicit TTF/OTF for body text")
+    p.add_argument("--font-dir", action="append", default=[], metavar="DIR",
+                   help="directory holding the GAME's own fonts (e.g. assets/fonts). "
+                        "Searched first and outranks every mood — listing type that "
+                        "matches in-game type is the whole point. Repeatable.")
+    p.add_argument("--type-mood", choices=tuple(TYPE_MOODS), default="bold",
+                   help="typographic character: picks the face family order, letter "
+                        "spacing and letter case (default bold)")
+    p.add_argument("--tracking", type=float, default=None, metavar="EM",
+                   help="letter spacing as a fraction of font size; overrides the mood")
+    p.add_argument("--no-uppercase", action="store_true",
+                   help="keep the text as written even if the mood sets caps")
+    p.add_argument("--text-outline", type=float, default=0.0, metavar="EM",
+                   help="outline width as a fraction of font size (0.03 ≈ a thin edge). "
+                        "Default 0: over a scrim the blurred shadow is enough, and a "
+                        "thick stroke is what makes titles look like clip art.")
     p.add_argument("--title-color", default="#FFFFFF")
+    p.add_argument("--title-color2", default="",
+                   help="second stop for a vertical gradient on the title — pass the "
+                        "game's accent colour (e.g. #FFC64A for gold)")
     p.add_argument("--tagline-color", default="#F2F4FA")
+    p.add_argument("--accent", default="",
+                   help="accent-rule colour (default: the title gradient's end)")
+    p.add_argument("--no-rule", action="store_true", help="omit the accent rule")
     p.add_argument("--scrim", type=float, default=0.72,
                    help="0..1 darkening behind text (default 0.72)")
 
@@ -766,24 +1225,23 @@ def main() -> None:
         description="Compose store-listing images (triptych / showcase / banner / icon).")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    t = sub.add_parser("triptych", help="slice one wide key art into N continuous panels")
+    t = sub.add_parser("triptych",
+                       help="slice one wide key art into N continuous panels (no text)")
     t.add_argument("--src", required=True, help="wide key-art PNG (no text baked in)")
     t.add_argument("--out", required=True, help="output directory")
     t.add_argument("--panels", type=int, default=3)
     t.add_argument("--size", default="1242x2688", help="size of ONE panel (default 1242x2688)")
     t.add_argument("--prefix", default="store-")
-    t.add_argument("--title", default="")
-    t.add_argument("--tagline", default="")
-    t.add_argument("--logo", help="transparent emblem PNG placed above the title")
-    t.add_argument("--title-panel", type=int, default=1,
-                   help="1-based panel that carries the lockup (default 1)")
-    t.add_argument("--title-pos", choices=("top", "center", "bottom"), default="bottom")
     t.add_argument("--zoom", type=float, default=1.0,
                    help="oversample factor (>1) creating slack for --offset")
     t.add_argument("--offset", type=float, default=0.0,
                    help="-1..1 horizontal crop bias; slides a face off a panel seam "
                         "without regenerating the art (needs --zoom > 1)")
-    add_text_args(t)
+    # Retired: the panorama is pure image. Still parsed so a stale caller gets a
+    # sentence explaining where the words go, not `unrecognized arguments`.
+    for dead in ("--title", "--tagline", "--logo", "--title-pos"):
+        t.add_argument(dead, default="", help=argparse.SUPPRESS)
+    t.add_argument("--title-panel", type=int, default=0, help=argparse.SUPPRESS)
     t.set_defaults(func=cmd_triptych)
 
     s = sub.add_parser("showcase", help="real game frame in a phone on a themed background")
@@ -793,6 +1251,8 @@ def main() -> None:
     s.add_argument("--size", default="1242x2688")
     s.add_argument("--caption", default="")
     s.add_argument("--caption-color", default="#FFFFFF")
+    s.add_argument("--caption-color2", default="",
+                   help="second stop for a vertical gradient on the caption")
     s.add_argument("--frame", choices=("ios", "android", "none"), default="ios")
     s.add_argument("--scale", type=float, default=0.82, help="device width as a fraction of canvas")
     s.add_argument("--fit", choices=("contain", "bleed"), default="contain",
@@ -819,6 +1279,17 @@ def main() -> None:
     i.add_argument("--out-dir", required=True)
     i.add_argument("--bg", default="#101018", help="adaptive/flatten background colour")
     i.set_defaults(func=cmd_icon)
+
+    f = sub.add_parser("fonts", help="report which display faces this machine can use")
+    f.add_argument("--font-dir", action="append", default=[], metavar="DIR",
+                   help="also index the game's own fonts (e.g. assets/fonts)")
+    f.add_argument("--type-mood", choices=tuple(TYPE_MOODS), default="bold")
+    f.add_argument("--mood-only", action="store_true",
+                   help="report just --type-mood instead of every mood")
+    f.add_argument("--sample", default="Играй Собирай Level Up 7",
+                   help="the copy the listing will actually set — faces without glyphs "
+                        "for it are excluded (default probes Cyrillic + Latin + digits)")
+    f.set_defaults(func=cmd_fonts)
 
     c = sub.add_parser("check", help="validate a finished store directory")
     c.add_argument("--dir", required=True)
