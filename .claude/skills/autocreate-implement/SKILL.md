@@ -1,6 +1,6 @@
 ---
 name: autocreate-implement
-description: "Сессия 2 конвейера /autocreate (Фазы 4 → 10): имплементация. 5 агентов пишут код + мета-системы, wiring контента, интеграция, build до 0 errors, feel-pass, тесты, UI-аудит (compliance), баланс по кривой, crash-prevention. Тяжёлые фазы ДЕЛЕГИРУЮТСЯ суб-агентам, чтобы оркестратор не истощил контекст. В конце spawn Сессии 3 (autocreate-finalize). Запускается автоматически Сессией 1 через Agent tool, либо вручную в новой conversation."
+description: "Сессия 2 конвейера /autocreate (Фазы 4 → 10): имплементация. 5 агентов последовательно пишут код + мета-системы, wiring контента, интеграция, build до 0 errors, feel-pass, тесты, UI-аудит (compliance), баланс по кривой, crash-prevention. Тяжёлые фазы ДЕЛЕГИРУЮТСЯ свежим суб-агентам без full-history fork, чтобы оркестратор не истощил контекст и TPM. В конце spawn Сессии 3 (autocreate-finalize). Запускается автоматически Сессией 1 через Agent tool, либо вручную в новой conversation."
 argument-hint: "[--resume]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
@@ -47,9 +47,9 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
 прочитает всё это — контекст кончится до конца. Поэтому **оркестратор Сессии 2 в основном
 координирует и запускает команды, а файловую работу делают суб-агенты**:
 
-| Фаза | Что делает оркестратор | Кому делегирует (Agent tool, full-history fork) |
+| Фаза | Что делает оркестратор | Кому делегирует (Agent tool, чистый контекст + handoff) |
 |------|------------------------|------------------------------------------------|
-| 4. Implementation | формирует контракт `lib/contracts.md`, запускает 5 агентов | **A** mechanics, **B** ui, **C** juice, **D** sound, **E** meta-systems (параллельно) |
+| 4. Implementation | формирует контракт `lib/contracts.md`, запускает 5 агентов строго по одному | **A** mechanics → **E** meta-systems → **D** sound → **B** ui → **C** juice |
 | 4.5. Content wiring | — | склейка данных↔код: **B** (level/mode select) + **E** (progression/economy) |
 | 5. Integration | — | **lead-programmer**: читает все файлы, чинит cross-agent несоответствия, расставляет вызовы сервисов/аудио/VFX |
 | 6. Build & Fix | запускает `dart analyze`, собирает список ошибок | если ошибок много — **mechanics-programmer**/**ui-programmer** чинит свои; оркестратор только повторяет analyze |
@@ -71,6 +71,10 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
 > `production/session-state/active.md`, и НЕ держать чужие файлы в контексте.
 > Порядок Фазы 4: **A → E → D → B → C** (логика и сервисы раньше UI, чтобы B видел реальные
 > сигнатуры). Правило «не читай lib/ массово» в Codex ещё важнее — контекст один на всё.
+
+> **TPM-гейт:** одновременно активен максимум один subagent. Каждый получает только
+> `lib/contracts.md`, нужные design/data-файлы, свою роль и краткий handoff. Никогда не
+> передавать ему полный transcript родительской сессии.
 
 ---
 
