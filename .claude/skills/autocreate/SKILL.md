@@ -18,7 +18,14 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 generation** с тем же prompt. SVG допустим только если среда НЕ Codex, пользователь явно передал
 `--svg`, или оба Codex image-generation пути недоступны. Дефолтный визуальный профиль PNG —
 realistic/material-grounded game assets: правдоподобные материалы, единый свет, чистый силуэт,
-простые ассеты на чистом белом фоне для локального вырезания, без flat clipart.
+простые ассеты на плоском chroma-key фоне для локального вырезания, без flat clipart.
+
+**CODEX ASSET BUDGET:** `/autocreate` использует `design/asset-manifest.md`: максимум 12
+уникальных PNG-источников и 2 технических recovery-вызова. GPT Images 2.0 создаёт только
+уникальные игровые силуэты и сцены; UI, типографика, иконки, VFX и безопасные варианты
+создаются кодом, локально выводятся из источника или переиспользуются. GPT Images/default
+не является вторым эстетическим кандидатом и используется только после технического сбоя
+GPT Images 2.0.
 
 ---
 
@@ -63,8 +70,9 @@ Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` 
 
 1. ✅ **Flutter-проект создан с нуля** (`flutter create --platforms web,android,ios`)
 2. ✅ **Структура + Layout Archetype выбраны** (`design/structure.md`, `design/art-direction.md`)
-3. ✅ **Все ассеты сгенерированы** (Codex default → realistic PNG через GPT Images 2.0 →
-   GPT Images fallback + chroma-key cutout через `tools/cutout.py`; не-Codex → SVG fallback; формат записан в `design/asset-format.md`,
+3. ✅ **Все ассеты подготовлены** (Codex → до 12 unique PNG-источников GPT Images 2.0,
+   `derive`/`code`/`reuse` без вызовов, максимум 2 technical recovery; chroma-key cutout через
+   `tools/cutout.py`; не-Codex → SVG fallback; формат записан в `design/asset-format.md`,
    промпты и стиль набора — в `design/asset-prompts.md`)
 4. ✅ **Реальное аудио синтезировано** (Фаза 3.5: `tools/synth_sfx.py` → `.wav` SFX + BGM)
 5. ✅ **Asset Cohesion Review пройден** (Фаза 3.6: art-director, vision-ревью AR1–AR10,
@@ -491,6 +499,20 @@ EOF
 echo "✅ Asset format → design/asset-format.md"
 ```
 
+В PNG-режиме создать бюджетный манифест до первого вызова. Он запрещает дубли prompt-ов и
+фиксирует источник каждого производного ассета:
+
+```bash
+cat > design/asset-manifest.md << 'EOF'
+# Asset Manifest — Budgeted GPT Images 2.0
+
+budget: unique_sources=12, technical_recovery_calls=2
+
+| logical_id | class | target_path | prompt_sha256 | source_id | attempts | validation | status |
+|------------|-------|-------------|---------------|-----------|----------|------------|--------|
+EOF
+```
+
 ---
 
 ### PNG Генерация (режим по умолчанию в Codex)
@@ -506,17 +528,23 @@ image generation Codex). Если GPT Images 2.0 не сработал или н
 #### Codex GPT Images 2.0 default profile (ОБЯЗАТЕЛЬНО)
 
 - **Генератор:** встроенная image generation Codex / GPT Images 2.0; fallback — GPT Images /
-  default Codex image generation с тем же prompt. Не использовать SVG, Pollinations, Gemini,
+  default Codex image generation с тем же prompt только при ошибке/отсутствии файла/невалидном
+  PNG. Не использовать SVG, Pollinations, Gemini,
   Google API, remove.bg API или запросы ключей в Codex-пути, пока не провалились оба Codex-пути.
-- **Один ассет = один image-generation вызов.** Не просить sprite sheet, atlas, сетку из
+- **Один источник класса `generate` = один image-generation вызов.** Не просить sprite sheet, atlas, сетку из
   нескольких предметов или набор объектов в одном изображении.
+- **Сначала манифест и кэш:** нормализовать prompt и записать SHA-256. Если совпадающий
+  валидный `generate` уже есть, использовать его как `reuse`; UI/VFX/варианты сначала
+  классифицировать как `code` или `derive`, а не отправлять в image generation.
 - **Дефолтный стиль:** realistic/material-grounded 3D или product-render для игровых ассетов:
   реальные материалы, правдоподобные отражения/roughness, единый key light сверху-слева,
   лёгкий rim light, чистый силуэт. Flat/pixel/lineart разрешены только если Design DNA явно
   требует именно этот стиль; даже тогда должны быть единые свет, палитра и читаемость.
 - **Запрещённый результат:** flat vector icon, emoji/sticker, logo, generic casino/neon,
   text baked into image, sprite sheet, random scene behind a simple object, inconsistent light,
-  ground shadow that мешает вырезанию. Такой ассет сразу перегенерировать до asset-review.
+  ground shadow that мешает вырезанию. Сначала исправить локально всё, что не является
+  дефектом исходной генерации; для дефекта источника доступен один recovery GPT Images 2.0
+  на `logical_id` и не более двух по игре.
 - **Ledger:** создать `design/asset-prompts.md` и записывать для каждого ассета:
   `name`, `type`, `path`, `subject identity`, `material`, `lighting anchor`, `render style`,
   полный prompt, выбранный key colour, post-processing (`cutout.py`), validation verdict.
@@ -547,6 +575,7 @@ background, no text, no border, no logo, no sprite sheet, 1024x1024 PNG.
 Fallback, если GPT Images 2.0 не сработал:
 
 ```text
+Только при технической ошибке, отсутствии файла или невалидном PNG.
 Повторить тот же prompt через GPT Images / default Codex image generation.
 Не менять ключевой фон на прозрачный: плоский ключевой цвет нужен для стабильного cutout.
 ```
@@ -566,26 +595,27 @@ Fallback, если GPT Images 2.0 не сработал:
 #### Спрайты PNG (`assets/images/sprites/`)
 - Минимум 5-8 игровых элементов (символы барабана, карты, фишки, шары, мины, капсулы)
 - Каждый: 1024x1024 PNG, затем при необходимости resize до 256x256 для runtime
-- **Генерация**: один вызов GPT Images 2.0 на каждый ассет; при сбое один fallback-вызов GPT Images/default
+- **Генерация**: каждый действительно уникальный игровой силуэт — класс `generate` и один
+  вызов GPT Images 2.0; совпадающий валидный SHA-256 — `reuse`. Цвет, кадрирование и idle-
+  варианты — только `derive`, если это не меняет смысл исхода
 - **Фон**: просить плоский ключевой цвет (chroma key, по умолчанию `pure magenta #FF00FF`;
   если в палитре есть пурпур/розовый — `pure green #00FF00`), без теней/градиентов/сцены,
   затем `tools/cutout.py`. Белый фон использовать НЕЛЬЗЯ, если у объекта есть белые или
   светлые области — они сольются с фоном и получатся дыры
 - Стиль рендера и детализация — из Design DNA, единый для всего набора
 
-#### UI Elements PNG (`assets/images/ui/`)
-- `ui_action_button.png` — основное действие; форма из shape language DNA
-- `ui_frame.png` — рамка игрового поля
-- `ui_panel.png` — панель управления / ставок
-- `ui_separator.png` — декоративный разделитель
-- `ui_icon_sound.png` — иконка звука
-- `ui_icon_settings.png` — иконка настроек
-- `ui_icon_info.png` — иконка помощи
-- Иконки — в едином стиле (Craft Fundamentals)
+#### UI Elements (`assets/images/ui/` и Flutter)
+- Кнопки, рамки, панели, разделители, системные иконки, тени, glow и VFX — класс `code`:
+  реализовать Flutter/SVG и темой из Design DNA, без image-generation вызовов.
+- Растровый UI допустим только для действительно уникальной иллюстративной детали, которая
+  не воспроизводится кодом; она занимает отдельный `generate` budget slot.
+- Текст никогда не запекать в изображение.
 
 #### Фоны PNG (`assets/images/backgrounds/`)
-- `background_menu.png` — фон меню (мир/яркость из DNA, не «всегда тёмное казино»)
-- `background_game.png` — фон игрового экрана (не отвлекает от поля)
+- По умолчанию один полноэкранный источник `background_game.png`; меню получает отдельную
+  композицию из него через overlay/crop/параллакс (`reuse`/`code`).
+- `background_menu.png` генерировать только если меню требует другого мира или композиции,
+  а не просто другого цветового тона; это второй и последний полноэкранный source slot.
 
 #### Удаление фона (ОБЯЗАТЕЛЬНО для sprites/icons/symbols)
 
@@ -609,9 +639,10 @@ remove_bg_if_needed() {
 }
 ```
 
-Ненулевой код возврата = ассет непригоден (фон не плоский, ключ совпал с палитрой объекта,
-вырезано всё или ничего). Тогда **перегенерировать ассет** с плоским ключевым фоном —
-не пытаться исправить постобработкой.
+Ненулевой код возврата = проверить исходник и выбранный ключ, затем перевырезать из
+исходника/нормализовать кадр. Если источник действительно непригоден, потратить один
+recovery-slot на тот же `logical_id` через GPT Images 2.0; не использовать fallback только
+из-за ошибки cutout.
 
 Проверить весь набор одной командой в конце Фазы 3:
 
@@ -625,14 +656,17 @@ python3 tools/cutout.py --dir assets/images/ui --check
 **ОБЯЗАТЕЛЬНО** после генерации всех PNG:
 1. Проверить что каждый файл валидный PNG (`file *.png | grep "PNG image"`)
 2. Проверить что sprites/icons имеют альфа-канал (прозрачный фон)
-3. Проверить что каждый простой ассет НЕ выглядит как flat/emoji/clipart/logo; провал →
-   перегенерировать через GPT Images 2.0, а при сбое через GPT Images/default fallback, до Phase 3.6
+3. Проверить что каждый простой ассет НЕ выглядит как flat/emoji/clipart/logo; сначала
+   исправить локально/переклассифицировать, а дефект исходника исправить одним GPT Images 2.0
+   recovery. GPT Images/default допускается лишь при техническом сбое GPT Images 2.0
 4. Проверить что `design/asset-prompts.md` содержит prompt+style ledger для каждого PNG
-5. Проверить что все файлы, указанные в коде (`lib/assets.dart`), физически существуют
-6. Проверить что Codex PNG-режим НЕ создал `.svg` в `assets/images/**`. SVG здесь означает
+5. Проверить что `design/asset-manifest.md` содержит класс, SHA-256, попытки и validation
+   для каждого `generate`/`derive`/`reuse` элемента
+6. Проверить что все файлы, указанные в коде (`lib/assets.dart`), физически существуют
+7. Проверить что Codex PNG-режим НЕ создал `.svg` в `assets/images/**`. SVG здесь означает
    ошибочный fallback; удалить из манифеста/кода и перегенерировать нужный PNG напрямую через
-   GPT Images 2.0 или GPT Images/default fallback из концепта.
-7. Запустить `flutter pub get` для валидации путей ассетов
+   GPT Images 2.0 в пределах recovery; GPT Images/default допустим лишь при техническом сбое.
+8. Запустить `flutter pub get` для валидации путей ассетов
 
 ```bash
 # Валидация PNG-ассетов
@@ -736,9 +770,9 @@ sfx_win_mega` (в `assets/audio/sfx/`) + `bgm_main` (в `assets/audio/bgm/`).
    читаемость в 64 px, чистая альфа, единый стиль иконок, фон уступает полю, предмет
    опознаётся, нет AI-артефактов).
 3. `design/asset-review.md` — вердикт по каждому ассету.
-4. Перегенерация ТОЛЬКО FAIL-ассетов с исправленным промптом + «якорем стиля» набора
-   (Codex: GPT Images 2.0 → GPT Images fallback + `tools/cutout.py`; SVG: правка кода). Максимум **2 итерации**, затем
-   принять лучшее и записать остаточные риски.
+4. Сначала локальная коррекция ТОЛЬКО FAIL-ассетов. Для дефекта источника допустим один
+   recovery через GPT Images 2.0 на `logical_id`, не более двух по игре; GPT Images/default
+   доступен только при техническом сбое. SVG править кодом.
 
 **Критерий выхода:** `design/asset-review.md` существует с вердиктом PASS (или REGENERATE
 с выполненной перегенерацией); все спрайты/иконки с подтверждённой альфой.
@@ -1904,7 +1938,7 @@ Agent(
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
 | 2. Bootstrap | `flutter pub get` — 0 errors; структура+layout выбраны | 3 |
-| 3. Assets | Codex: realistic PNG через GPT Images 2.0 → GPT Images fallback, ключевой фон вырезан через `tools/cutout.py`, alpha для sprites/icons, `design/asset-prompts.md`; fallback вне Codex: SVG валидны | 2 |
+| 3. Assets | Codex: ≤12 уникальных PNG-источников GPT Images 2.0, ≤2 technical recovery, кэш+классы в `design/asset-manifest.md`, ключевой фон вырезан через `tools/cutout.py`, `design/asset-prompts.md`; fallback вне Codex: SVG валидны | 2 |
 | 3.5. Audio | 9 `.wav` синтезированы и непустые (`tools/synth_sfx.py`) | 2 |
 | 3.6. Asset Review | `design/asset-review.md` — PASS, альфа подтверждена | 2 |
 | 3.7. Content Data | `assets/data/*.json` валидны, N>1 уровней + economy | 2 |
