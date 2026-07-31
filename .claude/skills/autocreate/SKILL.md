@@ -62,7 +62,9 @@ context-сессии** во избежание истощения токенов
 ```
 
 **Каждая сессия ОБЯЗАНА передать управление следующей через Agent tool в конце.**
-Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` (full-history fork).
+Каждый phase-subagent запускается с **чистым контекстом без full-history fork** и получает
+только путь к handoff-файлу, путь к своему SKILL.md и краткий критерий готовности. Модель и
+`reasoning_effort` наследуются из server config; историю предыдущей сессии не переносить.
 
 > **🤖 CODEX / среда без Agent tool:** если Agent tool НЕдоступен (OpenAI Codex CLI,
 > Gemini CLI), конвейер НЕ останавливается. Вместо spawn: записать handoff-файл как обычно,
@@ -897,7 +899,8 @@ done
 
 ### 3.8.2 — Spawn Сессии 2 через Agent tool
 
-**ОБЯЗАТЕЛЬНО** (без `subagent_type`/`model`/`reasoning_effort`):
+**ОБЯЗАТЕЛЬНО:** запустить новый subagent с чистым контекстом (без full-history fork,
+без явных `model`/`reasoning_effort`; они наследуются из server config):
 
 ```
 Agent(
@@ -933,16 +936,16 @@ crash-prevention 20/20. В конце (Фаза 10.7) — записать autoc
 
 ---
 
-## Фаза 4 — Complete Game Implementation (FIVE parallel agents) [~15 мин]
+## Фаза 4 — Complete Game Implementation (FIVE sequential agents) [~15 мин]
 
 > **КЛЮЧЕВОЕ ПРАВИЛО**: Каждый агент получает ПОЛНЫЙ концепт из `design/gdd/game-concept.md`
 > и ПОЛНЫЙ список ассетов. Агенты ОБЯЗАНЫ использовать ОДИНАКОВЫЕ имена классов, типы и интерфейсы.
 
-> **Конвейер использует 6 агентских проходов:** 5 параллельных здесь (A mechanics, B ui,
+> **Конвейер использует 6 агентских проходов:** 5 последовательных здесь (A mechanics, B ui,
 > C juice, D sound, **E meta-systems**) + 1 выделенный **Gameplay Feel Pass** (Фаза 6.5,
 > juice-artist), который оживляет сами игровые компоненты на поле уже на чистом,
-> компилирующемся коде. Это разделение намеренное: параллельные агенты строят каркас,
-> feel-pass добавляет «жизнь» в геймплей без коллизий при параллельной записи.
+> компилирующемся коде. Это разделение намеренное: последовательные агенты строят каркас,
+> feel-pass добавляет «жизнь» в геймплей после завершения предыдущих записей.
 >
 > **Чтобы 5 агентов не писали в одни файлы:** у каждого — свои директории (A: game/systems/
 > components/models; B: screens/widgets/theme/app/assets; C: components/vfx; D: audio;
@@ -950,9 +953,9 @@ crash-prevention 20/20. В конце (Фаза 10.7) — записать autoc
 > ЧИТАЮТСЯ агентами B/C/D/E, ПИШЕТ их Agent A. Мета-сервисы Agent E подключаются к игре в
 > Фазе 5 (wiring), а не правкой файлов Agent A.
 
-> **⚠️ СОВМЕСТИМОСТЬ АГЕНТОВ**: При вызове `Agent(...)` НЕ указывай `subagent_type`, `model`
-> или `reasoning_effort` — эти параметры несовместимы с full-history fork и вызовут ошибку.
-> Используй только `description` и `prompt`.
+> **⚠️ СОВМЕСТИМОСТЬ АГЕНТОВ**: запускать строго по одному с чистым контекстом. Не
+> указывать `model` или `reasoning_effort`: они наследуются из server config. Передавать
+> только `description`, краткий `prompt` и пути к контракту/design-файлам.
 
 > **⚠️ СТРУКТУРНО-ЗАВИСИМЫЕ ПУТИ**: Прочитать `design/structure.md` ПЕРЕД формированием
 > промптов для агентов. Пути файлов в описаниях агентов ниже — это примеры для V1 (Layer).
@@ -1416,7 +1419,7 @@ dart analyze lib/ --fatal-infos
 2. Исправить ВСЕ ошибки (не по одной, а ВСЕ сразу)
 3. Повторить анализ
 
-**Типичные ошибки после параллельной генерации:**
+**Типичные ошибки после multi-agent генерации:**
 - Missing imports → добавить
 - Undefined class/method → проверить контракт, исправить имя
 - Type mismatch → привести к единому типу
@@ -1443,7 +1446,8 @@ Warnings допустимы, но не info about unused variables (удалит
 
 ### 6.5.1 — Запуск агента Gameplay Feel Pass
 
-Вызвать Agent tool (без `subagent_type`/`model`/`reasoning_effort` — full-history fork):
+Вызвать Agent tool с чистым контекстом, без full-history fork и без явных
+`model`/`reasoning_effort`:
 
 ```
 Agent(
@@ -1913,7 +1917,8 @@ flutter test
 
 ### 10.7.2 — Spawn subagent через Agent tool
 
-**ОБЯЗАТЕЛЬНО** вызвать Agent tool ИМЕННО ТАК (после записи handoff-файла):
+**ОБЯЗАТЕЛЬНО** после записи handoff-файла вызвать Agent tool с чистым контекстом,
+без full-history fork и без явных `model`/`reasoning_effort`:
 
 ```
 Agent(
