@@ -382,11 +382,14 @@ Widest landscape aspect available, highest resolution.
 ```
 Square full-bleed app icon artwork for a [ARCHETYPE] mobile game — [THEME].
 [MECHANIC_OBJECT] as one bold hero object, centred, filling most of the frame,
-[RENDER] render, [PALETTE] palette, rich materials, dramatic rim light, atmospheric background
+[CONCEPT-DERIVED POLISHED CARTOON 2.5D] render, [PALETTE] palette, rounded/exaggerated
+forms, smooth modeled gradients, glossy highlights, restrained star glints, dramatic rim light,
+atmospheric background
 consistent with the game world. Instantly readable as a 48 px launcher icon: ONE clear subject,
 strong silhouette, high contrast. NO text, NO words, NO letters, NO numbers, NO logo, NO UI,
 NO border, NO rounded-corner mask, NO drop shadow outside the artwork,
-NO currency symbols, NO banknotes, NO cash. 1024x1024.
+NO currency symbols, NO banknotes, NO cash, NO photorealism, NO product photography,
+NO flat vector clipart, NO emoji/sticker. 1024x1024.
 ```
 
 Сохранить в `$ART_DIR/icon_art.png`.
@@ -402,11 +405,14 @@ NO currency symbols, NO banknotes, NO cash. 1024x1024.
 
 ```
 Single hero emblem for a [ARCHETYPE] game — [MECHANIC_OBJECT / crest of THEME], one centred object,
-[RENDER] render, [PALETTE] palette, believable materials, soft key light from top-left plus subtle rim,
-crisp clean silhouette readable at 64 px, premium studio product shot,
+[CONCEPT-DERIVED POLISHED CARTOON 2.5D] render, [PALETTE] palette, bold rounded silhouette,
+smooth modeled gradients, glossy highlights and restrained star glints,
+soft key light from top-left plus subtle rim,
+crisp clean silhouette readable at 64 px, premium casual-game illustration,
 flat solid single-colour [KEY COLOUR] background, no gradient, no vignette, no shadow on the background,
 subject fully inside frame, NO text, NO letters, NO numbers, NO border, NO scene, NO sprite sheet,
-NO currency symbols, NO banknotes. 1024x1024.
+NO currency symbols, NO banknotes, NO photorealism, NO product photography,
+NO flat vector clipart, NO emoji/sticker. 1024x1024.
 ```
 
 Сохранить в `$ART_DIR/emblem.png`, затем **обязательно** вырезать фон:

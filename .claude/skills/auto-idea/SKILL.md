@@ -161,7 +161,7 @@ allowed-tools: Read, Glob, Grep, Write
 | **Palette family** | тёплая земляная, холодная неоновая, пастельная, монохром+1 акцент, драгоценные тона, выгоревшая ретро |
 | **Brightness** | светлая / тёмная / сумеречная — НЕ всегда тёмная |
 | **Layout Archetype** | L1–L6 (см. Секция 3.5) — варьируй композицию |
-| **Era / стиль арта** | пиксель-арт, flat 2D, бумажная аппликация, неон-glow, акварель, минимал-lineart, клэй/3D-подобный |
+| **Cartoon 2.5D treatment** | глянцевый аркадный, мягкий storybook, клэй-подобный, конфетный, рисованный приключенческий, ретро-мультфильм — всегда с объёмом, чистым силуэтом и единым светом |
 | **Audience / тон** | хардкор-каузал, детский, премиум-элегантный, ретро-ностальгия |
 
 > Цель: даже два слота "A" должны выглядеть как РАЗНЫЕ игры — один тёплый египетский светлый,
@@ -528,14 +528,16 @@ SVG допустим только как fallback вне Codex или при я�
 манифест буквально.
 
 ### Shared Visual Style Anchor
-- Render style: [realistic/material-grounded 3D product render | glossy 2.5D | другой стиль из DNA]
+- Render style: polished cartoon 2.5D casual-game art; [как концепт определяет формы,
+  материалы, детали и характер этого мультяшного мира]
 - Lighting: [единый источник, например soft top-left key + subtle rim]
 - Palette: [3-5 цветов из Design DNA]
 - Camera/composition: single centered hero object for sprites/icons; 9:16 layered scene for backgrounds
 - Cutout policy: sprites/icons/tiles/items = generate on a flat solid chroma-key background
   (default pure magenta #FF00FF; pure green #00FF00 if the palette contains magenta/pink/purple),
   then cut with `tools/cutout.py`; backgrounds = full scene, no alpha removal
-- Negative prompt: no flat vector icon, no emoji/sticker, no logo, no text, no sprite sheet,
+- Negative prompt: no photorealism, no product photography, no flat vector icon,
+  no emoji/sticker, no logo, no text, no sprite sheet,
   no generic casino/neon unless this is explicitly in Design DNA
 
 ### Спрайты (assets/images/sprites/)
