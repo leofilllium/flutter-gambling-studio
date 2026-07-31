@@ -204,7 +204,7 @@ python3 tools/simulate_math.py --model m1 --config design/balance/rtp-config.jso
 | Команда | Описание |
 |---------|----------|
 | `/generate-asset [тип] [имя]` | SVG по умолчанию; PNG только по явному запросу |
-| `/generate-png-asset [описание]` | PNG через Codex GPT Images 2.0; фон простых ассетов вырезается локально при необходимости |
+| `/generate-png-asset [описание]` | PNG через GPT Image 2: built-in tool или `tools/gpt_image.py` в headless Codex CLI; фон простых ассетов вырезается локально |
 | `/svg-to-png [путь]` | Конвертация SVG → PNG через Codex GPT Images 2.0 |
 
 ### Ревью и ворота

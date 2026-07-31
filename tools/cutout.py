@@ -143,7 +143,12 @@ def _propagate_axis(seed: np.ndarray, passable: np.ndarray, axis: int) -> np.nda
         return out.T if axis == 0 else out
     n = int(flat_run.max()) + 1
     hit = np.bincount(flat_run, weights=seed[passable].astype(np.float64), minlength=n) > 0
-    out = passable & hit[run]
+    # Barrier pixels can carry a run id one greater than every passable run
+    # (for example, a row ending in a barrier). Indexing hit[run] therefore
+    # raises an off-by-one IndexError on otherwise valid keyed images. Only
+    # passable pixels participate in the flood, so index exactly flat_run.
+    out = np.zeros_like(passable)
+    out[passable] = hit[flat_run]
     return out.T if axis == 0 else out
 
 
