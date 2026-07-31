@@ -1,0 +1,9 @@
+{
+  "game_name": "Selftest Mines",
+  "type": "step",
+  "cells": 25,
+  "bad_cells": 3,
+  "max_picks": 12,
+  "house_edge": 0.02,
+  "max_multiplier": 5000
+}

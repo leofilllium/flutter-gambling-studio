@@ -77,7 +77,7 @@ flutter test > /tmp/finalize_preflight_test.log 2>&1 || {
 
 Прочитать handoff-файл, извлечь:
 - Имя игры → для имени архива
-- Жанр → для финального отчёта
+- Категория (C1–C6) и матмодель (M1–M6) → для финального отчёта
 - Путь к главному классу игры → для emulator-test навигации
 
 ---
@@ -316,7 +316,7 @@ Task: Production-ready
 - Edge cases: [N] зелёные
 
 ## Баланс
-[RTP / Difficulty curve результаты из Сессии 2]
+[Вердикт прогона матмодели из Сессии 2: модель, метрика, PASS/CONCERNS/FAIL]
 ```
 
 Также отметить handoff-файл завершённым: дописать в
@@ -370,7 +370,7 @@ flutter pub get >/dev/null 2>&1 || true
 
 🎮 Gameplay:
    ✅ Core game loop works end-to-end
-   ✅ [Genre]: [RNG/matching/spawning/physics] fully functional
+   ✅ [Категория]: [RNG / резолвер исхода / cash-out / pity / физика] fully functional
    ✅ Stateless Outcomes, GameState sealed class
    ✅ All constants in GameConfig, double-click protection
 
@@ -401,8 +401,7 @@ flutter pub get >/dev/null 2>&1 || true
 
 ⚖️ Balance (Сессия 2):
    [Gambling: RTP XX.X% (target 95-97%)]
-   [Puzzle: Difficulty curve validated]
-   [Arcade: Spawn/scoring balanced]
+   [Матмодель M1–M6: метрика в целевом окне, отчёт в design/balance/simulation-report.md]
 
 🚀 Release-ready (Фаза 11.5, PREP — без сборки):
    ✅ Иконки (Android adaptive + iOS + web) + native splash (цвет из DNA)

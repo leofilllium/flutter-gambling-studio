@@ -1,6 +1,6 @@
 ---
 name: add-feature
-description: "Добавление новой фичи в готовую мини-игру любого жанра. Gambling: Wild символы, Free Spins, джекпот. Puzzle: новый тип тайлов, бустер. Arcade: пауэрап, новый тип врага."
+description: "Добавление новой фичи в готовую гемблинг-игру. C1: Wild символы, Free Spins, джекпот. C2: авто-ставка, новый рисковый профиль. C3: новый тип события спина, сезон доски. C4: гарант на x10, новая редкость. C5: новый модификатор. C6: спец-корзина, джекпот-гейт."
 user-invocable: true
 allowed-tools: Bash, Read, Edit, Write, Agent
 argument-hint: "<название-фичи>"
@@ -12,28 +12,41 @@ argument-hint: "<название-фичи>"
 
 ## Инструкция
 
-1. Прочитайте `design/gdd/game-concept.md` чтобы понять жанр и текущую архитектуру.
+1. Прочитайте `design/gdd/game-concept.md`, блок **Классификация** — категория (C1–C6),
+   математическая модель (M1–M6) и путь к её конфигу.
 
 2. Спросите пользователя:
    - Как работает фича?
    - Как часто она должна появляться/срабатывать?
-   - Насколько она влияет на баланс (выигрыш / сложность)?
+   - Насколько она влияет на целевую метрику модели?
 
-3. **Для gambling-фич**:
-   - Внесите изменения в `design/balance/rtp-config.json`.
-   - Запустите `game-mathematician` для пересчёта RTP (целевой: 95–97%).
-   - Запустите `/balance-check` для подтверждения.
-   - Вызовите `mechanics-programmer` для реализации в `PaylineEvaluator`.
+3. **Обновите конфиг математической модели** — фича почти всегда меняет числа:
 
-4. **Для puzzle-фич**:
-   - Обновите `design/balance/level-config.json`.
-   - Запустите `game-mathematician` для проверки difficulty curve.
-   - Вызовите `mechanics-programmer` для реализации логики.
+   | Категория | Конфиг | Что типично меняется |
+   |-----------|--------|----------------------|
+   | C1 | `design/balance/rtp-config.json` | веса, выплаты, блок `bonus` |
+   | C2 | `design/balance/rtp-config.json` | house edge, формула множителя, кап |
+   | C3 | `design/balance/economy-config.json` | `spin_events[]`, `unlock_prices[]`, реген |
+   | C4 | `design/balance/gacha-config.json` | `rarities[]`, `hard_pity`, soft pity |
+   | C5 | `design/balance/run-config.json` | `modifiers[]`, `round_targets[]`, доход |
+   | C6 | `design/balance/physics-config.json` | `bucket_multipliers[]`, геометрия |
 
-5. **Для arcade-фич**:
-   - Обновите `design/balance/difficulty-curve.json`.
-   - Вызовите `mechanics-programmer` для реализации SpawnManager/PowerupSystem.
+4. **Пересчитайте математику** — до написания кода, не после:
+   ```bash
+   python3 tools/simulate_math.py --model [m1-m6] --config design/balance/[файл].json
+   ```
+   - Вызовите `game-mathematician`, чтобы вернуть метрику в целевое окно.
+   - Запустите `/balance-check` для подтверждения и записи отчёта.
+   - Фича, выбивающая метрику из окна, не идёт в код, пока не сбалансирована.
 
-6. Создайте Issue в `production/session-state/` и вызовите `/team-dev` для полной реализации.
+5. **Реализация**: вызовите `mechanics-programmer`. Он читает новые значения из конфига —
+   ни одно число фичи не появляется в Dart литералом.
 
-7. После кода — `/balance-check` для проверки, `/code-review` для ревью.
+6. **Проверьте compliance-последствия** (`.claude/rules/responsible-gaming.md`):
+   - Фича добавляет новую случайную выдачу за валюту → обновите экран раскрытия шансов.
+   - Фича меняет выплаты → обновите paytable/правила, чтобы показанное совпадало с конфигом.
+   - Фича добавляет покупку → у C5 ослабленный профиль автоматически становится полным.
+
+7. Создайте Issue в `production/session-state/` и вызовите `/team-dev` для полной реализации.
+
+8. После кода — `/balance-check` для проверки, `/code-review` для ревью.

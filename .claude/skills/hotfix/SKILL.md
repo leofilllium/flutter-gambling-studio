@@ -73,7 +73,7 @@ git checkout -b hotfix/$DATE-краткое-описание
 # Обязательно после исправления
 flutter test
 dart analyze lib/
-python3 tools/simulate_rtp.py 100000  # 100K спинов для быстрой проверки
+python3 tools/simulate_math.py --model [m1-m6] --config design/balance/[файл].json --trials 100000
 ```
 
 Проверочный чеклист:

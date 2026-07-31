@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Validate Commit Hook — Flutter Game Studio
-# Runs pre-commit checks for game integrity (gambling-specific checks are conditional)
+# Validate Commit Hook — Flutter Gambling Studio
+# Runs pre-commit checks for game integrity. Every game here is a gambling game,
+# so the RNG and probability checks are unconditional.
 
 # Only run on git commit commands
 INPUT_JSON="${CLAUDE_TOOL_INPUT:-}"
@@ -15,30 +16,26 @@ WARNINGS=()
 
 echo "🔍 Проверка игровых требований перед коммитом..."
 
-# Detect if this is a gambling project
-IS_GAMBLING=false
-if find lib -name "*.dart" 2>/dev/null | xargs grep -l "WeightedRng\|PaylineEvaluator\|reelWeights" 2>/dev/null | grep -q .; then
-  IS_GAMBLING=true
+# 1. math.Random() — CRITICAL. Unconditional: outcomes must come from Random.secure().
+# Sole exception: the seeded run RNG in C5 casino roguelikes (lib/systems/run_rng.dart + ADR).
+if find lib -name "*.dart" 2>/dev/null | xargs grep -l "math\.Random()" 2>/dev/null | grep -v "_test\.dart" | grep -qv "run_rng\.dart"; then
+  ERRORS+=("🚨 math.Random() найден! Используйте ТОЛЬКО Random.secure()")
+  find lib -name "*.dart" 2>/dev/null | xargs grep -ln "math\.Random()" 2>/dev/null | grep -v "_test\.dart" | grep -v "run_rng\.dart" | while read f; do
+    ERRORS+=("   → $f")
+  done
 fi
 
-# 1. Check for math.Random() — CRITICAL for gambling RNG integrity
-if [ "$IS_GAMBLING" = true ]; then
-  if find lib -name "*.dart" 2>/dev/null | xargs grep -l "math\.Random()" 2>/dev/null | grep -v "_test\.dart" | grep -q .; then
-    ERRORS+=("🚨 math.Random() найден в gambling коде! Используйте ТОЛЬКО Random.secure()")
-    find lib -name "*.dart" 2>/dev/null | xargs grep -ln "math\.Random()" 2>/dev/null | grep -v "_test\.dart" | while read f; do
-      ERRORS+=("   → $f")
-    done
-  fi
+# 2. Hardcoded win probabilities — unconditional
+if find lib -name "*.dart" 2>/dev/null | xargs grep -lnE "if.*random\(\).*<.*[0-9]\.[0-9]|Random\.secure\(\)\.nextDouble\(\)\s*<\s*[0-9]" 2>/dev/null | grep -v "_test\.dart" | grep -q .; then
+  ERRORS+=("🚨 Захардкоженные вероятности выигрыша! Все шансы должны идти через GameConfig/WeightedRNG")
 fi
 
-# 2. Check for hardcoded win probabilities (gambling only)
-if [ "$IS_GAMBLING" = true ]; then
-  if find lib -name "*.dart" 2>/dev/null | xargs grep -lnE "if.*random\(\).*<.*[0-9]\.[0-9]|Random\.secure\(\)\.nextDouble\(\)\s*<\s*[0-9]" 2>/dev/null | grep -v "_test\.dart" | grep -q .; then
-    ERRORS+=("🚨 Захардкоженные вероятности выигрыша! Все шансы должны идти через GameConfig/WeightedRNG")
-  fi
+# 2b. Real-currency symbols next to a virtual balance (responsible-gaming.md §1)
+if find lib -name "*.dart" 2>/dev/null | xargs grep -lnE '\$\{?(balance|coins|chips)|USD|€|₽' 2>/dev/null | grep -viE "iap|purchase|store|_test\.dart" | grep -q .; then
+  WARNINGS+=("⚠️  Символы реальной валюты рядом с игровым балансом — только «фишки»/«монеты»")
 fi
 
-# 3. Check for hardcoded game config values (all genres)
+# 3. Check for hardcoded math-model values (must live in design/balance/*.json)
 if find lib -name "*.dart" 2>/dev/null | xargs grep -lnE "(rtpTarget|targetRtp|rtp)\s*=\s*0\.[0-9]" 2>/dev/null | grep -v "game_config\.dart\|slot_config\.dart\|rtp_config\|_test\.dart" | grep -q .; then
   WARNINGS+=("⚠️  RTP значения вне game_config.dart — проверьте, что это не захардкожено")
 fi

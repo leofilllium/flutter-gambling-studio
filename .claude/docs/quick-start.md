@@ -1,12 +1,29 @@
 # Быстрый Старт
 
-Добро пожаловать в **Flutter Game Studio**! Это пространство настроено для быстрого
-прототипирования и разработки мини-игр любого жанра (слоты, пазлы, аркады, физика, казуальные, карточные).
+Добро пожаловать в **Flutter Gambling Studio** — студию гемблинг-мини-игр:
+слоты, покер, рулетка, бинго, crash, mines, plinko, gacha, казино-рогалики,
+coin pusher и spin-to-progress гибриды.
 
 Здесь вы выступаете в роли **Директора Студии**, а AI-агенты — ваша команда.
 Ваша главная задача — принимать решения, а всю рутину команда возьмет на себя.
 
 > **ВАЖНО**: Всё общение со студией ведется исключительно на **русском языке**.
+>
+> **Всегда виртуально.** Игры студии не принимают и не выплачивают реальные деньги —
+> см. `.claude/rules/responsible-gaming.md`.
+
+## Шесть категорий, в которых работает студия
+
+| ID | Категория | Примеры |
+|----|-----------|---------|
+| C1 🎰 | Social Casino | слот, видео-покер, блэкджек, рулетка, бинго |
+| C2 ⚡ | Casino Originals | crash, mines, dice, hi-lo, tower, keno, скретч |
+| C3 🏰 | Spin-to-Progress | build-and-raid слот, board-dice, prize wheel |
+| C4 🎁 | Gacha & Loot-Box | banner pull, паки карт, case opener, гашапон |
+| C5 🃏 | Casino Roguelike | poker deckbuilder, slot-reel roguelike |
+| C6 ⚙️ | Coin Pusher & Plinko | дозер, plinko, пачинко |
+
+Полный справочник — `.claude/docs/gambling-categories.md`.
 
 ## 🚀 Как начать новую игру?
 
@@ -17,15 +34,16 @@
 ```bash
 /autocreate
 ```
-Студия сама выберет архетип из 24 (например, слот, match-3 или раннер), напишет дизайн, нарисует SVG, создаст код и настроит `pubspec.yaml`.
+Студия сама выберет архетип из 32 (A–AF по шести категориям), объявит математическую
+модель, напишет дизайн, нарисует ассеты, создаст код, прогонит баланс и настроит `pubspec.yaml`.
 
 ### Путь 2: Ручной (Я хочу создать уникальную игру)
 
-**Шаг 1. Идея и жанр**
+**Шаг 1. Идея и категория**
 ```bash
 /brainstorm
 ```
-Вместе с агентом выберете жанр, тему и уникальную фичу («сочность»).
+Вместе с агентом выберете категорию, архетип, тему и уникальную фичу («сочность»).
 
 **Шаг 2. Разбор на компоненты**
 ```bash
@@ -35,17 +53,18 @@
 
 **Шаг 3. Детальный дизайн механики**
 ```bash
-/design-system rtp-weights        # Для gambling: RTP математика
-/design-system match-cascade      # Для puzzle: механика совпадений
-/design-system spawn-system       # Для arcade: генерация препятствий
+/design-system rtp-weights        # C1: веса символов и таблица выплат
+/design-system multiplier-curve   # C2: формула множителя от house edge
+/design-system pity-system        # C4: soft/hard pity и раскрытие шансов
+/design-system energy-economy     # C3: реген, кап, source/sink
 ```
-Подключается `game-mathematician` и `game-designer` — рассчитают баланс для вашего жанра.
+Подключаются `game-mathematician` и `game-designer` — рассчитают модель вашей категории.
 
 **Шаг 4. Написание кода**
 ```bash
 /team-dev "Реализуй ядро игры по нашему концепту"
 ```
-Запустится оркестрация `mechanics-programmer` (пишет логику) и `juice-artist` (делает крутые анимации).
+Запустится оркестрация `mechanics-programmer` (логика и RNG) и `juice-artist` (анимации).
 
 ---
 
@@ -53,12 +72,13 @@
 
 | Специалист | Кого звать | Что делает |
 |------------|------------|------------|
-| Математик | `@game-mathematician` | RTP (gambling), difficulty curves (puzzle), scoring (arcade) |
-| Геймдизайнер | `@game-designer` | GDD для любого жанра: механики, уровни, бонусы |
-| Программист механик | `@mechanics-programmer` | RNG, match detection, spawning, физика Forge2D |
-| Художник Эффектов | `@juice-artist` | VFX, партикли, «сочность» для любого жанра |
-| UI/UX | `@ui-programmer` | Все экраны Flutter, HUD, anti-slop дизайн |
-| Звуковик | `@sound-designer` | Звуки для всех жанров, BGM, SFX |
+| Математик | `@game-mathematician` | Владелец матмодели: RTP, house edge, pity, экономика, run win-rate |
+| Геймдизайнер | `@game-designer` | GDD: раунд, ставки, бонусы, прогрессия, compliance-экраны |
+| Программист механик | `@mechanics-programmer` | `Random.secure()`, Stateless Outcomes, paylines, множители, Forge2D |
+| Мета-системы | `@meta-systems-programmer` | Save, экономика, прогрессия, достижения, ads/iap абстракции |
+| Художник Эффектов | `@juice-artist` | Anticipation, near-miss, win-celebration, партикли |
+| UI/UX | `@ui-programmer` | Все экраны Flutter, HUD, панель ставок, anti-slop дизайн |
+| Звуковик | `@sound-designer` | Ставка, вращение, остановка, победа, cash-out |
 
 ---
 
@@ -66,20 +86,26 @@
 
 Генерация ассетов:
 ```bash
-/generate-asset symbol вишня      # SVG символ для слота
-/generate-asset sprite tile-gem   # SVG тайл для match-3
+/generate-asset symbol вишня      # символ для барабана
+/generate-asset sprite chip-gold  # фишка / шар / капсула
 ```
 
-Проверить баланс игры:
+Проверить математику игры:
 ```bash
-/balance-check                    # RTP (gambling) или difficulty (puzzle/arcade)
+/balance-check                    # выбирает модель M1–M6 по категории игры
+```
+
+Напрямую, если нужно быстро:
+```bash
+python3 tools/simulate_math.py --model m1 --config design/balance/rtp-config.json
+python3 tools/simulate_math.py --selftest   # эталонные конфиги всех шести моделей
 ```
 
 Добавить фичу в уже готовую игру:
 ```bash
-/add-feature "Добавь Free Spins раунд"     # Gambling
-/add-feature "Добавь бомбу-тайл"           # Puzzle
-/add-feature "Добавь пауэрап неуязвимость" # Arcade
+/add-feature "Добавь Free Spins раунд"        # C1
+/add-feature "Добавь авто-ставку с лимитами"  # C2
+/add-feature "Добавь гарант на 10-м пулле"    # C4
 ```
 
 Сделать паузу и продолжить завтра:

@@ -20,7 +20,13 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             1024 adaptive foreground (subject inside Android's 66% safe zone),
             512 store icon.
   fonts     report which display faces this machine can actually use.
-  check     validates a finished directory against store constraints.
+  check     validates a finished directory against store constraints, with a
+            per-store verdict (Play / App Store) on every file.
+
+Screenshot size defaults to 1320x2868 — the App Store's 6.9" slot, the single
+upload that covers every current iPhone. Google Play will NOT take that shape
+(it caps the long side at 2× the short one), so a listing aimed at both stores
+exports a second set at `--size play` (1080x1920, exactly 9:16).
 
 Why a tool instead of inline ImageMagick: rounded corners, notches, glare,
 fractional-alpha shadows and display typography are exactly the steps that
@@ -37,10 +43,11 @@ Requires: Pillow + numpy (both already required by tools/cutout.py).
 Examples:
   python3 tools/store_compose.py fonts --font-dir assets/fonts
   python3 tools/store_compose.py triptych --src keyart.png --out store/ \\
-      --panels 3 --size 1080x1920
+      --panels 3 --size 1320x2868
   python3 tools/store_compose.py showcase --shot raw/02-menu.png --bg keyart.png \\
-      --out store/store-04.png --size 1080x1920 --caption "Собери комбо" \\
+      --out store/store-04.png --size 1320x2868 --caption "Ставка решает" \\
       --type-mood epic --caption-color "#FFF6DC" --caption-color2 "#F0B34A"
+  python3 tools/store_compose.py showcase ... --size play   # 9:16 set for Play
   python3 tools/store_compose.py banner --keyart keyart.png --shot raw/02-menu.png \\
       --out store/feature-graphic-1024x500.png --title "Zeus Slots" \\
       --tagline "Match. Chain. Ascend." --type-mood epic --title-color2 "#F0B34A"
@@ -74,6 +81,22 @@ RES = getattr(Image, "Resampling", Image).LANCZOS
 PLAY_MIN_SIDE = 320
 PLAY_MAX_SIDE = 3840
 PLAY_MAX_BYTES = 8 * 1024 * 1024
+# Play rejects a screenshot whose long side is more than twice the short side.
+PLAY_MAX_RATIO = 2.0
+
+# Canonical portrait sizes. The App Store's 6.9" slot is the default because a
+# single 6.9" upload covers every current iPhone in App Store Connect.
+#
+# Its 2.17:1 shape is ILLEGAL on Google Play (PLAY_MAX_RATIO above), so a
+# listing that targets BOTH stores needs a second export at 9:16 — `check`
+# prints a per-store verdict so that never gets discovered at upload time.
+SIZE_PRESETS = {
+    "iphone-6.9": (1320, 2868),   # App Store 6.9" (primary)
+    "iphone-6.9-alt": (1290, 2796),  # App Store 6.9" (accepted alternative)
+    "iphone-6.5": (1242, 2688),   # App Store 6.5" (legacy slot)
+    "play": (1080, 1920),         # Google Play phone, exactly 9:16
+}
+DEFAULT_SCREEN_SIZE = "1320x2868"
 
 # ── font discovery ──────────────────────────────────────────────────────────
 #
@@ -193,14 +216,43 @@ def info(msg: str) -> None:
 # ───────────────────────────── basics ───────────────────────────────────────
 
 def parse_size(text: str) -> tuple[int, int]:
+    key = str(text).strip().lower()
+    if key in SIZE_PRESETS:
+        return SIZE_PRESETS[key]
     try:
-        w, h = str(text).lower().replace("×", "x").split("x")
+        w, h = key.replace("×", "x").split("x")
         size = (int(w), int(h))
     except Exception:
-        die(f"bad --size {text!r}; expected WIDTHxHEIGHT, e.g. 1242x2688")
+        die(f"bad --size {text!r}; expected WIDTHxHEIGHT (e.g. 1320x2868) "
+            f"or a preset: {', '.join(SIZE_PRESETS)}")
     if size[0] < 16 or size[1] < 16:
         die(f"--size {text!r} is too small")
     return size
+
+
+def store_verdict(w: int, h: int) -> tuple[bool, bool, str]:
+    """Return (play_ok, appstore_ok, note) for a finished screenshot size.
+
+    The two stores disagree about shape: Play caps the long side at 2× the
+    short one, while the App Store's 6.9" slot is 2.17:1. One PNG cannot
+    satisfy both, so we say so per file instead of failing the whole run.
+    """
+    long_side, short_side = max(w, h), min(w, h)
+    ratio = long_side / short_side
+    play_ok = (PLAY_MIN_SIDE <= short_side and long_side <= PLAY_MAX_SIDE
+               and ratio <= PLAY_MAX_RATIO + 1e-6)
+    appstore_ok = (w, h) in {
+        SIZE_PRESETS["iphone-6.9"], SIZE_PRESETS["iphone-6.9-alt"],
+        SIZE_PRESETS["iphone-6.5"],
+    }
+    if not play_ok and ratio > PLAY_MAX_RATIO:
+        note = (f"{ratio:.2f}:1 — Play needs ≤{PLAY_MAX_RATIO:.2f}:1 "
+                f"(export a second set at {SIZE_PRESETS['play'][0]}×{SIZE_PRESETS['play'][1]})")
+    elif not appstore_ok:
+        note = "not an App Store Connect display slot — fine for Play only"
+    else:
+        note = ""
+    return play_ok, appstore_ok, note
 
 
 def hex_rgba(text: str, alpha: int = 255) -> tuple[int, int, int, int]:
@@ -1150,7 +1202,9 @@ def cmd_check(args) -> None:
     if not files:
         die(f"no store PNGs in {d}")
 
+    target = getattr(args, "store", "any")
     problems = 0
+    shapes: dict[tuple[int, int], str] = {}
     for p in files:
         try:
             with Image.open(p) as im:
@@ -1161,6 +1215,7 @@ def cmd_check(args) -> None:
             problems += 1
             continue
         size = p.stat().st_size
+        play_ok, appstore_ok, note = store_verdict(w, h)
         flags = []
         if min(w, h) < PLAY_MIN_SIDE:
             flags.append(f"side <{PLAY_MIN_SIDE}px")
@@ -1168,19 +1223,27 @@ def cmd_check(args) -> None:
             flags.append(f"side >{PLAY_MAX_SIDE}px")
         if size > PLAY_MAX_BYTES:
             flags.append(f">{PLAY_MAX_BYTES // 1024 // 1024}MB")
+        if mode not in ("RGB", "L"):
+            # Play takes 24-bit PNG only; an alpha channel is a silent rejection.
+            flags.append(f"{mode} (store PNGs must be 24-bit, no alpha)")
+        if target == "play" and not play_ok:
+            flags.append(note or "not a valid Play shape")
+        if target == "appstore" and not appstore_ok:
+            flags.append(note or "not an App Store display slot")
         if flags:
             problems += 1
             print(f"❌ {p.name}  {w}×{h} {mode} {size // 1024}KB — {', '.join(flags)}")
         else:
-            print(f"✅ {p.name}  {w}×{h} {mode} {size // 1024}KB")
-
-    sizes = set()
-    for p in files:
+            badge = f"Play {'✅' if play_ok else '✖'} · App Store {'✅' if appstore_ok else '✖'}"
+            print(f"✅ {p.name}  {w}×{h} {mode} {size // 1024}KB — {badge}")
         if p.name.startswith("store-"):
-            with Image.open(p) as im:
-                sizes.add(im.size)
-    if len(sizes) > 1:
-        warn(f"screenshots have mixed sizes {sorted(sizes)} — stores expect one consistent size")
+            shapes[(w, h)] = note
+
+    if len(shapes) > 1:
+        warn(f"screenshots have mixed sizes {sorted(shapes)} — one listing takes one size")
+    for (w, h), note in shapes.items():
+        if note:
+            info(f"{w}×{h}: {note}")
 
     if problems:
         die(f"{problems} file(s) violate store constraints")
@@ -1230,7 +1293,10 @@ def main() -> None:
     t.add_argument("--src", required=True, help="wide key-art PNG (no text baked in)")
     t.add_argument("--out", required=True, help="output directory")
     t.add_argument("--panels", type=int, default=3)
-    t.add_argument("--size", default="1242x2688", help="size of ONE panel (default 1242x2688)")
+    t.add_argument("--size", default=DEFAULT_SCREEN_SIZE,
+                   help=f"size of ONE panel: WxH or a preset "
+                        f"({', '.join(SIZE_PRESETS)}). Default {DEFAULT_SCREEN_SIZE} "
+                        f"(App Store 6.9\")")
     t.add_argument("--prefix", default="store-")
     t.add_argument("--zoom", type=float, default=1.0,
                    help="oversample factor (>1) creating slack for --offset")
@@ -1248,7 +1314,9 @@ def main() -> None:
     s.add_argument("--shot", required=True)
     s.add_argument("--bg", required=True)
     s.add_argument("--out", required=True)
-    s.add_argument("--size", default="1242x2688")
+    s.add_argument("--size", default=DEFAULT_SCREEN_SIZE,
+                   help=f"WxH or a preset ({', '.join(SIZE_PRESETS)}). "
+                        f"Default {DEFAULT_SCREEN_SIZE} (App Store 6.9\")")
     s.add_argument("--caption", default="")
     s.add_argument("--caption-color", default="#FFFFFF")
     s.add_argument("--caption-color2", default="",
@@ -1293,6 +1361,10 @@ def main() -> None:
 
     c = sub.add_parser("check", help="validate a finished store directory")
     c.add_argument("--dir", required=True)
+    c.add_argument("--store", choices=("any", "play", "appstore"), default="any",
+                   help="fail (not just report) when the shape is invalid for this "
+                        "store: Play caps the long side at 2× the short one, the App "
+                        "Store takes only its own display slots (default any)")
     c.set_defaults(func=cmd_check)
 
     args = ap.parse_args()

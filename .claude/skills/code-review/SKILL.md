@@ -126,7 +126,7 @@ allowed-tools: Read, Glob, Grep, Write, Bash, Agent
 - Без аргументов: полное ревью `lib/`
 - `lib/systems/` — ревью только systems
 - `lib/game/` — ревью game layer
-- `--quick` — только gambling-критические проверки (без архитектуры)
+- `--quick` — только критические проверки целостности (RNG, Stateless Outcomes, конфиг), без архитектуры
 - `--rng` — только RNG безопасность
 
 ## Инструменты

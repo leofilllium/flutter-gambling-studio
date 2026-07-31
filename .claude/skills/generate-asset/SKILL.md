@@ -1,6 +1,6 @@
 ---
 name: generate-asset
-description: "Генерация ассетов для мини-игр любого жанра: SVG по умолчанию; PNG только по явному запросу. В Codex PNG/image generation выполняется через GPT Images 2.0 с fallback на GPT Images/default Codex image generation."
+description: "Генерация ассетов для гемблинг-игр (категории C1-C6): SVG по умолчанию; PNG только по явному запросу. В Codex PNG/image generation выполняется через GPT Images 2.0 с fallback на GPT Images/default Codex image generation."
 allowed-tools: Write, Read, Bash, AskUserQuestion
 argument-hint: "[тип (symbol/ui/background)] [название] [--png]"
 user-invocable: true
@@ -42,8 +42,8 @@ PNG/image generation включается только если:
    `design/gdd/game-concept.md`; если GDD нет — спросить тему/палитру). Стиль ассетов
    выводится из DNA, **а не из казино/неон по умолчанию**.
 2. Выберите тип ассета (вид — из Design DNA, не casino/neon):
-   - `symbol` / `sprite`: 64x64 или 96x96 игровой элемент (символ слота, тайл пазла, объект
-     аркады, карта). Стиль рендера — из DNA: объёмный (градиенты + блики) ИЛИ flat ИЛИ
+   - `symbol` / `sprite`: 64x64 или 96x96 игровой элемент (символ барабана, карта, фишка,
+     шар, мина, капсула). Стиль рендера — из DNA: объёмный (градиенты + блики) ИЛИ flat ИЛИ
      outline/lineart. Чёткий на телефоне.
    - `ui`: кнопки / панели / рамки / иконки. Форма — из shape language DNA (скруглённый
      прямоугольник нормален). Эффекты (`<feDropShadow>` / glow) — ТОЛЬКО если они есть в DNA;

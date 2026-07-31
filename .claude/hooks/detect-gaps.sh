@@ -20,18 +20,16 @@ if [ -f "pubspec.yaml" ]; then
     WARNINGS+=("⚠️  lib/game/ не создан — запустите /autocreate или /brainstorm")
   fi
 
-  # Check for RNG safety (only relevant for gambling genre)
-  if find lib -name "*.dart" 2>/dev/null | xargs grep -l "math.Random()" 2>/dev/null | grep -v "_test.dart" | grep -q .; then
-    # Only warn if this looks like a gambling project
-    if find lib -name "*.dart" 2>/dev/null | xargs grep -l "WeightedRng\|PaylineEvaluator\|reelWeights" 2>/dev/null | grep -q .; then
-      GAPS+=("🚨 КРИТИЧНО: найден math.Random() в gambling коде — используйте Random.secure()!")
-      find lib -name "*.dart" 2>/dev/null | xargs grep -l "math.Random()" 2>/dev/null | grep -v "_test.dart" | while read f; do
-        GAPS+=("   → $f")
-      done
-    fi
+  # RNG safety — unconditional: every game in this studio is a gambling game.
+  # The only sanctioned exception is the seeded run RNG in C5 roguelikes (run_rng.dart + ADR).
+  if find lib -name "*.dart" 2>/dev/null | xargs grep -l "math.Random()" 2>/dev/null | grep -v "_test.dart" | grep -qv "run_rng.dart"; then
+    GAPS+=("🚨 КРИТИЧНО: найден math.Random() — используйте Random.secure()!")
+    find lib -name "*.dart" 2>/dev/null | xargs grep -l "math.Random()" 2>/dev/null | grep -v "_test.dart" | grep -v "run_rng.dart" | while read f; do
+      GAPS+=("   → $f")
+    done
   fi
 
-  # Check for hardcoded probabilities (gambling only)
+  # Check for hardcoded probabilities
   if find lib -name "*.dart" 2>/dev/null | xargs grep -lE "(0\.[0-9]+\s*[<>]=?\s*(win|lose|jackpot|bonus))|if.*random.*<.*0\." 2>/dev/null | grep -q .; then
     if find lib -name "*.dart" 2>/dev/null | xargs grep -l "WeightedRng\|reelWeights" 2>/dev/null | grep -q .; then
       GAPS+=("🚨 КРИТИЧНО: возможно захардкоженные вероятности — используйте GameConfig!")

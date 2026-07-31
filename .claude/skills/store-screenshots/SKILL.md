@@ -1,22 +1,31 @@
 ---
 name: store-screenshots
-description: "Полный комплект витринных материалов для Google Play / App Store: первые N скринов — ОДНА широкая концепт-иллюстрация игры БЕЗ текста, нарезанная на панели (вместе складываются в общую картину), дальше — реальные кадры игры в рамке телефона с маркетинговой типографикой (шрифт по mood игры или из assets/fonts, градиент в палитре DNA), плюс app-иконка, игровой эмблема-логотип и feature-graphic баннер. Иконка и логотип не только генерируются, но и ПРИМЕНЯЮТСЯ к проекту (flutter_launcher_icons + assets). Арт — через GPT Images 2.0, композитинг — через tools/store_compose.py. Результат — .zip в project_zip/ для скачивания."
-argument-hint: "[--count 8] [--panels 3] [--platform play|appstore] [--lang ru|en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo] [--size WxH]"
+description: "Полный комплект витринных материалов ГЕМБЛИНГ-игры для App Store Connect и Google Play в формате iPhone 6.9\" (1320×2868, по умолчанию) + Play-совместимый 9:16 набор: первые N скринов — ОДНА широкая концепт-иллюстрация игры БЕЗ текста, нарезанная на панели (вместе складываются в общую картину), дальше — реальные кадры раунда в рамке телефона с маркетинговой типографикой (шрифт по mood игры или из assets/fonts, градиент в палитре DNA), плюс app-иконка, игровая эмблема-логотип и feature-graphic баннер. Арт-дирекшен ведётся от категории C1–C6 и архетипа игры, тексты проходят compliance-гейт responsible-gaming (никаких обещаний выплат, символов реальной валюты и 'casino payout'). Иконка и логотип не только генерируются, но и ПРИМЕНЯЮТСЯ к проекту (flutter_launcher_icons + assets). Арт — через GPT Images 2.0, композитинг — через tools/store_compose.py. Результат — .zip в project_zip/ для скачивания."
+argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--lang ru|en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
 
-# Store Screenshots — витрина игры для стора
+# Store Screenshots — витрина гемблинг-игры для стора
 
 **Цель**: собрать всё, что стор просит показать на карточке приложения:
 
 | # | Что | Откуда |
 |---|-----|--------|
 | 1…P | **Концепт-триптих** — ОДНА широкая иллюстрация мира игры **без текста**, нарезанная на `P` панелей. Рядом в сторе они читаются как одна общая картина | GPT Images 2.0 → `store_compose.py triptych` |
-| P+1…N | **Реальные кадры игры** в рамке телефона на тематическом фоне + маркетинговая подпись | web_verify/эмулятор → `store_compose.py showcase` |
+| P+1…N | **Реальные кадры раунда** в рамке телефона на тематическом фоне + маркетинговая подпись | web_verify/эмулятор → `store_compose.py showcase` |
 | — | **Feature graphic** 1024×500 (Google Play) — единственное место с именем игры | `store_compose.py banner` |
 | — | **App-иконка** (launcher, все плотности + adaptive + iOS) — генерируется И применяется | GPT Images 2.0 → `store_compose.py icon` → `flutter_launcher_icons` |
 | — | **Игровая эмблема** (лого игры) — ассет проекта + adaptive-foreground иконки | GPT Images 2.0 → `tools/cutout.py` |
+
+Весь комплект собирается **дважды**: основной набор в формате iPhone 6.9″ (`1320×2868`)
+для App Store Connect и **Play-совместимый** набор 9:16 (`1080×1920`) — из той же панорамы
+и тех же кадров. Почему два набора, а не один — см. «Размеры» ниже.
+
+**Витрина гемблинг-игры продаёт РАУНД, а не «казино вообще»**: момент до раскрытия исхода
+(барабаны в движении, растущий множитель, шар над корзинами, капсула перед вскрытием) и
+момент выигрыша. И она обязана пройти compliance-гейт (Фаза 6.5) — стор снимает
+social-casino листинги за обещания выплат быстрее, чем за что-либо ещё.
 
 Всё складывается в `.zip` в `project_zip/` — worker веб-сервиса автоматически регистрирует
 его как скачиваемый артефакт в чате (как у `/release-package`).
@@ -35,16 +44,34 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 ---
 
-## Универсальность (жёсткое правило)
+## Арт-дирекшен: гемблинг по категории, а не «казино вообще» (жёсткое правило)
 
-Навык обслуживает ЛЮБОЙ жанр и ЛЮБУЮ тему студии. Весь арт-дирекшен берётся из
-`design/gdd/game-concept.md` (Design DNA) и `design/art-direction.md`.
+Студия делает **только** гемблинг-игры, поэтому витрина обязана с первого кадра сообщать
+**механику ставки**: что игрок ставит, что крутится/падает/вскрывается и что он выигрывает.
+Но «гемблинг» — это НЕ автоматически тёмный неон, золото и фишки: конкретный вид берётся
+из категории C1–C6, архетипа A–AF и Design DNA игры
+(`design/gdd/game-concept.md`, `design/art-direction.md`).
 
-- ❌ Нельзя по умолчанию рисовать казино/неон/золото/фиолетовый градиент.
-- ✅ Лесной пазл → лес. Космический раннер → космос. Уютный кликер → уют.
-- Тест: если триптих можно переставить на другую игру студии без изменений — он провален.
+| Категория | Что витрина обязана показать (сюжет арта) | Типичная ошибка |
+|-----------|-------------------------------------------|-----------------|
+| **C1** 🎰 Social Casino | Барабаны/карты/колесо в момент остановки, символы паутбла как герои мира | Пустой зал казино без единого символа игры |
+| **C2** ⚡ Originals | Кривая множителя и точка решения: объект летит / поле мин / башня — напряжение «забрать или дальше» | Статичная сетка без ощущения риска |
+| **C3** 🏰 Spin-to-Progress | Спин И мета-мир вместе: колесо/кость плюс деревня, доска, альбом — обещание прогресса | Только слот, мета-игра не видна — витрина врёт о жанре |
+| **C4** 🎁 Gacha | Момент раскрытия: капсула/пак/кейс вскрывается, редкость сияет, коллекция за спиной | Ряд иконок персонажей без акта пулла |
+| **C5** 🃏 Roguelike | Рука/барабан игрока как **собранный движок**: карты с модификаторами, синергия, счёт | Реалистичное казино — обманывает ожидание (это тактика, а не зал) |
+| **C6** ⚙️ Физика | Траектория и поле: шар над корзинами, навес монет у края, лунки — физика как обещание | Плоская схема без объёма и без накопленного потенциала |
+
+- ❌ Один и тот же неон+золото+фиолетовый градиент на все игры студии — это slop.
+- ✅ Египетский слот → песок и обожжённое золото. Космический crash → пустота и огонь.
+  Уютное бинго → тёплая бумага и дерево. Гашапон → пастель и пластик. Рогалик → строгая
+  типографская доска с сукном.
+- **Тест**: если триптих можно переставить на другую игру студии без изменений — он провален.
+- **Второй тест (гемблинг)**: если по триптиху нельзя сказать, ЧТО игрок ставит и ЧТО
+  крутится — витрина продаёт настроение вместо игры и тоже провалена.
 
 @.claude/rules/anti-slop-design.md
+
+@.claude/rules/responsible-gaming.md
 
 ---
 
@@ -54,8 +81,8 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 |----------|--------------|-------|
 | `--count N` | `8` | Всего скринов (Play: 2–8, App Store: до 10) |
 | `--panels P` | `3` | Панелей в концепт-триптихе (`0` — выключить триптих) |
-| `--platform play\|appstore` | `play` | Целевой размер |
-| `--size WxH` | из platform | Явное переопределение размера панели |
+| `--size <WxH\|preset>` | `1320x2868` | Размер основного набора. Пресеты: `iphone-6.9` (1320×2868), `iphone-6.9-alt` (1290×2796), `iphone-6.5` (1242×2688), `play` (1080×1920) |
+| `--no-play-set` | выкл | Не собирать дополнительный Play-набор 9:16 (только когда игра идёт в App Store) |
 | `--lang ru\|en` | язык концепта | Язык подписей и тайтла |
 | `--frame ios\|android\|none` | `ios` | Рамка устройства на витринных кадрах |
 | `--type-mood <mood>` | из DNA | Характер шрифта: `bold`/`epic`/`tech`/`playful`/`elegant`/`retro`/`clean` |
@@ -65,12 +92,25 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 | `--no-wire-logo` | выкл | Не подключать эмблему в главное меню |
 | `--name <custom>` | из pubspec | Имя архива |
 
-### Размеры
+### Размеры — два набора, потому что стороны требуют разной формы
 
-| Платформа | Скриншот | Feature graphic |
-|-----------|----------|-----------------|
-| `play` | **1080×1920** (ровно 9:16 — проходит все проверки Play) | 1024×500 |
-| `appstore` | **1290×2796** (iPhone 6.7"; 6.5" — `--size 1242x2688`) | — |
+| Набор | Размер | Куда грузится | Папка в архиве |
+|-------|--------|---------------|----------------|
+| **Основной** | **1320×2868** (или `1290×2796`) — iPhone 6.9″, соотношение 2.17:1 | **App Store Connect**, слот 6.9″ — одна загрузка покрывает все актуальные iPhone | `store/` |
+| **Play-совместимый** | **1080×1920** — ровно 9:16 (2.00:1) | **Google Play**, Phone screenshots | `store-play/` |
+
+> **Почему нельзя обойтись одним файлом на оба стора.** Google Play отклоняет скриншот,
+> у которого длинная сторона больше короткой **более чем в 2 раза**. У формата 6.9″
+> 2868 / 1320 = **2.17** — то есть родной размер App Store физически не проходит проверку
+> Play. Поэтому Play-набор пересобирается из **той же** панорамы и тех же кадров в 9:16:
+> это не даунскейл (он бы обрезал подписи), а честная перекомпоновка — типографика и
+> рамка телефона пересчитываются под новую форму.
+>
+> `store_compose.py check` печатает вердикт по каждому файлу отдельно для двух сторов,
+> так что несоответствие видно до загрузки, а не в момент отказа консоли.
+
+Play дополнительно требует 24-битный PNG **без альфа-канала** — `save_png()` уже отдаёт
+RGB, а `check` ловит случайную RGBA (это молчаливый отказ на загрузке).
 
 Если игра альбомная (`design/structure.md` → landscape) — поменять W и H местами
 и ставить `--panels 0` (горизонтальный триптих из портретных панелей не читается).
@@ -99,9 +139,18 @@ STORE_ROOT="project_zip"
 STORE_DIR="$STORE_ROOT/$PROJECT_NAME-store-$TS"
 RAW_DIR="$STORE_DIR/raw"          # сырые кадры игры
 ART_DIR="$STORE_DIR/art"          # сгенерированный бренд-арт
-OUT_DIR="$STORE_DIR/store"        # финальные витринные PNG
-mkdir -p "$RAW_DIR" "$ART_DIR" "$OUT_DIR" assets/branding
+OUT_DIR="$STORE_DIR/store"        # финальный набор App Store 6.9" (1320×2868)
+PLAY_DIR="$STORE_DIR/store-play"  # финальный набор Google Play 9:16 (1080×1920)
+mkdir -p "$RAW_DIR" "$ART_DIR" "$OUT_DIR" "$PLAY_DIR" assets/branding
 echo "📁 $STORE_DIR"
+
+# Размеры обоих наборов. SIZE — основной (по умолчанию 6.9"), PLAY_SIZE — 9:16 для Play.
+SIZE="${SIZE:-1320x2868}"         # --size переопределяет; пресеты знает store_compose.py
+PLAY_SIZE="1080x1920"
+PLAY_SET=1                        # --no-play-set ставит 0
+# Если основной набор УЖЕ 9:16 — второй не нужен, он был бы копией.
+[[ "$SIZE" == "play" || "$SIZE" == "$PLAY_SIZE" ]] && PLAY_SET=0
+echo "📐 App Store: $SIZE • Google Play: $([[ $PLAY_SET == 1 ]] && echo "$PLAY_SIZE" || echo "тот же набор")"
 
 if [[ -f .gitignore ]] && ! grep -q "^project_zip/" .gitignore; then
   printf '\n# Store/release archives\nproject_zip/\n' >> .gitignore
@@ -113,14 +162,17 @@ fi
 Прочитать через Read (если есть): `design/gdd/game-concept.md`, `design/art-direction.md`,
 `design/structure.md`. Извлечь и **записать в `$STORE_DIR/STORE_BRIEF.md`**:
 
-| Переменная | Что это | Пример (условная игра про лес) |
+| Переменная | Что это | Пример (условный слот-лес, C1/архетип B) |
 |-----------|---------|-------------------------------|
 | `TITLE` | Человекочитаемое имя игры | «Лесной Шёпот» |
-| `TAGLINE` | ≤ 42 симв., одна выгода игрока | «Собирай руны. Буди лес.» |
-| `GENRE` | Жанр из CLAUDE.md | puzzle / match-3 |
-| `HERO` | Главный герой/субъект мира | древний дух-олень с рунами на рогах |
-| `MECHANIC_OBJECT` | Предмет, олицетворяющий механику | светящаяся руна-кристалл |
-| `REWARD` | Награда/цель мира | пробуждённое Древо-сердце |
+| `TAGLINE` | ≤ 42 симв., одна выгода игрока (**compliance!** см. ниже) | «Крути барабаны. Буди лес.» |
+| `CATEGORY` | **C1–C6 из блока «Классификация»** концепта | C1 Social Casino |
+| `ARCHETYPE` | **A–AF** из того же блока | B — видео-слот 5×3 + Free Spins |
+| `STAKE_OBJECT` | **Что игрок ставит** (виртуальная валюта/ресурс) | жёлудь-жетон |
+| `MECHANIC_OBJECT` | **Что решает исход** — барабан, кривая множителя, поле мин, капсула, шар | барабаны с рунными символами |
+| `PEAK_MOMENT` | **Кадр максимального напряжения** — что рисуем в центре панорамы | третий барабан замедляется на скаттере |
+| `REWARD` | Награда/цель мира (виртуальная!) | пробуждённое Древо-сердце и ливень желудей |
+| `HERO` | Герой/субъект мира (может быть символ паутбла) | древний дух-олень с рунами на рогах |
 | `PALETTE` | 3–5 цветов из DNA | мшисто-зелёный, янтарь, тёплый белый |
 | `MOOD` | Настроение | тёплое, живое, чуть волшебное |
 | `RENDER` | Стиль рендера из DNA | material-grounded 3D, мягкий свет |
@@ -128,13 +180,29 @@ fi
 | `TYPE_MOOD` | Характер шрифта: `bold` / `epic` / `tech` / `playful` / `elegant` / `retro` / `clean` | `playful` |
 | `TEXT_1` | HEX основного цвета текста (светлый конец) | `#FFF7E6` |
 | `TEXT_2` | HEX второго стопа градиента = акцент из DNA | `#E0A63C` |
+| `CURRENCY_NAME` | Как называется валюта в игре — только это слово в подписях | «жёлуди», «фишки», «кристаллы» |
+| `COMPLIANCE` | `полный` / `ослабленный C5` — из блока «Классификация» | полный |
 
-Если концепта нет — вывести из `pubspec.yaml` (`name`, `description`) + прочитать 2–3
-ассета игры через Read (vision) и описать стиль по ним. **Нейтральная тема, не казино.**
+`CATEGORY` + `ARCHETYPE` + `PEAK_MOMENT` — это то, что делает витрину гемблинг-витриной.
+Триптих строится вокруг `PEAK_MOMENT`, а не вокруг «красивого мира вообще»: сюжет арта
+по категориям — в таблице «Арт-дирекшен» выше.
 
-`TYPE_MOOD` выбирается по DNA, а не по жанру: `Typography` из Design DNA и `MOOD`
+Если концепта нет — вывести из `pubspec.yaml` (`name`, `description`), определить категорию
+по коду (`lib/systems/*`: `payline_evaluator` → C1, `multiplier_curve` → C2, `pity_counter`
+→ C4, `physics_world` → C6 и т.д.) и прочитать 2–3 ассета игры через Read (vision).
+**Тему берём из ассетов игры, а не «казино по умолчанию».**
+
+> **Compliance-фильтр на `TITLE` / `TAGLINE` / подписи (обязателен).**
+> `.claude/rules/responsible-gaming.md` §1 и §3: запрещены «выиграй деньги», «реальные
+> выплаты», «payout», «cash out» как обещание денег, «заработай», а также символы `$ € ₽`
+> и слово `casino` в связке с выплатами. Разрешено и работает: азарт механики
+> («Крути. Забирай. Повторяй»), масштаб («Джекпот в 500 [CURRENCY_NAME]»), выбор
+> («Забрать сейчас или рискнуть»). Формулировка проверяется в Фазе 6.5 grep'ом —
+> лучше сразу писать чисто, чем переписывать весь набор.
+
+`TYPE_MOOD` выбирается по DNA, а не по категории: `Typography` из Design DNA и `MOOD`
 задают характер. Космос/кибер → `tech`; миф/фэнтези → `epic`; уютное/детское →
-`playful`; премиум-минимализм → `elegant`; пиксель-аркада → `retro`; сомневаешься →
+`playful`; премиум-минимализм → `elegant`; пиксельный автоматный зал → `retro`; сомневаешься →
 `bold`. Один и тот же mood на все игры — это slop (см. `anti-slop-design.md`).
 
 `TEXT_1`/`TEXT_2` — вертикальный градиент заливки текста. `TEXT_2` берётся из
@@ -219,13 +287,24 @@ node tools/web_verify.mjs --url "$WEB_URL" --out "$RAW_DIR" \
 | Флаг | Зачем именно здесь |
 |------|--------------------|
 | `--size 390x844` | пропорция телефона 2.16 — то, во что рисуется мокап |
-| `--dpr 3` | кадр 1170×2532: в витринный слот (~890 px) идёт с запасом, без апскейла. По умолчанию `--dpr 2` — этого хватает; `3` берём ради максимальной чёткости, т.к. здесь важна только картинка, а не скорость прогона |
+| `--dpr 3` | кадр 1170×2532. Экран внутри рамки на холсте 1320 px занимает ~1000 px, то есть кадр идёт **без апскейла** даже в большом наборе 6.9″. `--dpr 2` (780×1688) для 9:16 ещё годится, но для 1320×2868 уже растягивается — поэтому здесь именно `3` |
 
 Полная процедура запуска/ожидания — `.claude/skills/autocreate-finalize/SKILL.md` (Фаза 10.5).
 Android-fallback (`flutter screenshot` / `adb exec-out screencap`) — `.claude/skills/emulator-test/SKILL.md`.
 
-Нужный минимум «продающих» кадров: главное меню, активный геймплей, момент выигрыша/успеха,
-правила/прогресс, любой яркий экран (бонус/лидерборд/профиль).
+Нужный минимум «продающих» кадров для гемблинг-витрины (порядок = приоритет):
+
+1. **Раунд в разгаре** — барабаны крутятся / множитель растёт / поле открывается. Главный кадр.
+2. **Момент выигрыша** — win-celebration с числами и партиклями (то, ради чего ставят).
+3. **Панель ставки** — видно, что ставкой управляет игрок (bet-tiers, cash-out, авто-игра).
+4. **Главное меню** — брендовый кадр с эмблемой.
+5. **Paytable / «Шансы»** — таблица выплат или odds disclosure. Для C4 (gacha) кадр
+   экрана шансов на витрине **обязателен**: это то, чего стор ждёт от лутбокса.
+6. Мета-поверхность категории: деревня/альбом (C3), баннер и pity-счётчик (C4),
+   итоги забега (C5), поле с накопленными монетами (C6), бонус/лидерборд (C1/C2).
+
+Кадр с нулевым балансом, экраном ошибки или age-gate на витрину **не идёт** — это
+первое, что видит рецензент, и оно не продаёт игру.
 
 ```bash
 RAW_COUNT=$(ls -1 "$RAW_DIR"/*.png 2>/dev/null | wc -l | tr -d ' ')
@@ -249,35 +328,68 @@ head -c 400 "$RAW_DIR/manifest.json" 2>/dev/null   # поле "capture" — фа
 Просить **самый широкий landscape**, который отдаёт модель (обычно 1536×1024). Нарезку на
 панели делаем мы — модель об этом знать НЕ должна, иначе она нарисует коллаж с рамками.
 
+Панорама строится вокруг **`PEAK_MOMENT`** — мгновения ДО раскрытия исхода. Это и есть
+разница между витриной гемблинг-игры и просто красивой иллюстрацией.
+
 ```
-One single seamless ultra-wide landscape key-art illustration for a [GENRE] mobile game — [MOOD] [THEME] world.
-Composition: [HERO] as the dominant figure just left of centre; [MECHANIC_OBJECT] glowing in the middle;
-[REWARD] rising on the right — three distinct focal points spread evenly across the width, so that ANY
-vertical third of this picture is a strong standalone image. Keep faces and key silhouettes AWAY from the
-vertical lines at 1/3 and 2/3 of the width. [PALETTE] palette, [RENDER] render, dramatic key light from the
-upper left, volumetric depth, believable materials, full-bleed edge-to-edge artwork, poster quality.
+One single seamless ultra-wide landscape key-art illustration for a [ARCHETYPE] mobile game — [MOOD] [THEME] world.
+Composition, three focal points spread evenly across the width so that ANY vertical third is a strong
+standalone image:
+  LEFT   — [HERO / the world of the game, establishing the theme];
+  CENTRE — [PEAK_MOMENT]: [MECHANIC_OBJECT] caught mid-action at the instant before the outcome is
+           revealed, the single most exciting frame of a round, lit as the hero of the picture;
+  RIGHT  — [REWARD] cascading/rising as the payoff.
+Keep faces and key silhouettes AWAY from the vertical lines at 1/3 and 2/3 of the width.
+[PALETTE] palette, [RENDER] render, dramatic key light from the upper left, volumetric depth,
+believable materials, full-bleed edge-to-edge artwork, poster quality.
 NO text, NO words, NO numbers, NO letters, NO logo, NO watermark, NO UI, NO phone, NO device mockup,
 NO frame, NO border, NO panels, NO split-screen, NO collage, NO grid, NO diptych, NO triptych divisions.
+NO currency symbols, NO dollar/euro signs, NO banknotes, NO cash, NO poker chips with money values,
+NO real-money imagery of any kind.
 Widest landscape aspect available, highest resolution.
 ```
+
+Центральный фокус по категориям (подставить в `[PEAK_MOMENT]`):
+
+| Кат. | `PEAK_MOMENT` для промпта |
+|------|---------------------------|
+| C1 | reels blurred in motion with one reel just locking into place on a hero symbol |
+| C2 | a rising multiplier trail at its steepest / a grid with one tile half-turned |
+| C3 | the wheel or dice mid-throw with the village/board waiting behind it |
+| C4 | a capsule/pack cracking open, rare light bursting through the seam |
+| C5 | a hand of cards laid out mid-combo, modifier tokens glowing around it |
+| C6 | a ball suspended above the pegs / coins teetering on the edge of the shelf |
 
 Сохранить в `$ART_DIR/keyart.png`, проверить: `file "$ART_DIR/keyart.png"` → PNG.
 
 > Запреты на текст/панели — не украшение промпта. Без них модель рисует «постер» с
 > нечитаемыми буквами и разделительными рамками, и триптих разваливается.
+>
+> Запрет на деньги/банкноты/символы валют — **не стилистика, а compliance**
+> (`responsible-gaming.md` §1.3 и §3): изображение реальных денег на скриншотах —
+> прямой повод для отказа social-casino листингу. Модель добавляет доллары в
+> «казино»-промпты по умолчанию, поэтому запрет пишется явно **всегда**.
 
 ### 2.2. Арт app-иконки
 
+Иконка гемблинг-игры обязана за 48 px сказать «здесь крутят/тянут/бросают». Субъект —
+`MECHANIC_OBJECT`, а не абстрактный логотип: барабан с символом, ракета множителя, капсула,
+шар над лунками, карта с джокером.
+
 ```
-Square full-bleed app icon artwork for a [GENRE] mobile game — [THEME].
-[MECHANIC_OBJECT or HERO head] as one bold hero object, centred, filling most of the frame,
+Square full-bleed app icon artwork for a [ARCHETYPE] mobile game — [THEME].
+[MECHANIC_OBJECT] as one bold hero object, centred, filling most of the frame,
 [RENDER] render, [PALETTE] palette, rich materials, dramatic rim light, atmospheric background
 consistent with the game world. Instantly readable as a 48 px launcher icon: ONE clear subject,
-strong silhouette, high contrast. NO text, NO words, NO letters, NO logo, NO UI, NO border,
-NO rounded-corner mask, NO drop shadow outside the artwork. 1024x1024.
+strong silhouette, high contrast. NO text, NO words, NO letters, NO numbers, NO logo, NO UI,
+NO border, NO rounded-corner mask, NO drop shadow outside the artwork,
+NO currency symbols, NO banknotes, NO cash. 1024x1024.
 ```
 
 Сохранить в `$ART_DIR/icon_art.png`.
+
+> Иконка со знаком `$`, пачкой купюр или надписью «FREE COINS» — это отказ на ревью
+> (`responsible-gaming.md` §3) и одновременно самый частый дефолт модели на слово casino.
 
 ### 2.3. Игровая эмблема (лого игры)
 
@@ -286,11 +398,12 @@ NO rounded-corner mask, NO drop shadow outside the artwork. 1024x1024.
 если в палитре есть пурпур/розовый — `pure green #00FF00`).
 
 ```
-Single hero emblem for a [GENRE] game — [MECHANIC_OBJECT / crest of THEME], one centred object,
+Single hero emblem for a [ARCHETYPE] game — [MECHANIC_OBJECT / crest of THEME], one centred object,
 [RENDER] render, [PALETTE] palette, believable materials, soft key light from top-left plus subtle rim,
 crisp clean silhouette readable at 64 px, premium studio product shot,
 flat solid single-colour [KEY COLOUR] background, no gradient, no vignette, no shadow on the background,
-subject fully inside frame, NO text, NO letters, NO border, NO scene, NO sprite sheet. 1024x1024.
+subject fully inside frame, NO text, NO letters, NO numbers, NO border, NO scene, NO sprite sheet,
+NO currency symbols, NO banknotes. 1024x1024.
 ```
 
 Сохранить в `$ART_DIR/emblem.png`, затем **обязательно** вырезать фон:
@@ -406,21 +519,28 @@ fi
 > опция, а осознанное ограничение.
 
 ```bash
-# Размер панели
-case "${PLATFORM:-play}" in
-  appstore) SW=1290; SH=2796 ;;
-  *)        SW=1080; SH=1920 ;;
-esac
-# --size WxH переопределяет
-
+# Основной набор — App Store 6.9" (1320×2868 по умолчанию)
 python3 tools/store_compose.py triptych \
   --src "$ART_DIR/keyart.png" \
   --out "$OUT_DIR" \
   --panels "${PANELS:-3}" \
-  --size "${SW}x${SH}"
+  --size "$SIZE"
+
+# Play-набор 9:16 — та же панорама, другая форма панели
+[[ "${PLAY_SET:-1}" == "1" ]] && python3 tools/store_compose.py triptych \
+  --src "$ART_DIR/keyart.png" \
+  --out "$PLAY_DIR" \
+  --panels "${PANELS:-3}" \
+  --size "$PLAY_SIZE"
 ```
 
-Даёт `store-01.png … store-0P.png` + `_panorama-preview.png` (склейка со швами).
+Даёт `store-01.png … store-0P.png` + `_panorama-preview.png` (склейка со швами) в каждой папке.
+
+> **Резать заново, а не масштабировать.** Панель 9:16 ýже панели 6.9″ по пропорции, поэтому
+> `cover`-кроп берёт другую полосу панорамы. Даунскейл готового набора 1320×2868 до 1080×1920
+> дал бы искажение или чёрные поля — Play отклоняет и то, и другое.
+> `--zoom/--offset`, если понадобятся, подбираются для каждого набора **отдельно**:
+> швы у наборов проходят по разным местам картинки.
 
 ### Обязательный vision-контроль швов
 
@@ -431,12 +551,17 @@ python3 tools/store_compose.py triptych \
 | Лицо/голова героя рассечены розовой линией шва | сдвинуть кадрирование (ниже) |
 | Панель целиком пустая (небо/фон, нет фокуса) | перегенерировать панораму с акцентом на 3 фокуса |
 | В арте появились буквы/цифры/рамки/коллаж | перегенерировать, усилив NO-text/NO-panels |
+| Появились деньги/купюры/символы валют | **перегенерировать** — это compliance-блокер, а не вкусовщина |
+| Центральная панель не показывает механику (`PEAK_MOMENT` потерялся) | перегенерировать, усилив описание центрального фокуса |
+
+Проверять **оба** `_panorama-preview.png` — швы у 6.9″ и 9:16 проходят по разным местам
+картинки, и герой может уцелеть в одном наборе и быть разрезан в другом.
 
 Сдвиг кадрирования **без перегенерации** (дешёвый фикс, пробовать первым):
 
 ```bash
 python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" --out "$OUT_DIR" \
-  --panels 3 --size "${SW}x${SH}" --zoom 1.12 --offset -0.6
+  --panels 3 --size "$SIZE" --zoom 1.12 --offset -0.6
 ```
 
 `--offset` от `-1` (влево) до `1` (вправо); `--zoom > 1` создаёт запас для сдвига.
@@ -454,10 +579,14 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" --out "$OUT_
 выигрыша/успеха → главное меню → правила/прогресс → бонус/лидерборд.
 
 Для каждого написать подпись на `--lang` (по умолчанию язык концепта, обычно русский),
-**≤ 32 символов**, про выгоду игрока, а не про экран:
+**≤ 32 символов**, про азарт раунда, а не про экран:
 
-- ✅ «Собирай цепочки из 3+» / «Один тап — и буря» / «Открывай новые миры»
-- ❌ «Главное меню» / «Экран правил» / «Скриншот 3»
+- ✅ «Крути. Забирай. Повторяй» / «Забрать сейчас или рискнуть» / «10 фриспинов подряд»
+  / «Гарант на 70-м пулле» / «Джекпот — 500 000 фишек»
+- ❌ «Главное меню» / «Экран правил» / «Скриншот 3» — описывают экран, а не игру
+- ⛔️ «Выиграй деньги» / «Реальные выплаты» / «Заработай на спинах» / «$1000 за спин»
+  — **блокируют публикацию** (`responsible-gaming.md` §1.4). Суммы пишутся только в
+  `CURRENCY_NAME` игры, символов реальной валюты не бывает нигде.
 
 При `--no-captions` подписи не рисуются (чистые кадры, как в референсных витринах).
 
@@ -466,24 +595,42 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" --out "$OUT_
 Фон витринных кадров — **та же панорама**: витрина читается как единый набор.
 
 ```bash
-i=$((PANELS + 1))
-for pair in "02-menu.png|Играй с первого тапа" "04-game-action.png|Собирай цепочки из 3+"; do
-  SHOT="${pair%%|*}"; CAP="${pair##*|}"
-  python3 tools/store_compose.py showcase \
-    --shot "$RAW_DIR/$SHOT" \
-    --bg "$ART_DIR/keyart.png" \
-    --out "$OUT_DIR/$(printf 'store-%02d.png' "$i")" \
-    --size "${SW}x${SH}" \
-    --caption "$CAP" \
-    --type-mood "${TYPE_MOOD:-bold}" \
-    --caption-color "${TEXT_1:-#FFFFFF}" \
-    --caption-color2 "${TEXT_2:-}" \
-    $FONT_DIR_ARG \
-    --frame "${FRAME:-ios}" \
-    --bg-treatment soft
-  i=$((i + 1))
-done
+# Один список кадров и подписей — оба набора собираются из него, чтобы витрины
+# в двух сторах рассказывали одну и ту же историю в одном и том же порядке.
+SHOWCASE=(
+  "04-game-action.png|Крути. Забирай. Повторяй"
+  "06-win.png|Джекпот — 500 000 фишек"
+  "02-menu.png|Раунд начинается с тапа"
+)
+
+compose_set() {   # $1 = папка назначения, $2 = размер
+  local out="$1" size="$2" i=$((PANELS + 1))
+  for pair in "${SHOWCASE[@]}"; do
+    local SHOT="${pair%%|*}" CAP="${pair##*|}"
+    python3 tools/store_compose.py showcase \
+      --shot "$RAW_DIR/$SHOT" \
+      --bg "$ART_DIR/keyart.png" \
+      --out "$out/$(printf 'store-%02d.png' "$i")" \
+      --size "$size" \
+      --caption "$CAP" \
+      --type-mood "${TYPE_MOOD:-bold}" \
+      --caption-color "${TEXT_1:-#FFFFFF}" \
+      --caption-color2 "${TEXT_2:-}" \
+      $FONT_DIR_ARG \
+      --frame "${FRAME:-ios}" \
+      --bg-treatment soft
+    i=$((i + 1))
+  done
+}
+
+compose_set "$OUT_DIR" "$SIZE"
+[[ "${PLAY_SET:-1}" == "1" ]] && compose_set "$PLAY_DIR" "$PLAY_SIZE"
 ```
+
+Композитор сам пересчитывает кегль подписи, высоту полосы и размер телефона от размера
+холста, поэтому один и тот же вызов даёт корректную вёрстку и в 2.17:1, и в 9:16.
+Флаги подгонки (`--scale`, `--fit`, `--scrim`) при необходимости задаются **для каждого
+набора отдельно**: в более узком 9:16 телефон занимает больше высоты.
 
 Типографика подписи (то, что отличает витрину от скриншота с текстом сверху):
 
@@ -517,7 +664,8 @@ done
 
 ### 5.3. Обязательный vision-контроль типографики
 
-Прочитать **один** готовый витринный кадр через Read и проверить:
+Прочитать через Read по **одному** готовому кадру из **каждого** набора (`store/` и
+`store-play/` — в узком 9:16 подпись переносится иначе и может дать лишнюю строку) и проверить:
 
 | Проверка | Провал → действие |
 |----------|-------------------|
@@ -552,29 +700,113 @@ python3 tools/store_compose.py banner \
 по-разному. Между ними — акцентная черта (убрать: `--no-rule`).
 
 `--shot` не обязателен: без него баннер — чистая панорама с тайтлом.
-Для App Store feature graphic не нужен — при `--platform appstore` шаг можно пропустить.
+Feature graphic нужен только Google Play; для App Store Connect его загружать некуда,
+но собрать стоит всегда — он же идёт в пресс-кит.
+
+Тайтл и таглайн баннера — самое видимое место листинга, поэтому именно здесь Play чаще
+всего ловит нарушение: слова `casino`, `payout`, `win cash`, `real money`, `bonus money`
+в заголовке = отказ (`responsible-gaming.md` §3). Проверяется в следующей фазе.
+
+---
+
+## Фаза 6.5 — Compliance-гейт витрины [~30 сек] 🚫 БЛОКИРУЮЩАЯ
+
+Стор снимает social-casino листинг за обещание денег быстрее, чем за что-либо ещё.
+Эта фаза — тот же контракт, что `/release-checklist`, но применённый к витрине.
+
+### 6.5.1. Grep по всем текстам, которые пойдут в стор
+
+Сложить ВСЕ тексты, которые увидит рецензент, в один файл — и проверить его целиком
+(проверки из `responsible-gaming.md` §5):
+
+```bash
+# Тексты, которые РИСУЮТСЯ на картинках: здесь запрещённых слов быть не может вообще.
+{
+  echo "$TITLE"; echo "$TAGLINE"
+  printf '%s\n' "${SHOWCASE[@]}"        # подписи витринных кадров
+} > "$STORE_DIR/STORE_COPY.txt"
+```
+
+```bash
+# 1. Обещания выплат и реальных денег — ОБЯЗАНО не найти ничего
+grep -niE 'real money|реальн[а-я]+ деньг|деньг|выплат|payout|win cash|earn (real )?money|обнал|заработа|вывод средств|cash ?out|призов[а-я]* фонд' \
+  "$STORE_DIR/STORE_COPY.txt" && echo "❌ BLOCKER: обещание выплат в текстах витрины"
+
+# 2. Символы реальной валюты — ОБЯЗАНО не найти ничего
+grep -nE '[$€₽£¥]|\bUSD\b|\bEUR\b|\bRUB\b' "$STORE_DIR/STORE_COPY.txt" \
+  && echo "❌ BLOCKER: символ реальной валюты в текстах витрины"
+```
+
+Найдено → **переписать подпись и пересобрать конкретный PNG**, а не «оставить, но
+отметить в отчёте». Это не стилистика, это блокер релиза.
+
+**Описание для стора проверяется отдельно и по другому правилу.** В нём обязателен
+дисклеймер, и он законно содержит «реальные деньги» — в отрицании («не принимаются и не
+выплачиваются»). Поэтому `store/metadata.md` грепается тем же выражением, но
+единственное разрешённое совпадение — **дословный текст `ComplianceCopy.disclaimer`**
+(`responsible-gaming.md` §5). Любое другое — блокер.
+
+> `cash out` в C2 — отдельный случай. Механика кэш-аута легальна и есть в игре, но на
+> ВИТРИНЕ это слово читается как обещание вывода денег. В подписях писать по-русски:
+> «Забери до краха», «Успей забрать» — механика та же, обещания денег нет.
+
+### 6.5.2. Vision-проверка изображений на деньги
+
+Прочитать через Read **каждый** финальный PNG (панели, витринные кадры, баннер, иконку)
+и убедиться, что на картинке нет:
+
+| Что искать | Почему блокер |
+|-----------|---------------|
+| Знаки `$ € ₽`, купюры, пачки денег, мешки с `$` | §1.3 — прямой признак «реальные деньги» |
+| Надписи типа «PAYOUT», «CASH», «WIN $500» (модель дорисовывает сама) | §1.4 — обещание выигрыша |
+| Игровой баланс на кадре, подписанный символом валюты | §1.3 — баланс только в `CURRENCY_NAME` |
+| Реалистичный игровой автомат с купюроприёмником | читается как реальный гемблинг |
+
+### 6.5.3. Обязательные атрибуты листинга (в `STORE_INFO.md`, не картинка)
+
+Заполнить, потому что без них загрузка не пройдёт модерацию:
+
+- **Рейтинг**: 18+ (Google Play) / 17+ App Store — для C1–C4, C6.
+  Для C5 с ослабленным профилем — обычно 12+, и это решение уже зафиксировано
+  в блоке «Классификация» концепта (`COMPLIANCE`).
+- **Анкета Google Play**: «simulated gambling: **yes**», категория Casino / Card / Casual.
+- **Дисклеймер в первых 3 строках описания** — точная формулировка из
+  `ComplianceCopy.disclaimer` игры (не переписывать своими словами).
+- **Odds disclosure** упомянут в описании — для C4 и платных спинов C3.
+
+Ослабленный профиль C5 (`COMPLIANCE = ослабленный C5`) снимает требование 18+ и
+дисклеймера про фишки, но **не** снимает запреты §6.5.1–6.5.2.
 
 ---
 
 ## Фаза 7 — Верификация [~30 сек]
 
 ```bash
-python3 tools/store_compose.py check --dir "$OUT_DIR"
+python3 tools/store_compose.py check --dir "$OUT_DIR"   --store appstore
+[[ "${PLAY_SET:-1}" == "1" ]] && \
+python3 tools/store_compose.py check --dir "$PLAY_DIR"  --store play
 ```
 
-Проверяет: файлы читаются, стороны 320…3840 px, размер ≤ 8 МБ, единый размер у всех `store-*`.
+Проверяет: файлы читаются, стороны 320…3840 px, размер ≤ 8 МБ, PNG без альфы, единый
+размер у всех `store-*`, и — главное — **форму под конкретный стор**: `--store play`
+падает на соотношении > 2.00:1, `--store appstore` — на размере, которого нет среди
+слотов дисплея. Без `--store` вердикт по обоим сторам только печатается.
 
 Плюс **vision-проверка** через Read по каждому финальному PNG:
 
 - [ ] Панели 1…P складываются в одну картину, швы не рвут ключевые объекты
 - [ ] **На панелях 1…P нет ни одной буквы** (ни сгенерированной, ни нарисованной)
+- [ ] По триптиху понятно, **какая это гемблинг-механика** (барабан/множитель/капсула/шар)
 - [ ] На витринных кадрах виден РЕАЛЬНЫЙ интерфейс игры, не заглушка
+- [ ] Среди кадров есть **раунд в разгаре** и **момент выигрыша** — не только меню
 - [ ] Подписи читаются (контраст ≥ 4.5:1), не обрезаны, без опечаток
 - [ ] **Каждый глиф — буква, а не пустой прямоугольник** (шрифт покрывает алфавит)
 - [ ] Шрифт подписей и тайтла один и тот же, и он соответствует миру игры
 - [ ] Нигде нет сгенерированных букв-артефактов
+- [ ] Compliance-гейт (Фаза 6.5) пройден на **обоих** наборах
 - [ ] Иконка узнаваема в 48 px (уменьшить `store_icon_512.png` и посмотреть)
 - [ ] Стиль триптиха, кадров, баннера и иконки — один мир
+- [ ] Наборы `store/` и `store-play/` рассказывают одну историю в одном порядке
 
 Любой провал → исправить и пересобрать конкретный файл. Не прятать проблему в отчёте.
 
@@ -585,16 +817,18 @@ python3 tools/store_compose.py check --dir "$OUT_DIR"
 ```markdown
 # Store Kit — [TITLE]
 
-**Сборка**: [TS] • **Платформа**: [play|appstore] • **Скрины**: [SW]×[SH]
+**Сборка**: [TS] • **Категория**: [CATEGORY] / архетип [ARCHETYPE]
+**App Store**: [SIZE] (iPhone 6.9″) • **Google Play**: 1080×1920 (9:16)
 
 ## Состав
-| Файл | Что |
-|------|-----|
-| store-01…0P.png | Концепт-триптих — одна панорама, [P] панелей |
-| store-0(P+1)…N.png | Кадры игры в рамке телефона |
-| feature-graphic-1024x500.png | Feature graphic (Google Play) |
-| branding/store_icon_512.png | Иконка листинга 512×512 |
-| _panorama-preview.png | Склейка триптиха со швами (проверочная, НЕ загружать) |
+| Папка / файл | Что | Куда |
+|--------------|-----|------|
+| `store/store-01…0N.png` | Триптих ([P] панелей) + кадры раунда, [SIZE] | **App Store Connect**, слот 6.9″ |
+| `store-play/store-01…0N.png` | То же самое в 9:16, 1080×1920 | **Google Play**, Phone screenshots |
+| `store/feature-graphic-1024x500.png` | Feature graphic | Google Play |
+| `branding/store_icon_512.png` | Иконка листинга 512×512 | Google Play |
+| `branding/app_icon.png` | Мастер 1024×1024 без альфы | App Store Connect |
+| `_panorama-preview.png` | Склейка триптиха со швами | **проверочный, НЕ загружать** |
 
 ## Подписи
 | Файл | Заголовок |
@@ -605,14 +839,27 @@ python3 tools/store_compose.py check --dir "$OUT_DIR"
 - App-иконка: `flutter_launcher_icons` → Android (adaptive) + iOS + web — [да/нет]
 - Эмблема: `assets/images/ui/ui_game_logo.png` — [зарегистрирована / подключена в меню / нет]
 
-## Порядок загрузки
-1. Play Console → Store presence → Main store listing → Phone screenshots →
-   `store-01 … store-0N.png` **строго по порядку номеров** (иначе триптих развалится).
-2. Feature graphic → `feature-graphic-1024x500.png`
-3. App icon → `branding/store_icon_512.png`
-4. App Store Connect → тот же порядок в нужном размере дисплея.
+## Compliance (Фаза 6.5)
+- Профиль: [полный / ослабленный C5]
+- Возрастной рейтинг: **[18+ / 17+ / 12+]**
+- Google Play → анкета контента: **simulated gambling = yes**, категория [Casino/Card/Casual]
+- Дисклеймер в первых 3 строках описания: [текст `ComplianceCopy.disclaimer`]
+- Odds disclosure упомянут в описании: [да / не требуется для этой категории]
+- Grep-проверки (реальные деньги / символы валют): [чисто / что исправлено]
 
-> Play: 2–8 скринов, PNG/JPEG, сторона 320–3840 px, ≤ 8 МБ. App Store: до 10.
+## Порядок загрузки
+1. **Google Play** → Store presence → Main store listing → Phone screenshots →
+   `store-play/store-01 … store-0N.png` **строго по порядку номеров**
+   (иначе триптих развалится).
+2. Feature graphic → `feature-graphic-1024x500.png`; App icon → `branding/store_icon_512.png`.
+3. Play → Content rating: анкета с «simulated gambling», Target audience: 18+.
+4. **App Store Connect** → App Information → Media Manager → iPhone 6.9″ Display →
+   `store/store-01 … store-0N.png`, тот же порядок. Слот 6.9″ покрывает все
+   актуальные iPhone — отдельные загрузки для 6.5″/5.5″ не нужны.
+
+> Play: 2–8 скринов, 24-бит PNG/JPEG без альфы, сторона 320–3840 px, ≤ 8 МБ,
+> длинная сторона ≤ 2× короткой (**поэтому набор для Play отдельный**).
+> App Store: до 10 скринов на слот дисплея.
 > `_panorama-preview.png` — служебный файл, в стор его не грузить.
 ```
 
@@ -633,7 +880,9 @@ ARCHIVE_PATH="$STORE_ROOT/$ARCHIVE_NAME"
 unzip -t "$ARCHIVE_PATH" >/dev/null 2>&1 || { echo "❌ Архив повреждён"; exit 1; }
 
 STORE_PNG=$(unzip -Z1 "$ARCHIVE_PATH" | grep -c "/store/store-.*\.png$" || true)
+PLAY_PNG=$(unzip -Z1 "$ARCHIVE_PATH" | grep -c "/store-play/store-.*\.png$" || true)
 [[ "$STORE_PNG" -lt 1 ]] && { echo "❌ В архиве нет витринных PNG"; unzip -Z1 "$ARCHIVE_PATH" | head -20; exit 1; }
+[[ "${PLAY_SET:-1}" == "1" && "$PLAY_PNG" -lt 1 ]] && { echo "❌ Нет Play-набора 9:16 — в Play такой архив не загрузить"; exit 1; }
 
 if command -v sha256sum >/dev/null 2>&1; then
   ARCHIVE_SHA=$(sha256sum "$ARCHIVE_PATH" | awk '{print $1}')
@@ -653,18 +902,24 @@ echo "✅ $ARCHIVE_PATH ($(du -h "$ARCHIVE_PATH" | awk '{print $1}')), store-PNG
 🖼️  STORE KIT COMPLETE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 [TITLE] — [TAGLINE]
-📐 [SW]×[SH] • [play|appstore]
+🎰 [CATEGORY] / архетип [ARCHETYPE] • compliance: [полный | ослабленный C5]
 
-🎨 Концепт-триптих: панели 01–0[P] = одна панорама [3*SW]×[SH]
-📱 Кадры игры:      панели 0[P+1]–0[N], рамка [ios|android|none]
+🍏 App Store 6.9″:  store/       [N] шт. × [SIZE]
+🤖 Google Play 9:16: store-play/  [N] шт. × 1080×1920
+🎨 Концепт-триптих: панели 01–0[P] = одна панорама (в каждом наборе)
+📱 Кадры раунда:    панели 0[P+1]–0[N], рамка [ios|android|none]
 🏞️  Feature graphic: 1024×500
 🎭 Иконка:          применена (Android adaptive + iOS + web) [или: только файлы]
 🔰 Эмблема:         assets/images/ui/ui_game_logo.png [подключена в меню / зарегистрирована]
+🛡️  Compliance-гейт: PASS — ни обещаний выплат, ни символов валют [или: что исправлено]
+    Рейтинг [18+/12+] • simulated gambling = yes • дисклеймер в описании
 
-📦 project_zip/[PROJECT_NAME]-store-[TS].zip ([SIZE])
+📦 project_zip/[PROJECT_NAME]-store-[TS].zip ([BYTES])
 🔒 SHA256: [SHA]
 
-📋 Дальше: скачать архив из чата → загрузить store-*.png ПО ПОРЯДКУ в Play Console.
+📋 Дальше: скачать архив из чата →
+   Play Console  ← store-play/*.png ПО ПОРЯДКУ (9:16, иначе консоль отклонит)
+   App Store Connect ← store/*.png в слот iPhone 6.9″
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -680,11 +935,12 @@ echo "✅ $ARCHIVE_PATH ($(du -h "$ARCHIVE_PATH" | awk '{print $1}')), store-PNG
 | 2. Арт | keyart + icon_art + emblem сгенерированы, emblem с альфой | 2 на ассет |
 | 3. Иконка | `flutter_launcher_icons` отработал, mipmap непустой | 2 |
 | 3.4. Меню | `dart analyze` без errors (иначе откат) | 1 |
-| 4. Триптих | P панелей **без единой буквы** + швы не рвут ключевые объекты (vision) | 2 |
-| 5. Витрина | `COUNT-P` кадров собраны; подписи читаемы и **не пустые прямоугольники** (vision 5.3) | 2 |
+| 4. Триптих | P панелей **без единой буквы** + швы не рвут ключевые объекты (vision), **в обоих наборах** | 2 |
+| 5. Витрина | `COUNT-P` кадров собраны в обоих наборах; есть кадр раунда и кадр выигрыша; подписи читаемы и **не пустые прямоугольники** (vision 5.3) | 2 |
 | 6. Banner | feature-graphic собран | 1 (non-fatal) |
-| 7. Verify | `check` без ошибок + vision-чеклист пройден | 2 |
-| 9. Archive | zip создан, `store-*.png` внутри, SHA256 записан | 1 |
+| 6.5. Compliance | grep чист + vision не нашёл денег/валют + рейтинг и дисклеймер заполнены | **abort до исправления** |
+| 7. Verify | `check --store appstore` и `check --store play` без ошибок + vision-чеклист | 2 |
+| 9. Archive | zip создан, `store/` и `store-play/` внутри, SHA256 записан | 1 |
 
 ---
 
@@ -699,11 +955,21 @@ echo "✅ $ARCHIVE_PATH ($(du -h "$ARCHIVE_PATH" | awk '{print $1}')), store-PNG
 5. **Рисовать фейковый UI/цифры** в кадрах — на витрине только реальные кадры игры.
 6. **Просить у модели текст, буквы, цифры, рамки или «триптих/панели»** внутри арта —
    нарезку делает `store_compose.py`, буквы рисует композитор.
-7. **Применять казино/неон по умолчанию** — арт-дирекшен только из Design DNA игры.
-8. **Прятать провалы генерации** — показать причину и fallback.
-9. **Оставлять `_panorama-preview.png` в списке «для загрузки»** — это проверочный файл.
-10. **Ставить текст на концепт-триптих** — панорама остаётся чистым изображением (Фаза 4).
-11. **Использовать один и тот же `--type-mood` для всех игр** — это такой же slop, как
+7. **Применять неон+золото+фиолетовый по умолчанию** только потому, что игра гемблинг-
+   ная. Механику показать обязаны, вид берётся из Design DNA конкретной игры.
+8. **Обещать реальные деньги** — текстом, числом или картинкой. Символы `$ € ₽`,
+   купюры, «payout», «выиграй деньги» = блокер публикации (`responsible-gaming.md` §1).
+   Суммы — только в валюте игры (`CURRENCY_NAME`).
+9. **Отдавать один набор на оба стора.** 1320×2868 = 2.17:1, Play принимает ≤ 2.00:1.
+   Без `store-play/` листинг Google Play не соберётся — консоль отклонит файлы.
+10. **Даунскейлить набор 6.9″ до 9:16** вместо повторного композитинга — подписи и
+    рамка телефона поедут, а стор получит искажённые пропорции.
+11. **Прятать провалы генерации** — показать причину и fallback.
+12. **Оставлять `_panorama-preview.png` в списке «для загрузки»** — это проверочный файл.
+13. **Ставить текст на концепт-триптих** — панорама остаётся чистым изображением (Фаза 4).
+14. **Использовать один и тот же `--type-mood` для всех игр** — это такой же slop, как
     один и тот же неон на всех: mood выводится из Design DNA конкретной игры.
-12. **Отдавать витрину, не посмотрев на подпись глазами (Фаза 5.3)** — шрифт без
+15. **Отдавать витрину, не посмотрев на подпись глазами (Фаза 5.3)** — шрифт без
     кириллицы рисует пустые прямоугольники, и `check` этого не поймает.
+16. **Пропускать compliance-гейт (Фаза 6.5)** «потому что и так нормально» — это
+    единственная фаза, провал которой означает снятие игры со стора, а не косметику.

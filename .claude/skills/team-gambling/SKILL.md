@@ -1,14 +1,14 @@
 ---
 name: team-gambling
-description: "УСТАРЕЛО — используйте /team-dev. Оркестрирует разработку gambling механик."
+description: "Алиас /team-dev. Оркестрирует разработку гемблинг-механик несколькими агентами."
 user-invocable: true
 allowed-tools: Bash, Read, Edit, Write, Agent
 argument-hint: "<описание фичи/системы>"
 ---
 
-# `team-gambling` — УСТАРЕЛО
+# `team-gambling` — алиас `/team-dev`
 
-> ⚠️ Этот навык устарел. Используйте `/team-dev` вместо него.
-> `/team-dev` поддерживает все жанры: gambling, puzzle, arcade, physics, casual, card.
+> Студия делает только гемблинг-игры, поэтому `/team-gambling` и `/team-dev` — одно и то же.
+> Канонический навык — **`/team-dev`**; этот оставлен как привычное имя.
 
-Перенаправляет на `/team-dev`.
+Выполните `.claude/skills/team-dev/SKILL.md` с теми же аргументами.
