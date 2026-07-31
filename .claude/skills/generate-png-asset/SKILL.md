@@ -1,6 +1,6 @@
 ---
 name: generate-png-asset
-description: "Генерация PNG-ассетов. В Codex основной путь — GPT Images 2.0, fallback — GPT Images/default Codex image generation; внешние API только как legacy fallback. Простые ассеты генерируются на плоском ключевом фоне (chroma key) и вырезаются через tools/cutout.py."
+description: "Генерация PNG-ассетов. В Codex основной путь — GPT Image 2: встроенный image generation tool, а в headless Codex CLI — прямой Images API через tools/gpt_image.py. SVG допустим только как последний явный fallback. Простые ассеты генерируются на плоском ключевом фоне и вырезаются через tools/cutout.py."
 allowed-tools: Write, Read, Bash, AskUserQuestion, Glob
 argument-hint: "[описание] | [--batch список] | [--from-concept] | [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
 user-invocable: true
@@ -15,7 +15,15 @@ user-invocable: true
    запрещён без явного `--svg`.
 2. Если пользователь не просил PNG/image generation и это НЕ `/autocreate` — вернуться к
    `/generate-asset` и создать **SVG**.
-3. Если пользователь явно просил PNG/image generation и агент работает в **Codex** — использовать **GPT Images 2.0** первым. Если GPT Images 2.0 недоступен, вернул ошибку или не создал файл, повторить тот же prompt через **GPT Images / default Codex image generation**. Только после провала обоих Codex-путей переходить к legacy fallback.
+3. Если пользователь явно просил PNG/image generation и агент работает в **Codex** —
+   использовать **GPT Image 2 (`gpt-image-2`)** первым:
+   - если встроенный image-generation tool доступен — вызвать его;
+   - если tool отсутствует в headless Codex CLI — вызвать
+     `python3 tools/gpt_image.py generate ...`. Отсутствие встроенного tool **не является**
+     провалом GPT Image 2 и не разрешает переход к SVG.
+   Если оба GPT Image 2 транспорта дали документированный технический сбой или не создали
+   валидный PNG, только тогда допустим GPT Images/default Codex image generation.
+   SVG остаётся последним fallback и не выбирается автоматически в `/autocreate`.
 4. Не спрашивать ключи Google, Pollinations или remove.bg в Codex-пути.
 5. Внешние провайдеры ниже считаются legacy fallback и используются только по явной просьбе пользователя или если Codex image generation недоступна.
 
@@ -23,9 +31,10 @@ user-invocable: true
 
 | Сервис | Когда использовать | Требования |
 |--------|--------------------|------------|
-| **Codex GPT Images 2.0** | Основной PNG/image-generation путь в Codex | Встроенный Codex image generation tool |
+| **Codex GPT Image 2** | Основной PNG/image-generation путь в Codex app | Встроенный Codex image generation tool |
+| **GPT Image 2 API bridge** | Основной путь в headless `codex exec`, когда built-in tool не экспонирован | `python3 tools/gpt_image.py`; в web-service `OPENAI_API_KEY` инжектируется автоматически |
 | **Codex GPT Images / default image generation** | Первый fallback, если GPT Images 2.0 не сработал | Встроенный Codex image generation tool |
-| **SVG** | Режим по умолчанию, если PNG не нужен | Ничего |
+| **SVG** | Только ручной default вне `/autocreate` или последний явно зафиксированный fallback | Ничего |
 | **Pollinations.ai / Google Gemini** | Только legacy fallback или явный запрос пользователя | Внешний API ключ / billing |
 
 **Удаление фона:** только `python3 tools/cutout.py`. Ручной `magick -fuzz`, голый `rembg i`
@@ -81,11 +90,13 @@ printf '%s' "$NORMALIZED_PROMPT" | shasum -a 256
 ### Fallback без лишнего расхода
 
 GPT Images / default Codex image generation допускается **только** после документированного
-технического сбоя GPT Images 2.0: недоступный инструмент, ошибка вызова, отсутствие файла
-или невалидный PNG. Записать причину в `attempts`/`status` манифеста и повторить **тот же**
-prompt. Визуальный вкус, AR1–AR10, неподходящая композиция или неудачный chroma-key не
-являются основанием для fallback: сначала применить локальную обработку, затем при
-необходимости использовать один из двух recovery-вызовов снова через GPT Images 2.0.
+технического сбоя GPT Image 2 через оба доступных транспорта: built-in tool (если он
+экспонирован) и `tools/gpt_image.py` (headless CLI). Само отсутствие built-in tool не является
+сбоем: немедленно использовать API bridge. Записать HTTP/validation причину в
+`attempts`/`status` манифеста и повторить **тот же** prompt. Визуальный вкус, AR1–AR10,
+неподходящая композиция или неудачный chroma-key не являются основанием для смены модели:
+сначала применить локальную обработку, затем при необходимости использовать один из двух
+recovery-вызовов снова через GPT Image 2. SVG не создавать молча.
 
 ---
 
@@ -117,7 +128,9 @@ no shadow on the background, subject fully inside frame`.
 
 ### Если агент работает в Codex
 
-- Всегда выбрать Codex image-generation chain: **GPT Images 2.0 → GPT Images/default Codex image generation**.
+- Всегда выбрать Codex image-generation chain:
+  **built-in GPT Image 2 (если доступен) → `tools/gpt_image.py` (`gpt-image-2`) →
+  GPT Images/default Codex fallback**.
 - Сначала создать/прочитать `design/asset-manifest.md`, проверить SHA-256 prompt и лимиты;
   создавать PNG только для класса `generate` без валидного кэшированного совпадения.
 - Создавать один PNG за один вызов image generation.
@@ -130,7 +143,8 @@ no shadow on the background, subject fully inside frame`.
 ### Если переданы legacy-флаги:
 - `--cheap POLL_API_TOKEN` → Pollinations.ai с ключом (legacy fallback)
 - `--cheap POLL_API_TOKEN --free REMOVE_BG_TOKEN` → Pollinations + remove.bg только если пользователь явно просит этот сервис
-- Без флагов в Codex → не спрашивать, использовать GPT Images 2.0; если он не сработал, GPT Images/default Codex image generation
+- Без legacy-флагов в Codex → не спрашивать внешние ключи; использовать GPT Image 2.
+  В flutter-game-web-service per-user `OPENAI_API_KEY` уже передаётся bridge-процессу.
 
 ### Если флагов нет и агент НЕ работает в Codex — спросить:
 
@@ -144,12 +158,30 @@ no shadow on the background, subject fully inside frame`.
 
 ---
 
-## Codex-режим: GPT Images 2.0 → GPT Images fallback
+## Codex-режим: GPT Image 2 tool/API → GPT Images fallback
 
-**Использовать GPT Images 2.0 первым в Codex.** Не нужен API ключ. Если вызов не сработал
-или не дал валидный PNG, повторить с тем же prompt через **GPT Images / default Codex image
-generation**. Внешние провайдеры разрешены только после провала обоих Codex-путей или по явной
-просьбе пользователя.
+**Использовать `gpt-image-2` первым в Codex.** В Codex app вызвать встроенный image-generation
+tool. В headless `codex exec`, где этого tool нет в списке, использовать штатный bridge:
+
+```bash
+python3 tools/gpt_image.py probe
+python3 tools/gpt_image.py generate \
+  --prompt-file design/prompts/<logical_id>.txt \
+  --out assets/images/sprites/<logical_id>.png \
+  --size 1024x1024 \
+  --quality high
+```
+
+Один `generate` = один ассет. Bridge жёстко использует модель `gpt-image-2`, проверяет
+`data[0].b64_json`, PNG signature/IHDR и пишет файл атомарно. В web-service ключ пользователя
+передаётся автоматически только дочернему `codex exec`; не печатать и не сохранять его.
+В standalone Codex CLI пользователь сам задаёт `OPENAI_API_KEY` в окружении — никогда не
+просить вставлять ключ в prompt или чат.
+
+Если API вернул `403`, проверить доступ/верификацию OpenAI organization; `429` — rate limit;
+прочие ошибки показывать дословно без секрета. Не заменять такой сбой SVG автоматически.
+GPT Images/default или legacy provider разрешены только после зафиксированного технического
+провала GPT Image 2 либо по явной просьбе пользователя.
 
 ### Realism & concept fidelity (читать ПЕРЕД построением промпта)
 
@@ -209,7 +241,7 @@ calm readable empty area in the vertical center for gameplay, high quality PNG.
 
 1. Сохранить PNG в целевую папку.
 2. Проверить файл через `file path/to/asset.png`.
-3. Если это простой ассет — применить локальное удаление белого фона.
+3. Если это простой ассет — применить локальное удаление ключевого фона.
 4. Добавить папку в `pubspec.yaml`, если она новая.
 
 ### Локальное удаление фона — ТОЛЬКО через `tools/cutout.py`

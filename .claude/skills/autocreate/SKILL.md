@@ -13,10 +13,14 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 **ЗАПРЕЩАЕТСЯ задавать вопросы.**
 
-**CODEX ASSET DEFAULT:** в Codex `/autocreate` всегда создаёт **PNG через GPT Images 2.0**.
-Если GPT Images 2.0 не сработал, повторить генерацию через **GPT Images / default Codex image
+**CODEX ASSET DEFAULT:** в Codex `/autocreate` всегда создаёт **PNG через GPT Image 2**.
+В Codex app используется built-in image generation tool; в headless Codex CLI, где tool не
+экспонирован, та же модель `gpt-image-2` вызывается через `python3 tools/gpt_image.py`.
+Отсутствие built-in tool не является причиной fallback. Если оба транспорта GPT Image 2
+технически не сработали, повторить генерацию через **GPT Images / default Codex image
 generation** с тем же prompt. SVG допустим только если среда НЕ Codex, пользователь явно передал
-`--svg`, или оба Codex image-generation пути недоступны. Дефолтный визуальный профиль PNG —
+`--svg`, либо после зафиксированного провала всех PNG-путей и явного решения пользователя.
+Дефолтный визуальный профиль PNG —
 realistic/material-grounded game assets: правдоподобные материалы, единый свет, чистый силуэт,
 простые ассеты на плоском chroma-key фоне для локального вырезания, без flat clipart.
 
@@ -453,7 +457,7 @@ PYEOF
 Формат определяется автоматически по среде выполнения. Никакого ввода от пользователя не требуется.
 
 ```bash
-# Определение среды: Codex → PNG (GPT Images 2.0 → GPT Images fallback), иначе → SVG fallback
+# Определение среды: Codex → PNG (GPT Image 2 tool/API → fallback), иначе → SVG fallback
 IS_CODEX=0
 if [[ -n "${CODEX:-}" ]] || [[ -n "${CODEX_ENV:-}" ]] || [[ "${AGENT_PLATFORM:-}" == "codex" ]] || \
    [[ -d ".codex" ]] || [[ "${IMAGE_GENERATION_AVAILABLE:-}" == "1" ]]; then
@@ -462,9 +466,9 @@ fi
 
 if [[ "$IS_CODEX" == "1" ]]; then
   ASSET_FORMAT="png"
-  ASSET_GENERATOR="gpt-images-2.0->gpt-images"
+  ASSET_GENERATOR="gpt-image-2:built-in-or-tools/gpt_image.py"
   ASSET_RENDER_PROFILE="realistic material-grounded 3D/product render"
-  echo "🎨 Codex detected → PNG mode (GPT Images 2.0 → GPT Images fallback)"
+  echo "🎨 Codex detected → PNG mode (GPT Image 2 tool/API bridge)"
 else
   ASSET_FORMAT="svg"
   ASSET_GENERATOR="svg-code"
@@ -474,7 +478,11 @@ fi
 ```
 
 > **Правила переключения:**
-> - **Codex** → PNG через GPT Images 2.0; если он не сработал, через GPT Images/default Codex image generation (ключи не нужны)
+> - **Codex app** → PNG через built-in GPT Image 2.
+> - **Headless Codex CLI** → PNG через `tools/gpt_image.py` (`gpt-image-2`);
+>   `OPENAI_API_KEY` в web-service инжектируется автоматически. Отсутствие built-in tool
+>   не считается сбоем и не разрешает SVG.
+> - **GPT Images/default** → только после документированного технического провала GPT Image 2.
 > - **Не-Codex** (Claude Code, CLI, другое) → SVG (ручная генерация кодом, без внешних API)
 > - Явный `--png` всегда форсирует PNG, `--svg` всегда форсирует SVG, regardless of environment
 > - Записать выбранный формат в `design/asset-format.md` для Session 2
@@ -517,19 +525,38 @@ EOF
 
 ### PNG Генерация (режим по умолчанию в Codex)
 
-Когда `ASSET_FORMAT=png`, все ассеты генерируются через **GPT Images 2.0** (встроенную
-image generation Codex). Если GPT Images 2.0 не сработал или не дал валидный PNG, повторить
-тот же prompt через **GPT Images / default Codex image generation**. Следовать логике
-`/generate-png-asset --from-concept`.
+Когда `ASSET_FORMAT=png`, все ассеты генерируются через **GPT Image 2**. Сначала использовать
+built-in image generation Codex, если tool действительно доступен. В headless `codex exec`
+без такого tool немедленно использовать `python3 tools/gpt_image.py`; это основной транспорт,
+а не fallback. Если GPT Image 2 через доступный транспорт не сработал или не дал валидный PNG,
+зафиксировать ошибку и только затем рассматривать **GPT Images / default Codex image
+generation**. Следовать логике `/generate-png-asset --from-concept`.
+
+Перед первой дорогой генерацией в headless CLI выполнить дешёвый access probe:
+
+```bash
+python3 tools/gpt_image.py probe
+```
+
+Для каждого `generate`-источника сохранить полный prompt в отдельный UTF-8 файл и выполнить:
+
+```bash
+python3 tools/gpt_image.py generate \
+  --prompt-file design/prompts/<logical_id>.txt \
+  --out assets/images/sprites/<logical_id>.png \
+  --size 1024x1024 \
+  --quality high
+```
 
 **КРИТИЧЕСКИ**: Качество PNG = реалистичность + достоверность концепту. НЕ генерировать
 абстрактные плоские значки.
 
 #### Codex GPT Images 2.0 default profile (ОБЯЗАТЕЛЬНО)
 
-- **Генератор:** встроенная image generation Codex / GPT Images 2.0; fallback — GPT Images /
-  default Codex image generation с тем же prompt только при ошибке/отсутствии файла/невалидном
-  PNG. Не использовать SVG, Pollinations, Gemini,
+- **Генератор:** built-in image generation Codex / GPT Image 2; если tool не экспонирован —
+  `tools/gpt_image.py` с жёстко заданной моделью `gpt-image-2`. Fallback — GPT Images /
+  default Codex image generation с тем же prompt только при документированной
+  API/validation ошибке. Не использовать SVG, Pollinations, Gemini,
   Google API, remove.bg API или запросы ключей в Codex-пути, пока не провалились оба Codex-пути.
 - **Один источник класса `generate` = один image-generation вызов.** Не просить sprite sheet, atlas, сетку из
   нескольких предметов или набор объектов в одном изображении.

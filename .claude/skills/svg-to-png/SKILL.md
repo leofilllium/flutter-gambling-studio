@@ -18,9 +18,11 @@ user-invocable: true
 
 Сначала определить цель. Если нужен только PNG того же SVG без нового материала, света или
 детализации, это локальная конвертация и не требует image generation. Если нужен новый
-материальный игровой ассет, в Codex использовать **GPT Images 2.0** через встроенную image
-generation возможность. Если GPT Images 2.0 не сработал или не дал валидный PNG, повторить
-тот же prompt через **GPT Images / default Codex image generation**.
+материальный игровой ассет, в Codex использовать **GPT Image 2** через встроенную image
+generation возможность, а при отсутствии этого tool в headless Codex CLI — через
+`python3 tools/gpt_image.py generate ...`. Отсутствие built-in tool не считается провалом
+модели. Если оба транспорта GPT Image 2 технически не сработали или не дали валидный PNG,
+повторить тот же prompt через **GPT Images / default Codex image generation**.
 
 - Не спрашивать ключи Google/Pollinations/remove.bg.
 - Перед semantic-апгрейдом прочитать `design/asset-manifest.md`: валидное совпадение SHA-256
@@ -103,7 +105,16 @@ transparent-ready, 1024x1024.
 В Codex использовать GPT Images 2.0 первым. При техническом сбое (ошибка, нет файла или
 невалидный PNG) повторить тот же prompt через GPT Images / default Codex image generation.
 
-1. Передать prompt из шага 2 во встроенную image generation возможность Codex.
+1. Передать prompt из шага 2 во встроенную image generation возможность Codex. Если её нет
+   в tool list, сохранить prompt в UTF-8 файл и выполнить:
+
+```bash
+python3 tools/gpt_image.py generate \
+  --prompt-file design/prompts/<logical_id>.txt \
+  --out assets/images/pngs/<logical_id>.png \
+  --size 1024x1024 \
+  --quality high
+```
 2. Сохранить результат рядом с исходником или в `assets/images/pngs/`.
 3. Если тип ассета простой и PNG содержит фон — вырезать его через `tools/cutout.py`
    (ручной `magick -fuzz` и голый `rembg i` запрещены: см. `generate-png-asset/SKILL.md`):

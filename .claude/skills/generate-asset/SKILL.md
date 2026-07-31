@@ -27,7 +27,12 @@ PNG/image generation включается только если:
 - вызов идёт из `/autocreate` в Codex или `--from-concept` для полного проекта.
 
 Если выбран PNG/image generation:
-- в **Codex** использовать встроенную image generation возможность Codex: **GPT Images 2.0** первым; если он не сработал, повторить тот же prompt через **GPT Images / default Codex image generation**;
+- в **Codex app** использовать встроенную image generation возможность: **GPT Image 2**;
+- в headless **Codex CLI**, где built-in tool отсутствует, использовать тот же
+  `gpt-image-2` через `python3 tools/gpt_image.py generate ...`; отсутствие tool не означает
+  провал модели и не разрешает SVG fallback;
+- только после документированного технического провала GPT Image 2 повторить тот же prompt
+  через **GPT Images / default Codex image generation**;
 - не спрашивать API ключ для Google/Pollinations/remove.bg;
 - следовать логике скилла `generate-png-asset`;
 - внешние провайдеры допустимы только если пользователь явно попросил конкретный legacy-provider или оба Codex image-generation пути недоступны.

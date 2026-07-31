@@ -319,8 +319,11 @@ head -c 400 "$RAW_DIR/manifest.json" 2>/dev/null   # поле "capture" — фа
 
 ## Фаза 2 — Генерация бренд-арта [~3–5 мин]
 
-**Codex-путь (основной)**: встроенная image generation — **GPT Images 2.0**, fallback
-**GPT Images / default**. Ключи не нужны. Правила и fallback-цепочка — `/generate-png-asset`.
+**Codex-путь (основной)**: **GPT Image 2** — встроенная image generation, а в headless
+Codex CLI без этого tool — `python3 tools/gpt_image.py generate ...`. В web-service
+`OPENAI_API_KEY` инжектируется автоматически. Отсутствие built-in tool не разрешает SVG;
+fallback **GPT Images / default** только после технического провала bridge. Правила —
+`/generate-png-asset`.
 **Один вызов image generation = один ассет.** Все промпты дописать в `design/asset-prompts.md`.
 
 ### 2.1. Панорама-концепт (самый важный ассет)
