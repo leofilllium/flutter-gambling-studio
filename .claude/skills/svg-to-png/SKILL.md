@@ -78,21 +78,22 @@ rsvg-convert assets/images/sprites/sprite_cherry.svg -o assets/images/sprites/sp
 - Цвета, форму, назначение из содержимого SVG
 - Если есть `design/gdd/game-concept.md` — прочитать **Design DNA** (мир, материалы,
   палитра, render style). Конвертация — не просто «обводка картинки», а **апгрейд** плоского
-  SVG до реалистичного, концептуально-достоверного ассета того же объекта.
+  SVG до мультяшного объёмного 2.5D ассета того же объекта, достоверного концепту.
 
-**2. Сформировать промпт** на английском (concept-grounded, realistic — НЕ дешёвый значок):
+**2. Сформировать промпт** на английском (concept-grounded cartoon 2.5D — НЕ дешёвый значок):
 
 Сначала из SVG+концепта выведи: **Subject** (что это за объект в мире игры),
 **Material/texture** (металл/стекло/камень/дерево/неон/ткань), **Lighting** (единый для набора,
 напр. key верх-слева + rim), **Render style** из DNA.
 
 ```
-Highly detailed game asset of [SUBJECT identity], single hero object centered,
-realistic [MATERIAL/TEXTURE] with believable [reflections / roughness / subsurface glow],
-[RENDER STYLE from DNA] render, soft [LIGHTING] light, rich [DNA PALETTE] colors,
+Polished cartoon 2.5D game asset of [SUBJECT identity], single hero object centered,
+bold rounded and slightly exaggerated silhouette, [MATERIAL/TEXTURE] simplified into
+smooth modeled gradients, clean edging, glossy highlights and restrained star glints,
+soft [LIGHTING] light, rich [DNA PALETTE] colors,
 crisp clean silhouette, sharp focus, faithful to the original shape/colors,
 isolated on flat solid single-colour [KEY COLOUR] background, no gradient, no scene, no ground shadow, no text,
-transparent-ready, 1024x1024.
+no photorealism, no product photography, no flat vector clipart, transparent-ready, 1024x1024.
 ```
 
 > Объект на PNG должен совпадать по форме/композиции с исходным SVG (это конвертация, не

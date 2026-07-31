@@ -4,6 +4,14 @@
 
 This is a **gambling-only** game studio: every concept must fall into one of six categories (C1 social casino, C2 casino originals, C3 spin-to-progress hybrids, C4 gacha/loot-box, C5 casino roguelike, C6 coin pusher/plinko) and declare a verifiable math model (M1-M6). Puzzles, runners, shooters and clickers are out of scope.
 
+All generated game art must use polished cartoon 2.5D casual-game illustration with bold
+silhouettes, rounded/exaggerated forms, saturated theme-aware color, smooth modeled
+gradients, glossy highlights, restrained star glints, and one consistent top-left light.
+Derive the visual world, shapes, materials, details, and palette independently from each
+game's concept and Design DNA. Do not depend on a reference folder or copy symbols from
+other games. Photorealistic/product-render assets, flat vector clipart, and emoji/sticker
+styling are out of scope.
+
 All agent responses must be in Russian. Keep Dart/Flutter code, file paths, class names, and CLI commands in English. Before writing code, read `CLAUDE.md`, `.claude/docs/gambling-categories.md`, `.claude/docs/math-models.md`, `.claude/rules/responsible-gaming.md`, `.claude/rules/game-code.md`, `.claude/rules/engine-code.md`, `.claude/rules/ui-code.md`, `.claude/rules/anti-slop-design.md`, `.claude/rules/test-standards.md`, `.claude/rules/data-files.md`, `.claude/rules/design-docs.md`, `.claude/docs/technical-preferences.md`, `.claude/docs/coding-standards.md`, `.claude/docs/directory-structure.md`, and `.claude/docs/coordination-rules.md`.
 
 Treat slash commands as manual runbooks. When a user types `/brainstorm`, `/autocreate`, `/team-dev`, `/code-review`, `/ui-audit`, `/emulator-test`, `/balance-check`, `/release-package`, `/release-checklist`, or another studio command, open the matching file in `.claude/skills/*/SKILL.md` and follow it. For specialized roles, use the persona briefs in `.claude/agents/*.md`. If needed, run helper checks with `bash tools/codex-hooks.sh <hook-name>`.

@@ -21,6 +21,24 @@ A pirate scratch card should feel weathered and adventurous.
 
 If you can swap the UI between two different games and nobody notices — the design failed.
 
+## Studio Asset Rendering Baseline
+
+Context determines what a game depicts, while the studio has one mandatory rendering
+quality bar for generated raster art. Derive the visual world, shapes, materials, details,
+and palette independently from the current concept and Design DNA.
+
+Use a polished cartoon 2.5D casual-game finish: bold readable silhouettes, rounded or
+slightly exaggerated forms, saturated theme-aware colors, smooth modeled gradients, clean
+gold or color edging where it suits the object, glossy specular highlights, restrained
+star glints, and one consistent top-left light. Backgrounds use the same saturated,
+layered cartoon depth and must preserve clear gameplay contrast.
+
+Do not depend on a local reference folder. A pirate concept uses pirate objects; a space
+concept uses space objects. Do not copy cherries, bells, sevens, stars, or generic casino
+imagery into unrelated games.
+Photorealism, material-grounded product photography, flat vector clipart, emoji/sticker
+styling, and mixed render languages fail the studio baseline.
+
 ---
 
 ## How AI Slop Actually Looks (and why it fails)

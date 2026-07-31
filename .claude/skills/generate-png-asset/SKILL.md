@@ -183,43 +183,45 @@ python3 tools/gpt_image.py generate \
 GPT Images/default или legacy provider разрешены только после зафиксированного технического
 провала GPT Image 2 либо по явной просьбе пользователя.
 
-### Realism & concept fidelity (читать ПЕРЕД построением промпта)
+### Cartoon finish & concept fidelity (читать ПЕРЕД построением промпта)
 
-> Цель — НЕ «нарисуй абстрактный значок». Цель — **реалистичный, концептуально-достоверный
-> ассет, который выглядит как настоящий объект из мира ЭТОЙ игры**. Дешёвый промпт даёт
-> дешёвый ассет. Перед генерацией каждого ассета выведи из концепта (`design/gdd/game-concept.md`)
-> и Design DNA четыре вещи и подставь их в промпт:
+> Цель — НЕ «нарисуй абстрактный значок». Цель — **выразительный мультяшный 2.5D ассет,
+> который безошибочно принадлежит миру ЭТОЙ игры**. Перед генерацией каждого ассета
+> самостоятельно выведи из концепта (`design/gdd/game-concept.md`) и Design DNA четыре
+> вещи и подставь их в промпт:
 
 1. **Subject identity** — что это конкретно за объект в мире игры (не «гем», а «гранёный
    аметист с внутренним свечением»; не «кнопка», а «латунная клавиша с гравировкой»).
 2. **Material & texture** — из чего сделан: металл/стекло/дерево/драгоценный камень/неон/ткань;
-   реальные блики, шероховатость, отражения, подповерхностное свечение.
+   как материал упрощается в чистый мультяшный объём, градиенты и глянцевые блики.
 3. **Lighting** — единый для ВСЕГО набора источник (например, мягкий верхне-левый key light
    + лёгкий rim). Свет = главный признак «дорогого» ассета.
-4. **Render style из DNA** — по умолчанию для `/autocreate`: realistic/material-grounded
-   3D product render или glossy 2.5D с реальными материалами. Рисованный / pixel / paper-cut
-   выбирать только если Design DNA явно требует именно это. Выбери ОДИН стиль и держи его
-   одинаковым во всём наборе (консистентность набора важнее красоты одного ассета).
+4. **Render style** — polished cartoon 2.5D casual-game art: bold rounded/exaggerated
+   silhouette, smooth modeled gradients, saturated theme-aware colors, clean edging,
+   glossy highlights and restrained star glints. DNA определяет мир, формы, материалы,
+   палитру и детали. Держи finish одинаковым во всём наборе.
 
-**Жёсткий quality floor для `/autocreate`:** результат, похожий на flat vector icon,
-emoji/sticker, generic logo, дешёвый clipart, случайный neon/casino asset без связи с концептом,
-sprite sheet, текст внутри изображения или объект с другой схемой света, считается FAIL.
+**Жёсткий quality floor для `/autocreate`:** photorealistic/product-shot render, flat
+vector icon, emoji/sticker, generic logo, дешёвый clipart, случайный neon/casino asset без
+связи с концептом, sprite sheet, текст внутри изображения или объект с другой схемой света
+считается FAIL.
 Сначала устранить локально исправимые дефекты (cutout, нормализация кадра, переклассификация
 в `code`/`derive`); для дефекта исходной генерации разрешён один recovery-вызов GPT Images 2.0
 на `logical_id`. Нельзя автоматически переключаться на fallback из-за эстетической оценки.
 
-### Промпт для простого ассета (concept-grounded, realistic)
+### Промпт для простого ассета (concept-grounded, cartoon 2.5D)
 
 ```
-Highly detailed realistic mobile game asset of [SUBJECT IDENTITY from concept],
-single hero object centered, [MATERIAL/TEXTURE] with believable
-[reflections/roughness/subsurface glow/small surface imperfections],
-[RENDER STYLE from DNA or default realistic 3D product render], shared soft
-[LIGHTING: key from top-left + subtle rim], rich [DNA PALETTE] colors,
-crisp clean silhouette readable at 64 px, sharp focus, premium studio product shot,
+Polished cartoon 2.5D mobile game asset of [SUBJECT IDENTITY from concept],
+single hero object centered, bold rounded and slightly exaggerated silhouette,
+[MATERIAL/TEXTURE] simplified into smooth modeled gradients, clean gold or color edging
+where appropriate, glossy specular highlights and restrained star glints,
+shared soft [LIGHTING: key from top-left + subtle rim], rich [DNA PALETTE] colors,
+crisp clean silhouette readable at 64 px, premium casual-game illustration,
 flat solid single-colour [KEY COLOUR] background, no gradient, no vignette, subject fully
 inside frame, transparent-ready cutout, NO scene, NO ground shadow, NO shadow on the
-background, NO text, NO border, NO logo, NO sprite sheet, 1024x1024 PNG.
+background, NO text, NO border, NO logo, NO sprite sheet, NO photorealism,
+NO product photography, NO flat vector clipart, NO emoji/sticker, 1024x1024 PNG.
 [TYPE_DETAILS]
 ```
 
@@ -231,8 +233,8 @@ background, NO text, NO border, NO logo, NO sprite sheet, 1024x1024 PNG.
 ### Промпт для background (без вырезания фона)
 
 ```
-Cinematic 9:16 mobile game background: [SCENE from concept & DNA].
-Full atmospheric scene with depth (foreground / midground / sky layers),
+Polished cartoon 2.5D 9:16 mobile game background: [SCENE from concept & DNA].
+Full atmospheric scene with saturated layered depth (foreground / midground / sky layers),
 [DNA mood & palette], volumetric light, no foreground characters, no UI, no text,
 calm readable empty area in the vertical center for gameplay, high quality PNG.
 ```
@@ -369,9 +371,9 @@ echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
 
 > ⚠️ Таблица ниже — иллюстрация для классического фруктового слота. **Для ЭТОЙ игры
 > символы, палитра и стиль берутся из Design DNA концепта** (`design/gdd/game-concept.md`),
-> а НЕ казино/неон по умолчанию. Для `/autocreate` базовый стиль — realistic/material-grounded
-> 3D/product render; flat/lineart/pixel разрешены только если это прямо написано в DNA.
-> Подставь в промпты тему/мир, палитру, материалы, единый свет и яркость из DNA.
+> а НЕ казино/неон по умолчанию. Для `/autocreate` базовый стиль — polished cartoon
+> 2.5D casual-game art. Подставь в промпты тему/мир, палитру, формы, материалы, единый
+> свет и яркость из DNA.
 > Египетский слот → скарабеи/анкхи с фактурой золота и лазурита; космос → кристаллы/
 > сплавы/звёздная керамика в холодных; и т.д. Держи единый стиль во всём наборе.
 
@@ -432,25 +434,26 @@ fi
 ## Шаг 3: Построение промпта
 
 > Стиль, палитра и яркость подставляются из **Design DNA** концепта — НЕ casino/neon по
-> умолчанию. Для `/autocreate` `[АРТ-СТИЛЬ]` по умолчанию = realistic/material-grounded
-> 3D product render или glossy 2.5D with believable materials; flat/pixel/lineart только по
-> явному DNA. Сначала выведи **Subject / Material / Lighting** (см. «Realism & concept
+> умолчанию. Для `/autocreate` `[АРТ-СТИЛЬ]` = polished cartoon 2.5D casual-game art.
+> Сначала выведи **Subject / Material / Lighting** (см. «Cartoon finish & concept
 > fidelity» выше) — без них получится дешёвый плоский значок.
 
 ```
-Highly detailed mobile game asset of [SUBJECT IDENTITY из концепта],
-single hero object centered, realistic [MATERIAL/TEXTURE: металл/стекло/камень/дерево/неон],
-believable [reflections / roughness / subsurface glow], [АРТ-СТИЛЬ из DNA] render,
+Polished cartoon 2.5D mobile game asset of [SUBJECT IDENTITY из концепта],
+single hero object centered, bold rounded and slightly exaggerated silhouette,
+[MATERIAL/TEXTURE: металл/стекло/камень/дерево/неон] simplified into smooth modeled
+gradients, glossy highlights and restrained star glints, [АРТ-СТИЛЬ] render,
 soft [LIGHTING: key верх-слева + лёгкий rim], rich [ПАЛИТРА из DNA] colors,
 crisp clean silhouette, sharp focus, isolated on flat solid single-colour [KEY COLOUR]
-background, no gradient, no scene, no ground shadow, no text, transparent-ready, 1024x1024.
+background, no gradient, no scene, no ground shadow, no text, no photorealism,
+no product photography, no flat vector clipart, transparent-ready, 1024x1024.
 [ТИП-ДЕТАЛИ]
 ```
 
 ### Детали по типу (эффекты — только если они в DNA):
 | Тип | Добавить (подставить под DNA) |
 |-----|---------|
-| `symbol` / `sprite` | стиль из DNA (объём с бликами ИЛИ flat ИЛИ lineart), единый для набора |
+| `symbol` / `sprite` | polished cartoon 2.5D: тема/формы/материалы/палитра из DNA, единый finish для набора |
 | `wild` (gambling) | премиальный акцентный символ; эффект (свечение/блеск/нет) — из DNA |
 | `scatter` (gambling) | особый символ-триггер, визуально выделен средствами DNA |
 | `ui` кнопка | форма из shape language DNA; эффект (glow/тень/плоско) из DNA, no text |

@@ -1,6 +1,6 @@
 ---
 name: autocreate
-description: "Фабрика производства ПОЛНЫХ гемблинг-игр Zero-to-Production (категории C1-C6). Концепт + Production Plan, реалистичные PNG-ассеты в Codex через GPT Images 2.0 с fallback на GPT Images/default Codex image generation (SVG только fallback вне Codex), РЕАЛЬНОЕ синтезированное аудио (.wav), полный код на Flutter/Flame 1.18.x со ВСЕМИ экранами (15+), ВСЯ игровая логика + мета-системы (save/economy/progression/achievements + analytics/ads/iap/remote-config abstractions), КОНТЕНТ (bet-tiers/стейджи/баннеры/режимы), тесты, UI/UX аудит (compliance), верификация матмодели M1-M6, runtime+soak верификация, release-engineering (иконки/splash/AAB/store-metadata). Результат — полная, публикуемая 2D-игра без крашей, а не мини-демо."
+description: "Фабрика производства ПОЛНЫХ гемблинг-игр Zero-to-Production (категории C1-C6). Концепт + Production Plan, мультяшные polished 2.5D PNG-ассеты в Codex через GPT Images 2.0 с fallback на GPT Images/default Codex image generation (SVG только fallback вне Codex), РЕАЛЬНОЕ синтезированное аудио (.wav), полный код на Flutter/Flame 1.18.x со ВСЕМИ экранами (15+), ВСЯ игровая логика + мета-системы (save/economy/progression/achievements + analytics/ads/iap/remote-config abstractions), КОНТЕНТ (bet-tiers/стейджи/баннеры/режимы), тесты, UI/UX аудит (compliance), верификация матмодели M1-M6, runtime+soak верификация, release-engineering (иконки/splash/AAB/store-metadata). Результат — полная, публикуемая 2D-игра без крашей, а не мини-демо."
 argument-hint: "[--from-concept | --idea-only]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -20,9 +20,13 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 технически не сработали, повторить генерацию через **GPT Images / default Codex image
 generation** с тем же prompt. SVG допустим только если среда НЕ Codex, пользователь явно передал
 `--svg`, либо после зафиксированного провала всех PNG-путей и явного решения пользователя.
-Дефолтный визуальный профиль PNG —
-realistic/material-grounded game assets: правдоподобные материалы, единый свет, чистый силуэт,
-простые ассеты на плоском chroma-key фоне для локального вырезания, без flat clipart.
+Дефолтный и обязательный визуальный профиль PNG — polished cartoon 2.5D casual-game art,
+самостоятельно выведенный из концепта и Design DNA: крупный чистый силуэт,
+округлённые/слегка преувеличенные формы,
+насыщенные цвета, плавный градиентный объём, глянцевые блики, умеренные star-glints и
+единый свет сверху-слева. Тема, формы, материалы, детали и палитра выводятся из концепта;
+нельзя зависеть от reference-папки или копировать чужие символы. Простые ассеты создаются на плоском chroma-key фоне.
+Photorealistic/product-shot, flat clipart и emoji/sticker стиль запрещены.
 
 **CODEX ASSET BUDGET:** `/autocreate` использует `design/asset-manifest.md`: максимум 12
 уникальных PNG-источников и 2 технических recovery-вызова. GPT Images 2.0 создаёт только
@@ -467,7 +471,7 @@ fi
 if [[ "$IS_CODEX" == "1" ]]; then
   ASSET_FORMAT="png"
   ASSET_GENERATOR="gpt-image-2:built-in-or-tools/gpt_image.py"
-  ASSET_RENDER_PROFILE="realistic material-grounded 3D/product render"
+  ASSET_RENDER_PROFILE="concept-derived polished cartoon 2.5D casual-game render"
   echo "🎨 Codex detected → PNG mode (GPT Image 2 tool/API bridge)"
 else
   ASSET_FORMAT="svg"
@@ -548,8 +552,8 @@ python3 tools/gpt_image.py generate \
   --quality high
 ```
 
-**КРИТИЧЕСКИ**: Качество PNG = реалистичность + достоверность концепту. НЕ генерировать
-абстрактные плоские значки.
+**КРИТИЧЕСКИ**: Качество PNG = мультяшный 2.5D finish + достоверность
+концепту. НЕ генерировать абстрактные плоские значки или фотореалистичные product shots.
 
 #### Codex GPT Images 2.0 default profile (ОБЯЗАТЕЛЬНО)
 
@@ -563,11 +567,12 @@ python3 tools/gpt_image.py generate \
 - **Сначала манифест и кэш:** нормализовать prompt и записать SHA-256. Если совпадающий
   валидный `generate` уже есть, использовать его как `reuse`; UI/VFX/варианты сначала
   классифицировать как `code` или `derive`, а не отправлять в image generation.
-- **Дефолтный стиль:** realistic/material-grounded 3D или product-render для игровых ассетов:
-  реальные материалы, правдоподобные отражения/roughness, единый key light сверху-слева,
-  лёгкий rim light, чистый силуэт. Flat/pixel/lineart разрешены только если Design DNA явно
-  требует именно этот стиль; даже тогда должны быть единые свет, палитра и читаемость.
-- **Запрещённый результат:** flat vector icon, emoji/sticker, logo, generic casino/neon,
+- **Дефолтный стиль:** concept-derived polished cartoon 2.5D casual-game render: округлённые
+  и слегка преувеличенные формы, гладкий градиентный объём, насыщенный цвет, чистый кант,
+  glossy highlights, умеренные star-glints, единый key light сверху-слева и чистый силуэт.
+  Тема/палитра берутся из DNA, но мультяшный finish сохраняется во всём наборе.
+- **Запрещённый результат:** photorealistic/product-shot render, flat vector icon,
+  emoji/sticker, logo, generic casino/neon,
   text baked into image, sprite sheet, random scene behind a simple object, inconsistent light,
   ground shadow that мешает вырезанию. Сначала исправить локально всё, что не является
   дефектом исходной генерации; для дефекта источника доступен один recovery GPT Images 2.0
@@ -588,14 +593,16 @@ EOF
 Базовый prompt для каждого простого ассета:
 
 ```text
-Highly detailed realistic mobile game asset of [SUBJECT IDENTITY FROM CONCEPT],
-single hero object centered, [MATERIAL/TEXTURE] with believable reflections,
-roughness and small surface imperfections, [RENDER STYLE FROM DNA OR DEFAULT REALISTIC 3D]
-render, shared soft top-left key light and subtle rim light, rich [DNA PALETTE] colors,
-crisp clean silhouette readable at 64 px, sharp focus, premium studio product shot,
+Polished cartoon 2.5D mobile game asset of [SUBJECT IDENTITY FROM CONCEPT],
+single hero object centered, bold rounded and slightly exaggerated silhouette,
+[MATERIAL/TEXTURE] simplified into smooth modeled gradients, clean gold or color edging
+where appropriate, glossy specular highlights and restrained star glints,
+shared soft top-left key light and subtle rim light, rich [DNA PALETTE] colors,
+crisp clean silhouette readable at 64 px, premium casual-slot illustration,
 flat solid single-colour [KEY COLOUR] background, no gradient, no vignette, subject fully
 inside frame, transparent-ready cutout, no scene, no ground shadow, no shadow on the
-background, no text, no border, no logo, no sprite sheet, 1024x1024 PNG.
+background, no text, no border, no logo, no sprite sheet, no photorealism,
+no product photography, no flat vector clipart, no emoji/sticker, 1024x1024 PNG.
 [TYPE_DETAILS]
 ```
 
@@ -613,11 +620,12 @@ Fallback, если GPT Images 2.0 не сработал:
 1. **Subject identity** — что конкретно за объект в мире игры
 2. **Material/texture** — металл/стекло/камень/дерево/неон
 3. **Lighting** — единый для ВСЕГО набора источник
-4. **Render style** из DNA — фотореалистичный 3D / glossy 2.5D / рисованный / pixel
+4. **Render style** — обязательный polished cartoon 2.5D finish, а DNA
+   определяет тематические формы, материалы, палитру и характер деталей
    (один стиль для ВСЕГО набора — консистентность важнее красоты одного ассета)
 
-См. раздел «Realism & concept fidelity» в `generate-png-asset/SKILL.md`, но для
-`/autocreate` профиль выше имеет приоритет: realistic PNG через GPT Images 2.0 по умолчанию.
+См. раздел «Cartoon finish & concept fidelity» в `generate-png-asset/SKILL.md`; для
+`/autocreate` профиль выше имеет приоритет.
 
 #### Спрайты PNG (`assets/images/sprites/`)
 - Минимум 5-8 игровых элементов (символы барабана, карты, фишки, шары, мины, капсулы)
@@ -727,10 +735,10 @@ fi
 #### Спрайты (`assets/images/sprites/`)
 - Минимум 5-8 игровых элементов (символы барабана, карты, фишки, шары, мины, капсулы)
 - Каждый: 96x96 SVG с `viewBox="0 0 96 96"`
-- **Стиль рендера — из Design DNA**: объёмный (градиенты + блики) ИЛИ плоский/flat ИЛИ
-  outline/lineart — что подходит миру игры. Дзен/минимал может быть намеренно плоским.
+- **Стиль рендера:** мультяшный объёмный 2.5D (градиенты + блики +
+  чистый силуэт); Design DNA определяет тему, палитру и shape language.
 - **Главное — консистентность набора**: один стиль освещения и один уровень детализации
-  во ВСЕХ спрайтах. Нельзя мешать flat и фотореалистичные в одном сете.
+  во ВСЕХ спрайтах. Нельзя мешать flat, мультяшный 2.5D и фотореализм в одном сете.
 
 #### UI Elements (`assets/images/ui/`)
 - `ui_action_button.svg` — основное действие; форма из shape language DNA (НЕ обязательно трапеция/скос)
