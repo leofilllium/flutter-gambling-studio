@@ -1,6 +1,6 @@
 ---
 name: svg-to-png
-description: "Конвертация SVG-ассетов в PNG. В Codex основной путь — GPT Images 2.0, fallback — GPT Images/default Codex image generation; внешние API только legacy fallback. Простые ассеты генерируются на чистом белом фоне для локального вырезания."
+description: "Конвертация SVG-ассетов в PNG. Простая пиксельная конвертация выполняется локально; если нужен новый материальный PNG-ассет, в Codex основной путь — GPT Images 2.0, fallback — GPT Images/default Codex image generation только при техническом сбое."
 allowed-tools: Write, Read, Bash, AskUserQuestion, Glob
 argument-hint: "[путь_к_svg] [--bulk папка] [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
 user-invocable: true
@@ -16,18 +16,40 @@ user-invocable: true
 
 ### Codex default
 
-Если агент работает в Codex, всегда использовать **GPT Images 2.0** через встроенную image generation возможность Codex. Если GPT Images 2.0 не сработал или не дал валидный PNG, повторить тот же prompt через **GPT Images / default Codex image generation**.
+Сначала определить цель. Если нужен только PNG того же SVG без нового материала, света или
+детализации, это локальная конвертация и не требует image generation. Если нужен новый
+материальный игровой ассет, в Codex использовать **GPT Images 2.0** через встроенную image
+generation возможность. Если GPT Images 2.0 не сработал или не дал валидный PNG, повторить
+тот же prompt через **GPT Images / default Codex image generation**.
 
 - Не спрашивать ключи Google/Pollinations/remove.bg.
-- Один SVG → один вызов image generation → один PNG.
+- Перед semantic-апгрейдом прочитать `design/asset-manifest.md`: валидное совпадение SHA-256
+  prompt переиспользовать, а вызов разрешён только классу `generate` в его общем бюджете.
+- Один SVG → один вызов image generation → один PNG только для semantic-апгрейда; не
+  применять GPT Images 2.0 как дорогостоящий растровый конвертер UI и уже готовых иконок.
 - Для `sprite`, `symbol`, `icon`, `wild`, `scatter`, `tile`, `item` просить плоский ключевой фон (`flat solid pure magenta #FF00FF background`, либо `pure green #00FF00`, если в палитре есть пурпур) без теней, градиентов и сцены.
 - Для `background`, `ui_panel`, полноэкранной сцены фон не вырезать.
 - Если у простого ассета фон всё же появился, вырезать его через `python3 tools/cutout.py <файл> --type sprite`.
 
+#### Пиксельная конвертация без image generation
+
+Если форма SVG не меняется, использовать уже доступный локальный SVG-рендерер. Например,
+при наличии `rsvg-convert`:
+
+```bash
+rsvg-convert assets/images/sprites/sprite_cherry.svg -o assets/images/sprites/sprite_cherry.png
+```
+
+Если локального рендерера нет, остановиться и сообщить об этом; не заменять техническую
+конвертацию дополнительным вызовом GPT Images 2.0. Семантический апгрейд остаётся отдельным
+режимом `generate` и работает по манифесту/бюджету выше.
+
 ### Legacy flags:
 - `--cheap POLL_API_TOKEN` → Pollinations.ai (только если пользователь явно просит legacy fallback)
 - `--free REMOVE_BG_TOKEN` → remove.bg только если пользователь явно передал ключ и попросил этот сервис
-- Без флагов в Codex → не спрашивать, использовать GPT Images 2.0; если он не сработал, GPT Images/default Codex image generation
+- Без флагов в Codex → не спрашивать: для пиксельной конвертации использовать локальный
+  рендерер, для semantic-апгрейда — GPT Images 2.0; GPT Images/default только после
+  технического сбоя.
 
 ### Если флагов нет и агент НЕ работает в Codex — спросить:
 
@@ -78,8 +100,8 @@ transparent-ready, 1024x1024.
 
 ### Режим 1: Codex GPT Images 2.0 → GPT Images fallback
 
-В Codex использовать GPT Images 2.0 первым. Если он не сработал, повторить тот же prompt через
-GPT Images / default Codex image generation.
+В Codex использовать GPT Images 2.0 первым. При техническом сбое (ошибка, нет файла или
+невалидный PNG) повторить тот же prompt через GPT Images / default Codex image generation.
 
 1. Передать prompt из шага 2 во встроенную image generation возможность Codex.
 2. Сохранить результат рядом с исходником или в `assets/images/pngs/`.
@@ -90,9 +112,9 @@ GPT Images / default Codex image generation.
 python3 tools/cutout.py assets/images/sprites/cherry.png --type sprite
 ```
 
-Ненулевой код возврата = ассет непригоден → перегенерировать на плоском ключевом фоне
-(по умолчанию `pure magenta #FF00FF`; если в палитре есть пурпур — `pure green #00FF00`).
-```
+Ненулевой код возврата = сначала проверить исходник и ключевой цвет, затем применить один
+разрешённый recovery-вызов через GPT Images 2.0. GPT Images/default использовать только при
+технической ошибке GPT Images 2.0, а не из-за визуального брака или ошибки cutout.
 
 ### Режим 2: Legacy fallback Pollinations.ai (--cheap)
 
@@ -175,16 +197,19 @@ file ${OUTPUT_DIR}/${ASSET_NAME}.png
 Агент:
 1. Находит все `.svg` файлы в папке через Glob
 2. Определяет API ключи из флагов или запрашивает **один раз**
-3. Обрабатывает каждый файл последовательно (один Bash call = один файл)
-4. В Codex использовать GPT Images 2.0 для каждого SVG; при сбое повторить через GPT Images/default fallback.
+3. Для каждого файла сначала выбирает локальную конвертацию или semantic-апгрейд и проверяет
+   `design/asset-manifest.md`; совпадающий валидный SHA-256 переиспользует.
+4. В Codex использовать GPT Images 2.0 только для уникального semantic-апгрейда класса
+   `generate`; GPT Images/default разрешён лишь после технического сбоя.
 5. Для legacy Pollinations: пауза 3 сек между запросами.
 6. Для legacy Google Imagen: пауза 4 сек (лимит Free tier: 15 RPM).
 7. Сохраняет PNG в `assets/images/pngs/` или рядом с исходниками
 
 ### Bulk через Codex GPT Images 2.0 → GPT Images fallback:
 
-Агент делает отдельный image-generation call для каждого SVG файла, используя шаблон из Режима 1.
-**Не объединять в один запрос** — один SVG = один PNG.
+Агент делает отдельный image-generation call только для каждого уникального semantic-апгрейда,
+используя шаблон из Режима 1. Простые копии формы рендерит локально, а `reuse` не вызывает
+модель. Не объединять разные игровые предметы в один запрос.
 
 ---
 
@@ -219,8 +244,10 @@ Single isolated object, clean edges, vibrant colors.
 
 ## Важные правила
 
-1. В Codex использовать GPT Images 2.0 первым; если он не сработал, GPT Images/default fallback.
-2. **Один image-generation call = один ассет** — не объединять SVG в один запрос.
+1. В Codex использовать GPT Images 2.0 первым только для semantic-апгрейда; GPT Images/default
+   доступен исключительно после технического сбоя GPT Images 2.0.
+2. **Один image-generation call = один уникальный source asset** — не объединять разные
+   игровые объекты в один запрос.
 3. API ключ legacy-provider никогда не записывается в файлы.
 4. Если legacy API вернул ошибку — показать пользователю полный ответ.
 5. Готовые PNG сохранять в `assets/images/sprites/` (одиночный) или `assets/images/pngs/` (bulk).
@@ -234,5 +261,5 @@ Single isolated object, clean edges, vibrant colors.
 | HTTP 402 (Pollinations) | Недостаточно pollen | Пополнить или использовать бесплатную модель (flux) |
 | Пустой PNG | Сервер не вернул данные | Попробовать другую модель или промпт |
 | Плохое качество | Промпт слишком простой | Добавить детали из SVG (цвета, форма, стиль) |
-| `cutout.py` вернул FAIL | Фон не плоский, или ключ совпал с палитрой объекта | Перегенерировать на плоском ключевом фоне (magenta → green → blue), затем повторить cutout |
+| `cutout.py` вернул FAIL | Фон не плоский, или ключ совпал с палитрой объекта | Проверить исходник/ключ и перевырезать; при непригодном источнике использовать один GPT Images 2.0 recovery, не fallback по качеству |
 | `cutout.py: requires numpy + Pillow` | Нет зависимостей | `apt-get install -y python3-numpy python3-pil` (или `pip install numpy pillow`) |
