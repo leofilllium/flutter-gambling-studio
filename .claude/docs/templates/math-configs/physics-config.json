@@ -1,0 +1,18 @@
+{
+  "game_name": "Selftest Plinko",
+  "type": "plinko",
+  "rows": 8,
+  "fixed_timestep": true,
+  "deterministic_seed": true,
+  "bucket_multipliers": [
+    25,
+    3.8,
+    1.4,
+    0.38,
+    0.2,
+    0.38,
+    1.4,
+    3.8,
+    25
+  ]
+}

@@ -1,5 +1,5 @@
 ---
-description: Required sections and structure for mini-game GDD documents (all genres)
+description: Required sections and structure for gambling game GDD documents (categories C1-C6)
 globs: ["design/**/*.md", "docs/**/*.md"]
 ---
 
@@ -61,16 +61,26 @@ Draft → [OPEN вопросы] → Review → Approved (Status: ✅ Approved YY
 
 ## Шаблон имени файла
 
+Общее для всех категорий:
+
 ```
 design/gdd/
-├── game-concept.md            # Концепт всей игры (любой жанр)
-├── reel-mechanics.md          # Механика барабанов (gambling)
-├── payline-system.md          # Линии выплат (gambling)
-├── wild-scatter.md            # Wild и Scatter символы (gambling)
-├── free-spins.md              # Бесплатные вращения (gambling)
-├── bonus-round.md             # Бонусный раунд
-└── rtp-math-model.md          # Математическая модель (gambling)
+├── game-concept.md            # Концепт игры: категория C1–C6, архетип, матмодель, compliance
+├── math-model.md              # Модель M1–M6: формулы, пороги, ссылка на JSON-конфиг
+├── round-flow.md              # Полный цикл раунда: ставка → исход → раскрытие → выплата
+└── compliance-screens.md      # Age-gate, дисклеймер, responsible-play, odds disclosure
 ```
+
+Плюс документы по механикам конкретной категории:
+
+| Категория | Типичные GDD |
+|-----------|--------------|
+| C1 🎰 | `reel-mechanics.md`, `payline-system.md`, `wild-scatter.md`, `free-spins.md` |
+| C2 ⚡ | `multiplier-curve.md`, `cashout-rules.md`, `seed-fairness.md` |
+| C3 🏰 | `spin-event-table.md`, `energy-economy.md`, `raid-shield.md`, `collection.md` |
+| C4 🎁 | `banner-rates.md`, `pity-system.md`, `duplicate-conversion.md` |
+| C5 🃏 | `run-structure.md`, `modifier-registry.md`, `shop-economy.md` |
+| C6 ⚙️ | `physics-setup.md`, `bucket-payouts.md`, `determinism.md` |
 
 ## Ссылки в коде
 

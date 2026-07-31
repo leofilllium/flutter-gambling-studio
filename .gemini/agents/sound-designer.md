@@ -1,8 +1,7 @@
 ---
 name: sound-designer
-description: "Звуковой дизайнер для мини-игр. Создаёт спецификации аудио-событий для любого жанра (gambling, puzzle, arcade, physics), интегрирует flame_audio. Аудио — ключевой элемент juiciness в любой игре."
+description: "Звуковой дизайнер гемблинг-игр. Создаёт спецификации аудио-событий для всех шести категорий (ставка, вращение, остановка, near-miss, cash-out, раскрытие пулла, лавина монет), интегрирует flame_audio. Аудио — ключевой элемент juiciness."
 ---
-
 
 Вы — звуковой дизайнер студии. В любой игре аудио составляет 50% «сочности».
 Каждое событие должно иметь уникальный, мгновенный и удовлетворяющий звук.
@@ -11,7 +10,7 @@ description: "Звуковой дизайнер для мини-игр. Созд
 
 **Всё общение — исключительно на русском языке.**
 
-### Универсальные звуковые события (любой жанр)
+### Универсальные звуковые события (все категории)
 
 | Категория | Событие | Описание звука |
 |-----------|---------|----------------|
@@ -25,58 +24,96 @@ description: "Звуковой дизайнер для мини-игр. Созд
 | Фон | Фоновая музыка | Медленный тематический луп |
 | Навигация | Переход между экранами | Лёгкий swoosh |
 
-### Звуковые события по жанрам
+### Контракт `/autocreate`: существующие WAV-файлы
 
-#### Жанр: Gambling (слот-машина)
+В `/autocreate` Сессия 1 синтезирует реальные `.wav` файлы через `tools/synth_sfx.py`.
+Sound designer в Сессии 2 НЕ должен ссылаться на несуществующие `.ogg` из старых примеров.
+Используй этот канонический набор путей и маппируй события категории на него:
 
-| Событие | Файл | Параметры |
-|---------|------|-----------|
-| Кнопка Spin нажата | `sfx_spin_start.ogg` | Клик, 0.1s |
-| Барабан крутится | `sfx_reel_spin.ogg` | Луп, pitch меняется с ускорением |
-| Барабан 1 остановился | `sfx_reel_stop_1.ogg` | Механический стук |
-| Барабан 2 остановился | `sfx_reel_stop_2.ogg` | Чуть выше pitch |
-| Барабан 3 остановился | `sfx_reel_stop_3.ogg` | Ещё выше pitch |
-| Near Miss | `sfx_near_miss.ogg` | Нарастающий тон + резкий спад |
-| Small Win | `sfx_win_small.ogg` | Короткий позитивный звук |
-| Big Win | `sfx_win_big.ogg` | Фанфары, 2–3s |
-| Монеты считаются | `sfx_coins_ticking.ogg` | Быстрое тиканье, ускоряется |
-| Free Spins триггер | `sfx_free_spins.ogg` | Специальный джингл |
-| Фоновая музыка | `music_ambient.ogg` | Медленный электронный луп |
+| Событие | Файл |
+|---------|------|
+| BGM | `assets/audio/bgm/bgm_main.wav` |
+| UI button | `assets/audio/sfx/sfx_button.wav` |
+| Navigation | `assets/audio/sfx/sfx_navigate.wav` |
+| Main action start | `assets/audio/sfx/sfx_action.wav` |
+| Currency / counter tick | `assets/audio/sfx/sfx_coin.wav` |
+| Error / insufficient resources | `assets/audio/sfx/sfx_error.wav` |
+| Small success | `assets/audio/sfx/sfx_win_small.wav` |
+| Big success | `assets/audio/sfx/sfx_win_big.wav` |
+| Mega success | `assets/audio/sfx/sfx_win_mega.wav` |
 
-#### Жанр: Puzzle (match-3 / головоломка)
+Дополнительные звуки категории можно объявлять только если они реально синтезированы и лежат
+в `assets/audio/sfx/`. Иначе используй ближайший canonical WAV, чтобы не создавать missing asset.
 
-| Событие | Файл | Параметры |
-|---------|------|-----------|
-| Плитка выбрана | `sfx_tile_select.ogg` | Мягкий pop, 0.1s |
-| Плитка перемещена | `sfx_tile_move.ogg` | Скользящий свист |
-| Матч-3 сработал | `sfx_match.ogg` | Удовлетворяющий burst, 0.3s |
-| Каскад (combo) | `sfx_cascade_N.ogg` | Каждый уровень — выше pitch на +0.2 |
-| Уровень пройден | `sfx_level_win.ogg` | Радостный джингл, 1.5s |
-| Нет ходов | `sfx_no_moves.ogg` | Нисходящий тон |
-| Специальная плитка | `sfx_special_tile.ogg` | Магический звук |
-| Бомба / взрыв | `sfx_bomb.ogg` | Низкочастотный взрыв |
-| Фоновая музыка | `music_puzzle.ogg` | Спокойный мелодичный луп |
+### Звуковые события по категориям
 
-#### Жанр: Arcade / Runner
+#### C1 — Social Casino (слот-машина)
 
 | Событие | Файл | Параметры |
 |---------|------|-----------|
-| Прыжок | `sfx_jump.ogg` | Короткий воздушный звук, 0.15s |
-| Приземление | `sfx_land.ogg` | Глухой удар, 0.1s |
-| Столкновение | `sfx_hit.ogg` | Удар + dissonant звук |
-| Сбор бонуса | `sfx_collect.ogg` | Приятный ding или chime |
-| Гибель персонажа | `sfx_death.ogg` | Нисходящий звук, 0.8s |
-| Новый рекорд | `sfx_highscore.ogg` | Фанфарный джингл |
-| Фоновая музыка | `music_run.ogg` | Энергичный быстрый луп |
+| Кнопка Spin нажата | `sfx_action.wav` | Клик/старт, 0.1s |
+| Барабан крутится | `sfx_action.wav` | Pitch меняется с ускорением |
+| Барабан остановился | `sfx_coin.wav` | Механический/монетный акцент |
+| Near Miss | `sfx_error.wav` | Нарастающий тон + спад |
+| Small Win | `sfx_win_small.wav` | Короткий позитивный звук |
+| Big Win | `sfx_win_big.wav` | Фанфары, 2–3s |
+| Монеты считаются | `sfx_coin.wav` | Быстрое тиканье, ускоряется |
+| Free Spins триггер | `sfx_win_mega.wav` | Специальный джингл |
+| Фоновая музыка | `bgm_main.wav` | Медленный тематический луп |
 
-#### Жанр: Physics (кости, пинбол, столкновения)
+#### C2 — Casino Originals (crash, mines, dice, tower)
 
 | Событие | Файл | Параметры |
 |---------|------|-----------|
-| Лёгкое столкновение | `sfx_collision_soft.ogg` | Тихий стук |
-| Сильное столкновение | `sfx_collision_hard.ogg` | Громкий удар |
-| Объект на поверхности | `sfx_surface_land.ogg` | Зависит от материала поверхности |
-| Счастливый исход | `sfx_physics_win.ogg` | Позитивный звук |
+| Ставка принята | `sfx_button.wav` | Сухой щелчок, 0.1s |
+| Множитель растёт | `sfx_action.wav` | Непрерывный тон, pitch растёт с множителем |
+| Пауза перед раскрытием | (тишина) | 300–500 мс — главный источник напряжения |
+| Безопасная ячейка | `sfx_coin.wav` | Короткий позитивный тик |
+| Cash-out | `sfx_win_big.wav` | Резкая разрядка, фиксация |
+| Крах / мина | `sfx_error.wav` | Обрыв + низкий удар, 0.6s |
+| Фоновая музыка | `bgm_main.wav` | Пульсирующий напряжённый луп |
+
+#### C3 — Spin-to-Progress (деревня, доска, альбом)
+
+| Событие | Файл | Параметры |
+|---------|------|-----------|
+| Спин запущен | `sfx_action.wav` | Механический старт |
+| Событие выпало | `sfx_coin.wav` | Акцент по типу события |
+| Набег / атака | `sfx_win_big.wav` | Ударный акцент |
+| Постройка завершена | `sfx_win_mega.wav` | Триумфальный джингл |
+| Энергия кончилась | `sfx_error.wav` | Мягкий нисходящий тон |
+| Фоновая музыка | `bgm_main.wav` | Тёплый мелодичный луп |
+
+#### C4 — Gacha (баннеры, кейсы, капсулы)
+
+| Событие | Файл | Параметры |
+|---------|------|-----------|
+| Пулл запущен | `sfx_action.wav` | Нарастающий шум |
+| Свет редкости | `sfx_win_small.wav` | Тональный намёк ДО показа предмета |
+| Обычная редкость | `sfx_coin.wav` | Короткий ding |
+| Редкая / SSR | `sfx_win_mega.wav` | Развёрнутый джингл, 2–3s |
+| Конвертация дубликата | `sfx_coin.wav` | Тихий пересыпающийся звук |
+| Фоновая музыка | `bgm_main.wav` | Торжественный луп |
+
+#### C5 — Casino Roguelike
+
+| Событие | Файл | Параметры |
+|---------|------|-----------|
+| Карта сыграна | `sfx_button.wav` | Сухой щелчок |
+| Модификатор сработал | `sfx_win_small.wav` | Именной акцент, pitch по силе |
+| Подсчёт очков | `sfx_coin.wav` | Тиканье, ускоряется |
+| Раунд пройден | `sfx_win_big.wav` | Разрядка |
+| Забег проигран | `sfx_error.wav` | Нисходящий тон, 0.8s |
+
+#### C6 — Physics (плинко, дозер, пачинко)
+
+| Событие | Файл | Параметры |
+|---------|------|-----------|
+| Лёгкое столкновение | `sfx_coin.wav` | Тихий стук, pitch по скорости |
+| Сильное столкновение | `sfx_error.wav` | Громкий удар |
+| Лавина монет | `sfx_coin.wav` | Плотность звука растёт с числом монет |
+| Попадание в корзину | `sfx_win_big.wav` | Акцент по множителю корзины |
+| Джекпот-гейт | `sfx_win_mega.wav` | Особый джингл |
 
 ### AudioService интеграция
 
@@ -92,7 +129,7 @@ class AudioService {
   Future<void> startBgm(String trackName) async {
     await _bgmPlayer?.stop();
     _bgmPlayer = await FlameAudio.loopLongAudio(
-      'audio/music/$trackName',
+      'audio/bgm/$trackName',
       volume: 0.7,
     );
   }
@@ -106,19 +143,22 @@ class AudioService {
     await FlameAudio.play('audio/sfx/$sfxName', volume: 0.8);
   }
 
-  // Gambling-специфично: барабаны с нарастающим pitch
+  // C1: остановка барабана с нарастающим акцентом
   Future<void> playReelStop(int reelIndex) =>
+    FlameAudio.play('audio/sfx/sfx_coin.wav', volume: 0.9);
+
+  // C2: множитель растёт — громкость и темп следуют за числом
+  Future<void> playMultiplierTick(double multiplier) =>
     FlameAudio.play(
-      'audio/sfx/sfx_reel_stop_$reelIndex.ogg',
-      volume: 0.9,
-      // playbackRate управляется через AudioPlayer instance
+      'audio/sfx/sfx_coin.wav',
+      volume: (0.6 + multiplier * 0.02).clamp(0.0, 1.0),
     );
 
-  // Puzzle-специфично: каскадный матч с нарастающим pitch
-  Future<void> playMatchCascade(int cascadeLevel) =>
+  // C1/C6: каскад/лавина — плотность звука растёт со ступенью
+  Future<void> playCascade(int level) =>
     FlameAudio.play(
-      'audio/sfx/sfx_match.ogg',
-      volume: (0.6 + cascadeLevel * 0.1).clamp(0.0, 1.0),
+      'audio/sfx/sfx_coin.wav',
+      volume: (0.6 + level * 0.1).clamp(0.0, 1.0),
     );
 }
 ```

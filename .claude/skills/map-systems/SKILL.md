@@ -1,6 +1,6 @@
 ---
 name: map-systems
-description: "Декомпозиция концепта мини-игры любого жанра на технические системы. Строит граф зависимостей и план реализации для программиста."
+description: "Декомпозиция концепта гемблинг-игры на технические системы. Строит граф зависимостей и план реализации для программиста, отталкиваясь от категории C1-C6 и математической модели M1-M6."
 user-invocable: true
 allowed-tools: Bash, Read, Edit, Write
 ---
@@ -11,47 +11,65 @@ allowed-tools: Bash, Read, Edit, Write
 
 ## Поведение
 
-Не спрашивайте пользователя. Прочитайте концепт, определите жанр и сгенерируйте `design/gdd/systems-map.md`.
+Не спрашивайте пользователя. Прочитайте концепт (блок **Классификация**), определите
+категорию и математическую модель, сгенерируйте `design/gdd/systems-map.md`.
 
 ## Шаблон вывода
 
 ```markdown
 # Карта систем: [Имя Игры]
 
-**Жанр**: [gambling / puzzle / arcade / physics / casual / card]
+**Категория**: [C1-C6] — [название]
+**Архетип**: [A-AF]
+**Математическая модель**: [M1-M6] → `design/balance/[файл].json`
 
 ## 1. Core Logic (Ядро)
-- `GameConfig` (Все тюнинги и параметры)
-- `GameState` (sealed class: Idle/Playing/Paused/GameOver)
-- `[MainLogic]` (основная механика — зависит от жанра)
-- `[Evaluator]` (чистая функция оценки результата)
+- `GameConfig` (все тюнинги; числа модели загружаются из JSON, не дублируются)
+- `GameState` (sealed class: Idle / Resolving / Revealing / Win / OutOfFunds / Paused)
+- `WeightedRNG` (`Random.secure()` — ЕДИНСТВЕННЫЙ источник случайности)
+- `[Outcome]Resolver` (исход раунда вычисляется ДО анимации — Stateless Outcomes)
+- `[Evaluator]` (чистая функция оценки: без RNG, без состояния)
 
 ## 2. Flame Components (Представление)
-- `[MainComponent]` (основной игровой объект)
-- `[ElementComponent]` (элементы игры)
-- `WinAnimationComponent` (VFX эффекты)
+- `[MainComponent]` (барабан / стол / поле мин / кривая / поле pegs)
+- `[ElementComponent]` (символы, карты, фишки, шары, капсулы)
+- `WinAnimationComponent` (VFX, масштабированные по значимости выигрыша)
+- `AmbientParticles` (живое поле — экран никогда не статичен)
 
 ## 3. Flutter UI (Интерфейс)
-- `HudWidget` (основной HUD с ValueNotifiers)
-- `ActionButton` (основная кнопка действия)
-- `MainMenuScreen` (вход в игру)
+- `HudWidget` (баланс/ставка/множитель через ValueNotifier)
+- `BetPanel` (выбор ставки, заблокирован во время раунда)
+- `ActionButton` (дебаунс 300 мс + disabled state + press-анимация)
+- `MainMenuScreen`, `PaytableScreen`, все экраны MVP
 
-## 4. Audio (Звук)
-- `AudioService` (play() / loop())
+## 4. Compliance (обязательный слой)
+- `AgeGateScreen` (один раз до меню, результат в SharedPreferences)
+- `ComplianceCopy` (дисклеймер, responsible-play, контакты — константы в одном месте)
+- `OddsScreen` (обязателен для C4 и платных спинов C3)
+
+## 5. Meta & Audio
+- `SaveService`, `EconomyService`, `ProgressionService`, `AchievementService`
+- `AudioService` (max 3 параллельных звука)
 
 ## Порядок разработки (План)
-1. Core Logic -> `/design-system [система]`
-2. Flame Components -> `/prototype [механика]`
-3. Flutter UI (все экраны)
-4. Интеграция
-5. `/balance-check` + тестирование
+1. Математическая модель → `/design-system [система]` → `/balance-check`
+2. Core Logic (RNG + Resolver + Evaluator) → `/design-system`
+3. Flame Components → `/prototype [механика]`
+4. Flutter UI (все экраны) + compliance-слой
+5. Мета-системы и контент
+6. Интеграция → `/balance-check` → `/ui-audit` → тестирование
 ```
 
-## Примеры по жанрам
+## Ключевые системы по категориям
 
-**Gambling (слот)**: WeightedRNG + PaylineEvaluator + ReelComponent
-**Puzzle (match-3)**: MatchDetector + CascadeSystem + GridComponent + TileComponent
-**Arcade (runner)**: SpawnManager + CollisionHandler + PlayerComponent + ObstacleComponent
-**Physics (pinball)**: Forge2DWorld + BallComponent + BumperComponent + FlipperComponent
+| Категория | Ядро механики |
+|-----------|---------------|
+| **C1** 🎰 слот | `WeightedRNG` + `PaylineEvaluator` + `ReelComponent` + `SymbolComponent` |
+| **C1** 🎰 стол | `WeightedRNG` + `HandEvaluator`/`WheelResolver` + `CardComponent`/`WheelComponent` |
+| **C2** ⚡ | `RoundResolver` (seed+nonce) + `MultiplierCurve` + `CashoutController` + `RoundHistory` |
+| **C3** 🏰 | `SpinEventTable` + `EnergyService` + `MetaProgressService` + `RaidResolver` |
+| **C4** 🎁 | `BannerResolver` + `PityCounter` (персистентный!) + `DuplicateConverter` + `PullReveal` |
+| **C5** 🃏 | `RunRng(seed)` + `HandEvaluator` + `ModifierRegistry` + `ShopController` + `RunState` |
+| **C6** ⚙️ | `PhysicsWorld` (fixed timestep) + `LaunchResolver` + `BucketDetector` + `BodyLimiter` |
 
 Обязательно включите в документ `Порядок разработки` и список классов.

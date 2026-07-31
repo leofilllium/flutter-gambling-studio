@@ -5,7 +5,7 @@
 > for a reason tied to the game's identity. AI slop has no reasons — it picks defaults.
 >
 > But replacing one set of defaults ("always rounded") with another ("always skewed + neon")
-> is just **anti-slop slop**. A cozy puzzle game with aggressive neon trapezoid buttons
+> is just **anti-slop slop**. A cozy bingo hall with aggressive neon trapezoid buttons
 > is just as soulless as a casino game with Material Design cards.
 >
 > The goal: every game looks like **that specific game**, not like "a game made with our studio."
@@ -15,7 +15,7 @@
 Every visual decision must answer: **"Why this, for THIS game?"**
 
 A neon cyberpunk slot should feel electric and dangerous.
-A forest-themed match-3 should feel warm and organic.
+A cozy bingo room should feel warm and social.
 A minimalist dice game should feel clean and precise.
 A pirate scratch card should feel weathered and adventurous.
 
@@ -30,10 +30,10 @@ AI slop isn't about specific colors or shapes. It's about **decisions made witho
 | Slop Signal | Why It's Slop | What Human Designers Do Instead |
 |------------|---------------|-------------------------------|
 | Same visual treatment on every element | No hierarchy — brain can't parse what's important | The primary action is visually dominant. Secondary elements recede. Different functions look different. |
-| Color palette unrelated to theme | Colors were picked for "looking nice" not for meaning | Colors carry emotional weight. A gold-themed game uses warm ambers. A space game uses cold blues. An earthy puzzle uses greens and browns. |
+| Color palette unrelated to theme | Colors were picked for "looking nice" not for meaning | Colors carry emotional weight. A gold-themed game uses warm ambers. A space game uses cold blues. A pastel gashapon machine uses candy tones. |
 | Default Material/Cupertino widgets | No design effort — took what the framework gave | Every widget is touched. Not necessarily replaced — but intentionally chosen and customized for the context. |
 | Uniform spacing and sizing | Grid-based thinking, no visual rhythm | Important things are bigger. Related things are closer. Rhythm creates scannable hierarchy. |
-| Generic transitions (fade, slide) | No thought about the transition's role | Transitions reinforce the game's metaphor. Cards flip. Doors open. Puzzles dissolve. Or: a deliberate fast cut for snappy games. |
+| Generic transitions (fade, slide) | No thought about the transition's role | Transitions reinforce the game's metaphor. Cards flip. Reels settle. Capsules crack open. Or: a deliberate fast cut for snappy instant-win rounds. |
 | Overuse of blur/glow/particles everywhere | "More effects = more quality" | Effects serve a purpose. Glow highlights wins. Blur focuses attention. Particles celebrate. Not everything glows. |
 | Same font for everything | No typographic hierarchy | Display text (numbers, titles) has character. Body text (descriptions, rules) prioritizes readability. The fonts relate to the game's era/mood. |
 | Placeholder empty states | Developer didn't think about this state | Empty states tell the player what to do next, in the game's voice |
@@ -51,10 +51,12 @@ Ask these questions about the specific game:
 
 **1. What emotion does the core mechanic create?**
 - Slot spin → anticipation, tension, release → fast animations, dramatic pauses, explosive wins
-- Match-3 cascade → satisfaction, flow, "one more turn" → smooth movements, chain reactions that feel earned
-- Idle clicker → growth, accumulation → numbers that feel satisfying to watch increase
-- Memory card flip → curiosity, "aha!" moment → reveal animations that reward the discovery
-- Breakout → speed, precision, chaos → tight responsive controls, impactful collisions
+- Cascade / tumble slot → satisfaction, flow, "one more spin" → chain reactions that feel earned
+- Crash cash-out → nerve, greed, regret → a number that climbs faster than comfort, one decisive button
+- Mines reveal → dread and relief, alternating → slow tile turn, silence before the result
+- Gacha pull → hope, then verdict → a reveal that withholds just long enough to matter
+- Coin pusher drop → anticipation of an avalanche → physics you can read and almost predict
+- Poker deckbuilder → calculation, mastery → instant, legible feedback on every scoring decision
 
 **2. What world does this game exist in?**
 - Neon casino → electric, artificial, nightlife → bright on dark, hard edges, glow
@@ -149,9 +151,9 @@ But the TYPE of feedback matches the game:
 
 Balance, score, bet, timer — when a number changes, it transitions smoothly.
 The animation style matches the game:
-- Casino → fast rolling counter (slot machine feel)
-- Puzzle → satisfying pop-up with scale
-- Idle → smooth count-up (satisfying accumulation)
+- Slot / table win → fast rolling counter (slot machine feel)
+- Crash multiplier → continuous live climb, never a discrete jump
+- Meta-currency in a hybrid → smooth count-up (satisfying accumulation)
 
 ### 5. States Should Be Visually Distinct
 
@@ -305,21 +307,28 @@ class AnimationConfig {
 
 These screens are required because players EXPECT them, not because of a checklist:
 
-1. **Splash Screen** — first impression, sets the mood (1-2 sec)
+1. **Splash Screen** — first impression, sets the mood (1-2 sec), carries the disclaimer
 2. **Main Menu** — home base, navigation hub
 3. **Game Screen + HUD** — the core experience
-4. **Rules / Paytable** — players need to understand the game
-5. **Settings** — sound, vibration, preferences (persisted)
+4. **Rules / Paytable** — players need to understand the odds they are playing against
+5. **Settings** — sound, vibration, preferences (persisted) + Responsible Play block
 6. **Help / How to Play** — onboarding for new players
 7. **Win Celebration** — reward the player (scaled to win size: small/big/mega)
-8. **Insufficient Funds / Game Over** — handle failure gracefully
-9. **Daily Bonus** — retention mechanic
+8. **Insufficient Funds / Out of Chips** — handle the empty wallet gracefully, never a dead end
+9. **Daily Bonus** — retention mechanic, and the safety net when chips run out
 10. **Leaderboard / Stats** — progress and competition
 11. **Player Profile** — identity and personalization
 12. **Loading States** — never show a blank screen
 
-The VISUAL DESIGN of each screen should come from the game's Design DNA.
-A pirate game's settings screen looks different from a cyberpunk game's settings screen.
+**Plus the compliance layer** (`.claude/rules/responsible-gaming.md` — not optional):
+
+13. **Age Gate** — once, before the main menu, persisted
+14. **Odds Disclosure** — mandatory for gacha (C4) and paid-spin hybrids (C3); reachable
+    BEFORE the player spends anything
+
+The VISUAL DESIGN of each screen should come from the game's Design DNA — including the
+compliance ones. An age gate can be beautiful and in-world; it just cannot be absent.
+A pirate scratch-card's settings screen looks different from a cyberpunk crash game's.
 
 ---
 

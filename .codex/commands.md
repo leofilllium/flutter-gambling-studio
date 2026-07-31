@@ -10,7 +10,7 @@ Skill tool, hooks, vision, image generation) — см. `AGENTS.md` → «Executi
 |---------|------------|------------|
 | `/start` | `.claude/skills/start/SKILL.md` | Онбординг, маршрутизация, выбор следующего шага |
 | `/brainstorm` | `.claude/skills/brainstorm/SKILL.md` | Интерактивный концепт мини-игры |
-| `/auto-idea` | `.claude/skills/auto-idea/SKILL.md` | Автогенерация идеи из 30+ архетипов A–AF (вкл. Reference Bar, Design DNA, Production Plan) |
+| `/auto-idea` | `.claude/skills/auto-idea/SKILL.md` | Автогенерация идеи из 32 архетипов A–AF по 6 категориям (вкл. Классификацию, Reference Bar, Design DNA, Production Plan) |
 | `/autocreate` | `.claude/skills/autocreate/SKILL.md` | **Zero-to-Production конвейер.** В Codex три «сессии» выполняются как три чекпоинта ОДНОЙ сессии: Фазы 1–3.8 → handoff-1 → `autocreate-implement` (Фазы 4–10.7) → handoff → `autocreate-finalize` (Фазы 10.5–12). «5 параллельных агентов» Фазы 4 = последовательные persona-проходы A→E→D→B→C. Ассеты — PNG через GPT Images 2.0 → GPT Images/default fallback; простые ассеты на плоском chroma-key фоне + `tools/cutout.py` |
 | `/autocreate-implement` | `.claude/skills/autocreate-implement/SKILL.md` | Сессия 2 (имплементация, Фазы 4–10.7) — также ручной перезапуск после сбоя (`--resume`) |
 | `/autocreate-finalize` | `.claude/skills/autocreate-finalize/SKILL.md` | Сессия 3 (runtime+soak, playtest, release-eng PREP, отчёт) — также ручной перезапуск |
@@ -53,7 +53,7 @@ Skill tool, hooks, vision, image generation) — см. `AGENTS.md` → «Executi
 | `/release-checklist` | `.claude/skills/release-checklist/SKILL.md` | GO/NO-GO чеклист (persona release-manager; учитывает playtest и asset-review вердикты) |
 | `/release-engineering` | `.claude/skills/release-engineering/SKILL.md` | Иконки/splash/версия/signed AAB/store-metadata/CI. В конвейере — только `--prep-only --no-keystore` |
 | `/release-package` | `.claude/skills/release-package/SKILL.md` | Скриншоты + release APK/AAB + `flutter clean` + архив в `project_zip/`. **Явный запуск пользователя**, НЕ авто-вызов из конвейера |
-| `/store-screenshots` | `.claude/skills/store-screenshots/SKILL.md` | Витрина стора: концепт-триптих (одна панорама на N панелей, БЕЗ текста) + кадры игры в рамке телефона с подписями + feature graphic + иконка/эмблема (генерируются И применяются). Арт — GPT Images 2.0, композитинг и типографика — `tools/store_compose.py` → `project_zip/` |
+| `/store-screenshots` | `.claude/skills/store-screenshots/SKILL.md` | Витрина гемблинг-игры: концепт-триптих вокруг ключевого момента раунда (одна панорама на N панелей, БЕЗ текста) + кадры раунда в рамке телефона с подписями + feature graphic + иконка/эмблема (генерируются И применяются). Два набора — 1320×2868 (App Store 6.9″) и 1080×1920 9:16 (Google Play). Compliance-гейт: ни символов валют, ни обещаний выплат. Арт — GPT Images 2.0, композитинг и типографика — `tools/store_compose.py` → `project_zip/` |
 
 ## Устаревшее
 

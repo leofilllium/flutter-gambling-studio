@@ -1,8 +1,11 @@
 # Как создать MVP мини-игры с нуля
 
-Это руководство проведёт вас через процесс создания мини-игры любого жанра
-(слот, рулетка, match-3, раннер, пинбол и др.) в `flutter-game-studio`
+Это руководство проведёт вас через процесс создания гемблинг-мини-игры
+(слот, рулетка, crash, mines, гача, plinko и др.) в `flutter-gambling-studio`
 от пустой папки до работающего APK.
+
+> Студия делает **только** гемблинг-игры — шесть категорий C1–C6,
+> см. `.claude/docs/gambling-categories.md`.
 
 > **Важно**: Разработка может вестись как через Claude Code, так и через OpenAI Codex.
 > В Codex входная точка — `AGENTS.md`, а команды/роли/хуки берутся из `.codex/` и `.claude/`.
@@ -18,9 +21,9 @@
 /autocreate
 ```
 
-Студия выберет один из 24 архетипов (A–X), сгенерирует `pubspec.yaml`,
-нарисует SVG, напишет логику, UI и настроит проект. Через несколько минут
-можно запустить `flutter run`.
+Студия выберет один из 32 архетипов (A–AF), объявит математическую модель,
+сгенерирует `pubspec.yaml`, нарисует ассеты, напишет логику, UI и compliance-слой,
+прогонит баланс и настроит проект. Через несколько минут можно запустить `flutter run`.
 
 ---
 
@@ -29,13 +32,15 @@
 Если вы хотите контролировать каждый аспект (механику, баланс, тематику):
 
 ### Шаг 1. Концепция (Brainstorm)
-Сначала нужно придумать идею и жанр.
+Сначала нужно выбрать категорию и архетип.
 
 ```bash
 /brainstorm
 ```
-Агент спросит о тематике и жанре (слот, match-3, раннер, пинбол…). В результате
-появится файл `design/gdd/game-concept.md`.
+Агент спросит о категории (C1 казино · C2 оригиналы · C3 spin-to-progress · C4 гача ·
+C5 рогалик · C6 физика), архетипе и тематике. В результате появится файл
+`design/gdd/game-concept.md` с обязательным блоком **Классификация**
+(категория, архетип, математическая модель, целевая метрика, compliance-профиль).
 
 ### Шаг 2. Разбор на компоненты
 ```bash
@@ -44,21 +49,23 @@
 Студия разберёт идею на архитектуру классов для Flame. Карта поможет
 программистам понять масштаб работы.
 
-### Шаг 3. Настройка баланса
-Для gambling — расчёт RTP (95–97%). Для puzzle — difficulty curve. Для аркады — spawn rates.
+### Шаг 3. Настройка математической модели
+Каждая категория считается по своей модели (пороги — `.claude/docs/math-models.md`):
 ```bash
-/design-system rtp-weights       # Gambling: символы и веса
-/design-system match-cascade     # Puzzle: механика совпадений
-/design-system spawn-system      # Arcade: генерация препятствий
+/design-system rtp-weights       # C1: символы, веса, таблица выплат  → M1
+/design-system multiplier-curve  # C2: house edge и кривая множителя  → M2
+/design-system energy-economy    # C3: реген, кап, source/sink        → M3
+/design-system pity-system       # C4: base rates и soft/hard pity    → M4
 ```
-Подключится `game-mathematician`, рассчитает параметры и сохранит в конфиг.
+Подключится `game-mathematician`, рассчитает параметры и сохранит в JSON-конфиг
+(`design/balance/*.json`) — единственный источник правды для этих чисел.
 
 ### Шаг 4. Отрисовка графики (SVG)
 Дайте команду нарисовать базовые ассеты.
 ```bash
 /generate-asset ui spin-button
 /generate-asset symbol вишня
-/generate-asset sprite tile-gem
+/generate-asset sprite chip-gold
 ```
 
 ### Шаг 5. Оркестрация разработки (Код + VFX)
@@ -79,16 +86,27 @@
 ```bash
 /balance-check
 ```
-Для gambling: прокрутит 1 000 000 спинов и проверит RTP.
-Для puzzle/arcade: проанализирует difficulty curve и прогрессию.
+Прогонит модель категории через `tools/simulate_math.py` (1 000 000 испытаний) и выдаст
+вердикт PASS / CONCERNS / FAIL с отчётом в `design/balance/simulation-report.md`.
+FAIL останавливает производство: числа правит `game-mathematician`, и только в JSON.
+
+Напрямую, если нужно быстро:
+```bash
+python3 tools/simulate_math.py --model m1 --config design/balance/rtp-config.json
+python3 tools/simulate_math.py --selftest   # эталонные конфиги всех шести моделей
+```
 
 ### Шаг 8. Релиз
 Когда игра запускается через `flutter run`, пора проверить финальное качество.
 ```bash
 /release-checklist
 ```
+Чеклист включает **compliance-блокеры**: age-gate, дисклеймер, responsible-play,
+раскрытие шансов, отсутствие символов реальной валюты у игрового баланса
+(`.claude/rules/responsible-gaming.md`). Без них стор отклонит игру.
 
 ---
 
 🎉 **Готово! Ваш MVP собран.**
-Улучшайте игру, добавляя фичи: `/add-feature "добавь Wild символ"` или `/add-feature "добавь бомбу-тайл"`.
+Улучшайте игру, добавляя фичи: `/add-feature "добавь Wild символ"` или
+`/add-feature "добавь авто-ставку с лимитами"` — баланс пересчитается автоматически.

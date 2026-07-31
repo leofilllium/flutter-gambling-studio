@@ -1,13 +1,26 @@
 ---
-description: JSON config validation rules for balance configs (RTP for gambling, difficulty for other genres)
+description: JSON config validation rules for gambling math-model configs (M1-M6) consumed by tools/simulate_math.py
 globs: ["design/balance/**/*.json", "assets/data/**/*.json", "lib/game/game_config.dart", "lib/game/slot_config.dart"]
 ---
 
-# Data Files Rules — Игровые конфиги и балансировка
+# Data Files Rules — конфиги математических моделей
 
-## rtp-config.json — Схема для Gambling игр
+Каждая игра ОБЯЗАНА иметь ровно один конфиг математической модели, соответствующий её
+категории. Конфиг — вход для `tools/simulate_math.py`; готовые эталоны, проходящие прогон
+«из коробки», лежат в `.claude/docs/templates/math-configs/`.
 
-Gambling игры ОБЯЗАНЫ иметь `design/balance/rtp-config.json`:
+| Категория | Модель | Конфиг | Эталон |
+|-----------|--------|--------|--------|
+| C1 🎰 | M1 | `design/balance/rtp-config.json` | `templates/math-configs/rtp-config.json` |
+| C2 ⚡ | M2 | `design/balance/rtp-config.json` | `templates/math-configs/instant-win-config.json` |
+| C3 🏰 | M3 | `design/balance/economy-config.json` | `templates/math-configs/economy-config.json` |
+| C4 🎁 | M4 | `design/balance/gacha-config.json` | `templates/math-configs/gacha-config.json` |
+| C5 🃏 | M5 | `design/balance/run-config.json` | `templates/math-configs/run-config.json` |
+| C6 ⚙️ | M6 | `design/balance/physics-config.json` | `templates/math-configs/physics-config.json` |
+
+Прогон и пороги — в `.claude/docs/math-models.md`.
+
+## rtp-config.json — схема для слотов (C1 / модель M1)
 
 ```json
 {
@@ -111,10 +124,25 @@ class SlotConfig {
 }
 ```
 
+## Обязательные поля прочих моделей
+
+| Модель | Обязательные поля |
+|--------|-------------------|
+| **M2** | `type` (step/crash/threshold/draw/table), `house_edge`, `max_multiplier` |
+| **M3** | `energy_cap`, `energy_regen_per_hour`, `spin_events[]` (веса+награды), `unlock_prices[]` |
+| **M4** | `rarities[]` (`base_rate` + `duplicate_value`), `hard_pity`, опц. `soft_pity_start`/`soft_pity_step` |
+| **M5** | `round_targets[]`, `base_score`, `income_per_round`, `modifier_cost`, `modifiers[]` (≥3) |
+| **M6** | `type` (plinko/buckets/empirical), `bucket_multipliers[]`, `fixed_timestep`, `deterministic_seed` |
+
 ## Запрещено в data файлах
 
-1. Дублирование значений SlotConfig в JSON и коде — один источник правды
-2. `rtp` > 0.98 или < 0.90 — будет отклонено game-mathematician
-3. Вес символа = 0 — удали символ вместо нуля
-4. Payout без хотя бы одной комбинации из 3 символов
-5. Коммит rtp-config.json без обновления поля `simulation.last_run_date`
+1. Дублирование значений конфига в JSON и в Dart — один источник правды
+2. RTP > 0.98 или < 0.90 для M1/M6; вне 0.95–0.995 для M2 — отклоняется game-mathematician
+3. Вес символа / события = 0 — удали запись вместо нуля
+4. Payout без хотя бы одной выигрышной комбинации
+5. Коммит конфига без обновления `simulation.last_run_date`
+6. Сумма `base_rate` по редкостям (M4) ≠ 1.0
+7. `hard_pity` отсутствует или > 90 (M4) — pity обязателен и обязан быть достижим
+8. Отсутствие `modifiers[]` (M5) — тогда баланс выбора не верифицируется
+9. `fixed_timestep: false` (M6) — RTP становится непроверяемым
+10. Значения, объявленные игроку на экранах правил/шансов, расходящиеся с конфигом

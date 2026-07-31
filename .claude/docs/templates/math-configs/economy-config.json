@@ -1,0 +1,46 @@
+{
+  "game_name": "Selftest Village",
+  "energy_cap": 50,
+  "energy_regen_per_hour": 7,
+  "spin_energy_cost": 1,
+  "seconds_per_spin": 5,
+  "starting_coins": 0,
+  "income_growth_per_unlock": 1.5,
+  "spin_events": [
+    {
+      "name": "coins_small",
+      "weight": 50,
+      "coins": 120
+    },
+    {
+      "name": "coins_big",
+      "weight": 12,
+      "coins": 500
+    },
+    {
+      "name": "shield",
+      "weight": 15,
+      "coins": 0
+    },
+    {
+      "name": "raid",
+      "weight": 15,
+      "coins": 300
+    },
+    {
+      "name": "jackpot",
+      "weight": 8,
+      "coins": 1500
+    }
+  ],
+  "unlock_prices": [
+    40000,
+    60000,
+    90000,
+    135000,
+    202500,
+    303750,
+    455625,
+    683437
+  ]
+}

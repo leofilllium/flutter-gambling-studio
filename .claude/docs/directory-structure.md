@@ -251,40 +251,67 @@ variant = (int(time.time()) % 5) + 1  # равномерно 1–5
 
 ---
 
-## Примеры ключевых файлов по жанрам (V1 paths)
+## Примеры ключевых файлов по категориям гемблинга (V1 paths)
 
-### Gambling (слот)
+Во ВСЕХ категориях присутствует один и тот же костяк — источник случайности, чистый
+оценщик исхода и конфиг математической модели. Меняется только их наполнение.
+
 ```
-lib/systems/weighted_rng.dart       # Random.secure() — ЕДИНСТВЕННЫЙ RNG
-lib/systems/payline_evaluator.dart  # Подсчёт выигрышей
+lib/systems/weighted_rng.dart       # Random.secure() — ЕДИНСТВЕННЫЙ источник случайности
+lib/systems/[outcome]_resolver.dart # Чистая функция: исход раунда ДО анимации
+design/balance/[model]-config.json  # Числа математической модели (читает simulate_math.py)
+```
+
+### C1 — Social Casino (слот)
+```
+lib/systems/weighted_rng.dart
+lib/systems/payline_evaluator.dart  # Подсчёт выигрышей по линиям
 lib/components/reel_component.dart  # Вращающийся барабан
 lib/components/symbol_component.dart
-design/balance/rtp-config.json
+design/balance/rtp-config.json      # модель M1
 ```
 
-### Puzzle (match-3)
+### C2 — Casino Originals (crash / mines / dice)
 ```
-lib/systems/match_detector.dart
-lib/systems/cascade_system.dart
-lib/components/grid_component.dart
-lib/components/tile_component.dart
-design/balance/level-config.json
-```
-
-### Action (runner/shooter)
-```
-lib/systems/spawn_manager.dart
-lib/systems/collision_system.dart
-lib/components/player_component.dart
-lib/components/obstacle_component.dart
-design/balance/difficulty-curve.json
+lib/systems/round_resolver.dart     # serverSeed+clientSeed+nonce → исход раунда
+lib/systems/multiplier_curve.dart   # Формула множителя от house edge
+lib/components/multiplier_display.dart
+lib/components/cashout_button.dart
+design/balance/rtp-config.json      # модель M2
 ```
 
-### Physics (pinball/plinko)
+### C3 — Spin-to-Progress (build-and-raid)
 ```
-lib/systems/physics_world.dart
+lib/systems/weighted_rng.dart
+lib/systems/spin_event_table.dart   # Веса событий спина
+lib/systems/energy_service.dart     # Регенерация, кап, трата
+lib/components/village_component.dart
+design/balance/economy-config.json  # модель M3
+```
+
+### C4 — Gacha (banner pull)
+```
+lib/systems/weighted_rng.dart
+lib/systems/pity_counter.dart       # soft/hard pity — сохраняется между сессиями
+lib/systems/banner_resolver.dart    # Редкость → конкретный предмет
+lib/components/pull_reveal.dart
+design/balance/gacha-config.json    # модель M4
+```
+
+### C5 — Casino Roguelike (poker deckbuilder)
+```
+lib/systems/run_rng.dart            # ИСКЛЮЧЕНИЕ: Random(seed) — забег воспроизводим (ADR!)
+lib/systems/hand_evaluator.dart     # Покерная рука → очки
+lib/systems/modifier_registry.dart  # Джокеры/символы и их эффекты
+lib/models/run_state.dart
+design/balance/run-config.json      # модель M5
+```
+
+### C6 — Physics (plinko / coin pusher)
+```
+lib/systems/physics_world.dart      # Forge2D, ФИКСИРОВАННЫЙ timestep
+lib/systems/launch_resolver.dart    # Стартовые условия из Random.secure()
 lib/components/ball_component.dart
-lib/components/bumper_component.dart
-lib/components/flipper_component.dart
-design/balance/physics-config.json
+lib/components/peg_component.dart
+design/balance/physics-config.json  # модель M6
 ```

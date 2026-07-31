@@ -1,18 +1,19 @@
 <p align="center">
-  <h1 align="center">Flutter Game Studio</h1>
+  <h1 align="center">Flutter Gambling Studio</h1>
   <p align="center">
-    Универсальная студия для создания мини-игр любого жанра на Flutter + Flame.<br/>
-    От концепта до релиза — правильная архитектура, честная математика, «сочный» UI.
+    Студия гемблинг-мини-игр на Flutter + Flame.<br/>
+    От концепта до релиза — правильная архитектура, верифицируемая математика, «сочный» UI.
     <br /><br />
-    <strong>12 агентов · 24 навыка · 8 хуков · 6 правил · 24 архетипа игр</strong>
+    <strong>14 агентов · 32 навыка · 8 хуков · 8 правил · 32 архетипа · 6 категорий</strong>
   </p>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/лицензия-MIT-blue.svg" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/агенты-12-blueviolet" alt="12 агентов">
-  <img src="https://img.shields.io/badge/навыки-24-green" alt="24 навыка">
-  <img src="https://img.shields.io/badge/архетипы-24-orange" alt="24 архетипа">
+  <img src="https://img.shields.io/badge/агенты-14-blueviolet" alt="14 агентов">
+  <img src="https://img.shields.io/badge/навыки-32-green" alt="32 навыка">
+  <img src="https://img.shields.io/badge/архетипы-32-orange" alt="32 архетипа">
+  <img src="https://img.shields.io/badge/категории-6-yellow" alt="6 категорий">
   <img src="https://img.shields.io/badge/Flutter-3.27+-blue?logo=flutter" alt="Flutter 3.27+">
   <img src="https://img.shields.io/badge/Flame-1.18+-red" alt="Flame 1.18+">
   <a href="https://docs.anthropic.com/en/docs/claude-code"><img src="https://img.shields.io/badge/совместимо-Claude%20Code-f5f5f5?logo=anthropic" alt="Claude Code Compatible"></a>
@@ -23,15 +24,29 @@
 
 ## Зачем это нужно
 
-Мини-игры сложнее, чем кажутся. Каждый жанр имеет свои подводные камни:
+Гемблинг-игры сложнее, чем кажутся — и ошибка здесь стоит дороже, чем в обычной мини-игре:
 
-- **Gambling**: неправильные веса = нечестный RTP; `math.Random()` = уязвимость безопасности
-- **Puzzle**: плохая difficulty curve = игроки бросают; state leakage = неправильный счёт
-- **Arcade**: магические числа в спауне = неиграбельная сложность
-- **Physics**: неправильные параметры Forge2D = неприятная физика
-- **Все жанры**: аллокации в `update()` = джанк; слабый UI = игра выглядит дёшево
+- **Неправильные веса** = нечестный RTP, который никто не заметит до релиза
+- **`math.Random()`** вместо `Random.secure()` = предсказуемый исход
+- **Исход, вычисленный во время анимации** = RTP невозможно верифицировать, cash-out некорректен
+- **Кап множителя или округление выплаты** = тихая утечка процентов
+- **Pity-счётчик, не переживающий перезапуск** = pity превращается в фикцию
+- **Отсутствие age-gate и дисклеймера** = стор отклонит игру
+- **Плюс общее**: аллокации в `update()` = джанк; слабый UI = игра выглядит дёшево
 
-**Flutter Game Studio** решает всё это через систему специализированных агентов — математик балансирует игру, дизайнер пишет GDD, программист механик реализует логику, художник VFX добавляет «сочность». Хуки защищают от нарушений правил при коммите. Ворота качества не пустят плохой код на следующий этап.
+**Flutter Gambling Studio** решает всё это через систему специализированных агентов —
+математик владеет моделью и верифицирует её прогоном, дизайнер пишет GDD, программист
+механик реализует логику, художник VFX добавляет «сочность», release-manager проверяет
+compliance. Хуки защищают от нарушений правил при коммите. Ворота качества не пустят
+плохой код на следующий этап.
+
+Математика не «на глаз»: у каждой игры ровно одна объявленная модель (M1–M6), один
+JSON-конфиг и один прогон, который либо проходит порог, либо блокирует релиз:
+
+```bash
+python3 tools/simulate_math.py --model m1 --config design/balance/rtp-config.json
+# exit 0 = PASS · 1 = CONCERNS · 2 = FAIL
+```
 
 Репозиторий теперь настроен в dual-mode:
 
@@ -42,16 +57,25 @@
 
 ---
 
-## Поддерживаемые жанры
+## Шесть категорий гемблинга
 
-| Жанр | Примеры | Уникальные требования |
-|------|---------|----------------------|
-| **🎰 Gambling** | Слоты, рулетка, покер, crash, dice | RTP 95–97%, `Random.secure()`, Stateless Outcomes |
-| **🧩 Puzzle** | Match-3, Tetris, Sokoban | Difficulty curves, match detection, каскады |
-| **🏃 Arcade** | Runner, Shooter, Breakout | Spawning, collision, нарастающая сложность |
-| **⚡ Physics** | Pinball, Plinko, Catapult | Forge2D, rigid bodies, реалистичная физика |
-| **🎯 Casual** | Clicker, Idle, Rhythm | Прогрессия, retention, BPM синхронизация |
-| **🃏 Card/Board** | Memory, Trivia, Solitaire | Колода, таймер, streak бонусы |
+Студия делает **только** гемблинг-игры. Пазлы, раннеры, шутеры и кликеры — вне области.
+
+| ID | Категория | Примеры | Модель баланса |
+|----|-----------|---------|----------------|
+| **C1** 🎰 | Social Casino | Слоты, видео-покер, блэкджек, рулетка, бинго | **M1**: RTP 95–97%, hit rate 20–35% |
+| **C2** ⚡ | Casino Originals | Crash, mines, dice, hi-lo, tower, keno, скретч | **M2**: RTP 96–99%, кап множителя |
+| **C3** 🏰 | Spin-to-Progress | Build-and-raid, board-dice, prize wheel, альбом | **M3**: source/sink 0.90–1.15 |
+| **C4** 🎁 | Gacha & Loot-Box | Баннеры, паки карт, кейсы, гашапон | **M4**: rates 0.5–2%, pity 50–90 |
+| **C5** 🃏 | Casino Roguelike | Poker deckbuilder, reel roguelike, dice-builder | **M5**: run win-rate 25–40% |
+| **C6** ⚙️ | Coin Pusher & Plinko | Дозер, плинко, пачинко | **M6**: эмпирический RTP 95–97% |
+
+Полный справочник: [`.claude/docs/gambling-categories.md`](.claude/docs/gambling-categories.md).
+Пороги верификации: [`.claude/docs/math-models.md`](.claude/docs/math-models.md).
+
+> **Всегда виртуально.** Ни одна игра не принимает и не выплачивает реальные деньги.
+> Compliance-слой (age-gate, дисклеймер, responsible-play, раскрытие шансов) — release-блокер:
+> [`.claude/rules/responsible-gaming.md`](.claude/rules/responsible-gaming.md).
 
 ---
 
@@ -110,16 +134,18 @@
 |-------|------|---------------------|
 | `creative-director` | Творческий директор | Видение игры, концепт, разрешение творческих конфликтов |
 | `technical-director` | Технический директор | ADR, архитектурные решения, разрешение технических конфликтов |
-| `game-mathematician` | Математик баланса | RTP (gambling), difficulty curves (puzzle), scoring (arcade) |
-| `game-designer` | Геймдизайнер | GDD для любого жанра: механики, уровни, бонусы, прогрессия |
+| `game-mathematician` | Владелец матмодели | RTP, house edge, pity, экономика, run win-rate — и их верификация |
+| `game-designer` | Геймдизайнер | GDD: раунд, ставки, бонусы, прогрессия, compliance-экраны |
 | `mechanics-programmer` | Программист механик | RNG, физика, коллизии, match detection, spawning |
-| `juice-artist` | Художник VFX | Партикли, анимации, «сочность» для любого жанра |
+| `juice-artist` | Художник VFX | Anticipation, near-miss, win-celebration, партикли |
+| `art-director` | Арт-директор | Vision-ревью набора ассетов на визуальную целостность |
+| `meta-systems-programmer` | Мета-системы | Save, экономика, прогрессия, достижения, ads/iap абстракции |
 | `lead-programmer` | Ведущий программист | Архитектура, ревью кода, Flame 1.18.x стандарты |
 | `performance-analyst` | Аналитик производительности | FPS, память, SpriteBatch, утечки текстур |
 | `ui-programmer` | Flutter UI | Экраны, HUD, Win оверлеи, anti-slop дизайн |
-| `sound-designer` | Звуковой дизайнер | BGM, SFX для всех жанров, pitch scaling |
+| `sound-designer` | Звуковой дизайнер | Ставка, вращение, остановка, cash-out, reveal, pitch scaling |
 | `qa-tester` | QA инженер | Тест-кейсы, edge cases, RNG дистрибуция, state leakage |
-| `release-manager` | Менеджер релизов | Финальная проверка перед деплоем |
+| `release-manager` | Менеджер релизов | Финальная проверка перед деплоем + compliance-аудит |
 
 > **Язык**: все агенты общаются на **русском языке**. Исключения: код, пути файлов, CLI команды.
 
@@ -142,10 +168,10 @@
 
 | Команда | Что проверяет | Блокеры |
 |---------|--------------|---------|
-| `/gate-check concept` | Готов ли концепт к дизайну? | Нет GDD, не определён жанр |
+| `/gate-check concept` | Готов ли концепт к дизайну? | Нет GDD, нет блока Классификация (категория + модель + compliance) |
 | `/gate-check design` | Готов ли GDD к имплементации? | Нет 8 секций, нет balance config |
-| `/gate-check code` | Готов ли код к QA? | math.Random() (gambling), захардкоженные параметры |
-| `/gate-check qa` | Готов ли к релизу? | RTP вне 95–97% (gambling), нет edge case тестов |
+| `/gate-check code` | Готов ли код к QA? | `math.Random()`, захардкоженные вероятности, исход внутри анимации |
+| `/gate-check qa` | Готов ли к релизу? | Матмодель вне окна, нет compliance-экранов, нет edge case тестов |
 
 ---
 
@@ -156,10 +182,11 @@
 | Команда | Описание |
 |---------|----------|
 | `/start` | Онбординг и маршрутизация — с чего начать |
-| `/brainstorm [хинт]` | Интерактивный концепт любого жанра |
-| `/auto-idea` | Автономный концепт из 24 архетипов без вопросов |
-| `/auto-idea --list` | Показать все 24 архетипа (A–X) |
-| `/auto-idea --archetype [A-X]` | Развернуть конкретный архетип |
+| `/brainstorm [хинт]` | Интерактивный концепт гемблинг-игры |
+| `/auto-idea` | Автономный концепт из 32 архетипов без вопросов |
+| `/auto-idea --list` | Показать все 32 архетипа (A–AF) по категориям |
+| `/auto-idea --archetype [A-AF]` | Развернуть конкретный архетип |
+| `/auto-idea --category [C1-C6]` | Случайный архетип внутри категории |
 | `/autocreate` | Zero-to-playable: концепт + ассеты + код автономно |
 | `/autocreate --from-concept` | Реализовать уже сохранённый концепт |
 
@@ -184,7 +211,7 @@
 
 | Команда | Описание |
 |---------|----------|
-| `/code-review` | Полное ревью: RNG (gambling), Flame API, State, тесты |
+| `/code-review` | Полное ревью: RNG, Stateless Outcomes, Flame API, State, тесты |
 | `/design-review` | Ревью GDD: 8 секций, математика, edge cases |
 | `/ui-audit` | Автоматический аудит UI на anti-slop качество |
 | `/gate-check [этап]` | Ворота перехода с вердиктом PASS / CONCERNS / FAIL |
@@ -193,7 +220,7 @@
 
 | Команда | Описание |
 |---------|----------|
-| `/balance-check` | Gambling: симуляция 1М спинов (RTP). Puzzle: difficulty curve. Arcade: spawn balance |
+| `/balance-check` | Верификация матмодели M1–M6 через `tools/simulate_math.py` (1М испытаний, full-curve) |
 
 ### Диагностика
 
@@ -219,96 +246,89 @@
 
 ---
 
-## Архетипы мини-игр (A–X)
+## Архетипы гемблинг-игр (A–AF)
 
-### 🎰 Gambling (A–L)
+### 🎰 C1 — Social Casino (A–H) · модель M1
 
-| ID | Название | Жанр | Уникальная механика |
-|----|----------|------|---------------------|
-| A | Неоновый Спин | 3-барабанный слот | Near Miss система, каскадная остановка |
-| B | Счастливое Колесо | Колесо фортуны | Сектора с выплатами, множители |
-| C | Покер Экспресс | Видео-покер | 5 карт, Hold функция, двойная ставка |
-| D | Фруктовая Буря | 5-барабанный слот | Каскадные символы (Avalanche), Free Spins |
-| E | Скрэтч Делюкс | Скретч-карты | Мгновенные выигрыши, 3 попытки |
-| F | Рулетка Неон | Мини-рулетка | Европейская рулетка, внешние/внутренние ставки |
-| G | Космический Взлёт | Crash | Flame Physics, кривая ускорения, particle хвост |
-| H | Неоновый Каскад | Plinko | Forge2D, физика отскоков, каскады |
-| I | Золотой Бульдозер | Coin Pusher | 2D rigid bodies, физическое толкание монет |
-| J | Минное Поле | Mines | Геометрический рост множителя |
-| K | Квантовые Кости | Dice Physics | Честная 2D физика броска |
-| L | Башня Дракона | Tower Climber | Risk/Reward, выбор 1 из 3 ячеек на этаж |
+| ID | Название | Механика | Уникальная фича |
+|----|----------|----------|-----------------|
+| A | Неоновый Спин | Классический слот 3×3 | Near Miss система, каскадная остановка |
+| B | Фруктовая Буря | Видео-слот 5×3 + Free Spins | Avalanche: каскадные символы, растущий множитель |
+| C | Сахарный Взрыв | Scatter-pays / cluster слот | Выплата за количество символов, tumble-множители |
+| D | Золотая Связь | Hold & Spin (Link & Win) | Залипающие монеты, 3 тира джекпота |
+| E | Покер Экспресс | Видео-покер | 5 карт, Hold, Double-up на масти |
+| F | Стол 21 | Блэкджек | Hit/Stand/Double/Split, подсказка базовой стратегии |
+| G | Кибер Спин | Европейская рулетка | Физически достоверный отскок шарика |
+| H | Бинго Блиц | Социальное бинго 75 шаров | Power-ups, коллекционные карточки, XP комнат |
 
-### 🧩 Puzzle (M–O)
+### ⚡ C2 — Casino Originals (I–P) · модель M2
 
-| ID | Название | Жанр | Уникальная механика |
-|----|----------|------|---------------------|
-| M | Кристальный Каскад | Match-3 | Свайп, цепные реакции, бустеры |
-| N | Неоновый Тетрис | Tetris-like | Ghost piece, T-spin бонус |
-| O | Пиксельный Сокобан | Push-puzzle | 50+ уровней, undo, минимум ходов |
+| ID | Название | Механика | Уникальная фича |
+|----|----------|----------|-----------------|
+| I | Космический Взлёт | Crash | Кривая ускорения, particle-хвост, история раундов |
+| J | Минное Поле | Mines | Геометрический рост множителя, тишина перед раскрытием |
+| K | Квантовые Кости | Dice roll-under | Честная 2D-физика броска, живой слайдер порога |
+| L | Выше-Ниже | Hi-Lo | Streak множителей, риск-метр, cash-out в любой момент |
+| M | Башня Дракона | Tower Climb | Risk/Reward, выбор 1 из N ячеек на этаж |
+| N | Лотерея Чисел | Keno | Выбор чисел + тираж с физикой шариков |
+| O | Делюкс Золото | Скретч-карты | Партикли стирающейся фольги, тактильное стирание |
+| P | Сундуки Фортуны | Bonus Pick | Dramatic reveal с задержкой |
 
-### 🏃 Arcade (P–R)
+### 🏰 C3 — Spin-to-Progress (Q–U) · модель M3
 
-| ID | Название | Жанр | Уникальная механика |
-|----|----------|------|---------------------|
-| P | Неоновый Раннер | Endless Runner | Авто-бег, нарастающая скорость, particle trail |
-| Q | Кибер Брейкаут | Breakout | Разрушаемые блоки, пауэрапы, мульти-мяч |
-| R | Звёздный Шутер | Vertical Shooter | Авто-стрельба, волны врагов, боссы |
+| ID | Название | Механика | Уникальная фича |
+|----|----------|----------|-----------------|
+| Q | Королевство Монет | Build-and-Raid слот | Набег с раскопкой 1 из 4 точек |
+| R | Бросок Судьбы | Board-move dice | Доска-сезон: круг открывает новую доску |
+| S | Колесо Удачи | Prize-wheel энергохаб | Сектор-джекпот с прогресс-баром между спинами |
+| T | Альбом Коллекционера | Стикеры из паков | Дубликаты → обменная валюта, награда за набор |
+| U | Щит и Меч | Raid & Shield ладдер | Месть: окно ответа тем, кто напал |
 
-### ⚡ Physics (S–T)
+### 🎁 C4 — Gacha & Loot-Box (V–Y) · модель M4
 
-| ID | Название | Жанр | Уникальная механика |
-|----|----------|------|---------------------|
-| S | Неоновый Пинбол | Pinball | Forge2D флипперы, бамперы, мульти-болл |
-| T | Катапульта | Projectile | Прицеливание, разрушаемые структуры |
+| ID | Название | Механика | Уникальная фича |
+|----|----------|----------|-----------------|
+| V | Призыв Легенд | Banner pull | Видимый pity-счётчик, гарант на 10-м пулле |
+| W | Колода Чемпионов | Mystery card packs | Дубликаты повышают уровень карты |
+| X | Кейс-Рулетка | Case opener | Тормозящий спиннер с near-miss на редком |
+| Y | Капсульный Автомат | Гашапон | Двухступенчатое раскрытие: капсула → содержимое |
 
-### 🎯 Casual (U–V)
+### 🃏 C5 — Casino Roguelike (Z–AC) · модель M5
 
-| ID | Название | Жанр | Уникальная механика |
-|----|----------|------|---------------------|
-| U | Тап Мастер | Rhythm/Tap | Ноты в ритм, combo, нарастающий BPM |
-| V | Золотой Кликер | Idle/Clicker | Нажатия → апгрейды → автоматизация, prestige |
+| ID | Название | Механика | Уникальная фича |
+|----|----------|----------|-----------------|
+| Z | Джокер | Poker deckbuilder | Джокеры меняют сами правила подсчёта рук |
+| AA | Свой Барабан | Slot-reel roguelike | Синергии символов: соседство меняет выплату |
+| AB | Кузница Костей | Dice-builder | Перековка: замена грани на эффект |
+| AC | Мешок Алхимика | Push-your-luck bag | Порог bust виден, состав мешка меняется |
 
-### 🃏 Card/Board (W–X)
+### ⚙️ C6 — Coin Pusher & Plinko (AD–AF) · модель M6
 
-| ID | Название | Жанр | Уникальная механика |
-|----|----------|------|---------------------|
-| W | Нейро Память | Memory Card | Переворот пар, таймер, 4×4 → 6×6 |
-| X | Квиз Баттл | Trivia Quiz | 4 варианта, streak бонусы, категории |
+| ID | Название | Механика | Уникальная фича |
+|----|----------|----------|-----------------|
+| AD | Золотой Бульдозер | Coin Pusher | Накопление «навеса» у края — обещание лавины |
+| AE | Неоновый Каскад | Plinko | Выбор рискового профиля (ряды + раскладка корзин) |
+| AF | Серебряный Дождь | Пачинко | Гейт джекпота запускает отдельный слот-раунд |
 
 ```bash
-/auto-idea --archetype A   # Неоновый Спин (слот)
-/auto-idea --archetype M   # Кристальный Каскад (match-3)
-/auto-idea --archetype P   # Неоновый Раннер (arcade)
-/auto-idea --list           # Показать все 24 архетипа
-/auto-idea                  # Случайная уникальная генерация
+/auto-idea --archetype A    # Неоновый Спин (слот, C1)
+/auto-idea --archetype I    # Космический Взлёт (crash, C2)
+/auto-idea --archetype V    # Призыв Легенд (гача, C4)
+/auto-idea --category C5    # Случайный казино-рогалик
+/auto-idea --list           # Показать все 32 архетипа по категориям
+/auto-idea                  # Случайная уникальная гемблинг-механика
 ```
+
+> Архетип = МЕХАНИКА. Чтобы игры одного архетипа не повторялись, поверх него прокручиваются
+> **Layout Archetype L1–L6** (композиция экранов) и **Design DNA** (палитра/шрифты/формы).
+> «Гемблинг» ≠ «тёмный неон и золото»: бинго может быть тёплым и бумажным, гашапон —
+> пастельным, рогалик — строгим типографским.
 
 ---
 
 ## Критические правила игры
 
-### Для всех жанров
-
-```dart
-// ✅ GameState — sealed class обязателен
-sealed class GameState {}
-class IdleState extends GameState {}
-class PlayingState extends GameState { final int level; }
-class PausedState extends GameState { final GameState prev; }
-class GameOverState extends GameState { final int score; }
-
-// ✅ Все параметры в GameConfig
-class GameConfig {
-  static const double playerSpeed = 200.0;
-  static const int gridWidth = 8;
-  static const Duration comboTimeout = Duration(seconds: 2);
-}
-
-// ❌ Запрещено — magic numbers
-if (score > 1000) spawnBoss(); // Откуда взялось 1000?
-```
-
-### Дополнительно для Gambling
+Применяются ко всем шести категориям **безусловно** — нет «категорий, к которым они не относятся».
 
 ```dart
 // ✅ ТОЛЬКО Random.secure()
@@ -324,9 +344,40 @@ Future<void> spin() async {
 
 // ❌ Захардкоженные вероятности — запрещено
 if (Random().nextDouble() < 0.15) triggerBonus();
+
+// ✅ GameState — sealed class обязателен
+sealed class GameState {}
+class IdleState extends GameState {}
+class ResolvingState extends GameState { final RoundOutcome outcome; }
+class WinState extends GameState { final int payout; final WinTier tier; }
+class OutOfFundsState extends GameState {}
+
+// ✅ Все параметры в GameConfig; числа модели — из JSON, не дублируются
+class GameConfig {
+  static const int minBet = 1;
+  static const int maxBet = 100;
+  static const Duration roundAnimation = Duration(milliseconds: 2000);
+}
+
+// ❌ Запрещено — magic numbers
+if (win > 1000) triggerJackpot(); // Откуда взялось 1000?
 ```
 
-**RTP диапазон**: 95–97% при 1,000,000 симуляций. `/balance-check` обязателен перед `/gate-check qa`.
+**Единственное исключение из `Random.secure()`** — seeded-детерминизм забега в казино-рогаликах
+(C5): забег обязан воспроизводиться по seed. Требует ADR.
+
+**Верификация модели обязательна** перед `/gate-check qa`:
+
+```bash
+python3 tools/simulate_math.py --model m1 --config design/balance/rtp-config.json --trials 1000000
+python3 tools/simulate_math.py --selftest   # эталонные конфиги всех шести моделей
+```
+
+### Compliance — release-блокер
+
+Age-gate при первом запуске · дисклеймер на splash и в правилах · responsible-play в настройках ·
+раскрытие шансов (C4 и платные спины C3) · никаких символов реальной валюты у игрового баланса ·
+никаких обещаний выигрыша. Полностью: [`.claude/rules/responsible-gaming.md`](.claude/rules/responsible-gaming.md).
 
 ---
 
@@ -366,9 +417,9 @@ flutter-game-studio/
 │   ├── agents/                        # 12 специализированных агентов
 │   │   ├── creative-director.md
 │   │   ├── technical-director.md
-│   │   ├── game-mathematician.md      # RTP + difficulty curves + score balance
-│   │   ├── game-designer.md           # GDD для всех жанров
-│   │   ├── mechanics-programmer.md    # RNG/match/spawn/physics
+│   │   ├── game-mathematician.md      # владелец матмодели M1–M6 + верификация
+│   │   ├── game-designer.md           # GDD: раунд, ставки, бонусы, compliance
+│   │   ├── mechanics-programmer.md    # RNG, Stateless Outcomes, cash-out, pity, физика
 │   │   ├── juice-artist.md
 │   │   ├── lead-programmer.md
 │   │   ├── performance-analyst.md
@@ -423,15 +474,16 @@ claude
 
 ### Пути
 
-**Хочу игру прямо сейчас (любой жанр):**
+**Хочу игру прямо сейчас (любая из шести категорий):**
 ```
 /autocreate
 ```
-Автономный конвейер: концепт → SVG-ассеты → Flutter код → `pubspec.yaml`. Без вопросов.
+Автономный конвейер: концепт + матмодель → ассеты → Flutter код → верификация баланса
+→ `pubspec.yaml`. Без вопросов.
 
 **Хочу контролировать каждый шаг:**
 ```
-/brainstorm          # Выбрать жанр и создать концепт вместе
+/brainstorm          # Выбрать категорию C1–C6 и создать концепт вместе
 /gate-check concept  # Проверить готовность концепта
 /design-system       # Написать GDD для механик
 /gate-check design   # Проверить готовность GDD

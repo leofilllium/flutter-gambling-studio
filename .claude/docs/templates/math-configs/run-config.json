@@ -1,0 +1,38 @@
+{
+  "game_name": "Selftest Roguelike",
+  "round_targets": [
+    300,
+    550,
+    1000,
+    1850,
+    3400,
+    6300,
+    11600,
+    21000
+  ],
+  "base_score": 420,
+  "score_sigma": 0.22,
+  "income_per_round": 7.5,
+  "modifier_cost": 5,
+  "modifier_multiplier": 1.55,
+  "modifier_multiplier_sigma": 0.3,
+  "max_modifiers": 20,
+  "modifiers": [
+    {
+      "name": "Пара+",
+      "multiplier": 1.45
+    },
+    {
+      "name": "Флеш+",
+      "multiplier": 1.55
+    },
+    {
+      "name": "Стрит+",
+      "multiplier": 1.5
+    },
+    {
+      "name": "Каре+",
+      "multiplier": 1.6
+    }
+  ]
+}

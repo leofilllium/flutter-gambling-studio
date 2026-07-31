@@ -1,0 +1,23 @@
+{
+  "game_name": "Selftest Banner",
+  "hard_pity": 70,
+  "soft_pity_start": 55,
+  "soft_pity_step": 0.06,
+  "rarities": [
+    {
+      "name": "SSR",
+      "base_rate": 0.012,
+      "duplicate_value": "shards"
+    },
+    {
+      "name": "SR",
+      "base_rate": 0.088,
+      "duplicate_value": "shards"
+    },
+    {
+      "name": "R",
+      "base_rate": 0.9,
+      "duplicate_value": "dust"
+    }
+  ]
+}

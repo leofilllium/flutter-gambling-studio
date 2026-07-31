@@ -1,0 +1,51 @@
+{
+  "game_name": "Selftest Slot",
+  "target_rtp": 0.96,
+  "reels": {
+    "count": 3,
+    "visible_rows": 1
+  },
+  "paylines": [
+    [
+      0,
+      0,
+      0
+    ]
+  ],
+  "symbols": [
+    {
+      "id": 0,
+      "name": "cherry",
+      "weight": 30,
+      "payouts": {
+        "2": 0.55,
+        "3": 2
+      }
+    },
+    {
+      "id": 1,
+      "name": "bar",
+      "weight": 20,
+      "payouts": {
+        "3": 6
+      }
+    },
+    {
+      "id": 2,
+      "name": "seven",
+      "weight": 10,
+      "payouts": {
+        "3": 25
+      }
+    },
+    {
+      "id": 3,
+      "name": "wild",
+      "weight": 4,
+      "is_wild": true,
+      "payouts": {
+        "3": 75
+      }
+    }
+  ]
+}

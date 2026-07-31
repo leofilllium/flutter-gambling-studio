@@ -1,6 +1,6 @@
 ---
 name: autocreate
-description: "Фабрика производства ПОЛНЫХ игр Zero-to-Production (любой жанр). Концепт + Production Plan, реалистичные PNG-ассеты в Codex через GPT Images 2.0 с fallback на GPT Images/default Codex image generation (SVG только fallback вне Codex), РЕАЛЬНОЕ синтезированное аудио (.wav), полный код на Flutter/Flame 1.18.x со ВСЕМИ экранами (15+), ВСЯ игровая логика + мета-системы (save/economy/progression/achievements + analytics/ads/iap/remote-config abstractions), КОНТЕНТ (N уровней/режимов), тесты, UI/UX аудит (compliance), баланс по всей кривой, runtime+soak верификация, release-engineering (иконки/splash/AAB/store-metadata). Результат — полная, публикуемая 2D-игра без крашей, а не мини-демо."
+description: "Фабрика производства ПОЛНЫХ гемблинг-игр Zero-to-Production (категории C1-C6). Концепт + Production Plan, реалистичные PNG-ассеты в Codex через GPT Images 2.0 с fallback на GPT Images/default Codex image generation (SVG только fallback вне Codex), РЕАЛЬНОЕ синтезированное аудио (.wav), полный код на Flutter/Flame 1.18.x со ВСЕМИ экранами (15+), ВСЯ игровая логика + мета-системы (save/economy/progression/achievements + analytics/ads/iap/remote-config abstractions), КОНТЕНТ (bet-tiers/стейджи/баннеры/режимы), тесты, UI/UX аудит (compliance), верификация матмодели M1-M6, runtime+soak верификация, release-engineering (иконки/splash/AAB/store-metadata). Результат — полная, публикуемая 2D-игра без крашей, а не мини-демо."
 argument-hint: "[--from-concept | --idea-only]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -125,7 +125,7 @@ Subagent вызывается БЕЗ `subagent_type`/`model`/`reasoning_effort` 
 Сохранение в `design/gdd/game-concept.md`.
 
 **ВАЖНО**: Концепт ОБЯЗАН включать:
-- **Reference Bar** — 2–3 НАЗВАННЫХ реальных хитовых игры этого жанра (например для слота:
+- **Reference Bar** — 2–3 НАЗВАННЫХ реальных хита этой категории (например для слота:
   Coin Master, Slotomania; для merge: 2048, Triple Town) и КОНКРЕТНО что мы заимствуем у
   каждой В ОЩУЩЕНИИ (тайминг остановки барабанов, вес каскада, ритм наград) — не в контенте.
   Это калибрует планку: игра соревнуется с настоящими играми, а не с другими демками.
@@ -564,7 +564,7 @@ Fallback, если GPT Images 2.0 не сработал:
 `/autocreate` профиль выше имеет приоритет: realistic PNG через GPT Images 2.0 по умолчанию.
 
 #### Спрайты PNG (`assets/images/sprites/`)
-- Минимум 5-8 игровых элементов (символы для слота, тайлы для match-3, и т.д.)
+- Минимум 5-8 игровых элементов (символы барабана, карты, фишки, шары, мины, капсулы)
 - Каждый: 1024x1024 PNG, затем при необходимости resize до 256x256 для runtime
 - **Генерация**: один вызов GPT Images 2.0 на каждый ассет; при сбое один fallback-вызов GPT Images/default
 - **Фон**: просить плоский ключевой цвет (chroma key, по умолчанию `pure magenta #FF00FF`;
@@ -664,7 +664,7 @@ fi
 **КРИТИЧЕСКИ**: Каждый SVG ОБЯЗАН быть валидным и отрисовываемым.
 
 #### Спрайты (`assets/images/sprites/`)
-- Минимум 5-8 игровых элементов (символы для слота, тайлы для match-3, и т.д.)
+- Минимум 5-8 игровых элементов (символы барабана, карты, фишки, шары, мины, капсулы)
 - Каждый: 96x96 SVG с `viewBox="0 0 96 96"`
 - **Стиль рендера — из Design DNA**: объёмный (градиенты + блики) ИЛИ плоский/flat ИЛИ
   outline/lineart — что подходит миру игры. Дзен/минимал может быть намеренно плоским.
@@ -753,13 +753,18 @@ sfx_win_mega` (в `assets/audio/sfx/`) + `bgm_main` (в `assets/audio/bgm/`).
 
 Создать в `assets/data/` (зеркало для ревью — в `design/balance/`):
 
-- **levels/stages** → `assets/data/level-config.json` — массив из **N > 1** записей (из Content
-  Plan; напр. 24). Каждая запись: `id`, параметры сложности под жанр (цель/скорость/плотность/
-  веса/лимит ходов или времени), пороги звёзд `{1:.., 2:.., 3:..}`, награда в валюте.
-- **arcade/endless** → `assets/data/difficulty-curve.json` — формула/таблица нарастания (spawn
-  rate, скорость, частота волн) по времени/стейджам.
-- **gambling** → `assets/data/bet-tiers.json` (+ `design/balance/rtp-config.json`) — bet-tiers и
-  параметры бонус-режимов.
+Состав зависит от категории игры (блок **Классификация** концепта):
+
+- **ВСЕГДА** → конфиг математической модели в `design/balance/` по категории:
+  `rtp-config.json` (C1/C2) | `economy-config.json` (C3) | `gacha-config.json` (C4) |
+  `run-config.json` (C5) | `physics-config.json` (C6).
+  Эталоны, проходящие прогон «из коробки»: `.claude/docs/templates/math-configs/`.
+- **C1/C2** → `assets/data/bet-tiers.json` — уровни ставок, лимиты, параметры бонус-режимов.
+- **C3** → `assets/data/stage-config.json` — лестница анлоков/сезонов доски, **N > 1** записей:
+  `id`, цена, награда, что открывает.
+- **C4** → `assets/data/banners.json` — баннеры (**N > 1**), их пулы предметов и ротация.
+- **C5** → `assets/data/run-config.json` — пороги раундов, каталог модификаторов (≥3), цены магазина.
+- **C6** → `assets/data/board-config.json` — раскладки поля/корзин (**N > 1** рисковых профилей).
 - **economy** → `assets/data/economy-config.json` — стартовый баланс валюты, цены каталога
   магазина (скины/темы/бустеры/наборы/remove-ads), награды за уровни/дейли/достижения.
 - **modes** → отразить в концепте/handoff список 2–3 режимов (Classic + Endless/Time-Attack/Daily).
@@ -768,7 +773,7 @@ sfx_win_mega` (в `assets/audio/sfx/`) + `bgm_main` (в `assets/audio/bgm/`).
 ```bash
 for f in assets/data/level-config.json assets/data/economy-config.json; do
   [ -f "$f" ] && python3 -c "import json,sys; d=json.load(open('$f')); print('$f OK', (len(d) if isinstance(d,list) else 'obj'))" \
-    || echo "⚠️ нет $f (если жанр того требует — создать)"
+    || echo "⚠️ нет $f (если категория того требует — создать)"
 done
 ```
 
@@ -794,7 +799,7 @@ done
 **Следующий шаг**: subagent выполняет `.claude/skills/autocreate-implement/SKILL.md` (Сессия 2)
 
 ## Метаданные игры
-- Название / Жанр / Архетип: [...]
+- Название / Категория (C1–C6) / Архетип (A–AF) / Матмодель (M1–M6): [...]
 - Структура: [V1–V5 из design/structure.md] | Layout: [L1–L6 из design/art-direction.md]
 - Audio mood: [mood] (9 .wav в assets/audio/)
 - Package: com.gamestudio.[name]
@@ -977,24 +982,28 @@ Agent B компонует ВСЕ экраны по этому архетипу 
   - Пороги для Small/Big/Mega Win
   - Минимальная/максимальная ставка
   - Начальный баланс
-- `lib/systems/` — вся логика по жанру:
-  - **Gambling**: `weighted_rng.dart` (Random.secure()), `payline_evaluator.dart`
-  - **Puzzle**: `match_detector.dart`, `cascade_system.dart`
-  - **Arcade**: `spawn_manager.dart`, `collision_handler.dart`
-  - **Physics**: `physics_world.dart`
+- `lib/systems/` — логика по категории (во ВСЕХ: `weighted_rng.dart` на `Random.secure()`
+  + резолвер исхода, вычисляющий результат ДО анимации):
+  - **C1**: `weighted_rng.dart`, `payline_evaluator.dart`, `spin_resolver.dart`
+  - **C2**: `round_resolver.dart` (seed+nonce), `multiplier_curve.dart`, `cashout_controller.dart`
+  - **C3**: `spin_event_table.dart`, `energy_service.dart`, `raid_resolver.dart`
+  - **C4**: `banner_resolver.dart`, `pity_counter.dart` (персистентный), `duplicate_converter.dart`
+  - **C5**: `run_rng.dart` (`Random(seed)` — ADR!), `hand_evaluator.dart`, `modifier_registry.dart`
+  - **C6**: `physics_world.dart` (fixed timestep), `launch_resolver.dart`, `bucket_detector.dart`
 - `lib/models/game_state.dart` — sealed class со ВСЕМИ состояниями
 - `lib/models/` — все модели данных (символы, тайлы, враги, и т.д.)
 - `lib/components/` — ВСЕ Flame компоненты:
-  - Основной игровой компонент (ReelComponent / GridComponent / PlayerComponent)
-  - Элементы (SymbolComponent / TileComponent / ObstacleComponent)
+  - Основной игровой компонент (ReelComponent / TableComponent / MinefieldComponent /
+    MultiplierCurveComponent / BannerComponent / PegBoardComponent)
+  - Элементы (SymbolComponent / CardComponent / ChipComponent / BallComponent / CapsuleComponent)
   - Управление (touch/tap handlers)
   - Все компоненты ОБЯЗАНЫ иметь onLoad(), update(dt), и правильную очистку в onRemove()
   - **Animation hooks (для Gameplay Feel Pass):** каждый игровой компонент ОБЯЗАН объявить
     публичные методы-хуки для анимаций — `playEntrance()`, `playImpact()`/`playReaction()`,
-    `playStateChange()` (и жанровые: `playLand()`, `playMatch()`, `stopAt()` и т.п.). В Фазе 4
+    `playStateChange()` (и категорийные: `stopAt()`, `playReveal()`, `playCashout()` и т.п.). В Фазе 4
     они могут содержать минимальную рабочую реализацию без TODO-комментариев — **Фаза 6.5
     их наполнит**. ГЛАВНОЕ: в логике игры (game/world/systems) РАСставить ВЫЗОВЫ этих хуков в
-    нужных точках цикла (появился элемент → `playEntrance()`; засчитан матч/удар → `playImpact()`;
+    нужных точках цикла (появился элемент → `playEntrance()`; засчитан выигрыш/удар → `playImpact()`;
     сменилось состояние объекта → `playStateChange()`). Без вызовов хуки мертвы.
 
 **КРИТИЧЕСКИ для Agent A**:
@@ -1192,8 +1201,9 @@ Monetization/Telemetry/Compliance), контракт типов, пути из `
   try-catch вокруг КАЖДОГО доступа к диску, безопасный fallback.
 - **EconomyService** — coins/валюта, каталог магазина (скины/темы/бустеры/наборы/remove-ads),
   canAfford/purchase/isUnlocked. Цены — из `GameConfig`/`economy-config.json`, не литералы.
-- **ProgressionService** — открытые уровни/стейджи, звёзды, лучшие счёты, recordResult/unlockNext.
-  Источник кривой — `level-config.json`/`difficulty-curve.json` (Фаза 4.5).
+- **ProgressionService** — открытые стейджи/комнаты/баннеры, XP-уровень игрока, лучшие
+  результаты, recordResult/unlockNext. Источник кривой — конфиг контента категории (Фаза 4.5).
+  **(C4) PityCounter персистентен** — счётчик обязан переживать перезапуск, иначе pity фиктивен.
 - **AchievementService** — декларативный список (id/условие/награда), проверка по событиям,
   колбэк в UI + начисление награды через Economy.
 - **AnalyticsService** (abstract) + **NoOpAnalytics** (default) + **DebugAnalytics** (Logger).
@@ -1208,8 +1218,10 @@ Monetization/Telemetry/Compliance), контракт типов, пути из `
   `in_app_purchase` в pubspec. Только чистый Dart + `shared_preferences`. Всё «облачное» — абстракции.
 - НЕ дублировать игровую логику/RNG/исходы/баланс (это Agent A). Не хардкодить числа.
 - Без `dynamic` вне JSON-границ; без `print()` (Logger).
-- **(gambling) Compliance:** держать флаг age-gate (показан ли) в SaveService + строки disclaimer/
-  responsible-play в конфиге; валюта строго виртуальная (не реальные деньги/выигрыши).
+- **Compliance (ОБЯЗАТЕЛЬНО, не опционально):** флаг age-gate (показан ли) в SaveService;
+  строки disclaimer/responsible-play — в одной константе `ComplianceCopy`, не в виджетах;
+  валюта строго виртуальная, без символов реальной валюты у баланса; для C4 — экран шансов
+  читает те же числа, что и резолвер. См. `.claude/rules/responsible-gaming.md`.
 - Сервисы testable (инъекция SharedPreferences/времени). Вызовы сервисов расставляются в Фазе 5.
 
 ---
@@ -1222,20 +1234,25 @@ Monetization/Telemetry/Compliance), контракт типов, пути из `
 > реальный список. Контент = данные, поэтому 24 уровня = один GameScreen + конфиг, не 24 экрана.
 
 ### 4.5.1 — Проверить и загрузить конфиг контента
-Конфиги из Фазы 3.7: `level-config.json` / `difficulty-curve.json` / `bet-tiers.json` /
-`economy-config.json` в `assets/data/`. Убедиться, что они валидны и **GameConfig их загружает**
-(не дублирует числа в литералах). Если какого-то жанрового конфига не хватает — досоздать здесь.
+Конфиги из Фазы 3.7 в `assets/data/` (состав по категории: `bet-tiers.json` C1/C2 /
+`stage-config.json` C3 / `banners.json` C4 / `run-config.json` C5 / `board-config.json` C6,
+плюс `economy-config.json`) и конфиг матмодели в `design/balance/`. Убедиться, что они валидны
+и **GameConfig их загружает** (не дублирует числа в литералах). Чего не хватает — досоздать здесь.
 
 ### 4.5.2 — Режимы (modes)
 Реализовать 2–3 режима из Production Plan как enum + ветвление в Game (НЕ как отдельные копии
-игры): Classic/Campaign (прохождение по level-config), плюс один из Endless/Time-Attack/Survival,
-плюс опц. Daily Challenge (детерминированный seed по дате → одинаковый «сегодняшний» расклад,
-отдельный leaderboard). GameScreen принимает `(mode, levelId)`; ProgressionService решает доступ.
+игры): Classic (основной цикл на выбранном bet-tier/стейдже), плюс один из High-Roller /
+Turbo / Survival-серии, плюс опц. Daily Challenge (детерминированный seed по дате → одинаковый
+«сегодняшний» расклад, отдельный leaderboard). GameScreen принимает `(mode, stageId)`;
+ProgressionService решает доступ.
 
 ### 4.5.3 — Лёгкая балансировка кривой (game-mathematician)
 Прогнать сгенерированный конфиг через быструю проверку (полная — в Фазе 9):
-- **puzzle/arcade**: кривая растёт монотонно, все уровни проходимы, нет «стены» сложности.
-- **gambling**: bet-tiers не ломают RTP-окно.
+- **C1/C2**: bet-tiers не ломают RTP-окно; кап множителя объявлен.
+- **C3**: лестница анлоков монотонна, шаг цены ≤ 1.6×, нет «стены гринда».
+- **C4**: сумма rates = 1.0, hard pity достижим.
+- **C5**: пороги раундов растут не более чем ×2.
+- **C6**: нет «мёртвых» корзин.
 Если кривая кривая — скорректировать JSON (не код).
 
 ### 4.5.4 — Критерий выхода Фазы 4.5
@@ -1447,21 +1464,39 @@ grep -rn "playEntrance\|playImpact\|playReaction\|playStateChange\|playLand\|pla
 
 **`test/systems/`** — тесты логики:
 
-Для Gambling:
-- `weighted_rng_test.dart` — дистрибуция символов (100K итераций, ±5%)
-- `payline_evaluator_test.dart` — все комбинации выигрышей + edge cases
-- Проверка что Random.secure() используется (чтение исходника)
+**ВО ВСЕХ категориях (обязательный минимум):**
+- `weighted_rng_test.dart` — дистрибуция исходов (100K итераций, ±5% от весов конфига)
+- Проверка что используется `Random.secure()` (чтение исходника; исключение — C5 + ADR)
+- `outcome_resolver_test.dart` — исход вычислен ДО анимации (Stateless Outcomes)
+- `payout_test.dart` — выплата ровно равна ставке × множитель, без утечки в округлении
 
-Для Puzzle:
-- `match_detector_test.dart` — горизонтальные, вертикальные, L-shape совпадения
-- `cascade_system_test.dart` — заполнение пустот, chain cascades
+Для C1 (Social Casino):
+- `payline_evaluator_test.dart` — все комбинации выигрышей + Wild/Scatter + edge cases
+- Wild заменяет любой символ кроме Scatter; 2 символа без Wild — не выигрыш
 
-Для Arcade:
-- `spawn_manager_test.dart` — корректность spawn intervals
-- `collision_handler_test.dart` — все типы коллизий
+Для C2 (Originals):
+- `multiplier_curve_test.dart` — множитель на шаге k = (1 - houseEdge) / P(дожить до k)
+- `round_resolver_test.dart` — одинаковые (serverSeed, clientSeed, nonce) → одинаковый исход;
+  изменение любого компонента меняет исход
+- `cashout_test.dart` — cash-out на шаге k платит ровно ставка × multiplier(k)
+- Кап максимального множителя соблюдается
 
-Для Physics:
+Для C3 (Spin-to-Progress):
+- `spin_event_table_test.dart` — распределение событий соответствует весам
+- `energy_service_test.dart` — реген не превышает кап, трата не уводит в минус
+
+Для C4 (Gacha):
+- `pity_counter_test.dart` — на hard pity редкость гарантирована в 100% случаев
+- Счётчик pity ПЕРЕЖИВАЕТ перезапуск (персистентность через SaveService)
+- Сумма вероятностей редкостей = 1.0; дубликат всегда конвертируется
+
+Для C5 (Roguelike):
+- `run_determinism_test.dart` — один seed → идентичный забег (сравнение полного лога событий)
+- `modifier_registry_test.dart` — каждый модификатор применяется и снимается корректно
+
+Для C6 (Physics):
 - `physics_world_test.dart` — объекты не проваливаются, отскоки корректны
+- `determinism_test.dart` — фиксированный timestep + seed → идентичная траектория
 
 ### 7.2 — Model Tests
 
@@ -1639,36 +1674,41 @@ flutter test
 
 ---
 
-## Фаза 9 — Balance Check (Genre-Specific) [~3 мин]
+## Фаза 9 — Верификация математической модели [~3 мин]
 
-> **Проверять ВЕСЬ контент**, а не один уровень: пройти по всем записям `level-config.json` /
-> `difficulty-curve.json` из Фазы 4.5, а не только по дефолтному уровню. Кривая сложности должна
-> быть монотонной и без «стены»; все уровни проходимы; bet-tiers (gambling) не ломают RTP-окно.
-> Детальная проверка — `/balance-check` (full-curve режим).
+> **Проверять ВЕСЬ контент**, а не одну точку: все bet-tiers / стейджи / баннеры / раскладки
+> из Фазы 3.7, а не только дефолт. Детальная проверка — `/balance-check` (full-curve режим).
 
-### Для Gambling жанра:
+Инструмент один для всех категорий — `tools/simulate_math.py`. Модель берётся из блока
+**Классификация** концепта. Пороги — `.claude/docs/math-models.md`.
 
-Создать `tools/simulate_rtp.py`:
-```python
-# Симуляция 100K спинов для проверки RTP
-# Читает веса из design/balance/rtp-config.json
-# Выводит: actual RTP, hit rate, max win, volatility
+```bash
+python3 tools/simulate_math.py \
+  --model [m1-m6] \
+  --config design/balance/[файл].json \
+  --trials 100000 \
+  --report design/balance/simulation-report.md
 ```
 
-Запустить: `python3 tools/simulate_rtp.py 100000`
+Код возврата: `0` = PASS, `1` = CONCERNS, `2` = FAIL.
 
-**Требование**: RTP в диапазоне 93-98% (более широкий для быстрой генерации).
-Если RTP вне диапазона → скорректировать веса в `game_config.dart` и `rtp-config.json`.
+| Категория | Модель | Конфиг | Требование в автогенерации |
+|-----------|--------|--------|----------------------------|
+| C1 | m1 | `rtp-config.json` | RTP 94–98% (окно чуть шире для скорости), hit rate 15–45% |
+| C2 | m2 | `rtp-config.json` | RTP 95–99.5%, кап объявлен, разброс по стратегиям ≈ 0 |
+| C3 | m3 | `economy-config.json` | source/sink 0.8–1.3, пейс 1.5–8 сессий на анлок |
+| C4 | m4 | `gacha-config.json` | сумма rates = 1.0, 0 пропусков pity, 90-й перцентиль ≤ hard pity |
+| C5 | m5 | `run-config.json` | win-rate 15–55%, детерминизм по seed обязателен |
+| C6 | m6 | `physics-config.json` | RTP 94–98%, fixed timestep + seed обязательны |
 
-### Для Puzzle жанра:
-- Проверить что difficulty curve растёт плавно
-- Проверить что все уровни проходимы
+Если вердикт FAIL → корректировать **JSON-конфиг** (не Dart-литералы) и прогонять снова,
+до 3 итераций. `GameConfig` читает те же числа из конфига, поэтому правка одного места
+чинит и код, и математику.
 
-### Для Arcade жанра:
-- Проверить что spawn rate не создаёт impossible ситуации
-- Проверить что scoring прогрессия мотивирует
+Отчёт сохраняется в `design/balance/simulation-report.md` автоматически.
 
-Сохранить отчёт в `design/balance/simulation-report.md`.
+> Если конфига ещё нет — взять эталон из `.claude/docs/templates/math-configs/`
+> (все шесть проходят прогон «из коробки») и адаптировать под игру.
 
 ---
 
@@ -1749,7 +1789,7 @@ flutter test
 
 ## Метаданные игры
 - **Название**: [Game Name]
-- **Жанр**: [gambling / puzzle / arcade / physics / casual / card]
+- **Категория**: [C1 Social Casino / C2 Originals / C3 Spin-to-Progress / C4 Gacha / C5 Roguelike / C6 Physics]
 - **Архетип**: [A-AF / Unique]
 - **Layout Archetype**: [L1–L6 из design/art-direction.md]
 - **Package name**: com.gamestudio.[name]
