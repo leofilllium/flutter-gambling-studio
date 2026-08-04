@@ -10,7 +10,8 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
 
 **Назначение**: завершить `/autocreate` после того, как Сессия 2 (`autocreate-implement`)
 довела проект до `dart analyze` 0 errors + `flutter test` зелёные. В этой сессии:
-- runtime-верификация на эмуляторе/Chrome (скрины + logcat + auto-fix) + soak-проба на утечки
+- runtime-верификация: Chrome/CDP (скрины + консоль + auto-fix) + soak-проба на утечки;
+  Android (`--platform android`) — только Gradle compile-only проверка, без эмулятора/APK
 - **playtest** (Фаза 10.6): реальная игровая сессия — проверки P1–P10 из
   `.claude/skills/playtest/SKILL.md` (числа меняются, win/lose пути, живое поле, прогрессия)
 - обновление session-state + финальный отчёт
@@ -90,9 +91,11 @@ flutter test > /tmp/finalize_preflight_test.log 2>&1 || {
 
 > **Дефолт — headless web** через `flutter run -d web-server` + headless Chrome по CDP
 > (`tools/web_verify.mjs`). Это НЕ требует ни эмулятора, ни KVM, ни графического дисплея,
-> ни `xdotool`/`osascript`. Android AVD — только явный fallback (`--platform android`).
+> ни `xdotool`/`osascript`. Android (`--platform android`) — явный запрос, и он **не поднимает
+> эмулятор/AVD**: это чистая **Gradle compile-only верификация** (`flutter build apk --debug`,
+> APK не сохраняется и никуда не паковается), без runtime-тура, скриншотов и `adb logcat`.
 > Это устраняет две главные причины зависаний Фазы 10.5: «не могу открыть/кликнуть Chrome»
-> и `flutter screenshot` (он не поддерживает web).
+> и «не могу поднять AVD/KVM в headless-окружении».
 
 ```bash
 # Что нужно для web-пути: node (для CDP-драйвера) + бинарь Chrome (для headless-снимков).
@@ -107,26 +110,9 @@ if [[ "${AUTOCREATE_SKIP_EMULATOR:-0}" == "1" ]]; then
   echo "⏭️ AUTOCREATE_SKIP_EMULATOR=1 — Фаза 10.5 SKIPPED по запросу."
   export SKIP_SCREENSHOTS=1
 elif [[ "${PLATFORM:-web}" == "android" ]]; then
-  # Явный Android fallback (--platform android). Всё под timeout — не вешаем конвейер.
-  RUNNING_EMU=$(adb devices 2>/dev/null | grep -E "emulator-[0-9]+.*device$" | head -1 | awk '{print $1}')
-  if [[ -n "$RUNNING_EMU" ]]; then
-    echo "✅ Android эмулятор: $RUNNING_EMU"; export PLATFORM=android
-    adb -s "$RUNNING_EMU" shell input keyevent 82 2>/dev/null || true
-  elif [[ -e /dev/kvm ]] && AVD=$(emulator -list-avds 2>/dev/null | head -1) && [[ -n "$AVD" ]]; then
-    echo "🚀 Запуск AVD: $AVD"
-    nohup emulator -avd "$AVD" -no-window -no-snapshot-save -no-boot-anim \
-          -gpu swiftshader_indirect -no-audio > /tmp/avd.log 2>&1 &
-    EMU_PID=$!
-    if timeout 90 adb wait-for-device 2>/dev/null && \
-       timeout 240 bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null|tr -d "\r")" = "1" ]; do sleep 2; done'; then
-      sleep 20; echo "✅ AVD прогрет"; export PLATFORM=android
-    else
-      echo "⚠️ AVD не загрузился вовремя → откат на web."; kill "$EMU_PID" 2>/dev/null || true
-      export PLATFORM=web
-    fi
-  else
-    echo "⚠️ Нет эмулятора/KVM/AVD → откат на web."; export PLATFORM=web
-  fi
+  # Явный запрос Android (--platform android). НЕ поднимаем эмулятор/AVD/KVM —
+  # это только компиляционная верификация Gradle-сборки, см. 10.5.2c.
+  echo "🤖 PLATFORM=android → Gradle compile-only verification (без эмулятора/скриншотов)."
 fi
 
 # Web-путь (дефолт): нужен node + Chrome. Если их нет — единственный честный SKIP.
@@ -139,7 +125,7 @@ if [[ "${SKIP_SCREENSHOTS:-0}" != "1" && "${PLATFORM:-web}" == "web" ]]; then
   fi
 fi
 
-# NDK pre-flight — ТОЛЬКО для Android fallback (web не собирает Gradle).
+# NDK pre-flight — ТОЛЬКО для Android compile-only верификации (web не собирает Gradle).
 if [[ "${PLATFORM:-web}" == "android" ]]; then
   command -v sdkmanager &>/dev/null && { sdkmanager --list_installed 2>/dev/null | grep -q "ndk;27" || \
     sdkmanager "ndk;27.0.12077973" 2>/dev/null || echo "⚠️ NDK install failed"; }
@@ -156,12 +142,13 @@ fi
 ```
 
 **Критерий перехода:**
-- Если `SKIP_SCREENSHOTS=1` (явный opt-out, либо нет node/Chrome для web и нет Android-устройства) —
+- Если `SKIP_SCREENSHOTS=1` (явный opt-out, либо нет node/Chrome для web) —
   **НЕ запускать** 10.5.2, сразу перейти к Фазе 11 с verdict **SKIPPED**. Это штатный путь —
   НЕ ошибка, конвейер считается успешным (игра уже собрана и протестирована в Сессии 2).
-- Иначе (`PLATFORM=web` с node+Chrome, либо `PLATFORM=android` с устройством) — продолжить с 10.5.2.
+- Иначе (`PLATFORM=web` с node+Chrome, либо `PLATFORM=android` — устройство/эмулятор
+  для последнего НЕ нужны, это compile-only) — продолжить с 10.5.2.
 
-### 10.5.2 — Runtime tour (только если НЕ SKIP_SCREENSHOTS)
+### 10.5.2 — Runtime tour / Compile verification (только если НЕ SKIP_SCREENSHOTS)
 
 **Web-путь (дефолт)** — самодостаточные команды (детали см. в `emulator-test/SKILL.md`):
 
@@ -204,8 +191,34 @@ kill "$(cat .claude/runtime-logs/flutter.pid 2>/dev/null)" 2>/dev/null || true
 - **Парсинг ошибок**: `jq '.consoleErrors' "$SHOT_DIR/manifest.json"`, `$SHOT_DIR/webconsole.log`,
   и `.claude/runtime-logs/flutter-run.log` (EXCEPTION CAUGHT, RenderFlex overflowed, Unable to load asset).
 
-**Android fallback** (`PLATFORM=android`): следовать `emulator-test/SKILL.md` (`flutter run` + `adb logcat`
-+ `flutter screenshot`/`adb screencap`), режим `--quick`.
+### 10.5.2c — Android compile verification (только если `PLATFORM=android`)
+
+Android здесь — **НЕ** runtime-тур. Никакого эмулятора/AVD, никаких скриншотов, никакого
+`adb logcat`. Единственная цель — подтвердить, что Gradle-проект действительно компилируется
+(в т.ч. что NDK/minSdk патчи из 10.5.1 сработали). Полноценная runtime-верификация игры уже
+идёт через web (Chrome/CDP) выше; Android-путь отвечает только на вопрос «компилируется ли»,
+а не «работает ли на устройстве» — для этого не нужны эмулятор/KVM/устройство.
+
+```bash
+mkdir -p .claude/runtime-logs
+timeout 600 flutter build apk --debug 2>&1 | tee .claude/runtime-logs/android-build.log
+ANDROID_BUILD_EXIT=${PIPESTATUS[0]}
+
+if [[ "$ANDROID_BUILD_EXIT" == "0" ]]; then
+  echo "✅ Android Gradle compile OK — приложение собирается."
+else
+  echo "❌ Android Gradle compile FAILED — см. .claude/runtime-logs/android-build.log"
+fi
+
+# Это верификация, не релизный артефакт — APK не сохраняется и никуда не паковается.
+rm -f build/app/outputs/flutter-apk/app-debug.apk 2>/dev/null || true
+```
+
+Ошибки компиляции (Gradle/Kotlin/NDK/Dart-платформенный код) разбираются так же, как
+`dart analyze` ошибки в Фазе 6 `autocreate-implement`: направляются
+mechanics-programmer/ui-programmer, разрешено до 2 итераций правки и повторного
+`flutter build apk --debug`. Упаковка (`flutter build apk --release`, AAB, подпись,
+архивация) сюда не входит — это отдельный явный `/release-package` по запросу пользователя.
 
 ### 10.5.2b — Soak / Leak probe (web, опционально но рекомендуется)
 
@@ -252,20 +265,31 @@ timeout 180 node tools/web_verify.mjs --url "$WEB_URL" --out "$SHOT_DIR" --soak 
 
 ### 10.5.4 — Критерий выхода Фазы 10.5
 
-- **Успех**: 0 CRITICAL визуальных проблем + 0 FATAL exceptions в logcat
+**Web-путь (дефолт):**
+- **Успех**: 0 CRITICAL визуальных проблем + 0 FATAL exceptions в консоли
 - **Частичный успех**: CRITICAL устранены, остались MEDIUM — идём в Фазу 11
 - **Неудача**: после 3 итераций CRITICAL остались — сохранить
   `production/runtime-screenshots/<ts>/REPORT.md`, отчитаться с verdict FAIL,
   Фаза 11 всё равно выполняется (active.md обновляется с verdict FAIL)
 
+**Android-путь (`PLATFORM=android`, compile-only):**
+- **Успех**: `flutter build apk --debug` завершается с exit code 0 (`ANDROID_BUILD_EXIT=0`)
+- **Неудача**: после 2 итераций автофикса ошибки компиляции остались — verdict FAIL с
+  причиной из `.claude/runtime-logs/android-build.log`, Фаза 11 всё равно выполняется
+- Здесь нет понятий CRITICAL/MEDIUM визуальных проблем — это не runtime-тур
+
 ### 10.5.5 — Артефакты
 
+**Web-путь:**
 - `production/runtime-screenshots/<ts>/*.png` — снимки
 - `production/runtime-screenshots/<ts>/REPORT.md` — verdict PASS/CONCERNS/FAIL
 - `.claude/runtime-logs/flutter-run.log`
-- `.claude/runtime-logs/logcat.log`
 
-Cleanup: остановить `flutter run` и `adb logcat` по PID из `.claude/runtime-logs/*.pid`.
+**Android-путь (compile-only):**
+- `.claude/runtime-logs/android-build.log` — лог `flutter build apk --debug`
+- Никаких скриншотов/logcat/APK-файлов — эта верификация ничего не сохраняет как артефакт
+
+Cleanup: остановить `flutter run` по PID из `.claude/runtime-logs/*.pid` (web-путь).
 
 ---
 
@@ -275,8 +299,9 @@ Cleanup: остановить `flutter run` и `adb logcat` по PID из `.clau
 > ИГРАЕТСЯ»: действия дают результат, числа меняются, победы празднуются, поле живое.
 > Эталон — `.claude/docs/quality-bar.md` (§2–§4, §6, §7).
 
-Выполнить runbook `.claude/skills/playtest/SKILL.md` (если web-путь был SKIPPED в 10.5 —
-эта фаза тоже честно SKIPPED, не ошибка):
+Выполнить runbook `.claude/skills/playtest/SKILL.md` (если web-путь был SKIPPED в 10.5,
+или если 10.5 шла по Android compile-only пути — эта фаза тоже честно SKIPPED, не ошибка:
+playtest требует реально работающий инстанс через CDP, а compile-only ничего не запускает):
 
 - Тур + игровая нагрузка (`web_verify.mjs --soak 60`) → проверки **P1–P10**
   (vision-сравнение кадров: действие меняет поле, HUD-числа меняются, win-фидбек виден,
@@ -440,7 +465,7 @@ flutter pub get >/dev/null 2>&1 || true
 | Фаза | Критерий выхода | Макс. итераций |
 |------|----------------|---------------|
 | 0. Preflight | Handoff есть + `dart analyze` 0 errors | 1 (fail-fast) |
-| 10.5. Runtime Chrome | 0 CRITICAL visual + 0 FATAL в flutter-run.log (+ soak: нет утечки) | 3 (Chrome всегда доступен) |
+| 10.5. Runtime Chrome / Android compile | Web: 0 CRITICAL visual + 0 FATAL в flutter-run.log (+ soak: нет утечки). Android (`--platform android`): `flutter build apk --debug` exit 0 | 3 (Chrome всегда доступен) / 2 (Android compile) |
 | 10.6. Playtest | PLAYTEST-REPORT.md, verdict ≠ NOT-PLAYABLE (P1–P10) | 2 |
 | 11. Session State | `active.md` обновлён | 1 |
 | 11.5. Release-eng prep | Иконки/splash сгенерированы, `store/` создан (AAB best-effort) | 1 |
@@ -458,9 +483,12 @@ flutter pub get >/dev/null 2>&1 || true
 `/autocreate-finalize` в новой conversation. Skill:
 1. Читает `autocreate-handoff.md` и `active.md`
 2. Определяет, с какой фазы продолжить (по наличию артефактов):
-   - Нет `production/runtime-screenshots/<ts>/` → начать с 10.5
-   - Есть скрины, но нет `production/playtest/<ts>/PLAYTEST-REPORT.md` → начать с 10.6
-   - Есть playtest-report, но `active.md` не обновлён → начать с 11
+   - Нет `production/runtime-screenshots/<ts>/` и нет `.claude/runtime-logs/android-build.log` → начать с 10.5
+   - Есть скрины (или, для Android-пути, `android-build.log` с exit 0), но нет
+     `production/playtest/<ts>/PLAYTEST-REPORT.md` → начать с 10.6 (для Android-пути этот
+     шаг честно SKIPPED — сразу к 11)
+   - Есть playtest-report (или Android-путь дошёл до SKIPPED-плейтеста), но `active.md`
+     не обновлён → начать с 11
 3. Продолжает с нужной фазы, не переделывая сделанное
 
 **Если web-верификация невозможна** (нет `node` или бинаря Chrome): `web_verify.mjs` не запустить —
