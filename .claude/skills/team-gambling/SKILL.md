@@ -1,14 +1,14 @@
 ---
 name: team-gambling
-description: "Алиас /team-dev. Оркестрирует разработку гемблинг-механик несколькими агентами."
+description: "Alias of /team-dev. Orchestrates the development of gambling mechanics across several agents."
 user-invocable: true
 allowed-tools: Bash, Read, Edit, Write, Agent
-argument-hint: "<описание фичи/системы>"
+argument-hint: "<feature/system description>"
 ---
 
-# `team-gambling` — алиас `/team-dev`
+# `team-gambling` — an alias for `/team-dev`
 
-> Студия делает только гемблинг-игры, поэтому `/team-gambling` и `/team-dev` — одно и то же.
-> Канонический навык — **`/team-dev`**; этот оставлен как привычное имя.
+> The studio only makes gambling games, so `/team-gambling` and `/team-dev` are the same thing.
+> The canonical skill is **`/team-dev`**; this one is kept as a familiar name.
 
-Выполните `.claude/skills/team-dev/SKILL.md` с теми же аргументами.
+Run `.claude/skills/team-dev/SKILL.md` with the same arguments.

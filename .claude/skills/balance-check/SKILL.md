@@ -1,86 +1,87 @@
 ---
 name: balance-check
-description: "Верификация математической модели гемблинг-игры через tools/simulate_math.py. Выбирает модель M1-M6 по категории игры (RTP слота, house edge оригинала, экономика гибрида, pity гачи, run win-rate рогалика, физический RTP плинко) и проверяет её против порогов. Поддерживает full-curve валидацию по всем bet-tiers, уровням и баннерам."
+description: "Verifies a gambling game's mathematical model through tools/simulate_math.py. Picks the model M1-M6 from the game's category (slot RTP, an original's house edge, a hybrid's economy, gacha pity, a roguelike's run win-rate, plinko's physical RTP) and checks it against the thresholds. Supports full-curve validation across every bet tier, level and banner."
 user-invocable: true
 allowed-tools: Bash, Read, Write
-argument-hint: "[кол-во испытаний, по умолчанию — из модели]"
+argument-hint: "[trial count, defaults to the model's own]"
 ---
 
-# `balance-check` — Верификатор математической модели
+# `balance-check` — the mathematical model verifier
 
-Математика в этой студии — проверяемый контракт, а не «ощущение баланса».
-Каждая игра имеет ровно одну объявленную модель, один конфиг и один прогон.
+Mathematics in this studio is a verifiable contract, not a "feeling of balance".
+Every game has exactly one declared model, one config and one run.
 
-## 1. Определите модель
+## 1. Determine the model
 
-Прочитайте `design/gdd/game-concept.md`, блок **Классификация**. Он содержит категорию,
-модель и путь к конфигу. Если блока нет — это FAIL концепта, вернитесь к `/gate-check concept`.
+Read `design/gdd/game-concept.md`, the **Classification** block. It contains the category,
+the model and the path to the config. If the block is missing, the concept is a FAIL — go back
+to `/gate-check concept`.
 
-| Категория | Модель | Конфиг по умолчанию | Порог PASS |
-|-----------|--------|---------------------|------------|
+| Category | Model | Default config | PASS threshold |
+|----------|-------|----------------|----------------|
 | C1 🎰 Social Casino | **M1** | `design/balance/rtp-config.json` | RTP 95–97%, hit rate 20–35% |
-| C2 ⚡ Originals | **M2** | `design/balance/rtp-config.json` | RTP 96–99%, кап объявлен |
-| C3 🏰 Spin-to-Progress | **M3** | `design/balance/economy-config.json` | source/sink 0.90–1.15, пейс 2–5 |
-| C4 🎁 Gacha | **M4** | `design/balance/gacha-config.json` | rate 0.5–2%, pity 50–90, 0 пропусков |
-| C5 🃏 Roguelike | **M5** | `design/balance/run-config.json` | win-rate 25–40%, детерминизм |
+| C2 ⚡ Originals | **M2** | `design/balance/rtp-config.json` | RTP 96–99%, the cap declared |
+| C3 🏰 Spin-to-Progress | **M3** | `design/balance/economy-config.json` | source/sink 0.90–1.15, pace 2–5 |
+| C4 🎁 Gacha | **M4** | `design/balance/gacha-config.json` | rate 0.5–2%, pity 50–90, 0 misses |
+| C5 🃏 Roguelike | **M5** | `design/balance/run-config.json` | win-rate 25–40%, determinism |
 | C6 ⚙️ Physics | **M6** | `design/balance/physics-config.json` | RTP 95–97%, fixed timestep |
 
-Полные пороги и формулы — `.claude/docs/math-models.md`.
+The complete thresholds and formulas are in `.claude/docs/math-models.md`.
 
-## 2. Прогон
+## 2. The run
 
 ```bash
 python3 tools/simulate_math.py \
   --model [m1-m6] \
-  --config design/balance/[файл].json \
-  --trials [по умолчанию из модели] \
+  --config design/balance/[file].json \
+  --trials [defaults to the model's own] \
   --report design/balance/simulation-report.md
 ```
 
-Код возврата: `0` = PASS, `1` = CONCERNS, `2` = FAIL — можно вешать на хук или CI.
+Exit codes: `0` = PASS, `1` = CONCERNS, `2` = FAIL — you can hang a hook or CI off that.
 
-Если конфига ещё нет — возьмите эталон из `.claude/docs/templates/math-configs/`
-(все шесть проходят прогон «из коробки») и адаптируйте под игру, не ломая схему.
-Проверить, что инструмент жив: `python3 tools/simulate_math.py --selftest`.
+If the config does not exist yet, take the reference from `.claude/docs/templates/math-configs/`
+(all six pass a run out of the box) and adapt it to the game without breaking the schema.
+To check the tool is alive: `python3 tools/simulate_math.py --selftest`.
 
-## 3. Разбор результата
+## 3. Reading the result
 
-1. Отчёт всегда пишется в `design/balance/simulation-report.md` — прогон без отчёта
-   не считается проведённым.
-2. **PASS** → продолжаем конвейер.
-3. **CONCERNS** → зафиксируйте риск в отчёте и решите с пользователем, идём ли дальше.
-4. **FAIL** → производство останавливается. Вызовите `game-mathematician`; он правит
-   **только числа в JSON**, не код. Затем повторный прогон.
-5. Обновите `simulation.last_run_date` в конфиге — коммит без этого отклоняется хуком.
+1. The report is always written to `design/balance/simulation-report.md` — a run without a
+   report does not count as having happened.
+2. **PASS** → the pipeline continues.
+3. **CONCERNS** → record the risk in the report and decide with the user whether to proceed.
+4. **FAIL** → production stops. Call `game-mathematician`; they edit **only the numbers in the
+   JSON**, never the code. Then run it again.
+5. Update `simulation.last_run_date` in the config — a commit without it is rejected by the hook.
 
-## 4. Full-Curve Validation (ВЕСЬ контент, не одна точка)
+## 4. Full-curve validation (ALL the content, not one point)
 
-> Полная игра = объём контента. Проверять нужно всю поверхность, а не дефолтную настройку.
+> A complete game means a volume of content. You verify the whole surface, not the default setting.
 
-Что именно прогоняется дополнительно, по категориям:
+What is additionally run, by category:
 
-- **C1/C2** — каждый **bet-tier** отдельно: RTP не должен «плыть» от размера ставки.
-  Плюс бонус-режим: его доля в общем RTP (типично 30–40%) указывается в отчёте.
-- **C2** — каждая глубина/цель cash-out: RTP обязан быть одинаков для всех стратегий.
-  Разброс > 0.001 означает утечку в формуле множителя или в капе.
-- **C3** — вся лестница `unlock_prices`: монотонность, отсутствие «стены» (шаг ≤ 1.6×),
-  достижимость последнего анлока за смоделированное число сессий.
-- **C4** — каждый баннер: сумма rates = 1.0, pity срабатывает на всех, 90-й перцентиль
-  пуллов ≤ hard pity.
-- **C5** — вся лестница `round_targets` (шаг ≤ 2×) и каждый модификатор из `modifiers[]`:
-  ни доминирующих, ни мёртвых относительно медианы набора.
-- **C6** — распределение по ВСЕМ корзинам: ни одной «мёртвой» (< 0.1% попаданий).
-  Для coin pusher — замер в установившемся режиме, после ≥10 000 прогревочных монет.
+- **C1/C2** — every **bet tier** separately: the RTP must not drift with the bet size.
+  Plus the bonus mode: its share of the overall RTP (typically 30–40%) is stated in the report.
+- **C2** — every depth / cash-out target: the RTP must be identical across strategies.
+  A spread above 0.001 means a leak in the multiplier formula or the cap.
+- **C3** — the whole `unlock_prices` ladder: monotonicity, no "wall" (step ≤ 1.6×), and the
+  final unlock reachable within the simulated number of sessions.
+- **C4** — every banner: the rates sum to 1.0, pity fires on all of them, and the 90th
+  percentile of pulls ≤ hard pity.
+- **C5** — the whole `round_targets` ladder (step ≤ 2×) and every modifier in `modifiers[]`:
+  none dominant and none dead relative to the set's median.
+- **C6** — the distribution across ALL buckets: not one "dead" bucket (< 0.1% of hits).
+  For a coin pusher, measure in the steady state, after ≥10,000 warm-up coins.
 
-Отчёт по кривой: таблица «точка → ключевой параметр → метрика → вердикт» в
+The curve report: a "point → key parameter → metric → verdict" table in
 `design/balance/curve-report.md`.
 
-## 5. Сверка с тем, что видит игрок
+## 5. Cross-checking against what the player sees
 
-Числа, показанные игроку, обязаны совпадать с конфигом (`responsible-gaming.md` §5):
+The numbers shown to the player must match the config (`responsible-gaming.md` §5):
 
-- paytable / правила ↔ выплаты и веса в конфиге;
-- экран «Шансы» ↔ base rates и pity в конфиге;
-- объявленный house edge и максимальный множитель ↔ конфиг.
+- paytable / rules ↔ the payouts and weights in the config;
+- the "Odds" screen ↔ the base rates and pity in the config;
+- the declared house edge and maximum multiplier ↔ the config.
 
-Расхождение — это не косметика, а введение игрока в заблуждение: FAIL.
+A discrepancy is not cosmetic — it misleads the player: FAIL.

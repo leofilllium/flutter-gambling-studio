@@ -5,22 +5,22 @@ globs: ["lib/game/**/*.dart", "lib/components/**/*.dart", "lib/systems/**/*.dart
 
 # Engine Code Rules — Flame 1.18.x
 
-## КРИТИЧЕСКИЕ API Flame 1.18.x
+## CRITICAL Flame 1.18.x APIs
 
-### HasCollisionDetection — на World, не на FlameGame
+### HasCollisionDetection — on World, not on FlameGame
 ```dart
-// ✅ ПРАВИЛЬНО (Flame 1.18+)
+// ✅ CORRECT (Flame 1.18+)
 class SlotMachineWorld extends World with HasCollisionDetection {
-  // collision detection здесь
+  // collision detection goes here
 }
 
-// ❌ ЗАПРЕЩЕНО (устарело в 1.17, удалено в 1.18)
+// ❌ FORBIDDEN (deprecated in 1.17, removed in 1.18)
 class SlotMachineGame extends FlameGame with HasCollisionDetection { }
 ```
 
-### CameraComponent — только новый API
+### CameraComponent — the new API only
 ```dart
-// ✅ ПРАВИЛЬНО
+// ✅ CORRECT
 late final CameraComponent camera;
 late final SlotMachineWorld world;
 
@@ -31,26 +31,26 @@ Future<void> onLoad() async {
   await addAll([world, camera]);
 }
 
-// ❌ ЗАПРЕЩЕНО (старый Camera API)
-camera = Camera(); // Не существует в Flame 1.18!
+// ❌ FORBIDDEN (the old Camera API)
+camera = Camera(); // Does not exist in Flame 1.18!
 ```
 
-### FlameGame.world и FlameGame.camera — первоклассные поля
+### FlameGame.world and FlameGame.camera — first-class fields
 ```dart
-// Flame 1.18: game.world и game.camera — встроенные поля
-// Не создавай свои поля с именами world/camera — они зарезервированы
+// Flame 1.18: game.world and game.camera are built-in fields.
+// Do not create your own fields named world/camera — those names are reserved.
 
 class SlotMachineGame extends FlameGame {
-  // this.world — уже есть (World)
-  // this.camera — уже есть (CameraComponent)
-  // Создавай типизированные геттеры:
+  // this.world — already exists (World)
+  // this.camera — already exists (CameraComponent)
+  // Create typed getters instead:
   SlotMachineWorld get slotWorld => world as SlotMachineWorld;
 }
 ```
 
 ### SpawnComponent (Flame 1.15+)
 ```dart
-// ✅ Используй для периодического спауна символов/эффектов
+// ✅ Use it for periodic spawning of symbols/effects
 add(SpawnComponent(
   factory: (i) => CoinParticle(),
   period: 0.1,
@@ -58,54 +58,54 @@ add(SpawnComponent(
 ));
 ```
 
-### HasTimeScale (Flame 1.16+) — замедление/ускорение
+### HasTimeScale (Flame 1.16+) — slow down / speed up
 ```dart
-// Для slow-motion эффекта при Big Win
+// For a slow-motion effect on a big win
 class ReelComponent extends PositionComponent with HasTimeScale {
   void slowMotion() => timeScale = 0.3;
   void normalSpeed() => timeScale = 1.0;
 }
 ```
 
-## Запрещённые паттерны Flame
+## Forbidden Flame patterns
 
-1. **`game.isPaused = true`** — используй `GameState` enum + `pauseEngine()`/`resumeEngine()`
-2. **`Flame.images.load()` в `update()`** — только в `onLoad()`
-3. **`ComponentSet` прямые операции** — используй `game.children.toList()` (Flame 1.18)
-4. **`onGameResize` без `isMounted` проверки** — компонент может получить resize до загрузки
-5. **Глубина наследования > 3 уровней** — используй композицию (add child components)
-6. **Hot reload для игровых файлов** — используй Hot Restart (Shift+R)
+1. **`game.isPaused = true`** — use a `GameState` enum + `pauseEngine()`/`resumeEngine()`
+2. **`Flame.images.load()` inside `update()`** — only in `onLoad()`
+3. **Direct `ComponentSet` operations** — use `game.children.toList()` (Flame 1.18)
+4. **`onGameResize` without an `isMounted` check** — a component can receive a resize before it loads
+5. **Inheritance deeper than 3 levels** — use composition instead (add child components)
+6. **Hot reload for game files** — use Hot Restart (Shift+R)
 
-## Обязательные паттерны
+## Required patterns
 
-### Компонент барабана
+### The reel component
 ```dart
 class ReelComponent extends PositionComponent with HasGameRef<SlotMachineGame> {
-  // Прединициализация для update() — нет аллокации в горячем пути
+  // Pre-initialised for update() — no allocation in the hot path
   final _tempVector = Vector2.zero();
 
   late final List<SymbolComponent> _symbols;
 
   @override
   Future<void> onLoad() async {
-    // Загрузка ассетов ТОЛЬКО в onLoad
+    // Load assets ONLY in onLoad
     _symbols = await _createSymbols();
     await addAll(_symbols);
   }
 
   @override
   void update(double dt) {
-    // СИНХРОННО! Нет await!
+    // SYNCHRONOUS! No await!
     if (!_isSpinning) return;
     _tempVector.setFrom(position);
-    _updateScrollPosition(dt); // Без аллокации
+    _updateScrollPosition(dt); // No allocation
   }
 }
 ```
 
-### ParticleSystemComponent — лимиты
+### ParticleSystemComponent — limits
 ```dart
-// Для выигрышей > 20x ставки
+// For wins above 20x the bet
 void _spawnWinParticles(int multiplier) {
   final count = (multiplier * 5).clamp(20, SlotConfig.maxParticles);
   add(ParticleSystemComponent(
@@ -125,29 +125,29 @@ void _spawnWinParticles(int multiplier) {
 }
 ```
 
-### Audio — максимум 3 параллельных звука
+### Audio — at most 3 concurrent sounds
 ```dart
 class AudioService {
-  // Только 3 слота: BGM + Spin + Effect
+  // Only 3 slots: BGM + Spin + Effect
   static const int maxConcurrentSounds = 3;
 
   Future<void> playWin(int multiplier) async {
     await FlameAudio.play('sfx_win_${_winTier(multiplier)}.ogg');
   }
 
-  // Coin counting с нарастанием pitch
+  // Coin counting with rising pitch
   Future<void> playCoinCount(int coins) async {
     final rate = 1.0 + (coins / 100).clamp(0.0, 0.5);
     await FlameAudio.play('sfx_coins.ogg', volume: 1.0);
-    // playbackRate управляется через AudioPlayer instance
+    // playbackRate is controlled through the AudioPlayer instance
   }
 }
 ```
 
-## Производительность
+## Performance
 
-- Нет аллокации в `update()` или `render()` — прединициализируй Vector2, Rect, Paint
-- `SpriteBatch` для > 20 одинаковых спрайтов (символы на барабанах!)
-- `debugMode = true` только в debug builds
-- `FpsTextComponent` только в debug builds
-- Максимум 200 активных партиклей одновременно (SlotConfig.maxParticles)
+- No allocation in `update()` or `render()` — pre-initialise Vector2, Rect, Paint
+- `SpriteBatch` for more than 20 identical sprites (the symbols on the reels!)
+- `debugMode = true` only in debug builds
+- `FpsTextComponent` only in debug builds
+- At most 200 active particles at once (SlotConfig.maxParticles)

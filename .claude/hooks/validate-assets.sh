@@ -17,8 +17,8 @@ WARNINGS=()
 find assets/images -name "*.svg" 2>/dev/null | while read f; do
   filename=$(basename "$f" .svg)
   if ! echo "$filename" | grep -qE '^(sprite_|background_|ui_|icon_)[a-z0-9_]+$'; then
-    echo "⚠️  Неверное имя SVG ассета: $f"
-    echo "   Ожидается: sprite_X, background_X, ui_X, или icon_X (snake_case)"
+    echo "⚠️  Invalid SVG asset name: $f"
+    echo "   Expected: sprite_X, background_X, ui_X, or icon_X (snake_case)"
   fi
 done
 
@@ -26,8 +26,8 @@ done
 find assets/audio -name "*.ogg" -o -name "*.mp3" 2>/dev/null | while read f; do
   filename=$(basename "$f")
   if ! echo "$filename" | grep -qE '^(sfx_|bgm_|ambient_)[a-z0-9_]+\.(ogg|mp3)$'; then
-    echo "⚠️  Неверное имя аудио ассета: $f"
-    echo "   Ожидается: sfx_X.ogg, bgm_X.ogg, или ambient_X.ogg"
+    echo "⚠️  Invalid audio asset name: $f"
+    echo "   Expected: sfx_X.ogg, bgm_X.ogg, or ambient_X.ogg"
   fi
 done
 
@@ -38,8 +38,8 @@ if [ -f "pubspec.yaml" ]; then
     if ! grep -q "$NEW_FILE" pubspec.yaml 2>/dev/null; then
       ASSET_DIR=$(dirname "$NEW_FILE")/
       if ! grep -q "$ASSET_DIR" pubspec.yaml 2>/dev/null; then
-        echo "⚠️  Ассет не зарегистрирован в pubspec.yaml: $NEW_FILE"
-        echo "   Добавьте в секцию flutter.assets:"
+        echo "⚠️  Asset is not registered in pubspec.yaml: $NEW_FILE"
+        echo "   Add it to the flutter.assets section:"
         echo "     - $ASSET_DIR"
       fi
     fi

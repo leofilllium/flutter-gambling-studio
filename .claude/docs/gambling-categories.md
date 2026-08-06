@@ -1,293 +1,291 @@
-# Категории гемблинг-игр — канонический справочник студии
+# Gambling game categories — the studio's canonical reference
 
-> **Студия делает ТОЛЬКО гемблинг-игры.** Это не универсальная студия мини-игр.
-> Любой концепт, архетип и производственное решение обязаны попадать в одну из шести
-> категорий ниже. Если идея не попадает ни в одну — она не для этой студии.
+> **The studio builds ONLY gambling games.** This is not a general-purpose mini-game studio.
+> Every concept, archetype and production decision must fall into one of the six categories
+> below. If an idea fits none of them, it is not for this studio.
 >
-> Этот документ — единственный источник правды по таксономии. На него ссылаются
+> This document is the single source of truth for the taxonomy. It is referenced by
 > `CLAUDE.md`, `/auto-idea`, `/brainstorm`, `/autocreate`, `/balance-check`,
-> `/design-system`, `/gate-check`, `/release-checklist`.
+> `/design-system`, `/gate-check` and `/release-checklist`.
 
-## Что значит «гемблинг-игра» в этой студии
+## What "a gambling game" means in this studio
 
-Игра относится к нашей области, если её **ядро — механика случайного исхода со ставкой**:
-игрок вкладывает ресурс (виртуальные фишки, спин, энергию, премиум-валюту, карту в руке),
-исход определяется генератором случайных чисел по объявленной математической модели, и
-результат создаёт цикл «риск → ожидание → раскрытие → награда».
+A game belongs to our domain if its **core is a random-outcome mechanic with a stake**: the
+player commits a resource (virtual chips, a spin, energy, premium currency, a card in hand),
+the outcome is decided by a random number generator according to a declared mathematical model,
+and the result creates a "risk → anticipation → reveal → reward" loop.
 
-**Всегда виртуально.** Ни одна игра студии не принимает и не выплачивает реальные деньги.
-Виртуальная валюта не конвертируется обратно в деньги и не выводится. См.
-`.claude/rules/responsible-gaming.md` — эти правила блокируют релиз.
-
----
-
-## Шесть категорий
-
-| ID | Категория | Иконка | Ядро | Метрика баланса | Архетипы |
-|----|-----------|--------|------|-----------------|----------|
-| **C1** | Social Casino (симуляция казино) | 🎰 | Воссоздание реального казино-зала на виртуальные фишки | RTP 95–97% | A–H |
-| **C2** | Casino Originals / Instant-Win | ⚡ | «Оригиналы»: мгновенный раунд, живой множитель, cash-out | RTP 96–99% | I–P |
-| **C3** | Spin-to-Progress Hybrids | 🏰 | Спин/бросок — источник энергии для казуальной мета-игры | Экономика: source/sink | Q–U |
-| **C4** | Gacha & Loot-Box | 🎁 | Пулл из баннера с редкостями и pity | Pull rates + pity | V–Y |
-| **C5** | Casino Roguelike & Strategy | 🃏 | Казино-механика как боевая система однопользовательского рогалика | Run win-rate 25–40% | Z–AC |
-| **C6** | Coin Pusher & Plinko (аркадная физика) | ⚙️ | Физика падения/толкания как генератор исхода | Эмпирический RTP 95–97% | AD–AF |
-
-> **C2 — расширение базовой таксономии.** «Оригиналы» (crash, mines, dice, hi-lo, tower,
-> keno, scratch, bonus-pick) — самостоятельное и крупнейшее семейство современных
-> гемблинг-мини-игр. Формально это симулированное казино (C1), но у них другая
-> математика (мгновенный раунд без барабанов, множитель-кривая, cash-out) и другой UI,
-> поэтому категория выделена отдельно.
+**Always virtual.** No game in the studio accepts or pays out real money. Virtual currency does
+not convert back into money and cannot be withdrawn. See
+`.claude/rules/responsible-gaming.md` — those rules block the release.
 
 ---
 
-## C1 — Social Casino (симулированное казино) 🎰
+## The six categories
 
-**Что это.** Цифровое воссоздание реального казино-зала: слоты, покер, блэкджек, рулетка,
-бинго. Игра идёт строго на виртуальные фишки; выиграть или вывести реальные деньги
-невозможно, но можно купить дополнительные наборы фишек.
+| ID | Category | Icon | Core | Balance metric | Archetypes |
+|----|----------|------|------|----------------|------------|
+| **C1** | Social Casino (casino simulation) | 🎰 | Recreating a real casino floor with virtual chips | RTP 95–97% | A–H |
+| **C2** | Casino Originals / Instant-Win | ⚡ | "Originals": an instant round, a live multiplier, cash-out | RTP 96–99% | I–P |
+| **C3** | Spin-to-Progress Hybrids | 🏰 | The spin/roll is the energy source for a casual meta game | Economy: source/sink | Q–U |
+| **C4** | Gacha & Loot-Box | 🎁 | Pulls from a banner with rarities and pity | Pull rates + pity | V–Y |
+| **C5** | Casino Roguelike & Strategy | 🃏 | Casino mechanics as the combat system of a single-player roguelike | Run win-rate 25–40% | Z–AC |
+| **C6** | Coin Pusher & Plinko (arcade physics) | ⚙️ | Falling/pushing physics as the outcome generator | Empirical RTP 95–97% | AD–AF |
 
-**Референсы ощущения:** Slotomania, Heart of Vegas, Zynga Poker, WSOP Mobile, Bingo Blitz.
+> **C2 is an extension of the base taxonomy.** The "originals" (crash, mines, dice, hi-lo,
+> tower, keno, scratch, bonus-pick) are an independent and now the largest family of modern
+> gambling mini-games. Formally they are simulated casino (C1), but their mathematics is
+> different (an instant round with no reels, a multiplier curve, cash-out) and so is their UI,
+> so the category is broken out separately.
 
-**Ядро цикла:** выбрать ставку → раунд → раскрытие исхода → выплата → фишки → следующая ставка.
+---
 
-**Обязательные системы:** paytable, bet-tiers (мин/макс/шаги), баланс фишек, XP/уровень
-игрока, наборы фишек в магазине, daily bonus (защита от «кончились фишки»), лидерборд.
+## C1 — Social Casino (simulated casino) 🎰
 
-**Математическая модель:** RTP 95–97% при 1М раундов, hit rate 20–35%, объявленная
-волатильность (low/medium/high), полная таблица выплат. Все веса — в `rtp-config.json`.
+**What it is.** A digital recreation of a real casino floor: slots, poker, blackjack, roulette,
+bingo. Play is strictly with virtual chips; winning or withdrawing real money is impossible, but
+extra chip bundles can be bought.
 
-**Compliance-профиль:** age-gate, дисклеймер «на виртуальные фишки, не на реальные деньги»,
-блок ответственной игры, рейтинг 18+ (Google Play: категория Social Casino).
+**Feel references:** Slotomania, Heart of Vegas, Zynga Poker, WSOP Mobile, Bingo Blitz.
 
-### Архетипы
+**Core loop:** choose a bet → round → outcome reveal → payout → chips → the next bet.
 
-| ID | Название | Механика | Уникальная фича |
-|----|----------|----------|-----------------|
-| **A** | Классический слот 3×3 | 3 барабана, фиксированные линии | Контролируемый Near Miss — замедление третьего барабана |
-| **B** | Видео-слот 5×3 с Free Spins | 5 барабанов, 10–25 линий, скаттер-триггер | Avalanche: символы взрываются, верхние падают, множитель растёт |
-| **C** | Scatter-pays / cluster слот | Выплата за КОЛИЧЕСТВО символов (8+), без линий | Tumble-цепочка с множителями-бомбами |
-| **D** | Hold & Spin (Link & Win) | Респины с залипанием монет-символов, 3 тира джекпота | Каждая новая монета сбрасывает счётчик респинов до 3 |
-| **E** | Видео-покер | Раздача 5 карт, Hold, второй драв | Double-up: удвоение выигрыша на угадывании масти |
-| **F** | Блэкджек | Hit / Stand / Double / Split против дилера | Читаемая рука дилера + подсказка базовой стратегии |
-| **G** | Рулетка | Европейская (одно зеро), внутренние и внешние ставки | Физически достоверный отскок шарика по ячейкам |
-| **H** | Социальное бинго | 75-шаровые комнаты, авто-даб, паттерны | Power-ups (доп. шар, мгновенный даб) и коллекционные карточки |
+**Required systems:** paytable, bet tiers (min/max/steps), chip balance, player XP/level, chip
+bundles in the shop, a daily bonus (protection against "out of chips"), a leaderboard.
+
+**Mathematical model:** RTP 95–97% over 1M rounds, hit rate 20–35%, declared volatility
+(low/medium/high), a complete payout table. All weights live in `rtp-config.json`.
+
+**Compliance profile:** age gate, a "virtual chips, not real money" disclaimer, a responsible
+play block, an 18+ rating (Google Play: the Social Casino category).
+
+### Archetypes
+
+| ID | Name | Mechanic | Unique feature |
+|----|------|----------|----------------|
+| **A** | Classic 3×3 slot | 3 reels, fixed lines | A controlled near miss — the third reel slows down |
+| **B** | 5×3 video slot with free spins | 5 reels, 10–25 lines, a scatter trigger | Avalanche: symbols explode, the ones above fall, the multiplier grows |
+| **C** | Scatter-pays / cluster slot | Payouts for the NUMBER of symbols (8+), no lines | A tumble chain with bomb multipliers |
+| **D** | Hold & Spin (Link & Win) | Respins with sticky coin symbols, 3 jackpot tiers | Every new coin resets the respin counter to 3 |
+| **E** | Video poker | A 5-card deal, hold, a second draw | Double-up: doubling the win by guessing the suit |
+| **F** | Blackjack | Hit / stand / double / split against the dealer | A readable dealer hand plus a basic-strategy hint |
+| **G** | Roulette | European (single zero), inside and outside bets | A physically believable ball bounce across the pockets |
+| **H** | Social bingo | 75-ball rooms, auto-daub, patterns | Power-ups (an extra ball, an instant daub) and collectible cards |
 
 ---
 
 ## C2 — Casino Originals / Instant-Win ⚡
 
-**Что это.** Мгновенные раунды без атрибутики казино-зала: множитель растёт в реальном
-времени, игрок сам решает когда забрать. Максимально «читаемая» математика — игрок
-видит вероятность и текущий выигрыш прямо на экране.
+**What it is.** Instant rounds with none of the casino-floor trappings: the multiplier climbs in
+real time and the player decides when to take it. Maximally "readable" mathematics — the player
+sees the probability and the current win right on screen.
 
-**Референсы ощущения:** crash-игры, mines, dice, hi-lo, tower, keno, scratch.
+**Feel references:** crash games, mines, dice, hi-lo, tower, keno, scratch.
 
-**Ядро цикла:** ставка → раунд разворачивается пошагово → игрок в любой момент cash-out
-ИЛИ теряет всё → мгновенный рестарт.
+**Core loop:** bet → the round unfolds step by step → the player either cashes out at any moment
+OR loses everything → an instant restart.
 
-**Обязательные системы:** явный текущий множитель, кнопка cash-out, история последних
-раундов (в C2 это ключевой элемент доверия), авто-ставка с лимитами, максимальный кап
-выигрыша.
+**Required systems:** an explicit current multiplier, a cash-out button, a history of recent
+rounds (in C2 this is a key element of trust), auto-bet with limits, a maximum win cap.
 
-**Математическая модель:** RTP 96–99% (house edge 1–4%), явная формула множителя,
-провably-fair-стиль детерминированный seed раунда (`serverSeed + clientSeed + nonce`),
-объявленный максимальный множитель. Отдельно проверяется: **множитель НИКОГДА не
-вычисляется во время анимации** — весь раунд предопределён на старте.
+**Mathematical model:** RTP 96–99% (house edge 1–4%), an explicit multiplier formula, a
+provably-fair-style deterministic round seed (`serverSeed + clientSeed + nonce`), a declared
+maximum multiplier. Checked separately: **the multiplier is NEVER computed during the
+animation** — the whole round is predetermined at the start.
 
-**Compliance-профиль:** тот же, что C1, плюс обязательная видимая история раундов и
-объявленный house edge в правилах.
+**Compliance profile:** the same as C1, plus a mandatory visible round history and a house edge
+declared in the rules.
 
-### Архетипы
+### Archetypes
 
-| ID | Название | Механика | Уникальная фича |
-|----|----------|----------|-----------------|
-| **I** | Crash | Множитель растёт по кривой, пока летит объект; cash-out до краха | Визуализированное физическое ускорение + particle-хвост |
-| **J** | Mines | Сетка с минами; каждая безопасная ячейка множит выигрыш | Геометрический рост множителя + напряжение при наведении |
-| **K** | Dice (roll-under) | Игрок ставит порог; бросок ниже порога = выигрыш | Честная 2D-физика броска и отскока от бортов (Forge2D) |
-| **L** | Hi-Lo | Угадай, следующая карта выше или ниже; streak множителей | Риск-метр, растущий со streak, cash-out в любой момент |
-| **M** | Tower Climb | Подъём по этажам, выбор 1 из N ячеек на этаж | Risk/Reward: каждый этаж — решение «забрать или выше» |
-| **N** | Keno / лотерея чисел | Выбор чисел на сетке, затем тираж | Шарики-розыгрыш с физическим подпрыгиванием |
-| **O** | Скретч-карты | Стирание полей пальцем, 3 совпадения = выигрыш | Партикли стирающейся фольги, тактильное стирание |
-| **P** | Bonus Pick | Выбор из N закрытых объектов, каждый — множитель или «collect» | Dramatic reveal с задержкой и нарастающим напряжением |
+| ID | Name | Mechanic | Unique feature |
+|----|------|----------|----------------|
+| **I** | Crash | The multiplier climbs along a curve while an object flies; cash out before the crash | Visualised physical acceleration plus a particle trail |
+| **J** | Mines | A grid with mines; every safe cell multiplies the win | Geometric multiplier growth plus tension on hover |
+| **K** | Dice (roll-under) | The player sets a threshold; a roll below it wins | Honest 2D roll and wall-bounce physics (Forge2D) |
+| **L** | Hi-Lo | Guess whether the next card is higher or lower; a streak of multipliers | A risk meter that grows with the streak, cash out at any moment |
+| **M** | Tower Climb | Climb the floors, choosing 1 of N cells per floor | Risk/reward: every floor is a "take it or go higher" decision |
+| **N** | Keno / number lottery | Pick numbers on a grid, then the draw | A ball draw with physical bouncing |
+| **O** | Scratch cards | Rub the fields with a finger, 3 matches wins | Peeling foil particles, tactile scratching |
+| **P** | Bonus Pick | Choose from N closed objects, each a multiplier or "collect" | A dramatic reveal with a delay and rising tension |
 
 ---
 
 ## C3 — Spin-to-Progress Hybrids 🏰
 
-**Что это.** Казуальная мета-игра (строительство, коллекция, набеги на соперников), где
-слот-машина или бросок кости — основной источник энергии и событий. Гемблинг-механика
-приводит в движение весь остальной прогресс.
+**What it is.** A casual meta game (building, collecting, raiding rivals) where a slot machine or
+a dice roll is the main source of energy and events. The gambling mechanic drives all the rest
+of the progress.
 
-**Референсы ощущения:** Monopoly GO!, Coin Master, Dice Dreams.
+**Feel references:** Monopoly GO!, Coin Master, Dice Dreams.
 
-**Ядро цикла:** спин (тратит энергию) → результат-событие (монеты / щит / набег / атака)
-→ вложение в мета-прогресс (постройка / коллекция) → анлок → новая цель для спинов.
-Энергия восстанавливается по таймеру.
+**Core loop:** spin (spends energy) → an event result (coins / shield / raid / attack) → invest
+in the meta progress (building / collection) → an unlock → a new goal for spins. Energy refills
+on a timer.
 
-**Обязательные системы:** энергия со регенерацией и капом, мета-объект прогресса
-(деревня/альбом/доска), таблица событий спина с весами, коллекция карточек/стикеров с
-дубликатами, щиты и месть (если есть PvP-слой), события-турниры.
+**Required systems:** energy with regeneration and a cap, a meta progress object
+(village/album/board), a weighted spin event table, a card/sticker collection with duplicates,
+shields and revenge (if there is a PvP layer), tournament events.
 
-**Математическая модель:** это **не RTP, а экономика**. Проверяется:
-- регенерация энергии (спинов/час) и кап;
-- source/sink баланс — сколько монет приходит за 100 спинов против стоимости
-  следующего анлока;
-- **прогресс-пейс** — сколько сессий до следующего значимого анлока (цель: 2–5 сессий,
-  не 40);
-- средняя длина сессии 3–7 минут;
-- отсутствие «стены гринда»: цена анлока N+1 не более чем в 1.6× цены анлока N.
+**Mathematical model:** this is **not RTP, it is an economy**. What is checked:
+- energy regeneration (spins/hour) and the cap;
+- source/sink balance — how many coins arrive per 100 spins against the price of the next unlock;
+- **progress pace** — how many sessions until the next meaningful unlock (target: 2–5 sessions,
+  not 40);
+- an average session length of 3–7 minutes;
+- the absence of a "grind wall": the price of unlock N+1 is no more than 1.6× the price of unlock N.
 
-**Compliance-профиль:** age-gate + дисклеймер (спин-механика = симулированный гемблинг),
-плюс явное раскрытие вероятностей таблицы событий спина, если за спины можно платить.
+**Compliance profile:** age gate + disclaimer (spin mechanics = simulated gambling), plus
+explicit disclosure of the spin event table's probabilities if spins can be paid for.
 
-### Архетипы
+### Archetypes
 
-| ID | Название | Механика | Уникальная фича |
-|----|----------|----------|-----------------|
-| **Q** | Build-and-Raid слот | Спин даёт монеты / щит / атаку / набег; монеты строят деревню | Набег на базу соперника с раскопкой 1 из 4 точек |
-| **R** | Board-move dice | Бросок кости двигает фишку по доске, тайл = событие | Доска-сезон: круг доски открывает новую тематическую доску |
-| **S** | Prize-wheel энергохаб | Колесо выдаёт энергию/бустеры/валюту; таймеры спрятаны за колесом | Сектор-джекпот с нарастающим прогресс-баром между спинами |
-| **T** | Sticker / card album | Спин выдаёт паки стикеров; альбом собирается в наборы | Дубликаты → обменная валюта; завершение набора = крупная награда |
-| **U** | Raid & Shield ладдер | Спин даёт атаки и щиты; PvP-лайт против ботов-соперников | Месть: список тех, кто напал на тебя, с окном ответа |
+| ID | Name | Mechanic | Unique feature |
+|----|------|----------|----------------|
+| **Q** | Build-and-raid slot | The spin gives coins / a shield / an attack / a raid; coins build the village | Raiding a rival's base by digging 1 of 4 spots |
+| **R** | Board-move dice | A dice roll moves the token round the board, each tile an event | A board season: a lap of the board unlocks a new themed board |
+| **S** | Prize-wheel energy hub | The wheel dispenses energy/boosters/currency; timers hide behind the wheel | A jackpot sector with a progress bar that builds between spins |
+| **T** | Sticker / card album | The spin awards sticker packs; the album fills up into sets | Duplicates → trade currency; completing a set is a major reward |
+| **U** | Raid & shield ladder | The spin gives attacks and shields; PvP-lite against bot rivals | Revenge: a list of who attacked you, with a window to respond |
 
 ---
 
 ## C4 — Gacha & Loot-Box 🎁
 
-**Что это.** Прогрессия построена на **пуллах** — механике, прямо смоделированной с
-японских капсульных автоматов и слот-машинных drop rates. Формально это RPG/коллекционка,
-но ядро — рандомизированная выдача за валюту.
+**What it is.** Progression built on **pulls** — a mechanic modelled directly on Japanese capsule
+machines and slot-machine drop rates. Formally this is an RPG/collection game, but the core is
+randomised distribution in exchange for currency.
 
-**Референсы ощущения:** Genshin Impact, Honkai: Star Rail, RAID: Shadow Legends,
-спортивные/аниме-игры со сборкой состава из паков.
+**Feel references:** Genshin Impact, Honkai: Star Rail, RAID: Shadow Legends, sports/anime games
+that build a roster out of packs.
 
-**Ядро цикла:** заработать/купить премиум-валюту → пулл (x1 / x10) → анимация раскрытия →
-редкость → усиление коллекции → новый контент требует более сильной коллекции.
+**Core loop:** earn/buy premium currency → pull (x1 / x10) → the reveal animation → rarity →
+strengthen the collection → new content demands a stronger collection.
 
-**Обязательные системы:** таблица редкостей с явными процентами, **pity-счётчик**
-(hard pity обязателен, soft pity опционален), x10 пулл с гарантией, конвертация дубликатов
-в шарды/осколки, баннеры с ротацией, витрина коллекции, экран «шансы» (rates disclosure).
+**Required systems:** a rarity table with explicit percentages, a **pity counter** (hard pity
+mandatory, soft pity optional), an x10 pull with a guarantee, conversion of duplicates into
+shards, banners on rotation, a collection showcase, an "odds" screen (rates disclosure).
 
-**Математическая модель:**
-- Rates по редкостям (типично: SSR 0.5–2%, SR 5–12%, R — остальное);
-- Hard pity 50–90 пуллов, soft pity — рост шанса начиная с ~75% от hard pity;
-- **Эффективный rate** с учётом pity (симуляция 1М пуллов);
-- E[пуллов до первой SSR] и 90-й перцентиль (худший реалистичный случай);
-- Стоимость: сколько сессий/валюты до гарантированной SSR.
+**Mathematical model:**
+- Rates by rarity (typically: SSR 0.5–2%, SR 5–12%, R the rest);
+- Hard pity 50–90 pulls, soft pity — a rising chance starting at roughly 75% of hard pity;
+- **Effective rate** including pity (a 1M pull simulation);
+- E[pulls to the first SSR] and the 90th percentile (the realistic worst case);
+- Cost: how many sessions/currency until a guaranteed SSR.
 
-**Compliance-профиль:** **раскрытие вероятностей обязательно и внутри игры** (требование
-сторов и ряда юрисдикций) — экран «Шансы» доступен ДО пулла. Плюс age-gate, дисклеймер,
-отображение pity-счётчика игроку.
+**Compliance profile:** **odds disclosure is mandatory and must be in-game** (a requirement of
+the stores and of several jurisdictions) — the "Odds" screen is reachable BEFORE a pull. Plus an
+age gate, a disclaimer, and the pity counter shown to the player.
 
-### Архетипы
+### Archetypes
 
-| ID | Название | Механика | Уникальная фича |
-|----|----------|----------|-----------------|
-| **V** | Banner pull (коллекционер) | x1/x10 пуллы по баннеру, редкости, hard+soft pity | Видимый pity-счётчик и «гарант» на 10-м пулле |
-| **W** | Mystery card packs | Открытие паков карт, сборка состава/колоды | Дубликаты → апгрейд уровня карты, а не мусор |
-| **X** | Case / crate opener | Рулетка-спиннер прокручивает предметы и тормозит на выпавшем | Тормозящий спиннер с near-miss на редком предмете |
-| **Y** | Капсульный автомат (гашапон) | Физическая метафора: ручка, капсула выкатывается, вскрывается | Двухступенчатое раскрытие: капсула → содержимое |
+| ID | Name | Mechanic | Unique feature |
+|----|------|----------|----------------|
+| **V** | Banner pull (collector) | x1/x10 pulls on a banner, rarities, hard + soft pity | A visible pity counter and a guarantee on the 10th pull |
+| **W** | Mystery card packs | Opening card packs, building a roster/deck | Duplicates upgrade a card's level rather than becoming junk |
+| **X** | Case / crate opener | A roulette spinner scrolls through items and slows to the drop | A decelerating spinner with a near-miss on a rare item |
+| **Y** | Capsule machine (gashapon) | A physical metaphor: a handle, a capsule rolls out and cracks open | A two-stage reveal: capsule → contents |
 
 ---
 
 ## C5 — Casino Roguelike & Strategy 🃏
 
-**Что это.** Премиум/инди-подход: казино-механика (покерные руки, броски костей, барабаны)
-превращена в **однопользовательскую тактическую систему**. Ставок на реальные деньги нет,
-микротранзакций нет — азартная механика здесь это боевая система.
+**What it is.** The premium/indie approach: casino mechanics (poker hands, dice rolls, reels)
+turned into a **single-player tactical system**. There are no real-money stakes and no
+microtransactions — here the gambling mechanic is the combat system.
 
-**Референсы ощущения:** Balatro, Luck be a Landlord, Dicey Dungeons.
+**Feel references:** Balatro, Luck be a Landlord, Dicey Dungeons.
 
-**Ядро цикла:** забег → раунд с целевым счётом → игрок собирает/улучшает свой «движок»
-(колода / барабан / набор костей) → цель растёт → забег заканчивается победой или
-поражением → мета-анлок для следующего забега.
+**Core loop:** a run → a round with a target score → the player assembles/upgrades their "engine"
+(deck / reel / set of dice) → the target rises → the run ends in victory or defeat → a meta
+unlock for the next run.
 
-**Обязательные системы:** seeded-детерминизм забега (один seed = один воспроизводимый
-забег), магазин между раундами, модификаторы («джокеры»/символы/предметы), нарастающие
-цели, экран итогов забега, мета-анлоки между забегами, daily-run с общим seed.
+**Required systems:** seeded run determinism (one seed = one reproducible run), a shop between
+rounds, modifiers ("jokers"/symbols/items), escalating targets, a run summary screen, meta
+unlocks between runs, a daily run on a shared seed.
 
-**Математическая модель:**
-- **Run win-rate 25–40%** у среднего игрока (симуляция «политики среднего игрока»);
-- монотонность целевых порогов раундов (нет скачка более ×2);
-- сила модификаторов: ни один не даёт win-rate > 80% в одиночку;
-- экономика забега: доход за раунд против цен в магазине;
-- **детерминизм**: один seed воспроизводит забег бит-в-бит (тест обязателен).
+**Mathematical model:**
+- **Run win-rate 25–40%** for an average player (simulating an "average player policy");
+- monotonic round target thresholds (no jump larger than ×2);
+- modifier strength: none may give a win-rate above 80% on its own;
+- run economy: income per round against shop prices;
+- **determinism**: one seed reproduces the run bit for bit (the test is mandatory).
 
-**Compliance-профиль:** age-gate **не требуется**, если нет покупок и нет симуляции
-ставок на валюту с покупкой. Дисклеймер остаётся, если визуально это казино.
-Рейтинг обычно 12+. Это единственная категория с ослабленным compliance — фиксируй
-это решение явно в концепте.
+**Compliance profile:** an age gate is **not required** if there are no purchases and no
+simulated currency wagering. The disclaimer stays if it looks like a casino. The rating is
+typically 12+. This is the only category with relaxed compliance — record that decision
+explicitly in the concept.
 
-### Архетипы
+### Archetypes
 
-| ID | Название | Механика | Уникальная фича |
-|----|----------|----------|-----------------|
-| **Z** | Poker deckbuilder | Покерные руки наносят «урон»/дают очки против нарастающих целей | Модификаторы-джокеры, меняющие правила подсчёта рук |
-| **AA** | Slot-reel roguelike | Игрок сам собирает барабан из символов; спин = доход | Синергии символов: соседство меняет выплату |
-| **AB** | Dice-builder | Кости — ресурс; грани улучшаются между боями | Перековка граней: замена одной грани на эффект |
-| **AC** | Push-your-luck bag | Тянешь фишки из мешка, пока не «перебрал» порог | Порог bust виден, но состав мешка меняется каждый раунд |
-
----
-
-## C6 — Coin Pusher & Plinko (аркадная физика) ⚙️
-
-**Что это.** Цифровые адаптации ярмарочных и аркадных игр случая. Исход определяется
-физикой, а не таблицей — но математика всё равно обязана сходиться к целевому RTP.
-
-**Референсы ощущения:** Coin Dozer, Plinko, японский пачинко.
-
-**Ядро цикла:** потратить фишку → запустить объект → физика решает → каскадная награда →
-поле накапливает потенциал для следующего запуска.
-
-**Обязательные системы:** Forge2D-мир с детерминированным шагом симуляции, накопительное
-поле (в этом и удовольствие), таблица множителей корзин/лунок, спец-призы на поле,
-лимит одновременных тел (производительность).
-
-**Математическая модель:** RTP замеряется **эмпирически** — прогон 1М запусков в headless
-симуляции физики, а не аналитически. Требуется:
-- RTP 95–97% по результатам прогона;
-- **детерминированность**: фиксированный timestep + фиксированный seed → воспроизводимый
-  результат (иначе RTP невозможно верифицировать и раунд не Stateless);
-- распределение выплат (не только среднее): доля запусков в каждую корзину;
-- кап на количество активных тел, чтобы физика не «плыла» при просадке fps.
-
-**Compliance-профиль:** как C1.
-
-### Архетипы
-
-| ID | Название | Механика | Уникальная фича |
-|----|----------|----------|-----------------|
-| **AD** | Coin Pusher / Dozer | Монеты падают на движущуюся полку и сталкивают призы за край | Накопление «навеса» монет у края — визуальное обещание |
-| **AE** | Plinko | Шар падает через поле pegs в корзины с множителями | Выбор рискового профиля (число рядов / раскладка корзин) |
-| **AF** | Пачинко | Вертикальное поле, шары идут в ловушки, тригger джекпот-гейта | Гейт джекпота: попадание запускает отдельный слот-раунд |
+| ID | Name | Mechanic | Unique feature |
+|----|------|----------|----------------|
+| **Z** | Poker deckbuilder | Poker hands deal "damage"/score points against rising targets | Joker modifiers that change how hands are scored |
+| **AA** | Slot-reel roguelike | The player assembles the reel out of symbols; a spin is income | Symbol synergies: adjacency changes the payout |
+| **AB** | Dice-builder | Dice are the resource; faces are upgraded between fights | Reforging a face: swapping one face for an effect |
+| **AC** | Push-your-luck bag | Draw chips from a bag until you bust the threshold | The bust threshold is visible, but the bag's contents change each round |
 
 ---
 
-## Полный индекс архетипов A–AF
+## C6 — Coin Pusher & Plinko (arcade physics) ⚙️
 
-| Категория | Архетипы |
-|-----------|----------|
-| C1 Social Casino 🎰 | **A** слот 3×3 · **B** видео-слот 5×3 · **C** scatter-pays · **D** Hold&Spin · **E** видео-покер · **F** блэкджек · **G** рулетка · **H** бинго |
+**What it is.** Digital adaptations of fairground and arcade games of chance. The outcome is
+decided by physics rather than a table — but the mathematics must still converge on the target RTP.
+
+**Feel references:** Coin Dozer, Plinko, Japanese pachinko.
+
+**Core loop:** spend a chip → launch an object → physics decides → a cascading reward → the field
+accumulates potential for the next launch.
+
+**Required systems:** a Forge2D world with a deterministic simulation step, an accumulating field
+(that is where the pleasure lives), a bucket/pocket multiplier table, special prizes on the
+field, a cap on simultaneous bodies (performance).
+
+**Mathematical model:** RTP is measured **empirically** — a 1M launch run in a headless physics
+simulation, not analytically. Required:
+- RTP 95–97% from the run;
+- **determinism**: a fixed timestep + a fixed seed → a reproducible result (otherwise the RTP
+  cannot be verified and the round is not stateless);
+- the payout distribution (not just the mean): the share of launches into each bucket;
+- a cap on active bodies so the physics does not drift when the fps drops.
+
+**Compliance profile:** the same as C1.
+
+### Archetypes
+
+| ID | Name | Mechanic | Unique feature |
+|----|------|----------|----------------|
+| **AD** | Coin Pusher / Dozer | Coins drop onto a moving shelf and push prizes over the edge | A build-up of coin "overhang" at the edge — a visual promise |
+| **AE** | Plinko | A ball falls through a field of pegs into multiplier buckets | A choice of risk profile (number of rows / bucket layout) |
+| **AF** | Pachinko | A vertical field, balls fall into traps, triggering a jackpot gate | The jackpot gate: a hit launches a separate slot round |
+
+---
+
+## The full archetype index A–AF
+
+| Category | Archetypes |
+|----------|------------|
+| C1 Social Casino 🎰 | **A** 3×3 slot · **B** 5×3 video slot · **C** scatter-pays · **D** Hold&Spin · **E** video poker · **F** blackjack · **G** roulette · **H** bingo |
 | C2 Originals ⚡ | **I** crash · **J** mines · **K** dice · **L** hi-lo · **M** tower · **N** keno · **O** scratch · **P** bonus pick |
 | C3 Spin-to-Progress 🏰 | **Q** build-and-raid · **R** board-dice · **S** prize-wheel · **T** album · **U** raid&shield |
-| C4 Gacha 🎁 | **V** banner pull · **W** card packs · **X** case opener · **Y** гашапон |
+| C4 Gacha 🎁 | **V** banner pull · **W** card packs · **X** case opener · **Y** gashapon |
 | C5 Roguelike 🃏 | **Z** poker deckbuilder · **AA** reel roguelike · **AB** dice-builder · **AC** push-your-luck |
-| C6 Физика ⚙️ | **AD** coin pusher · **AE** plinko · **AF** пачинко |
+| C6 Physics ⚙️ | **AD** coin pusher · **AE** plinko · **AF** pachinko |
 
 ---
 
-## Как выбирается архетип (в `/auto-idea` и `/autocreate`)
+## How the archetype is chosen (in `/auto-idea` and `/autocreate`)
 
-Архетип задаёт **механику**. Чтобы игры одного архетипа не повторялись, поверх него
-прокручиваются две независимые оси:
+The archetype sets the **mechanic**. So that games of the same archetype do not repeat, two
+independent axes are cycled on top of it:
 
 ```
-Игра = Архетип (ЧТО за механика)
-     × Layout Archetype L1–L6 (КАК скомпоновано — layout-archetypes.md)
-     × Design DNA (КАК выглядит — anti-slop-design.md)
+Game = Archetype (WHAT the mechanic is)
+     × Layout Archetype L1–L6 (HOW it is composed — layout-archetypes.md)
+     × Design DNA (HOW it looks — anti-slop-design.md)
 ```
 
-Псевдослучайный выбор без повтора предыдущего:
+A pseudo-random choice that avoids repeating the previous one:
 
 ```python
 import time
@@ -308,23 +306,24 @@ ARCHETYPES = [
 archetype = ARCHETYPES[int(time.time()) % len(ARCHETYPES)]
 ```
 
-> **Unique Mode.** Если пользователь просит уникальную механику — изобретай новую, но она
-> ОБЯЗАНА оставаться гемблинг-механикой и попадать в одну из шести категорий (обычно на
-> стыке двух: «плинко, где корзины — покерные руки», «crash с pity-счётчиком»).
-> Категория и её математическая модель фиксируются в концепте до начала производства.
+> **Unique Mode.** If the user asks for a unique mechanic, invent a new one — but it MUST remain
+> a gambling mechanic and fall into one of the six categories (usually at the seam between two:
+> "plinko where the buckets are poker hands", "crash with a pity counter").
+> The category and its mathematical model are fixed in the concept before production begins.
 
-## Обязательное поле концепта
+## The mandatory concept block
 
-Каждый `design/gdd/game-concept.md` ОБЯЗАН начинаться с блока классификации — downstream-фазы
-читают его буквально:
+Every `design/gdd/game-concept.md` MUST open with a classification block — downstream phases
+read it literally:
 
 ```markdown
-## Классификация
-- **Категория**: C1 | C2 | C3 | C4 | C5 | C6 — [название категории]
-- **Архетип**: [A–AF | UNIQUE] — [название]
-- **Математическая модель**: [RTP | Instant-Win RTP | Economy | Gacha | Run Win-Rate | Physics RTP]
-- **Целевая метрика**: [например «RTP 96.0% ±1%», «hard pity 70, SSR 1.2%», «run win-rate 32%»]
-- **Compliance-профиль**: [полный (age-gate + дисклеймер + 18+) | ослабленный C5 (обоснуй)]
+## Classification
+- **Category**: C1 | C2 | C3 | C4 | C5 | C6 — [category name]
+- **Archetype**: [A–AF | UNIQUE] — [name]
+- **Mathematical model**: [RTP | Instant-Win RTP | Economy | Gacha | Run Win-Rate | Physics RTP]
+- **Target metric**: [e.g. "RTP 96.0% ±1%", "hard pity 70, SSR 1.2%", "run win-rate 32%"]
+- **Compliance profile**: [full (age gate + disclaimer + 18+) | relaxed C5 (justify it)]
+- **Game language**: English (default) | [another language, only if the user explicitly asked]
 ```
 
-Без этого блока `/gate-check concept` выдаёт FAIL.
+Without this block, `/gate-check concept` returns FAIL.

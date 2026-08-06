@@ -1,72 +1,73 @@
 ---
 name: release-package
-description: "Финальная упаковка релиза мини-игры. Делает скриншоты всех экранов и ключевых состояний игры на эмуляторе/устройстве, собирает release APK (flutter build apk --release), выполняет flutter clean, и архивирует ВЕСЬ проект вместе со скриншотами и APK в .zip-файл, который сохраняется в папке project_zip/. Вызывается автоматически из /autocreate после успешной runtime-верификации, но может быть запущен и отдельно для любого готового проекта."
+description: "Final release packaging for a mini-game. Takes screenshots of every screen and key game state on an emulator/device, builds the release APK (flutter build apk --release), runs flutter clean, and archives the WHOLE project together with the screenshots and the APK into a .zip saved in project_zip/. Called automatically from /autocreate after a successful runtime verification, but can also be run on its own for any finished project."
 argument-hint: "[--no-clean | --no-apk | --screens-only | --platform android|ios | --device <id>]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
 
-# Release Package — Упаковка готового релиза
+# Release Package — packaging the finished release
 
-**Цель**: подготовить полный deliverable для передачи заказчику/в сторе:
-1. Набор скриншотов всех экранов и состояний игры (визуальная документация)
-2. Release-сборка APK (готовый к установке артефакт)
-3. Очищенный от build-артефактов проект (`flutter clean`)
-4. Единый `.zip` архив со всем этим внутри в директории `project_zip/`
-   (zip выбран для максимальной совместимости — открывается нативно на всех ОС без дополнительного ПО)
+**Goal**: prepare the complete deliverable to hand to the client or the store:
+1. A set of screenshots of every screen and state (the game's visual documentation)
+2. A release APK build (an artifact ready to install)
+3. A project cleaned of build artifacts (`flutter clean`)
+4. One `.zip` archive containing all of it, in the `project_zip/` directory
+   (zip was chosen for maximum compatibility — it opens natively on every OS with no extra software)
 
-**Когда запускается**:
-- Автоматически из `/autocreate` как финальная фаза 10.6 — после успешной Runtime Emulator Verification (фаза 10.5)
-- Вручную пользователем для любого готового проекта: `/release-package`
+**When it runs**:
+- Automatically from `/autocreate` as the final phase 10.6 — after a successful runtime emulator
+  verification (phase 10.5)
+- Manually by the user, for any finished project: `/release-package`
 
-**Важно**: Этот навык НЕ меняет исходный код. Он только собирает, снимает скриншоты и упаковывает.
-
----
-
-## Режимы
-
-- По умолчанию: полный цикл (screens → APK → clean → zip)
-- `--no-clean` — не выполнять `flutter clean` перед архивацией (сохранить `.dart_tool/`, `build/`)
-- `--no-apk` — пропустить сборку APK (быстрая упаковка только со скриншотами)
-- `--screens-only` — сделать только скриншоты, без APK и ZIP
-- `--platform android|ios` — платформа для скриншотов (default: android)
-- `--device <id>` — конкретное устройство (иначе первое доступное)
+**Important**: this skill does NOT change the source code. It only builds, screenshots and packs.
 
 ---
 
-## Фаза 0 — Preflight [~15 сек]
+## Modes
 
-### 0.1. Проверка, что это Flutter-проект
+- By default: the full cycle (screens → APK → clean → zip)
+- `--no-clean` — do not run `flutter clean` before archiving (keep `.dart_tool/`, `build/`)
+- `--no-apk` — skip the APK build (a fast pack with just the screenshots)
+- `--screens-only` — take the screenshots only, with no APK and no ZIP
+- `--platform android|ios` — the platform for the screenshots (default: android)
+- `--device <id>` — a specific device (otherwise the first available one)
+
+---
+
+## Phase 0 — preflight [~15 s]
+
+### 0.1. Check this is a Flutter project
 
 ```bash
 if [[ ! -f pubspec.yaml ]]; then
-  echo "❌ pubspec.yaml не найден — release-package требует инициализированный Flutter-проект"
+  echo "❌ pubspec.yaml not found — release-package needs an initialised Flutter project"
   exit 1
 fi
 
-# Извлечь имя проекта для имени архива
+# Extract the project name for the archive's name
 PROJECT_NAME=$(grep -E "^name:" pubspec.yaml | awk '{print $2}')
 [[ -z "$PROJECT_NAME" ]] && PROJECT_NAME="game"
-echo "📦 Проект: $PROJECT_NAME"
+echo "📦 Project: $PROJECT_NAME"
 ```
 
-### 0.2. Проверка устройства (для скриншотов)
+### 0.2. Check for a device (for the screenshots)
 
-Если пропущен `--no-apk` и НЕ `--screens-only`, то устройство нужно для скриншотов.
-Если устройство недоступно — спросить пользователя:
-- Запустить эмулятор вручную и продолжить
-- Пропустить скриншоты (собрать APK и архив без визуалки)
+If `--no-apk` was not passed and this is not `--screens-only`, a device is needed for the
+screenshots. If no device is available, ask the user:
+- Start an emulator by hand and continue
+- Skip the screenshots (build the APK and the archive without the visuals)
 
 ```bash
 flutter devices | tee /tmp/flutter-devices.log
 DEVICE_COUNT=$(flutter devices --machine 2>/dev/null | grep -c '"id"' || echo 0)
 if [[ "$DEVICE_COUNT" == "0" ]]; then
-  echo "⚠️ Нет активных устройств — скриншоты будут пропущены"
+  echo "⚠️ No active devices — the screenshots will be skipped"
   SKIP_SCREENSHOTS=1
 fi
 ```
 
-### 0.3. Подготовка выходных директорий
+### 0.3. Prepare the output directories
 
 ```bash
 TS=$(date +%Y%m%d-%H%M%S)
@@ -75,10 +76,11 @@ RELEASE_DIR="$RELEASE_ROOT/$PROJECT_NAME-$TS"
 SHOT_DIR="$RELEASE_DIR/screenshots"
 APK_DIR="$RELEASE_DIR/apk"
 mkdir -p "$RELEASE_ROOT" "$RELEASE_DIR" "$SHOT_DIR" "$APK_DIR"
-echo "📁 Релизная директория: $RELEASE_DIR"
+echo "📁 Release directory: $RELEASE_DIR"
 ```
 
-Добавить `project_zip/` в `.gitignore` если не добавлено (архивы — большие, не место в git):
+Add `project_zip/` to `.gitignore` if it is not there already (archives are large and do not
+belong in git):
 
 ```bash
 if [[ -f .gitignore ]] && ! grep -q "^project_zip/" .gitignore; then
@@ -90,172 +92,173 @@ fi
 
 ---
 
-## Фаза 1 — Full Screenshot Tour [~5 мин]
+## Phase 1 — the full screenshot tour [~5 min]
 
-**Пропустить если** `--no-apk` и `--screens-only` не совпадают, или `SKIP_SCREENSHOTS=1`.
+**Skip when** `--no-apk` and `--screens-only` do not agree, or when `SKIP_SCREENSHOTS=1`.
 
-Этот тур ПОЛНЕЕ чем в `/emulator-test --quick`. Мы снимаем ВСЕ экраны, чтобы получилась
-полноценная визуальная документация игры.
+This tour is FULLER than the one in `/emulator-test --quick`. We capture EVERY screen, so the
+result is proper visual documentation of the game.
 
-### 1.1. Запуск приложения
+### 1.1. Launching the app
 
-Использовать логику из `.claude/skills/emulator-test/SKILL.md` (Фаза 1):
+Use the logic from `.claude/skills/emulator-test/SKILL.md` (phase 1):
 - `flutter pub get`
 - `flutter run -d <device> --verbose > .claude/runtime-logs/flutter-run-release.log 2>&1 &`
-- Записать PID в `.claude/runtime-logs/flutter-release.pid`
-- Ждать маркер "Syncing files to device" или "Flutter run key commands" (до 120 сек)
+- Write the PID to `.claude/runtime-logs/flutter-release.pid`
+- Wait for the "Syncing files to device" or "Flutter run key commands" marker (up to 120 s)
 
-### 1.2. Последовательность скриншотов
+### 1.2. The screenshot sequence
 
-Использовать ту же функцию `shoot()` из emulator-test (тройной fallback +
-валидация PNG сигнатуры `89 50 4E 47`).
+Use the same `shoot()` function from emulator-test (a triple fallback plus PNG signature
+validation, `89 50 4E 47`).
 
-**Полный список снимков** (если экран не существует в игре — пропустить без ошибки):
+**The full shot list** (if a screen does not exist in the game, skip it without an error):
 
-| # | Имя файла | Что снимаем | Как навигировать |
-|---|-----------|-------------|------------------|
-| 01 | 01-splash.png | Splash screen | Сразу после старта, sleep 3 |
-| 02 | 02-main-menu.png | Главное меню | Sleep 3 (после auto-transition) |
-| 03 | 03-game-idle.png | Игровой экран, состояние Idle | Тап по PLAY (нижняя треть) |
-| 04 | 04-game-action-start.png | Начало основного действия | Тап по Action button |
-| 05 | 05-game-action-mid.png | Середина действия (анимация) | Sleep 1 после старта |
-| 06 | 06-game-action-end.png | Завершение действия | Sleep 3 после старта |
-| 07 | 07-game-win-small.png | Small Win overlay (если был выигрыш ≤ 5x) | Ждать overlay |
-| 08 | 08-game-win-big.png | Big Win overlay (попробовать несколько действий) | До 10 попыток |
-| 09 | 09-paytable.png | Экран правил/выплат | Назад → меню → Help/Paytable |
-| 10 | 10-settings.png | Настройки | Назад → меню → Settings |
-| 11 | 11-help.png | Руководство | Назад → меню → Help |
-| 12 | 12-daily-bonus.png | Daily Bonus | Назад → меню → Daily Bonus |
-| 13 | 13-leaderboard.png | Таблица лидеров | Назад → меню → Leaderboard |
-| 14 | 14-profile.png | Профиль | Назад → меню → Profile |
-| 15 | 15-insufficient-funds.png | Insufficient funds (опционально) | Снизить балан до < bet, тапнуть |
-| 16 | 16-game-paused.png | Паузa (если есть) | System back / pause button |
+| # | File name | What we capture | How to navigate there |
+|---|-----------|-----------------|-----------------------|
+| 01 | 01-splash.png | The splash screen | Right after launch, sleep 3 |
+| 02 | 02-main-menu.png | The main menu | Sleep 3 (after the auto-transition) |
+| 03 | 03-game-idle.png | The game screen, idle state | Tap PLAY (lower third) |
+| 04 | 04-game-action-start.png | The start of the main action | Tap the action button |
+| 05 | 05-game-action-mid.png | The middle of the action (animation) | Sleep 1 after the start |
+| 06 | 06-game-action-end.png | The end of the action | Sleep 3 after the start |
+| 07 | 07-game-win-small.png | The small win overlay (if a win of ≤ 5x occurred) | Wait for the overlay |
+| 08 | 08-game-win-big.png | The big win overlay (try several actions) | Up to 10 attempts |
+| 09 | 09-paytable.png | The rules/payouts screen | Back → menu → Help/Paytable |
+| 10 | 10-settings.png | Settings | Back → menu → Settings |
+| 11 | 11-help.png | The guide | Back → menu → Help |
+| 12 | 12-daily-bonus.png | Daily bonus | Back → menu → Daily Bonus |
+| 13 | 13-leaderboard.png | The leaderboard | Back → menu → Leaderboard |
+| 14 | 14-profile.png | The profile | Back → menu → Profile |
+| 15 | 15-insufficient-funds.png | Insufficient funds (optional) | Drop the balance below the bet, then tap |
+| 16 | 16-game-paused.png | Paused (if it exists) | System back / the pause button |
 
-**Координаты навигации** берём из `adb shell wm size` (как в emulator-test).
-Тапы по центру: `adb shell input tap <w/2> <h*0.6>` для центральных кнопок меню,
-`adb shell input tap <w/2> <h*0.85>` для нижних action-кнопок.
+**The navigation coordinates** come from `adb shell wm size` (as in emulator-test).
+Taps at the centre: `adb shell input tap <w/2> <h*0.6>` for the central menu buttons,
+`adb shell input tap <w/2> <h*0.85>` for the bottom action buttons.
 
 Back: `adb shell input keyevent KEYCODE_BACK`.
 
-После КАЖДОГО скриншота:
-1. Валидировать PNG-сигнатуру
-2. Если фейл — одна retry через альтернативный метод (flutter screenshot ↔ adb exec-out ↔ adb pull)
-3. Если всё равно фейл — пометить в отчёте `MISSING` и продолжить (не блокировать весь релиз)
+After EVERY screenshot:
+1. Validate the PNG signature
+2. On a failure, retry once through an alternative method (flutter screenshot ↔ adb exec-out ↔ adb pull)
+3. If it still fails, mark it `MISSING` in the report and continue (do not block the whole release)
 
-### 1.3. Остановка приложения
+### 1.3. Stopping the app
 
 ```bash
 kill $(cat .claude/runtime-logs/flutter-release.pid) 2>/dev/null || true
 ```
 
-### 1.4. Краткий визуальный аудит (опционально)
+### 1.4. A quick visual audit (optional)
 
-Прочитать первые 5 скриншотов через Read (vision) и проверить базовые V1–V12 проблемы
-из `emulator-test`. Если CRITICAL найдены — записать в отчёт, но НЕ блокировать упаковку
-(пользователь увидит их в архиве).
+Read the first 5 screenshots through Read (vision) and check the baseline V1–V12 problems from
+`emulator-test`. If CRITICAL ones are found, record them in the report but do NOT block the
+packaging (the user will see them in the archive).
 
 ---
 
-## Фаза 2 — Release APK + AAB Build [~6 мин]
+## Phase 2 — release APK + AAB build [~6 min]
 
-**Пропустить если** `--no-apk` или `--screens-only`.
+**Skip when** `--no-apk` or `--screens-only`.
 
-> **AAB — формат публикации в Google Play; APK — для sideload-теста.** Если запускался
-> `/release-engineering`, проект подписан upload-keystore — тогда AAB здесь будет **signed**
-> (готов для Play Console). Иначе AAB debug-signed (только внутренний тест).
+> **The AAB is the Google Play publishing format; the APK is for a sideload test.** If
+> `/release-engineering` has run, the project is signed with the upload keystore — then the AAB
+> here will be **signed** (ready for the Play Console). Otherwise the AAB is debug-signed (for
+> internal testing only).
 
 ```bash
-# 1) Сборка release APK (universal, для sideload)
+# 1) Build the release APK (universal, for sideloading)
 flutter build apk --release --verbose 2>&1 | tee "$RELEASE_DIR/build-apk.log"
 BUILD_EXIT=${PIPESTATUS[0]}
 
 if [[ "$BUILD_EXIT" != "0" ]]; then
-  echo "❌ flutter build apk --release упал. Лог: $RELEASE_DIR/build-apk.log"
-  APK_FAILED=1   # не аварийный exit — продолжаем с частичным архивом
+  echo "❌ flutter build apk --release failed. Log: $RELEASE_DIR/build-apk.log"
+  APK_FAILED=1   # not a fatal exit — we continue with a partial archive
 else
   if [[ -f "build/app/outputs/flutter-apk/app-release.apk" ]]; then
     cp "build/app/outputs/flutter-apk/app-release.apk" "$APK_DIR/$PROJECT_NAME-$TS-release.apk"
-    echo "✅ APK готов: $(du -h "$APK_DIR/$PROJECT_NAME-$TS-release.apk" | awk '{print $1}')"
+    echo "✅ APK ready: $(du -h "$APK_DIR/$PROJECT_NAME-$TS-release.apk" | awk '{print $1}')"
   fi
 fi
 
-# 2) Сборка release AAB (App Bundle — то, что грузится в Google Play)
+# 2) Build the release AAB (the App Bundle — what gets uploaded to Google Play)
 flutter build appbundle --release 2>&1 | tee "$RELEASE_DIR/build-aab.log"
 if [[ -f "build/app/outputs/bundle/release/app-release.aab" ]]; then
   cp "build/app/outputs/bundle/release/app-release.aab" "$APK_DIR/$PROJECT_NAME-$TS-release.aab"
-  echo "✅ AAB готов: $(du -h "$APK_DIR/$PROJECT_NAME-$TS-release.aab" | awk '{print $1}')"
+  echo "✅ AAB ready: $(du -h "$APK_DIR/$PROJECT_NAME-$TS-release.aab" | awk '{print $1}')"
   if [[ -f android/key.properties ]]; then
-    echo "🔐 AAB подписан upload-keystore — готов к загрузке в Play Console."
+    echo "🔐 The AAB is signed with the upload keystore — ready to upload to the Play Console."
   else
-    echo "ℹ️ AAB debug-signed (нет android/key.properties). Для Play запусти /release-engineering."
+    echo "ℹ️ The AAB is debug-signed (no android/key.properties). For Play, run /release-engineering."
   fi
 else
-  echo "⚠️ AAB не собрался (NDK/Gradle?). Лог: $RELEASE_DIR/build-aab.log"
+  echo "⚠️ The AAB did not build (NDK/Gradle?). Log: $RELEASE_DIR/build-aab.log"
 fi
 
-# 3) Символы деобфускации (если есть от release-engineering)
-[[ -d build/symbols ]] && cp -r build/symbols "$RELEASE_DIR/symbols" && echo "✅ symbols скопированы"
+# 3) De-obfuscation symbols (if release-engineering produced any)
+[[ -d build/symbols ]] && cp -r build/symbols "$RELEASE_DIR/symbols" && echo "✅ symbols copied"
 ```
 
 ---
 
-## Фаза 3 — Project Metadata [~10 сек]
+## Phase 3 — project metadata [~10 s]
 
-Создать `$RELEASE_DIR/RELEASE_INFO.md` с полной информацией о релизе:
+Create `$RELEASE_DIR/RELEASE_INFO.md` with the full release information:
 
 ```markdown
 # Release Info — [PROJECT_NAME]
 
-**Сборка**: [TS]
-**Flutter**: [flutter --version первая строка]
+**Build**: [TS]
+**Flutter**: [the first line of flutter --version]
 **Dart**: [dart --version]
-**Платформа**: [android/ios]
-**Устройство для скриншотов**: [device name]
+**Platform**: [android/ios]
+**Screenshot device**: [device name]
 
-## Содержимое архива
+## What is in the archive
 
-- `screenshots/` — [N] скриншотов экранов и состояний
-- `apk/` — APK и AAB файлы для Android
-- `source/` — весь исходный код проекта (после `flutter clean`)
-- `RELEASE_INFO.md` — этот файл
-- `build-apk.log` — лог сборки
+- `screenshots/` — [N] screenshots of the screens and states
+- `apk/` — the APK and AAB files for Android
+- `source/` — the project's complete source code (after `flutter clean`)
+- `RELEASE_INFO.md` — this file
+- `build-apk.log` — the build log
 
-## Как запустить
+## How to run it
 
-### Установка APK на устройство:
+### Installing the APK on a device:
 \`\`\`bash
 adb install apk/[PROJECT_NAME]-[TS]-release.apk
 \`\`\`
 
-### Разработка (из исходников):
+### Development (from the sources):
 \`\`\`bash
-# Распаковать архив (двойной клик или через unzip)
+# Unpack the archive (double-click, or use unzip)
 unzip [PROJECT_NAME]-[TS].zip
 cd [PROJECT_NAME]-[TS]/source/
 flutter pub get
 flutter run
 \`\`\`
 
-## Статус проверок
+## Check status
 
-- [x] `dart analyze lib/` — 0 errors (см. validation.log)
+- [x] `dart analyze lib/` — 0 errors (see validation.log)
 - [x] `flutter test` — all passed
-- [x] Release APK собран
-- [x] Скриншоты сделаны: [N]/[TOTAL]
-- [x] Runtime verification: PASS (см. runtime-report/)
+- [x] The release APK was built
+- [x] Screenshots taken: [N]/[TOTAL]
+- [x] Runtime verification: PASS (see runtime-report/)
 
-## Контрольные суммы
+## Checksums
 
 SHA256 APK: [sha256]
-Размер APK: [size]
+APK size: [size]
 ```
 
-Добавить финальный отчёт валидации:
+Add the final validation report:
 ```bash
 dart analyze lib/ > "$RELEASE_DIR/validation.log" 2>&1 || true
 flutter test --reporter expanded > "$RELEASE_DIR/test-results.log" 2>&1 || true
 
-# Скопировать свежий runtime-report если есть
+# Copy the latest runtime report if there is one
 LATEST_RT=$(ls -1dt production/runtime-screenshots/*/ 2>/dev/null | head -1)
 if [[ -n "$LATEST_RT" ]]; then
   cp -r "$LATEST_RT" "$RELEASE_DIR/runtime-report"
@@ -264,35 +267,37 @@ fi
 
 ---
 
-## Фаза 4 — Flutter Clean [~30 сек]
+## Phase 4 — flutter clean [~30 s]
 
-**Пропустить если** `--no-clean`.
+**Skip when** `--no-clean`.
 
 ```bash
-# Очистка build-артефактов перед архивацией исходников
+# Clear the build artifacts before archiving the sources
 flutter clean 2>&1 | tee -a "$RELEASE_DIR/build-apk.log"
 
-# Дополнительная очистка (flutter clean не всегда чистит всё)
+# Extra cleanup (flutter clean does not always clear everything)
 rm -rf build/ .dart_tool/ .flutter-plugins .flutter-plugins-dependencies 2>/dev/null || true
 rm -rf ios/Pods/ ios/.symlinks/ 2>/dev/null || true
 rm -rf android/.gradle/ android/build/ android/app/build/ 2>/dev/null || true
 ```
 
-**ВАЖНО**: `flutter clean` выполняется ПОСЛЕ сборки APK, иначе APK будет удалён вместе с `build/`.
+**IMPORTANT**: `flutter clean` runs AFTER the APK is built, otherwise the APK is deleted along
+with `build/`.
 
 ---
 
-## Фаза 5 — Copy Source & Archive [~1 мин]
+## Phase 5 — copy the source & archive [~1 min]
 
-### 5.1. Скопировать исходники в $RELEASE_DIR/source/
+### 5.1. Copy the sources into $RELEASE_DIR/source/
 
-Архивируем ВСЁ кроме `project_zip/`, `.git/` (крупный и не нужен), `build/`, `.dart_tool/`:
+We archive EVERYTHING except `project_zip/`, `.git/` (large and unnecessary), `build/` and
+`.dart_tool/`:
 
 ```bash
 SOURCE_DIR="$RELEASE_DIR/source"
 mkdir -p "$SOURCE_DIR"
 
-# rsync исключая мусор
+# rsync, excluding the junk
 rsync -a \
   --exclude='project_zip/' \
   --exclude='.git/' \
@@ -312,71 +317,70 @@ rsync -a \
   ./ "$SOURCE_DIR/"
 ```
 
-### 5.2. Создать финальный архив `.zip`
+### 5.2. Create the final `.zip` archive
 
-**Формат архива — `.zip`**. Причины: открывается нативно на Windows, macOS и Linux
-без дополнительного ПО, максимальная совместимость для конечного пользователя.
+**The archive format is `.zip`.** The reasons: it opens natively on Windows, macOS and Linux
+with no extra software — maximum compatibility for the end user.
 
 ```bash
 ARCHIVE_NAME="$PROJECT_NAME-$TS.zip"
 ARCHIVE_PATH="$RELEASE_ROOT/$ARCHIVE_NAME"
 
-# Создаём zip из содержимого RELEASE_DIR
+# Build the zip from the contents of RELEASE_DIR
 (cd "$RELEASE_ROOT" && zip -r "$ARCHIVE_NAME" \
   "$(basename "$RELEASE_DIR")" \
   -x "*.DS_Store" \
   -x "*.swp" \
   -x "*/__pycache__/*")
 
-# Проверка что архив реально создан
+# Check the archive was actually created
 if [[ ! -s "$ARCHIVE_PATH" ]]; then
-  echo "❌ zip не создан — критическая ошибка упаковки"
+  echo "❌ the zip was not created — a critical packaging failure"
   exit 1
 fi
 
 ARCHIVE_SIZE=$(du -h "$ARCHIVE_PATH" | awk '{print $1}')
-echo "✅ Архив готов: $ARCHIVE_PATH ($ARCHIVE_SIZE)"
+echo "✅ Archive ready: $ARCHIVE_PATH ($ARCHIVE_SIZE)"
 
-# Быстрая проверка целостности архива
+# A quick integrity check on the archive
 unzip -t "$ARCHIVE_PATH" > /dev/null 2>&1 || {
-  echo "❌ Архив повреждён (unzip -t fail)"
+  echo "❌ the archive is corrupt (unzip -t failed)"
   exit 1
 }
 
-# КРИТИЧЕСКАЯ проверка: APK и скриншоты ДОЛЖНЫ быть ВНУТРИ zip
-# (требование пользователя: "the apk and screenshots should all be inside of the zip")
+# CRITICAL check: the APK and the screenshots MUST be INSIDE the zip
 ARCHIVE_CONTENTS=$(unzip -Z1 "$ARCHIVE_PATH")
 
 echo "$ARCHIVE_CONTENTS" | grep -q "/apk/.*\.apk$" || {
-  echo "❌ APK не найден ВНУТРИ zip — архив неполный"
-  echo "Содержимое архива:"
+  echo "❌ the APK was not found INSIDE the zip — the archive is incomplete"
+  echo "Archive contents:"
   echo "$ARCHIVE_CONTENTS" | head -20
   exit 1
 }
 
 echo "$ARCHIVE_CONTENTS" | grep -q "/source/pubspec.yaml$" || {
-  echo "❌ Исходники не найдены ВНУТРИ zip (нет source/pubspec.yaml)"
+  echo "❌ the sources were not found INSIDE the zip (no source/pubspec.yaml)"
   exit 1
 }
 
 echo "$ARCHIVE_CONTENTS" | grep -q "/RELEASE_INFO.md$" || {
-  echo "❌ RELEASE_INFO.md не найден ВНУТРИ zip"
+  echo "❌ RELEASE_INFO.md was not found INSIDE the zip"
   exit 1
 }
 
-# Скриншоты обязательны если эмулятор не был пропущен
+# Screenshots are mandatory unless the emulator was skipped
 if [[ "$SKIP_SCREENSHOTS" != "1" ]]; then
   SCREENSHOT_COUNT=$(echo "$ARCHIVE_CONTENTS" | grep -c "/screenshots/.*\.png$" || true)
   if [[ "$SCREENSHOT_COUNT" -lt 1 ]]; then
-    echo "❌ Скриншоты не найдены ВНУТРИ zip (ожидалось минимум 1 PNG)"
+    echo "❌ no screenshots found INSIDE the zip (at least 1 PNG was expected)"
     exit 1
   fi
-  echo "✅ Внутри архива: apk/*.apk, screenshots/ ($SCREENSHOT_COUNT PNG), source/, RELEASE_INFO.md"
+  echo "✅ Inside the archive: apk/*.apk, screenshots/ ($SCREENSHOT_COUNT PNG), source/, RELEASE_INFO.md"
 else
-  echo "✅ Внутри архива: apk/*.apk, source/, RELEASE_INFO.md (скриншоты пропущены)"
+  echo "✅ Inside the archive: apk/*.apk, source/, RELEASE_INFO.md (screenshots skipped)"
 fi
 
-# Вычислить SHA256 архива
+# Compute the archive's SHA256
 if command -v shasum &>/dev/null; then
   ARCHIVE_SHA=$(shasum -a 256 "$ARCHIVE_PATH" | awk '{print $1}')
 else
@@ -386,60 +390,60 @@ echo "SHA256: $ARCHIVE_SHA"
 echo "$ARCHIVE_SHA  $ARCHIVE_NAME" > "$ARCHIVE_PATH.sha256"
 ```
 
-### 5.3. Опционально — удалить промежуточную директорию
+### 5.3. Optional — remove the intermediate directory
 
-`$RELEASE_DIR/` по умолчанию остаётся рядом с архивом для быстрого доступа без распаковки —
-**это копия**, настоящие артефакты (APK, скриншоты, исходники, RELEASE_INFO.md) уже
-находятся ВНУТРИ `tar.gz` (проверено в 5.2). Для чистого deliverable можно удалить:
+`$RELEASE_DIR/` stays next to the archive by default, for quick access without unpacking —
+**it is a copy**; the real artifacts (APK, screenshots, sources, RELEASE_INFO.md) are already
+INSIDE the `.zip` (verified in 5.2). For a clean deliverable it can be removed:
 
 ```bash
-# Оставить только tar.gz + .sha256 (чистая доставка)
+# Keep only the .zip + .sha256 (a clean delivery)
 if [[ "$CLEAN_INTERMEDIATE" == "1" ]]; then
   rm -rf "$RELEASE_DIR"
-  echo "✅ Промежуточная директория удалена — deliverable только .tar.gz"
+  echo "✅ Intermediate directory removed — the deliverable is just the .zip"
 fi
 ```
 
 ---
 
-## Фаза 6 — Final Report
+## Phase 6 — the final report
 
-Вывести пользователю:
+Print to the user:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📦 RELEASE PACKAGE COMPLETE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🎯 Проект: [PROJECT_NAME]
-📅 Сборка: [TS]
+🎯 Project: [PROJECT_NAME]
+📅 Build: [TS]
 
-📦 Единый deliverable:
+📦 The single deliverable:
    project_zip/[PROJECT_NAME]-[TS].zip ([SIZE])
 
-📂 Содержимое ВНУТРИ архива (проверено `unzip -Z1`):
+📂 What is INSIDE the archive (verified with `unzip -Z1`):
    📱 [PROJECT_NAME]-[TS]/apk/[PROJECT_NAME]-[TS]-release.apk
-   🖼️  [PROJECT_NAME]-[TS]/screenshots/ ([N] PNG файлов)
-   💾 [PROJECT_NAME]-[TS]/source/ (полный Flutter проект)
+   🖼️  [PROJECT_NAME]-[TS]/screenshots/ ([N] PNG files)
+   💾 [PROJECT_NAME]-[TS]/source/ (the complete Flutter project)
    📄 [PROJECT_NAME]-[TS]/RELEASE_INFO.md
 
-🔒 SHA256 архива: [SHA]
+🔒 Archive SHA256: [SHA]
 
-✅ Проверки:
+✅ Checks:
    dart analyze:         [PASS/FAIL]
    flutter test:         [PASS/FAIL]
    APK build:            [PASS/FAIL]
    Screenshots:          [N]/[TOTAL]
-   APK внутри zip:       ✅ verified
-   Screenshots в zip:    ✅ verified ([N] PNG)
-   Source в zip:         ✅ verified
+   APK inside the zip:   ✅ verified
+   Screenshots in zip:   ✅ verified ([N] PNG)
+   Source in the zip:    ✅ verified
 
-📋 Следующие шаги:
-   • Передать архив: project_zip/[PROJECT_NAME]-[TS].zip
-   • Распаковать: unzip project_zip/[PROJECT_NAME]-[TS].zip (или двойной клик)
-   • Установить APK (после распаковки):
+📋 Next steps:
+   • Hand over the archive: project_zip/[PROJECT_NAME]-[TS].zip
+   • Unpack it: unzip project_zip/[PROJECT_NAME]-[TS].zip (or double-click)
+   • Install the APK (after unpacking):
      adb install [PROJECT_NAME]-[TS]/apk/[PROJECT_NAME]-[TS]-release.apk
-   • Просмотреть скриншоты (после распаковки):
+   • Look at the screenshots (after unpacking):
      open [PROJECT_NAME]-[TS]/screenshots/
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -447,51 +451,51 @@ fi
 
 ---
 
-## Integration в /autocreate
+## Integration into /autocreate
 
-Этот навык запускается автоматически в **Фазе 10.6** `/autocreate` — сразу после
-Runtime Emulator Verification (Фаза 10.5) и до Session State Update (Фаза 11).
+This skill runs automatically in **phase 10.6** of `/autocreate` — right after the runtime
+emulator verification (phase 10.5) and before the session state update (phase 11).
 
-В `/autocreate` используется полный режим (без флагов). Если эмулятор был пропущен
-в Фазе 10.5 (SKIPPED) — режим `--no-apk --screens-only` НЕ применяется, но
-скриншоты автоматически пропускаются через `SKIP_SCREENSHOTS=1`.
+`/autocreate` uses the full mode (no flags). If the emulator was skipped in phase 10.5
+(SKIPPED), the `--no-apk --screens-only` mode is NOT applied, but the screenshots are skipped
+automatically through `SKIP_SCREENSHOTS=1`.
 
-Если сборка APK упала — архив всё равно создаётся (с пометкой `APK_FAILED=1` в
-RELEASE_INFO.md), чтобы у пользователя был хотя бы исходник и скриншоты.
-
----
-
-## Quality Gates
-
-| Фаза | Критерий выхода | Макс. итераций |
-|------|----------------|---------------|
-| 0. Preflight | pubspec.yaml существует | 1 (иначе abort) |
-| 1. Screenshots | Минимум 5 валидных PNG | 2 (SKIPPED если нет устройства) |
-| 2. APK Build | `app-release.apk` существует | 2 (non-fatal) |
-| 3. Metadata | RELEASE_INFO.md создан | 1 |
-| 4. Clean | `flutter clean` без ошибок | 1 |
-| 5. Archive | `.zip` создан, `unzip -t` проходит проверку, SHA256 записан | 1 |
-| 6. Report | Отчёт выведен пользователю | 1 |
+If the APK build fails, the archive is created anyway (marked `APK_FAILED=1` in
+RELEASE_INFO.md), so the user at least has the sources and the screenshots.
 
 ---
 
-## Запрещено в этом навыке
+## Quality gates
 
-1. **Коммитить изменения в git** — только пользователь решает, когда коммитить
-2. **Менять исходный код** — навык только собирает и архивирует
-3. **Удалять `project_zip/` или его содержимое** — только добавляем
-4. **Публиковать APK куда-либо** (Firebase, Play Store, TestFlight) — только локальный артефакт
-5. **Использовать release keystore пользователя без явного разрешения** — по умолчанию debug signing
-6. **Запускать на production-устройстве** — только эмулятор/dev device
+| Phase | Exit criterion | Max iterations |
+|-------|----------------|----------------|
+| 0. Preflight | pubspec.yaml exists | 1 (otherwise abort) |
+| 1. Screenshots | At least 5 valid PNGs | 2 (SKIPPED if there is no device) |
+| 2. APK build | `app-release.apk` exists | 2 (non-fatal) |
+| 3. Metadata | RELEASE_INFO.md created | 1 |
+| 4. Clean | `flutter clean` with no errors | 1 |
+| 5. Archive | The `.zip` was created, `unzip -t` passes, the SHA256 is recorded | 1 |
+| 6. Report | The report was printed to the user | 1 |
 
 ---
 
-## Аргументы
+## Forbidden in this skill
 
-- `--no-clean` — пропустить `flutter clean` перед архивацией (быстрее, но архив больше)
-- `--no-apk` — не собирать APK (быстрая упаковка со скриншотами и исходниками)
-- `--screens-only` — только скриншоты в `project_zip/<name>-<ts>/screenshots/`, без APK и ZIP
-- `--platform android|ios` — платформа для скриншотов и сборки (default: android)
-- `--device <id>` — конкретное устройство из `flutter devices`
-- `--name <custom-name>` — переопределить имя архива (иначе из pubspec.yaml)
-- `--keep-build` — алиас `--no-clean`
+1. **Committing changes to git** — only the user decides when to commit
+2. **Changing the source code** — this skill only builds and archives
+3. **Deleting `project_zip/` or its contents** — we only add
+4. **Publishing the APK anywhere** (Firebase, Play Store, TestFlight) — a local artifact only
+5. **Using the user's release keystore without explicit permission** — debug signing by default
+6. **Running on a production device** — an emulator/dev device only
+
+---
+
+## Arguments
+
+- `--no-clean` — skip `flutter clean` before archiving (faster, but a larger archive)
+- `--no-apk` — do not build the APK (a fast pack with the screenshots and sources)
+- `--screens-only` — screenshots only, in `project_zip/<name>-<ts>/screenshots/`, no APK and no ZIP
+- `--platform android|ios` — the platform for the screenshots and the build (default: android)
+- `--device <id>` — a specific device from `flutter devices`
+- `--name <custom-name>` — override the archive's name (otherwise it comes from pubspec.yaml)
+- `--keep-build` — an alias for `--no-clean`

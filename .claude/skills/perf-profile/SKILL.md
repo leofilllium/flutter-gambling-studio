@@ -1,133 +1,133 @@
 ---
 name: perf-profile
-description: "Профилирует производительность мини-игры и выдает приоритизированные рекомендации по оптимизации."
+description: "Profiles the mini-game's performance and returns prioritised optimisation recommendations."
 argument-hint: "[reels|particles|audio|memory|full]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Bash, Agent
 ---
 
-# /perf-profile [область]
+# /perf-profile [area]
 
-Запуск: пользователь вызывает `/perf-profile [reels|particles|audio|memory|full]`
+Invocation: the user runs `/perf-profile [reels|particles|audio|memory|full]`
 
-## Цель
+## Goal
 
-Структурированное профилирование производительности гемблинг игры.
-Находит bottlenecks в game loop, анализирует frame budget, выдаёт приоритизированные
-рекомендации по оптимизации.
+Structured performance profiling of a gambling game.
+Finds bottlenecks in the game loop, analyses the frame budget and returns prioritised
+optimisation recommendations.
 
-## Агенты
+## Agents
 
-- `performance-analyst` — основной аналитик
-- `lead-programmer` — архитектурные рекомендации
+- `performance-analyst` — the primary analyst
+- `lead-programmer` — architectural recommendations
 
-## Порядок выполнения
+## Order of work
 
-### Шаг 1: performance-analyst — Baseline audit
+### Step 1: performance-analyst — the baseline audit
 
-Без запуска игры — статический анализ кода:
+Static code analysis, without running the game:
 
-**Проверка аллокаций в hot path:**
+**Checking for allocations in the hot path:**
 ```bash
-# Ищем аллокации в update() / render()
+# Look for allocations in update() / render()
 grep -n "Vector2(" lib/components/*.dart
 grep -n "Paint()" lib/components/*.dart
 grep -n "Rect.from" lib/components/*.dart
 grep -n "List<" lib/systems/*.dart
 ```
 
-**Проверка SpriteBatch:**
-- Используется ли SpriteBatch для символов барабанов?
-- Если > 9 символов на экране без SpriteBatch — это bottleneck
+**Checking SpriteBatch:**
+- Is SpriteBatch used for the reel symbols?
+- More than 9 symbols on screen without SpriteBatch is a bottleneck
 
-**Проверка партиклей:**
+**Checking particles:**
 ```bash
-# Сколько партиклей может быть создано?
+# How many particles can be created?
 grep -n "count:" lib/components/*.dart
 grep -n "Particle.generate" lib/components/*.dart
 ```
 
-**Проверка аудио:**
-- Сколько AudioPlayer instances создаётся?
-- Используется ли pool или каждый раз новый?
+**Checking audio:**
+- How many AudioPlayer instances are created?
+- Is a pool used, or a new one every time?
 
-### Шаг 2: Статический анализ — известные паттерны
+### Step 2: static analysis — known patterns
 
-| Паттерн | Находка | Рекомендация | Приоритет |
-|---------|---------|-------------|---------|
-| `Vector2()` в update() | Аллокация каждый кадр | Прединициализировать как поле | HIGH |
-| `Paint()` в render() | Аллокация каждый кадр | Прединициализировать как поле | HIGH |
-| N×SpriteComponent без SpriteBatch | N draw calls | Использовать SpriteBatch | HIGH |
-| `Particle.generate(count: >200)` | Overflow бюджета | Ограничить до 200 | MEDIUM |
-| `FlameAudio.play()` каждый кадр | Аудио flood | Дебаунс + AudioPool | MEDIUM |
-| `setState()` каждый кадр | Flutter rebuild | Использовать ValueNotifier | MEDIUM |
-| `onGameResize()` без isMounted | Потенциальный краш | Добавить проверку | LOW |
+| Pattern | Finding | Recommendation | Priority |
+|---------|---------|----------------|----------|
+| `Vector2()` in update() | An allocation every frame | Pre-initialise it as a field | HIGH |
+| `Paint()` in render() | An allocation every frame | Pre-initialise it as a field | HIGH |
+| N×SpriteComponent without SpriteBatch | N draw calls | Use SpriteBatch | HIGH |
+| `Particle.generate(count: >200)` | Budget overflow | Cap it at 200 | MEDIUM |
+| `FlameAudio.play()` every frame | Audio flood | Debounce + AudioPool | MEDIUM |
+| `setState()` every frame | A Flutter rebuild | Use a ValueNotifier | MEDIUM |
+| `onGameResize()` without isMounted | A potential crash | Add the check | LOW |
 
-### Шаг 3: Профилирование (если игра запущена)
+### Step 3: profiling (if the game is running)
 
 ```bash
-# Запустить в profile mode
+# Run in profile mode
 flutter run --profile
 
-# Команды для DevTools:
-# 1. CPU Profiler → Record → 10 спинов → Stop → Найти топ методов
-# 2. Memory → Take snapshot → до и после Free Spins
-# 3. Performance → посмотреть worst frames
+# Commands for DevTools:
+# 1. CPU Profiler → Record → 10 spins → Stop → find the top methods
+# 2. Memory → Take snapshot → before and after free spins
+# 3. Performance → look at the worst frames
 ```
 
-**Целевые метрики:**
-| Метрика | Цель | Предупреждение | Критично |
-|---------|------|----------------|---------|
+**Target metrics:**
+| Metric | Target | Warning | Critical |
+|--------|--------|---------|----------|
 | FPS | > 58 | 45–57 | < 45 |
 | Worst frame | < 25ms | 25–50ms | > 50ms |
-| Память | < 150MB | 150–250MB | > 250MB |
+| Memory | < 150MB | 150–250MB | > 250MB |
 
-### Шаг 4: Рекомендации
+### Step 4: recommendations
 
-Агент `performance-analyst` создаёт приоритизированный список:
+The `performance-analyst` agent produces a prioritised list:
 
 ```markdown
-## Приоритет HIGH (влияет на gameplay)
-1. ReelComponent: аллокация Vector2 в update() → прединициализировать
-   Ожидаемый эффект: -2ms per frame
-   Файл: lib/components/reel_component.dart:45
+## HIGH priority (affects gameplay)
+1. ReelComponent: a Vector2 allocation in update() → pre-initialise it
+   Expected effect: -2ms per frame
+   File: lib/components/reel_component.dart:45
 
-## Приоритет MEDIUM (влияет на UX)
-2. WinAnimation: 300 партиклей превышают бюджет → ограничить до 200
-   Файл: lib/components/win_animation.dart:78
+## MEDIUM priority (affects UX)
+2. WinAnimation: 300 particles exceed the budget → cap at 200
+   File: lib/components/win_animation.dart:78
 
-## Приоритет LOW (косметика)
-3. HudWidget: избыточные rebuild при каждом кадре
-   Файл: lib/screens/hud_widget.dart:23
+## LOW priority (cosmetic)
+3. HudWidget: redundant rebuilds on every frame
+   File: lib/screens/hud_widget.dart:23
 ```
 
-### Шаг 5: Отчёт
+### Step 5: the report
 
-Создать `docs/perf-report-YYYY-MM-DD.md`:
+Create `docs/perf-report-YYYY-MM-DD.md`:
 ```markdown
-# Performance Report — [дата]
+# Performance Report — [date]
 
-## Baseline (до оптимизации)
+## Baseline (before optimisation)
 - FPS: XX
 - Worst frame: XXms
-- Память: XXmb
+- Memory: XXmb
 
-## Найденные проблемы
-[таблица находок]
+## Problems found
+[the findings table]
 
-## Рекомендации
-[приоритизированный список]
+## Recommendations
+[the prioritised list]
 
-## После применения рекомендаций (прогноз)
-- Ожидаемое улучшение FPS: +N
-- Ожидаемое снижение worst frame: -Nms
+## After applying the recommendations (projected)
+- Expected FPS improvement: +N
+- Expected worst-frame reduction: -Nms
 ```
 
-## Аргументы
+## Arguments
 
-- `reels` — фокус на производительности барабанов
-- `particles` — фокус на партиклях и VFX
-- `audio` — фокус на аудио системе
-- `memory` — фокус на памяти и утечках
-- `full` — полный профиль (по умолчанию)
-- `--quick` — только статический анализ, без рекомендаций запуска
+- `reels` — focus on reel performance
+- `particles` — focus on particles and VFX
+- `audio` — focus on the audio system
+- `memory` — focus on memory and leaks
+- `full` — a full profile (the default)
+- `--quick` — static analysis only, with no run-time recommendations

@@ -1,21 +1,21 @@
 ---
 name: gate-check
-description: "Проверяет готовность проекта к переходу между этапами (concept/design/code/qa/release) и выдает вердикт PASS/CONCERNS/FAIL."
+description: "Checks whether the project is ready to move between stages (concept/design/code/qa/release) and returns a PASS/CONCERNS/FAIL verdict."
 argument-hint: "[concept|design|code|qa|release]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Bash, Agent
 ---
 
-# /gate-check [этап]
+# /gate-check [stage]
 
-Запуск: пользователь вызывает `/gate-check [concept|design|code|qa|release]`
+Invocation: the user runs `/gate-check [concept|design|code|qa|release]`
 
-## Цель
+## Goal
 
-Проверяет готовность проекта к переходу между этапами разработки.
-Выдаёт вердикт: **PASS / CONCERNS / FAIL** с конкретными блокерами.
+Checks whether the project is ready to move between development stages.
+Returns a verdict: **PASS / CONCERNS / FAIL**, with the specific blockers.
 
-## Этапы разработки мини-игры
+## The mini-game's development stages
 
 ```
 Concept → Design → Code → QA → Release
@@ -23,120 +23,122 @@ Concept → Design → Code → QA → Release
   gate      gate    gate   gate    gate
 ```
 
-## Ворота по этапам
+## The gates, stage by stage
 
 ### gate-check concept → design
-Проверяет готовность концепта для перехода к дизайну:
+Checks that the concept is ready to move into design:
 
-**Обязательные артефакты:**
-- [ ] `design/gdd/game-concept.md` существует
-- [ ] Elevator pitch (1-2 предложения)
-- [ ] Блок **Классификация** заполнен: категория C1–C6, архетип A–AF, матмодель M1–M6,
-      целевая метрика, путь к конфигу, compliance-профиль
-- [ ] Уникальная механика ("сочность") описана
-- [ ] Архетип выбран (A–AF / Unique)
-- [ ] Design DNA описан (палитра/шрифты/формы/motion, обоснованные темой; не дефолтный неон)
-- [ ] Layout & Composition Direction указан (Layout Archetype L1–L6)
-- [ ] Целевая метрика матмодели указана и в допустимом окне для своей модели
-      (M1 RTP 95–97% + волатильность + ≥3 символа | M2 house edge + кап | M3 реген + source/sink |
-      M4 rates + hard pity | M5 win-rate + пороги | M6 множители корзин)
-- [ ] Compliance-профиль выбран и обоснован (полный или ослабленный C5)
+**Required artifacts:**
+- [ ] `design/gdd/game-concept.md` exists
+- [ ] An elevator pitch (1-2 sentences)
+- [ ] The **Classification** block is filled in: category C1–C6, archetype A–AF, math model
+      M1–M6, target metric, the path to the config, the compliance profile
+- [ ] The unique mechanic (the "juice") is described
+- [ ] The archetype is chosen (A–AF / Unique)
+- [ ] The Design DNA is described (palette/fonts/shapes/motion, justified by the theme; not default neon)
+- [ ] The Layout & Composition Direction is stated (Layout Archetype L1–L6)
+- [ ] The math model's target metric is stated and sits inside the window for that model
+      (M1 RTP 95–97% + volatility + ≥3 symbols | M2 house edge + cap | M3 regeneration + source/sink |
+      M4 rates + hard pity | M5 win-rate + thresholds | M6 bucket multipliers)
+- [ ] The compliance profile is chosen and justified (full, or relaxed C5)
+- [ ] The game's language is recorded (English by default)
 
-**Ворота:**
-- PASS: все пункты выполнены
-- CONCERNS: 1–2 пункта отсутствуют, но некритичны
-- FAIL: концепт не задокументирован или RTP не определён
+**The gate:**
+- PASS: every item is done
+- CONCERNS: 1–2 items are missing but not critical
+- FAIL: the concept is undocumented, or the RTP is undefined
 
 ### gate-check design → code
-Проверяет готовность дизайна для передачи программисту:
+Checks that the design is ready to hand to the programmer:
 
-**Обязательные артефакты:**
-- [ ] GDD документ с 8 секциями (см. rules/design-docs.md)
-- [ ] `design/balance/rtp-config.json` существует и валиден
-- [ ] Таблица выплат завершена (все символы × все комбинации)
-- [ ] Paylines определены и пронумерованы
-- [ ] Wild/Scatter поведение задокументировано (если есть)
-- [ ] Free Spins условия описаны (если есть)
-- [ ] GDD статус: `Status: Approved`
-- [ ] `game-mathematician` подписал математику
-- [ ] `design/balance/rtp-config.json` → `simulation.last_run_rtp` в диапазоне 95–97%
+**Required artifacts:**
+- [ ] A GDD document with its 8 sections (see rules/design-docs.md)
+- [ ] `design/balance/rtp-config.json` exists and is valid
+- [ ] The payout table is complete (every symbol × every combination)
+- [ ] The paylines are defined and numbered
+- [ ] Wild/Scatter behaviour is documented (if there is any)
+- [ ] The free spins conditions are described (if there are any)
+- [ ] The GDD status: `Status: Approved`
+- [ ] `game-mathematician` has signed off on the mathematics
+- [ ] `design/balance/rtp-config.json` → `simulation.last_run_rtp` is within 95–97%
 
 ### gate-check code → qa
-Проверяет готовность кода для QA:
+Checks that the code is ready for QA:
 
-**Критические gambling требования:**
-- [ ] `lib/systems/weighted_rng.dart` использует `Random.secure()`
-- [ ] Нет `math.Random()` в production коде
-- [ ] Нет захардкоженных вероятностей
-- [ ] `GameState` — sealed class (не boolean флаги)
-- [ ] Результат спина вычислен до анимации
-- [ ] Двойной клик Spin заблокирован
-- [ ] `lib/game/slot_config.dart` содержит все настраиваемые значения
+**Critical gambling requirements:**
+- [ ] `lib/systems/weighted_rng.dart` uses `Random.secure()`
+- [ ] No `math.Random()` in production code
+- [ ] No hardcoded probabilities
+- [ ] `GameState` is a sealed class (not boolean flags)
+- [ ] The spin result is computed before the animation
+- [ ] Double-clicking Spin is blocked
+- [ ] `lib/game/slot_config.dart` contains every tunable value
 
-**Архитектура Flame 1.18.x:**
-- [ ] `HasCollisionDetection` на `World` (не `FlameGame`)
-- [ ] `CameraComponent(world: world)` — новый API
+**Flame 1.18.x architecture:**
+- [ ] `HasCollisionDetection` on the `World` (not on `FlameGame`)
+- [ ] `CameraComponent(world: world)` — the new API
 
-**Базовые требования кода:**
-- [ ] `dart analyze` — 0 ошибок
-- [ ] `flutter test` — все тесты зелёные
-- [ ] Нет `print()` в production коде
+**Baseline code requirements:**
+- [ ] `dart analyze` — 0 errors
+- [ ] `flutter test` — every test green
+- [ ] No `print()` in production code
+- [ ] Every player-facing string is in English (or in the language the user explicitly requested)
 
 ### gate-check qa → release
-Проверяет готовность к релизу:
+Checks readiness for release:
 
-**RTP и математика:**
-- [ ] `/balance-check` запущен с 1М+ спинов
-- [ ] Simulated RTP в диапазоне 95.0–97.0%
-- [ ] Hit rate в диапазоне 20–40%
-- [ ] Нет infinite win loop (>1000 Free Spins подряд невозможно)
+**RTP and mathematics:**
+- [ ] `/balance-check` has been run with 1M+ spins
+- [ ] The simulated RTP is within 95.0–97.0%
+- [ ] The hit rate is within 20–40%
+- [ ] No infinite win loop (>1000 free spins in a row is impossible)
 
-**Тестовое покрытие:**
-- [ ] `weighted_rng` — дистрибуционный тест есть
-- [ ] `payline_evaluator` — все комбинации протестированы
-- [ ] Edge case: баланс = 0 → спин заблокирован
-- [ ] Edge case: двойной клик не запускает 2 спина
-- [ ] 100 спинов без state leakage
+**Test coverage:**
+- [ ] `weighted_rng` — a distribution test exists
+- [ ] `payline_evaluator` — every combination is tested
+- [ ] Edge case: balance = 0 → the spin is blocked
+- [ ] Edge case: a double click does not start 2 spins
+- [ ] 100 spins with no state leakage
 
-**UX и визуал:**
-- [ ] Win оверлей показывается корректно
-- [ ] Анимации барабанов < 3 секунд
-- [ ] Партикли не превышают 200 одновременно
-- [ ] Нет артефактов после Free Spins
+**UX and visuals:**
+- [ ] The win overlay displays correctly
+- [ ] Reel animations are under 3 seconds
+- [ ] Particles never exceed 200 at once
+- [ ] No artefacts after free spins
 
-**Сборка:**
-- [ ] `flutter build apk --release` — успешно
-- [ ] Нет debug ассертов в release
+**Build:**
+- [ ] `flutter build apk --release` — succeeds
+- [ ] No debug asserts in the release
 
-## Формат вывода
+## Output format
 
 ```
 🔍 Gate Check: [concept|design|code|qa|release]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✅ Выполнено (N/M):
-   ✅ rtp-config.json существует и валиден
-   ✅ Random.secure() используется
+✅ Done (N/M):
+   ✅ rtp-config.json exists and is valid
+   ✅ Random.secure() is used
 
-❌ Блокеры (N):
-   ❌ GDD отсутствует секция "Edge Cases"
-   ❌ Simulated RTP = 94.2% (ниже 95%)
+❌ Blockers (N):
+   ❌ The GDD is missing its "Edge Cases" section
+   ❌ Simulated RTP = 94.2% (below 95%)
 
-⚠️  Замечания (N):
-   ⚠️  Нет теста на двойной клик
+⚠️  Observations (N):
+   ⚠️  No test for the double click
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Вердикт: FAIL ← NEEDS WORK ← PASS
+Verdict: FAIL ← NEEDS WORK ← PASS
          ^^^
-Причина: Simulated RTP вне допустимого диапазона.
-Следующий шаг: Вызовите game-mathematician для корректировки весов.
+Reason: the simulated RTP is outside the permitted range.
+Next step: call game-mathematician to adjust the weights.
 ```
 
-## Аргументы
+## Arguments
 
-- `concept` — ворота концепт→дизайн
-- `design` — ворота дизайн→код
-- `code` — ворота код→QA
-- `qa` — ворота QA→релиз
-- `release` — финальные ворота перед деплоем
-- Без аргументов — автоопределение текущего этапа
+- `concept` — the concept→design gate
+- `design` — the design→code gate
+- `code` — the code→QA gate
+- `qa` — the QA→release gate
+- `release` — the final gate before deployment
+- No argument — auto-detect the current stage

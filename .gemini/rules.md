@@ -8,7 +8,11 @@ Six gambling categories (no other genres):
   C5 Casino Roguelike     — poker deckbuilder, reel roguelike, dice-builder     → model M5 (run win-rate)
   C6 Coin Pusher & Plinko — coin dozer, plinko, pachinko                        → model M6 (physics RTP)
 
-Respond in Russian. Write code in English (Dart/Flutter).
+Respond in English. Everything you produce is English: code (Dart/Flutter), design docs and
+reports. The GAME itself also ships in English — every player-facing string, plus store
+metadata. The only exception is an explicit user request for another language: then the
+player-facing copy uses that language and everything else stays English. Never switch the
+game's language on your own initiative or because of the language the user types in.
 
 BEFORE writing any code, read the relevant rule files in `.claude/rules/` and `.claude/docs/` (the studio ground truth):
 - Categories & archetypes: .claude/docs/gambling-categories.md

@@ -5,14 +5,14 @@ globs: ["lib/screens/**/*.dart", "lib/widgets/**/*.dart", "lib/ui/**/*.dart", "l
 
 # UI Code Rules — Flutter Screens, Widgets & HUD
 
-## 1. Разделение состояния UI и игры
+## 1. Separating UI state from game state
 
-- **НИКОГДА** не хранить игровое состояние (баланс, ставка, текущий спин) в Flutter виджетах
-- Flutter UI только **читает** состояние через `ValueNotifier` или `Stream`
-- Игровая логика живёт в Flame компонентах, UI — только отображает
+- **NEVER** store game state (balance, bet, the current spin) in Flutter widgets
+- The Flutter UI only **reads** state, through a `ValueNotifier` or a `Stream`
+- Game logic lives in Flame components; the UI only displays it
 
 ```dart
-// ✅ ПРАВИЛЬНО — HUD читает через ValueNotifier
+// ✅ CORRECT — the HUD reads through a ValueNotifier
 class HudWidget extends StatelessWidget {
   final ValueNotifier<int> balance;
   final ValueNotifier<int> bet;
@@ -26,29 +26,29 @@ class HudWidget extends StatelessWidget {
   });
 }
 
-// ❌ ЗАПРЕЩЕНО — HUD сам управляет балансом
+// ❌ FORBIDDEN — the HUD manages the balance itself
 class HudWidget extends StatefulWidget {
-  int _balance = 1000; // Нельзя!
-  void _onWin(int amount) => setState(() => _balance += amount); // Нельзя!
+  int _balance = 1000; // Not allowed!
+  void _onWin(int amount) => setState(() => _balance += amount); // Not allowed!
 }
 ```
 
 ---
 
-## 2. КРАШ-БЕЗОПАСНОСТЬ (Critical — нарушение = гарантированный краш)
+## 2. CRASH SAFETY (critical — a violation means a guaranteed crash)
 
-### 2.1 RenderFlex Overflow — САМАЯ ЧАСТАЯ ОШИБКА
+### 2.1 RenderFlex overflow — THE MOST COMMON ERROR
 
 ```dart
-// ❌ КРАШ: "A RenderFlex overflowed by 42 pixels on the bottom"
+// ❌ CRASH: "A RenderFlex overflowed by 42 pixels on the bottom"
 Column(
   children: [
     Text('Header'),
-    ListView.builder(itemCount: 100, itemBuilder: ...), // Неограниченная высота!
+    ListView.builder(itemCount: 100, itemBuilder: ...), // Unbounded height!
   ],
 )
 
-// ✅ БЕЗОПАСНО: ListView ограничен через Expanded
+// ✅ SAFE: the ListView is bounded by Expanded
 Column(
   children: [
     Text('Header'),
@@ -59,32 +59,32 @@ Column(
 )
 ```
 
-**Правило**: Каждый скролл-виджет (`ListView`, `GridView`, `SingleChildScrollView`)
-внутри `Column` или `Row` ОБЯЗАН быть обёрнут в `Expanded` или `Flexible`.
+**Rule**: every scrolling widget (`ListView`, `GridView`, `SingleChildScrollView`) inside a
+`Column` or `Row` MUST be wrapped in `Expanded` or `Flexible`.
 
-### 2.2 setState после dispose
+### 2.2 setState after dispose
 
 ```dart
-// ❌ КРАШ: "setState() called after dispose()"
+// ❌ CRASH: "setState() called after dispose()"
 class _MyState extends State<MyWidget> {
   void _onDataLoaded(data) {
-    setState(() { _data = data; }); // Widget может быть уже disposed!
+    setState(() { _data = data; }); // The widget may already be disposed!
   }
 }
 
-// ✅ БЕЗОПАСНО: проверка mounted
+// ✅ SAFE: check mounted
 class _MyState extends State<MyWidget> {
   void _onDataLoaded(data) {
-    if (!mounted) return; // ОБЯЗАТЕЛЬНО перед каждым setState в callback/Future/Timer
+    if (!mounted) return; // MANDATORY before every setState in a callback/Future/Timer
     setState(() { _data = data; });
   }
 }
 ```
 
-**Правило**: КАЖДЫЙ `setState` внутри `Future.then()`, `Timer`, `StreamSubscription.listen()`,
-`.whenComplete()` или любого async callback ОБЯЗАН иметь `if (!mounted) return;` перед ним.
+**Rule**: EVERY `setState` inside `Future.then()`, `Timer`, `StreamSubscription.listen()`,
+`.whenComplete()` or any async callback MUST be preceded by `if (!mounted) return;`.
 
-### 2.3 Dispose всех ресурсов
+### 2.3 Dispose every resource
 
 ```dart
 // ❌ MEMORY LEAK + CRASH:
@@ -94,10 +94,10 @@ class _MyState extends State<MyWidget> with SingleTickerProviderStateMixin {
   late final StreamSubscription _sub = someStream.listen((_) { ... });
   final _scrollCtrl = ScrollController();
   final _textCtrl = TextEditingController();
-  // Нет dispose()! → memory leak → crash при обращении к disposed controller
+  // No dispose()! → memory leak → crash when touching a disposed controller
 }
 
-// ✅ БЕЗОПАСНО: всё освобождается
+// ✅ SAFE: everything is released
 class _MyState extends State<MyWidget> with SingleTickerProviderStateMixin {
   late final AnimationController _animCtrl;
   Timer? _timer;
@@ -125,47 +125,47 @@ class _MyState extends State<MyWidget> with SingleTickerProviderStateMixin {
 }
 ```
 
-**Правило**: Каждый `AnimationController`, `Timer`, `StreamSubscription`, `ScrollController`,
-`TextEditingController`, `FocusNode` ОБЯЗАН быть disposed/cancelled в `dispose()`.
-Используй nullable типы (`Timer?`) для безопасности.
+**Rule**: every `AnimationController`, `Timer`, `StreamSubscription`, `ScrollController`,
+`TextEditingController` and `FocusNode` MUST be disposed or cancelled in `dispose()`.
+Use nullable types (`Timer?`) for safety.
 
-### 2.4 Отсутствующие ассеты
+### 2.4 Missing assets
 
 ```dart
-// ❌ КРАШ: "Unable to load asset: assets/images/sprites/missing.svg"
+// ❌ CRASH: "Unable to load asset: assets/images/sprites/missing.svg"
 SvgPicture.asset('assets/images/sprites/missing.svg')
 
-// ✅ БЕЗОПАСНО: путь из constants + файл гарантированно существует
+// ✅ SAFE: the path comes from constants and the file is guaranteed to exist
 SvgPicture.asset(
-  GameAssets.spriteCherry, // Из lib/assets.dart — проверено при сборке
+  GameAssets.spriteCherry, // From lib/assets.dart — verified at build time
   width: 64,
   height: 64,
   placeholderBuilder: (_) => SizedBox(width: 64, height: 64), // fallback
 )
 ```
 
-**Правило**: Все пути ассетов — через constants в `lib/assets.dart`.
-Для SVG/Image: всегда указывай `width` и `height`.
-Для необязательных ассетов: используй `placeholderBuilder` или `errorBuilder`.
+**Rule**: all asset paths go through constants in `lib/assets.dart`.
+For SVG/Image: always specify `width` and `height`.
+For optional assets: use `placeholderBuilder` or `errorBuilder`.
 
 ### 2.5 Navigator safety
 
 ```dart
-// ❌ КРАШ: "Navigator.pop called on empty stack"
+// ❌ CRASH: "Navigator.pop called on empty stack"
 Navigator.pop(context);
 
-// ✅ БЕЗОПАСНО
+// ✅ SAFE
 if (Navigator.canPop(context)) {
   Navigator.pop(context);
 } else {
   Navigator.pushReplacementNamed(context, '/menu');
 }
 
-// ❌ КРАШ: "Could not find a generator for route /unknown"
+// ❌ CRASH: "Could not find a generator for route /unknown"
 Navigator.pushNamed(context, '/unknown');
 
-// ✅ БЕЗОПАСНО: все маршруты определены в app.dart
-// И для безопасности добавить onUnknownRoute:
+// ✅ SAFE: every route is declared in app.dart
+// And, for safety, add onUnknownRoute:
 MaterialApp(
   routes: { '/menu': (_) => MainMenu(), '/game': (_) => GameScreen(), ... },
   onUnknownRoute: (settings) => MaterialPageRoute(builder: (_) => MainMenu()),
@@ -174,12 +174,12 @@ MaterialApp(
 
 ---
 
-## 3. LAYOUT БЕЗОПАСНОСТЬ (High — нарушение = визуальный баг)
+## 3. LAYOUT SAFETY (high — a violation means a visual bug)
 
-### 3.1 SafeArea на КАЖДОМ корневом экране
+### 3.1 SafeArea on EVERY root screen
 
 ```dart
-// ❌ Контент уходит под notch / status bar
+// ❌ Content slides under the notch / status bar
 @override
 Widget build(BuildContext context) {
   return Scaffold(
@@ -187,7 +187,7 @@ Widget build(BuildContext context) {
   );
 }
 
-// ✅ SafeArea защищает от notch / status bar / navigation bar
+// ✅ SafeArea protects against the notch / status bar / navigation bar
 @override
 Widget build(BuildContext context) {
   return Scaffold(
@@ -198,32 +198,33 @@ Widget build(BuildContext context) {
 }
 ```
 
-**Исключение**: Game Screen с Flame GameWidget — SafeArea НЕ нужна (игра fullscreen).
+**Exception**: the game screen with the Flame GameWidget — SafeArea is NOT needed there
+(the game is fullscreen).
 
-### 3.2 Текст ВСЕГДА с overflow handling
+### 3.2 Text ALWAYS handles overflow
 
 ```dart
-// ❌ Текст выходит за экран — жёлтые полосы overflow
+// ❌ The text runs off the screen — yellow overflow stripes
 Text(longPlayerName)
 
-// ✅ Текст обрезается или масштабируется
+// ✅ The text is clipped or scaled
 Text(longPlayerName, overflow: TextOverflow.ellipsis, maxLines: 1)
-// или
+// or
 FittedBox(fit: BoxFit.scaleDown, child: Text(longPlayerName))
-// или
+// or
 Flexible(child: Text(longPlayerName, overflow: TextOverflow.ellipsis))
 ```
 
-**Правило**: Каждый `Text` с динамическим содержимым (не hardcoded строка) ОБЯЗАН иметь
-`overflow:` + `maxLines:`, или быть внутри `FittedBox`, или внутри `Flexible`/`Expanded`.
+**Rule**: every `Text` with dynamic content (not a hardcoded string) MUST have `overflow:`
+plus `maxLines:`, or sit inside a `FittedBox`, or inside a `Flexible`/`Expanded`.
 
-### 3.3 Responsive design — нет фиксированных px для layout
+### 3.3 Responsive design — no fixed pixels for layout
 
 ```dart
-// ❌ На маленьком экране — overflow, на большом — пустота
+// ❌ Overflow on a small screen, empty space on a large one
 Container(width: 400, height: 600, child: ...)
 
-// ✅ Адаптивный layout
+// ✅ Adaptive layout
 LayoutBuilder(
   builder: (context, constraints) {
     final width = constraints.maxWidth;
@@ -235,86 +236,87 @@ LayoutBuilder(
   },
 )
 
-// ✅ Или через MediaQuery для процентных размеров
+// ✅ Or MediaQuery for percentage sizes
 final size = MediaQuery.of(context).size;
 Container(width: size.width * 0.9, height: size.height * 0.7)
 ```
 
-**Правило**: Фиксированные пиксели допустимы ТОЛЬКО для:
-- Иконки и кнопки (32-64px)
-- Padding (8-24px)
-- Border/shadow (1-4px)
-- Font size (12-48sp)
+**Rule**: fixed pixels are acceptable ONLY for:
+- Icons and buttons (32–64px)
+- Padding (8–24px)
+- Border/shadow (1–4px)
+- Font size (12–48sp)
 
-Всё остальное — через `MediaQuery`, `LayoutBuilder`, `Expanded`, `Flexible`, `FractionallySizedBox`.
+Everything else goes through `MediaQuery`, `LayoutBuilder`, `Expanded`, `Flexible` or
+`FractionallySizedBox`.
 
-### 3.4 SingleChildScrollView + Column (правильный паттерн)
+### 3.4 SingleChildScrollView + Column (the correct pattern)
 
 ```dart
-// ❌ КРАШ: Expanded внутри unbounded scrollview
+// ❌ CRASH: Expanded inside an unbounded scroll view
 SingleChildScrollView(
   child: Column(
     children: [
-      Expanded(child: Widget()), // Expanded не работает в scroll!
+      Expanded(child: Widget()), // Expanded does not work inside a scroll!
     ],
   ),
 )
 
-// ✅ БЕЗОПАСНО: без Expanded внутри scroll
+// ✅ SAFE: no Expanded inside the scroll
 SingleChildScrollView(
   child: Column(
     children: [
-      SizedBox(height: 200, child: Widget()), // Фиксированный или intrinsic размер
+      SizedBox(height: 200, child: Widget()), // Fixed or intrinsic size
       Widget(), // Intrinsic size
     ],
   ),
 )
 ```
 
-### 3.5 Image / SVG с размерами
+### 3.5 Image / SVG with dimensions
 
 ```dart
-// ❌ Изображение растягивается на весь экран
+// ❌ The image stretches across the whole screen
 Image.asset('assets/images/ui/button.png')
 SvgPicture.asset('assets/images/sprites/cherry.svg')
 
-// ✅ Размеры заданы
+// ✅ Dimensions are given
 Image.asset('assets/images/ui/button.png', width: 120, height: 48, fit: BoxFit.contain)
 SvgPicture.asset('assets/images/sprites/cherry.svg', width: 64, height: 64)
 ```
 
 ---
 
-## 4. НАВИГАЦИЯ
+## 4. NAVIGATION
 
-### 4.1 Splash → Menu: pushReplacement, не push
+### 4.1 Splash → Menu: pushReplacement, not push
 
 ```dart
-// ❌ Splash остаётся в стеке — кнопка "назад" ведёт на splash
+// ❌ The splash stays on the stack — "back" returns to the splash
 Navigator.pushNamed(context, '/menu');
 
-// ✅ Splash заменяется
+// ✅ The splash is replaced
 Navigator.pushReplacementNamed(context, '/menu');
 ```
 
-### 4.2 Back button на каждом экране
+### 4.2 A back action on every screen
 
 ```dart
-// ❌ Кнопка "назад" закрывает приложение
+// ❌ "Back" closes the app
 @override
 Widget build(BuildContext context) {
   return Scaffold(body: ...);
 }
 
-// ✅ Кнопка "назад" возвращает на предыдущий экран (или подтверждение выхода)
+// ✅ "Back" returns to the previous screen (or asks for confirmation)
 @override
 Widget build(BuildContext context) {
   return PopScope(
     canPop: false,
     onPopInvokedWithResult: (didPop, _) {
       if (didPop) return;
-      // Для Game Screen: показать "Выйти из игры?"
-      // Для других: Navigator.pop(context)
+      // For the game screen: show "Quit the game?"
+      // For the others: Navigator.pop(context)
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
@@ -324,18 +326,18 @@ Widget build(BuildContext context) {
 }
 ```
 
-### 4.3 Все маршруты определены
+### 4.3 Every route is declared
 
-В `app.dart` ВСЕ используемые маршруты ОБЯЗАНЫ быть в `routes:` map.
-Добавь `onUnknownRoute:` как fallback.
+In `app.dart`, EVERY route used MUST be in the `routes:` map.
+Add `onUnknownRoute:` as a fallback.
 
-### 4.4 Flame Overlays lifecycle
+### 4.4 Flame overlay lifecycle
 
 ```dart
-// ❌ Оверлей висит навсегда
+// ❌ The overlay hangs around forever
 game.overlays.add('win');
 
-// ✅ Оверлей автоматически закрывается
+// ✅ The overlay closes itself
 game.overlays.add('win');
 Future.delayed(Duration(seconds: 3), () {
   if (game.overlays.isActive('win')) {
@@ -346,9 +348,9 @@ Future.delayed(Duration(seconds: 3), () {
 
 ---
 
-## 5. КНОПКИ И ВЗАИМОДЕЙСТВИЕ
+## 5. BUTTONS AND INTERACTION
 
-### 5.1 Кнопка действия (Spin / Play) — ПОЛНЫЙ ПАТТЕРН
+### 5.1 The action button (Spin / Play) — THE COMPLETE PATTERN
 
 ```dart
 class ActionButton extends StatefulWidget {
@@ -403,7 +405,7 @@ class _ActionButtonState extends State<ActionButton> with SingleTickerProviderSt
       valueListenable: widget.isPlaying,
       builder: (_, isPlaying, child) {
         return AnimatedOpacity(
-          opacity: isPlaying ? 0.5 : 1.0, // Визуальный disabled
+          opacity: isPlaying ? 0.5 : 1.0, // Visual disabled state
           duration: const Duration(milliseconds: 200),
           child: ScaleTransition(
             scale: _scaleAnim,
@@ -420,20 +422,20 @@ class _ActionButtonState extends State<ActionButton> with SingleTickerProviderSt
 }
 ```
 
-**Правило**: Кнопка действия ОБЯЗАНА иметь:
-1. Debounce 300ms
-2. isPlaying check
-3. Визуальный disabled state (opacity / color change)
-4. Press animation (scale / glow)
-5. ValueListenableBuilder для реактивности
+**Rule**: the action button MUST have:
+1. A 300 ms debounce
+2. An isPlaying check
+3. A visual disabled state (opacity / colour change)
+4. A press animation (scale / glow)
+5. A ValueListenableBuilder for reactivity
 
-### 5.2 Bet +/- — блокировка во время действия
+### 5.2 Bet +/- — locked while the round runs
 
 ```dart
-// ❌ Ставку можно менять во время спина
+// ❌ The bet can be changed mid-spin
 ElevatedButton(onPressed: () => bet.value++, child: Text('+'))
 
-// ✅ Ставка блокируется
+// ✅ The bet is locked
 ValueListenableBuilder<bool>(
   valueListenable: isSpinning,
   builder: (_, spinning, __) {
@@ -462,13 +464,13 @@ ValueListenableBuilder<bool>(
 )
 ```
 
-### 5.3 Tap target минимум 48x48
+### 5.3 Tap targets at least 48x48
 
 ```dart
-// ❌ Слишком маленькая кнопка — 24x24
+// ❌ Too small a button — 24x24
 Icon(Icons.settings, size: 24)
 
-// ✅ Tap target 48x48, иконка 24x24
+// ✅ A 48x48 tap target with a 24x24 icon
 SizedBox(
   width: 48, height: 48,
   child: IconButton(
@@ -478,16 +480,16 @@ SizedBox(
 )
 ```
 
-### 5.4 Каждая кнопка с обратной связью
+### 5.4 Every button gives feedback
 
 ```dart
-// ❌ "Мёртвая" кнопка — нет визуальной реакции
+// ❌ A "dead" button — no visual reaction
 GestureDetector(
   onTap: doSomething,
   child: Container(child: Text('TAP')),
 )
 
-// ✅ Кнопка с press feedback
+// ✅ A button with press feedback
 GestureDetector(
   onTapDown: (_) => setState(() => _pressed = true),
   onTapUp: (_) => setState(() => _pressed = false),
@@ -503,37 +505,37 @@ GestureDetector(
 
 ---
 
-## 6. ОВЕРЛЕИ ВЫИГРЫШЕЙ
+## 6. WIN OVERLAYS
 
-- Win overlay появляется ПОСЛЕ завершения анимации
-- Длительность: Small 2s, Big 3s, Mega 4s
-- Auto-dismiss по таймеру + tap-to-dismiss
-- 3 уровня:
-  - Small: < 5x ставки — toast снизу, AnimatedCounter, confetti
-  - Big: 5-20x ставки — полуэкранный, burst particles, fanfare
-  - Mega: > 20x ставки — fullscreen, explosion, camera shake, epic music
-- Баланс обновляется AnimatedCounter (не прыжком)
-- Оверлей НЕ блокирует кнопку "назад"
+- The win overlay appears AFTER the animation finishes
+- Duration: small 2 s, big 3 s, mega 4 s
+- Auto-dismiss on a timer, plus tap-to-dismiss
+- 3 tiers:
+  - Small: < 5x the bet — a toast at the bottom, AnimatedCounter, confetti
+  - Big: 5–20x the bet — half-screen, burst particles, fanfare
+  - Mega: > 20x the bet — fullscreen, explosion, camera shake, epic music
+- The balance updates with an AnimatedCounter (never a jump)
+- The overlay does NOT block the back action
 
 ---
 
 ## 7. PERSISTENCE (SharedPreferences)
 
-Обязательно сохранять:
+Must be saved:
 - Settings: sound on/off, sfx on/off, vibration on/off
 - Profile: nickname, avatar index
 - Leaderboard: top 10 scores
-- Daily Bonus: дата последнего получения
-- High Score: лучший результат
+- Daily bonus: the date it was last claimed
+- High score: the best result
 
-**Паттерн**: try-catch вокруг КАЖДОГО SharedPreferences вызова:
+**Pattern**: a try-catch around EVERY SharedPreferences call:
 ```dart
 Future<int> getHighScore() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt('high_score') ?? 0;
   } catch (_) {
-    return 0; // Безопасный fallback
+    return 0; // Safe fallback
   }
 }
 ```
@@ -542,27 +544,29 @@ Future<int> getHighScore() async {
 
 ## 8. ACCESSIBILITY
 
-- Кнопка действия: `Semantics(label: 'Начать игру')`
-- Баланс/счёт: `Semantics(value: '$balance монет')`
-- Текст минимум 14sp на мобильных
-- Контраст текста к фону минимум 4.5:1
-- Все интерактивные элементы минимум 48x48
+- The action button: `Semantics(label: 'Start the game')`
+- Balance/score: `Semantics(value: '$balance coins')`
+- Text at least 14sp on mobile
+- Text contrast against the background at least 4.5:1
+- Every interactive element at least 48x48
 
 ---
 
-## 9. ЗАПРЕЩЁННЫЕ ПАТТЕРНЫ
+## 9. FORBIDDEN PATTERNS
 
-1. **`setState()`** для обновления игрового состояния — только `ValueNotifier`
-2. **`setState` без `mounted` check** в async контексте — гарантированный краш
-3. **`BuildContext` в Flame компонентах** — передай колбэк при инициализации
-4. **Анимации UI длиннее 500мс** — замедляют восприятие результата
-5. **Фиксированные размеры без `MediaQuery`** для layout — используй `LayoutBuilder`
-6. **`ListView` в `Column` без `Expanded`** — краш "unbounded height"
-7. **`Expanded` в `SingleChildScrollView`** — Expanded не работает в scroll
-8. **`Navigator.pop` без `canPop` check** — краш на пустом стеке
-9. **AnimationController без `dispose()`** — memory leak
-10. **Timer без `cancel()` в `dispose()`** — callback на disposed widget
-11. **Image/SVG без width/height** — непредсказуемый размер
-12. **Text без overflow handling** на динамическом содержимом
-13. **GestureDetector без visual feedback** — "мёртвая" кнопка
-14. **`print()` в production** — использовать `debugPrint` или `Logger`
+1. **`setState()`** for updating game state — use `ValueNotifier` only
+2. **`setState` without a `mounted` check** in an async context — a guaranteed crash
+3. **`BuildContext` in Flame components** — pass a callback at initialisation
+4. **UI animations longer than 500 ms** — they slow down the perception of the result
+5. **Fixed sizes without `MediaQuery`** for layout — use `LayoutBuilder`
+6. **`ListView` inside `Column` without `Expanded`** — an "unbounded height" crash
+7. **`Expanded` inside `SingleChildScrollView`** — Expanded does not work in a scroll
+8. **`Navigator.pop` without a `canPop` check** — a crash on an empty stack
+9. **An AnimationController without `dispose()`** — a memory leak
+10. **A Timer without `cancel()` in `dispose()`** — a callback on a disposed widget
+11. **Image/SVG without width/height** — unpredictable sizing
+12. **Text without overflow handling** on dynamic content
+13. **A GestureDetector without visual feedback** — a "dead" button
+14. **`print()` in production** — use `debugPrint` or `Logger`
+15. **Player-facing strings in a language other than English**, unless the user explicitly
+    asked for a different language — see CLAUDE.md → Language

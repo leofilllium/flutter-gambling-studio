@@ -1,16 +1,16 @@
-# Управление контекстом — Flutter Game Studio
+# Context management — Flutter Game Studio
 
-Контекст — критический ресурс в сессии. Управляй им активно.
+Context is a critical resource in a session. Manage it actively.
 
-## Файл-backed состояние (основная стратегия)
+## File-backed state (the main strategy)
 
-**Файл — это память, не разговор.** Разговоры эфемерны и будут сжаты или потеряны.
-Файлы на диске сохраняются между сжатиями и перезапусками.
+**The file is the memory, not the conversation.** Conversations are ephemeral and will be
+compacted or lost. Files on disk survive compaction and restarts.
 
-### Session State файл
+### The session state file
 
-Поддерживай `production/session-state/active.md` как живой чекпоинт.
-Обновляй после каждого значимого этапа.
+Keep `production/session-state/active.md` as a living checkpoint.
+Update it after every meaningful step.
 
 ```markdown
 <!-- STATUS -->
@@ -19,113 +19,115 @@ Feature: Payline System
 Task: Implement 5-line evaluator
 <!-- /STATUS -->
 
-## Текущая задача
-[Описание чего делаем]
+## Current task
+[What we are doing]
 
-## Прогресс
-- [x] GDD создан
+## Progress
+- [x] GDD written
 - [x] rtp-config.json → RTP 96.1%
-- [ ] Payline evaluator — в процессе
-- [ ] Тесты payline
-- [ ] Win анимация
+- [ ] Payline evaluator — in progress
+- [ ] Payline tests
+- [ ] Win animation
 
-## Ключевые решения
-- Используется sealed class GameState (ADR-001)
-- RNG: Random.secure() через WeightedRNG singleton
-- 5 paylines (горизонтальные + диагональные)
+## Key decisions
+- Using a sealed class GameState (ADR-001)
+- RNG: Random.secure() through a WeightedRNG singleton
+- 5 paylines (horizontal + diagonal)
 
-## Файлы в работе
+## Files in flight
 - lib/systems/payline_evaluator.dart
 - test/systems/payline_evaluator_test.dart
 - design/gdd/payline-system.md
 
-## Открытые вопросы
-- Нужно ли учитывать Wild в диагональных линиях?
+## Open questions
+- Should Wild count on the diagonal lines?
 
-## Последнее сжатие
-[дата и время — обновляется автоматически хуком]
+## Last compaction
+[date and time — updated automatically by the hook]
 ```
 
-### Инкрементальное написание документов
+### Writing documents incrementally
 
-Когда создаёшь GDD или ADR (многосекционные документы):
-1. Создай файл сразу со всеми заголовками (пустые)
-2. Обсуждай и пиши одну секцию за раз
-3. Записывай каждую секцию в файл после одобрения
-4. Обновляй `active.md` после каждой секции
-5. Предыдущие обсуждения секций можно смело сжимать — решения в файле
+When creating a GDD or an ADR (multi-section documents):
+1. Create the file immediately with all the headings (empty)
+2. Discuss and write one section at a time
+3. Write each section to the file once it is approved
+4. Update `active.md` after every section
+5. Earlier discussion of finished sections can safely be compacted — the decisions are in the file
 
-### После любого сбоя (сжатие, краш)
+### After any failure (compaction, crash)
 
-1. Хук `session-start.sh` автоматически покажет `active.md`
-2. Прочитай полный state файл для восстановления контекста
-3. Прочитай файлы которые были в работе
-4. Продолжай с незавершённой задачи
+1. The `session-start.sh` hook automatically shows `active.md`
+2. Read the full state file to restore context
+3. Read the files that were in flight
+4. Continue from the unfinished task
 
-## Проактивное сжатие
+## Proactive compaction
 
-- Сжимай проактивно при ~60-70% использования контекста
-- Используй `/clear` между несвязанными задачами
-- Естественные точки сжатия: после записи секции в файл, после коммита, после завершения задачи
+- Compact proactively at around 60–70% context usage
+- Use `/clear` between unrelated tasks
+- Natural compaction points: after writing a section to a file, after a commit, after
+  finishing a task
 
 ```
-/compact Сосредоточься на [текущая задача] — секции 1-3 записаны в файл, работаем над секцией 4
+/compact Focus on [current task] — sections 1-3 are written to the file, we are on section 4
 ```
 
-## Бюджеты контекста по типу задачи
+## Context budgets by task type
 
-| Задача | Бюджет | Примечания |
-|--------|--------|-----------|
-| Чтение/обзор GDD | ~3k tokens | Быстрое чтение |
-| Реализация одного компонента | ~8k tokens | Прочитай файлы + напиши |
-| Рефакторинг нескольких файлов | ~15k tokens | Анализ + изменения |
-| Полный /autocreate конвейер | ~40k tokens | Много параллельных задач |
+| Task | Budget | Notes |
+|------|--------|-------|
+| Reading/reviewing a GDD | ~3k tokens | A quick read |
+| Implementing one component | ~8k tokens | Read the files + write |
+| Refactoring several files | ~15k tokens | Analysis + changes |
+| A full /autocreate pipeline | ~40k tokens | Many parallel tasks |
 
-## Делегация подагентам
+## Delegating to sub-agents
 
-Используй субагентов для защиты основного контекста:
-- Для исследования по множеству файлов → субагент Explore
-- Для глубокого анализа → субагент Plan
-- Для ревью кода → `/code-review` (использует несколько агентов)
-- Субагенты получают полный контекст в промпте — они не наследуют историю разговора
+Use sub-agents to protect the main context:
+- Research across many files → an Explore sub-agent
+- Deep analysis → a Plan sub-agent
+- Code review → `/code-review` (which uses several agents)
+- Sub-agents receive full context in the prompt — they do not inherit the conversation history
 
-## Game-специфичная стратегия
+## Game-specific strategy
 
-### Балансировка — быстрые циклы
+### Balancing — fast cycles
 
-Итерации баланса (параметры → симуляция → корректировка) повторяются много раз.
-Каждый цикл экономит контекст:
+Balance iterations (parameters → simulation → adjustment) repeat many times. Each cycle saves
+context:
 
-Цикл один и тот же во всех категориях — меняется только конфиг и модель:
+The cycle is the same in every category — only the config and the model change:
 
 ```bash
-# правим числа в JSON → прогоняем → читаем вердикт
+# edit the numbers in JSON → run → read the verdict
 python3 tools/simulate_math.py --model m1 --config design/balance/rtp-config.json --trials 100000
 ```
 
-| Категория | Что крутит `game-mathematician` | Модель |
-|-----------|--------------------------------|--------|
-| C1 | веса символов, выплаты в `rtp-config.json` | M1 |
-| C2 | house edge, формулу множителя, кап | M2 |
-| C3 | веса событий спина, цены анлоков, реген энергии | M3 |
-| C4 | base rates, soft/hard pity | M4 |
-| C5 | пороги раундов, силу модификаторов, доход | M5 |
-| C6 | множители корзин, геометрию поля | M6 |
+| Category | What `game-mathematician` turns | Model |
+|----------|--------------------------------|-------|
+| C1 | Symbol weights, payouts in `rtp-config.json` | M1 |
+| C2 | House edge, the multiplier formula, the cap | M2 |
+| C3 | Spin event weights, unlock prices, energy regen | M3 |
+| C4 | Base rates, soft/hard pity | M4 |
+| C5 | Round thresholds, modifier strength, income | M5 |
+| C6 | Bucket multipliers, board geometry | M6 |
 
-НЕ держи всю математику в разговоре. Она в файле — конфиг и отчёт переживут сжатие.
+Do NOT keep all the mathematics in the conversation. It lives in files — the config and the
+report survive compaction.
 
-### После /balance-check
+### After /balance-check
 
-Результат симуляции/анализа записывается в `design/balance/simulation-report.md`.
-Сжимай контекст после — все решения в файле.
+The simulation/analysis result is written to `design/balance/simulation-report.md`.
+Compact the context afterwards — every decision is in the file.
 
-## Что сохранять при сжатии
+## What to preserve when compacting
 
-Сохрани в `active.md` перед сжатием:
-- Ссылка на `active.md` (прочитай для восстановления)
-- Список изменённых файлов и их назначение
-- Архитектурные решения и их обоснование
-- Текущая задача и следующий шаг
-- Незакрытые вопросы ожидающие ответа пользователя
-- Статус тестов (зелёные/красные)
-- Категория игры (C1–C6), её математическая модель (M1–M6) и последний вердикт прогона
+Save this to `active.md` before compacting:
+- A pointer to `active.md` (read it to restore)
+- The list of changed files and what each is for
+- Architectural decisions and their rationale
+- The current task and the next step
+- Open questions awaiting a user answer
+- Test status (green/red)
+- The game's category (C1–C6), its math model (M1–M6) and the latest run verdict

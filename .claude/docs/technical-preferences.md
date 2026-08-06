@@ -1,71 +1,75 @@
-# Технические стандарты Гемблинг-Студии
+# Technical standards of the Gambling Studio
 
 ## Flutter + Flame 1.18.x
 
-### Математика и RNG
+### Mathematics and RNG
 
-- **КРИТИЧЕСКИ**: НИКОГДА не используйте `math.Random()`. ТОЛЬКО `Random.secure()` для
-  любого исхода, влияющего на выплату:
-  - Выбор символов на барабанах, раздача карт, остановка колеса/шарика
-  - Точка краха в crash, расположение мин, бросок кости
-  - Тираж keno, вскрытие скретч-поля, выбор сундука
-  - Триггеры бонусных механик и pity-пуллы в gacha
-  - Стартовые условия физического запуска в plinko/пачинко
-- **Единственное исключение** — seeded-детерминизм забега в казино-рогаликах (категория C5,
-  модель M5): там `Random(seed)` обязателен, потому что забег должен воспроизводиться.
-  Исключение фиксируется в ADR, иначе `/code-review` считает его нарушением.
-- `Random()` допустим ТОЛЬКО для чисто визуальных элементов, не влияющих на исход
-  (разброс частиц, фазы idle-анимаций). Никогда — для игровой логики.
-- **Stateless Outcomes**: результат раунда вычисляется ДО начала анимации. Анимация просто
-  «проигрывает» предопределённый сценарий. Без этого RTP не верифицируем, а cash-out
-  в C2 математически некорректен.
-- **Balance Tuning**: все игровые параметры — в `game_config.dart`; числа математической
-  модели — в JSON-конфиге модели (`design/balance/*.json`), который читает
-  `tools/simulate_math.py`. Один источник правды, без дублирования между JSON и кодом.
+- **CRITICAL**: NEVER use `math.Random()`. ONLY `Random.secure()` for any outcome that
+  affects a payout:
+  - Picking symbols on the reels, dealing cards, stopping the wheel or the ball
+  - The crash point in crash, the placement of mines, a dice roll
+  - A keno draw, revealing a scratch field, choosing a chest
+  - Bonus mechanic triggers and pity pulls in gacha
+  - The starting conditions of a physical launch in plinko/pachinko
+- **The single exception** is seeded run determinism in casino roguelikes (category C5,
+  model M5): there `Random(seed)` is mandatory, because the run has to be reproducible.
+  The exception is recorded in an ADR, otherwise `/code-review` treats it as a violation.
+- `Random()` is acceptable ONLY for purely visual elements that do not affect the outcome
+  (particle scatter, idle animation phases). Never for game logic.
+- **Stateless outcomes**: the round result is computed BEFORE the animation starts. The
+  animation simply "plays back" a predetermined script. Without this the RTP is not
+  verifiable, and cash-out in C2 is mathematically incorrect.
+- **Balance tuning**: all game parameters live in `game_config.dart`; the math model's numbers
+  live in the model's JSON config (`design/balance/*.json`), which `tools/simulate_math.py`
+  reads. One source of truth, with no duplication between JSON and code.
 
 ### Flame API (1.18.x)
 
-- Наследуйте главный класс от `FlameGame`.
-- Коллизии всегда объявляем на `World`, а не на `FlameGame`:
+- Derive the main class from `FlameGame`.
+- Always declare collisions on the `World`, not on the `FlameGame`:
   `class GameWorld extends World with HasCollisionDetection {}`
-- Используйте обновленную `CameraComponent`:
+- Use the updated `CameraComponent`:
   `camera = CameraComponent(world: _world);`
-- Никаких `.isPaused = true`. Используйте `GameState` (sealed class: Idle, Playing, Paused, GameOver).
+- No `.isPaused = true`. Use `GameState` (a sealed class: Idle, Playing, Paused, GameOver).
 
-### Визуализаторы и Партикли
+### Visualisers and particles
 
-Для сочности раунда мы используем эффекты *ParticleSystemComponent*.
-- При ключевых событиях (выигрыш, near-miss, cash-out, редкий пулл, джекпот) спавните
-  тематические частицы:
+For the juiciness of a round we use *ParticleSystemComponent* effects.
+- On key events (a win, a near-miss, a cash-out, a rare pull, a jackpot) spawn thematic
+  particles:
   `ParticleSystemComponent(particle: Particle.generate(count: 50, generator: ...))`
-- Сила эффекта масштабируется значимостью события (см. quality-bar.md §3): малый выигрыш —
-  локальная вспышка, мега — fullscreen. Одинаковый фидбек на всё убивает «грамматику» игры.
-- Настройки эффекта (glow, drop shadow) реализуются через Flutter Overlay поверх Flame, так как во Flame сложные фильтры потребляют много ресурсов.
+- The strength of the effect scales with the significance of the event (see quality-bar.md §3):
+  a small win gets a local flash, a mega win gets fullscreen. Identical feedback for
+  everything kills the game's grammar.
+- Effect settings (glow, drop shadow) are implemented through a Flutter Overlay on top of
+  Flame, because complex filters inside Flame are expensive.
 
-### Звук
-- Используйте пакет `flame_audio` `^2.1.0`.
-- Ограничивайте параллельное звучание: максимум 3 накладывающихся звука (например: 1 BGM loop, 1 Action sound loop, 1 Effect Overlay).
-- Для нарастающих эффектов используйте pitch scaling: `playbackRate` 1.0 → 1.5.
+### Sound
+- Use the `flame_audio` package, `^2.1.0`.
+- Limit concurrent playback: at most 3 overlapping sounds (for example 1 BGM loop, 1 action
+  sound loop, 1 effect overlay).
+- For rising effects use pitch scaling: `playbackRate` 1.0 → 1.5.
 
-### Графические ассеты
-- Для `/autocreate` в Codex графика по умолчанию — **PNG через GPT Images 2.0**,
-  а если GPT Images 2.0 не сработал — повтор через **GPT Images / default Codex image generation**,
-  напрямую из концепта и Design DNA. Нельзя сначала генерировать SVG, а потом конвертировать
-  их в PNG: это теряет материал, свет, стиль и привязку к миру игры.
-- SVG остаётся fallback-режимом для не-Codex среды или явного `--svg`.
-- Выбранный формат фиксируется в `design/asset-format.md`.
-- Если `format: png`, UI использует `Image.asset(...)` и реальные `.png` пути.
-- Если `format: svg`, UI использует `SvgPicture.asset(...)` / `flame_svg`.
-- `/svg-to-png` предназначен только для legacy SVG или явного пользовательского запроса,
-  не как нормальный путь `/autocreate`.
-- Для простых PNG-ассетов prompt должен просить плоский ключевой фон (chroma key: по умолчанию
-  `pure magenta #FF00FF`, либо `pure green #00FF00`, если в палитре есть пурпур/розовый) без
-  теней/градиентов/сцены, затем фон вырезается через `python3 tools/cutout.py <файл> --type sprite`.
-  Белый фон запрещён у объектов со светлыми/белыми областями — они сливаются с фоном.
-  Ручной `magick -fuzz -transparent white` запрещён: рвёт альфу и оставляет ореол.
-  Для background-изображений фон не удаляется.
-- Паттерн наименования:
-  `background_X` (фоны)
-  `sprite_X` (игровые элементы: символы барабанов, карты, фишки, шары, мины, капсулы)
-  `ui_X` (кнопки, панели ставок, деки)
-  `icon_X` (значки, иконки интерфейса)
+### Graphical assets
+- For `/autocreate` under Codex the default graphics path is **PNG via GPT Images 2.0**, and
+  if GPT Images 2.0 fails, a retry through **GPT Images / the default Codex image generation**,
+  straight from the concept and Design DNA. Do not generate SVG first and convert it to PNG
+  afterwards: that loses the material, the light, the style and the tie to the game's world.
+- SVG remains the fallback mode for non-Codex environments or an explicit `--svg`.
+- The chosen format is recorded in `design/asset-format.md`.
+- If `format: png`, the UI uses `Image.asset(...)` and real `.png` paths.
+- If `format: svg`, the UI uses `SvgPicture.asset(...)` / `flame_svg`.
+- `/svg-to-png` exists only for legacy SVG or an explicit user request — it is not the normal
+  `/autocreate` path.
+- For simple PNG assets the prompt must ask for a flat key background (chroma key: by default
+  `pure magenta #FF00FF`, or `pure green #00FF00` if the palette contains magenta/pink) with no
+  shadows, gradients or scene, and the background is then cut out with
+  `python3 tools/cutout.py <file> --type sprite`.
+  A white background is forbidden for objects with light or white areas — they merge into it.
+  A manual `magick -fuzz -transparent white` is forbidden: it tears the alpha and leaves a halo.
+  For background images the background is not removed.
+- Naming pattern:
+  `background_X` (backgrounds)
+  `sprite_X` (game elements: reel symbols, cards, chips, balls, mines, capsules)
+  `ui_X` (buttons, bet panels, decks)
+  `icon_X` (badges, interface icons)

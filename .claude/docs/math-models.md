@@ -1,89 +1,89 @@
-# Математические модели — что и как верифицируется
+# Mathematical models — what is verified, and how
 
-> В гемблинг-студии математика — не «балансировка на глаз», а **проверяемый контракт**.
-> У каждой игры ровно одна объявленная математическая модель (из шести), один конфиг-файл
-> и один прогон симуляции, который либо проходит порог, либо блокирует релиз.
+> In a gambling studio the mathematics is not "balancing by eye" — it is a **verifiable
+> contract**. Every game has exactly one declared mathematical model (out of six), one config
+> file and one simulation run that either clears the threshold or blocks the release.
 >
-> Модель определяется категорией игры — см. `.claude/docs/gambling-categories.md`.
-> Владелец всех моделей — агент `game-mathematician`. Меняет их только он.
+> The model is determined by the game's category — see `.claude/docs/gambling-categories.md`.
+> The owner of every model is the `game-mathematician` agent. Only they change it.
 
-## Сводная таблица
+## Summary table
 
-| Модель | Категории | Конфиг | Симуляция | Порог PASS |
-|--------|-----------|--------|-----------|------------|
-| **M1 — Paytable RTP** | C1 | `design/balance/rtp-config.json` | 1 000 000 раундов | RTP 95–97%, hit rate 20–35% |
-| **M2 — Instant-Win RTP** | C2 | `design/balance/rtp-config.json` | 1 000 000 раундов | RTP 96–99%, множитель-кап соблюдён |
-| **M3 — Economy** | C3 | `design/balance/economy-config.json` | 10 000 сессий | Source/sink 0.9–1.15, пейс 2–5 сессий на анлок |
-| **M4 — Gacha** | C4 | `design/balance/gacha-config.json` | 1 000 000 пуллов | Эффективный rate = объявленному ±0.1 п.п., pity срабатывает 100% |
-| **M5 — Run Win-Rate** | C5 | `design/balance/run-config.json` | 100 000 забегов | Win-rate 25–40%, детерминизм по seed |
-| **M6 — Physics RTP** | C6 | `design/balance/physics-config.json` | 1 000 000 запусков | RTP 95–97%, воспроизводимость по seed |
+| Model | Categories | Config | Simulation | PASS threshold |
+|-------|-----------|--------|------------|----------------|
+| **M1 — Paytable RTP** | C1 | `design/balance/rtp-config.json` | 1,000,000 rounds | RTP 95–97%, hit rate 20–35% |
+| **M2 — Instant-Win RTP** | C2 | `design/balance/rtp-config.json` | 1,000,000 rounds | RTP 96–99%, multiplier cap respected |
+| **M3 — Economy** | C3 | `design/balance/economy-config.json` | 10,000 sessions | Source/sink 0.9–1.15, pace 2–5 sessions per unlock |
+| **M4 — Gacha** | C4 | `design/balance/gacha-config.json` | 1,000,000 pulls | Effective rate = declared ±0.1 pp, pity fires 100% |
+| **M5 — Run Win-Rate** | C5 | `design/balance/run-config.json` | 100,000 runs | Win-rate 25–40%, determinism by seed |
+| **M6 — Physics RTP** | C6 | `design/balance/physics-config.json` | 1,000,000 launches | RTP 95–97%, reproducible by seed |
 
-Запуск любой модели — один вход:
+Running any model takes one entry point:
 
 ```bash
 python3 tools/simulate_math.py --model m1 --config design/balance/rtp-config.json --trials 1000000
 ```
 
-Отчёт всегда пишется в `design/balance/simulation-report.md`.
+The report is always written to `design/balance/simulation-report.md`.
 
 ---
 
-## M1 — Paytable RTP (C1: слоты, покер, блэкджек, рулетка, бинго)
+## M1 — Paytable RTP (C1: slots, poker, blackjack, roulette, bingo)
 
-**Что проверяем.** Возврат игроку по полной таблице выплат при честных весах.
+**What we verify.** The return to player across the full payout table at honest weights.
 
-**Формула:**
+**Formula:**
 ```
-RTP = Σ(вероятность_комбинации × выплата_комбинации) / ставка
-hit_rate = раунды_с_выигрышем / всего_раундов
-volatility = std(выплат) / средняя_выплата
+RTP = Σ(combination_probability × combination_payout) / bet
+hit_rate = rounds_with_a_win / total_rounds
+volatility = std(payouts) / mean_payout
 ```
 
-**Пороги:**
+**Thresholds:**
 
-| Метрика | PASS | CONCERNS | FAIL |
-|---------|------|----------|------|
-| RTP | 95.0–97.0% | 94.0–95.0 или 97.0–98.0% | < 94% или > 98% |
-| Hit rate | 20–35% | 15–20 или 35–45% | вне 15–45% |
-| Волатильность | соответствует объявленной | отклонение ±20% | не соответствует |
-| Макс. выигрыш | достижим за 1М раундов | достижим за 10М | недостижим |
+| Metric | PASS | CONCERNS | FAIL |
+|--------|------|----------|------|
+| RTP | 95.0–97.0% | 94.0–95.0 or 97.0–98.0% | < 94% or > 98% |
+| Hit rate | 20–35% | 15–20 or 35–45% | outside 15–45% |
+| Volatility | matches what was declared | ±20% deviation | does not match |
+| Max win | reachable within 1M rounds | reachable within 10M | unreachable |
 
-**Дополнительно обязательно:**
-- Каждый bet-tier проверяется отдельно — RTP не должен «плыть» от размера ставки.
-- Бонус-режим (free spins) считается **в общем RTP**, а не отдельно; в отчёте указывается
-  доля RTP от базовой игры и доля от бонуса (типично 60/40 или 70/30).
-- Вес символа = 0 запрещён — символ удаляется.
+**Also mandatory:**
+- Every bet tier is checked separately — the RTP must not drift with the bet size.
+- The bonus mode (free spins) counts towards **the overall RTP**, not separately; the report
+  states the share of RTP from base play and from the bonus (typically 60/40 or 70/30).
+- A symbol weight of 0 is forbidden — delete the symbol instead.
 
 ---
 
 ## M2 — Instant-Win RTP (C2: crash, mines, dice, hi-lo, tower, keno, scratch, pick)
 
-**Что проверяем.** House edge мгновенных раундов и корректность формулы множителя.
+**What we verify.** The house edge of instant rounds and the correctness of the multiplier formula.
 
-**Формула (общая для «оригиналов»):**
+**Formula (common to the "originals"):**
 ```
-множитель(шаг) = (1 - house_edge) / вероятность_дожить_до_шага
+multiplier(step) = (1 - house_edge) / probability_of_surviving_to_step
 RTP = 1 - house_edge
 ```
 
-Пример для mines с `n` ячеек и `m` мин, после `k` открытий:
+An example for mines with `n` cells and `m` mines, after `k` reveals:
 ```
 P(k) = C(n-m, k) / C(n, k)
 multiplier(k) = (1 - house_edge) / P(k)
 ```
 
-**Пороги:**
+**Thresholds:**
 
-| Метрика | PASS | FAIL |
-|---------|------|------|
-| RTP | 96.0–99.0% | вне диапазона |
-| House edge объявлен в правилах | да | нет |
-| Максимальный множитель | объявлен и соблюдается капом | не капнут |
-| Раунд предопределён на старте | да (Stateless Outcome) | вычисляется во время анимации |
+| Metric | PASS | FAIL |
+|--------|------|------|
+| RTP | 96.0–99.0% | outside the range |
+| House edge declared in the rules | yes | no |
+| Maximum multiplier | declared and enforced by the cap | not capped |
+| The round is predetermined at the start | yes (stateless outcome) | computed during the animation |
 
-**Детерминизм раунда (обязателен для C2).** Исход раунда вычисляется до анимации из
-тройки `serverSeed + clientSeed + nonce`. Тест обязан доказать: одинаковая тройка →
-одинаковый исход, и изменение любого компонента меняет исход.
+**Round determinism (mandatory for C2).** The round's outcome is computed before the animation
+from the triple `serverSeed + clientSeed + nonce`. The test must prove that the same triple
+gives the same outcome, and that changing any component changes the outcome.
 
 ```dart
 /// Round outcome is derived once, before any animation frame.
@@ -95,169 +95,169 @@ final outcome = RoundResolver.resolve(
 );
 ```
 
-**Cash-out корректность.** Тест: выплата при cash-out на шаге `k` строго равна
-`ставка × multiplier(k)`, ни на цент больше — типичный источник утечки RTP.
+**Cash-out correctness.** The test: the payout on a cash-out at step `k` is exactly
+`bet × multiplier(k)`, not a cent more — a classic source of RTP leakage.
 
 ---
 
-## M3 — Economy (C3: spin-to-progress гибриды)
+## M3 — Economy (C3: spin-to-progress hybrids)
 
-**Что проверяем.** Не RTP, а сходимость экономики: игрок должен постоянно чувствовать
-прогресс, но не проходить контент за один вечер.
+**What we verify.** Not RTP, but whether the economy converges: the player should feel constant
+progress without finishing the content in one evening.
 
-**Метрики:**
+**Metrics:**
 
-| Метрика | Определение | PASS |
-|---------|-------------|------|
-| **Source/sink ratio** | приход валюты / расход на анлоки за 100 спинов | 0.90–1.15 |
-| **Пейс прогресса** | сессий до следующего значимого анлока | 2–5 |
-| **Длина сессии** | до исчерпания энергии | 3–7 минут |
-| **Регенерация** | энергии в час | покрывает 2–3 сессии в сутки |
-| **Шаг цены** | цена анлока N+1 / цена анлока N | ≤ 1.6 |
-| **Dead-end rate** | доля сессий, где игрок не продвинулся никуда | < 10% |
+| Metric | Definition | PASS |
+|--------|------------|------|
+| **Source/sink ratio** | currency in / currency spent on unlocks per 100 spins | 0.90–1.15 |
+| **Progress pace** | sessions until the next meaningful unlock | 2–5 |
+| **Session length** | until the energy runs out | 3–7 minutes |
+| **Regeneration** | energy per hour | covers 2–3 sessions a day |
+| **Price step** | price of unlock N+1 / price of unlock N | ≤ 1.6 |
+| **Dead-end rate** | share of sessions where the player got nowhere | < 10% |
 
-**Симуляция.** 10 000 виртуальных сессий с «политикой среднего игрока» (тратит энергию
-до нуля, вкладывает во всё доступное по возрастанию цены). Отчёт — кривая «сессия →
-накопленный прогресс», она обязана быть монотонной без плато длиннее 5 сессий.
+**Simulation.** 10,000 virtual sessions with an "average player policy" (spends energy to zero,
+invests in everything available in ascending price order). The report is a "session → cumulative
+progress" curve, which must be monotonic with no plateau longer than 5 sessions.
 
-**Таблица событий спина** — тоже часть модели: веса событий (монеты / щит / атака / набег /
-джекпот) объявляются в конфиге и суммируются в 100%. Если за спины можно платить —
-эти вероятности **раскрываются игроку** (см. compliance).
+**The spin event table** is part of the model too: the event weights (coins / shield / attack /
+raid / jackpot) are declared in the config and sum to 100%. If spins can be paid for, these
+probabilities are **disclosed to the player** (see compliance).
 
 ---
 
 ## M4 — Gacha (C4)
 
-**Что проверяем.** Что объявленные проценты — правда, и что pity действительно спасает.
+**What we verify.** That the declared percentages are true, and that pity really does rescue the player.
 
-**Ключевые понятия:**
-- **Base rate** — объявленный шанс редкости на один пулл.
-- **Soft pity** — точка, с которой шанс начинает расти линейно.
-- **Hard pity** — пулл, на котором редкость гарантирована (100%).
-- **Effective rate** — фактический шанс с учётом pity за длинную дистанцию. Именно его
-  раскрывают игроку рядом с base rate.
+**Key concepts:**
+- **Base rate** — the declared chance of a rarity on a single pull.
+- **Soft pity** — the point from which the chance starts to rise linearly.
+- **Hard pity** — the pull at which the rarity is guaranteed (100%).
+- **Effective rate** — the actual chance including pity over a long distance. This is the number
+  disclosed to the player alongside the base rate.
 
 ```
-effective_rate = всего_выпало_SSR / всего_пуллов   (симуляция 1М пуллов)
-E[пуллов до SSR] = 1 / effective_rate
+effective_rate = total_SSR_dropped / total_pulls   (a 1M pull simulation)
+E[pulls to SSR] = 1 / effective_rate
 ```
 
-**Пороги:**
+**Thresholds:**
 
-| Метрика | PASS | FAIL |
-|---------|------|------|
-| Base rate SSR | 0.5–2.0% | вне диапазона |
-| Hard pity | 50–90 пуллов | > 90 или отсутствует |
-| Эффективный rate = расчётному | ±0.1 п.п. | расхождение больше |
-| Pity срабатывает | 100% случаев на hard pity | хотя бы один пропуск |
-| 90-й перцентиль пуллов до SSR | ≤ hard pity | больше hard pity (значит pity сломан) |
-| Сумма вероятностей всех редкостей | ровно 1.0 | иначе |
-| Экран раскрытия шансов | существует и доступен ДО пулла | отсутствует |
+| Metric | PASS | FAIL |
+|--------|------|------|
+| SSR base rate | 0.5–2.0% | outside the range |
+| Hard pity | 50–90 pulls | > 90 or absent |
+| Effective rate = the computed one | ±0.1 pp | a larger divergence |
+| Pity fires | in 100% of cases at hard pity | even one miss |
+| 90th percentile of pulls to an SSR | ≤ hard pity | above hard pity (pity is broken) |
+| Sum of all rarity probabilities | exactly 1.0 | anything else |
+| The odds disclosure screen | exists and is reachable BEFORE a pull | absent |
 
-**Дубликаты обязаны иметь ценность** — конвертация в шарды/уровень. Пулл, дающий «ничего»,
-считается провалом дизайна, а не математики.
+**Duplicates must have value** — conversion into shards or levels. A pull that gives "nothing"
+is a design failure, not a mathematical one.
 
 ---
 
-## M5 — Run Win-Rate (C5: казино-рогалики)
+## M5 — Run Win-Rate (C5: casino roguelikes)
 
-**Что проверяем.** Что забег выигрываемый, но не бесплатный, и что seed воспроизводим.
+**What we verify.** That the run is winnable but not free, and that the seed is reproducible.
 
-**Симуляция.** 100 000 забегов ботом-«средним игроком»: жадная эвристика (всегда берёт
-модификатор с наибольшим ожидаемым приростом счёта, покупает пока хватает валюты).
+**Simulation.** 100,000 runs by an "average player" bot: a greedy heuristic (always takes the
+modifier with the highest expected score gain, buys while it can afford to).
 
-**Пороги:**
+**Thresholds:**
 
-| Метрика | PASS | FAIL |
-|---------|------|------|
-| Run win-rate (средний игрок) | 25–40% | < 15% (безнадёжно) или > 55% (нет вызова) |
-| Монотонность целей раундов | шаг ≤ ×2 | «стена» больше ×2 |
-| Сила одиночного модификатора | ни один не даёт win-rate > 80% | есть доминирующий |
-| Мёртвые модификаторы | ни один не даёт < 5% пользы | есть бесполезные |
-| Детерминизм seed | один seed → идентичный забег | расхождение |
-| Средняя длина забега | 8–20 минут | вне диапазона |
+| Metric | PASS | FAIL |
+|--------|------|------|
+| Run win-rate (average player) | 25–40% | < 15% (hopeless) or > 55% (no challenge) |
+| Monotonicity of round targets | step ≤ ×2 | a "wall" larger than ×2 |
+| Strength of a single modifier | none gives a win-rate > 80% | there is a dominant one |
+| Dead modifiers | none gives < 5% benefit | there are useless ones |
+| Seed determinism | one seed → an identical run | divergence |
+| Average run length | 8–20 minutes | outside the range |
 
-**Тест детерминизма обязателен:**
+**The determinism test is mandatory:**
 ```dart
-test('одинаковый seed даёт идентичный забег', () {
+test('the same seed produces an identical run', () {
   final a = RunSimulator(seed: 12345).playToEnd();
   final b = RunSimulator(seed: 12345).playToEnd();
   expect(a.eventLog, equals(b.eventLog));
 });
 ```
 
-> C5 — единственная модель, где `Random.secure()` **не** обязателен: детерминизм по seed
-> важнее криптостойкости, поэтому используется seeded `Random(seed)`. Это должно быть явно
-> зафиксировано в ADR. Во всех остальных категориях — только `Random.secure()`.
+> C5 is the only model where `Random.secure()` is **not** required: determinism by seed matters
+> more than cryptographic strength, so a seeded `Random(seed)` is used. This must be explicitly
+> recorded in an ADR. In every other category: `Random.secure()` only.
 
 ---
 
-## M6 — Physics RTP (C6: coin pusher, plinko, пачинко)
+## M6 — Physics RTP (C6: coin pusher, plinko, pachinko)
 
-**Что проверяем.** Что физика в среднем выплачивает столько, сколько объявлено.
-Аналитически это не считается — только прогоном.
+**What we verify.** That the physics pays out, on average, what was declared. This cannot be
+computed analytically — only by running it.
 
-**Требования к симуляции:**
-- Фиксированный timestep (`1/60`), а не привязка к реальному fps.
-- Фиксированный seed стартовых условий (позиция, импульс, угол).
-- 1 000 000 запусков в headless-режиме без рендера.
-- Замер распределения по корзинам, а не только среднего.
+**Simulation requirements:**
+- A fixed timestep (`1/60`), not tied to the real fps.
+- A fixed seed for the starting conditions (position, impulse, angle).
+- 1,000,000 launches headless, without rendering.
+- Measure the distribution across buckets, not just the mean.
 
-**Пороги:**
+**Thresholds:**
 
-| Метрика | PASS | FAIL |
-|---------|------|------|
-| RTP | 95.0–97.0% | вне диапазона |
-| Воспроизводимость | один seed → идентичная траектория | расхождение |
-| Распределение по корзинам | ни одна корзина < 0.5% попаданий | есть «мёртвая» корзина |
-| Стабильность при просадке fps | RTP не меняется (fixed timestep) | RTP плывёт |
-| Лимит активных тел | соблюдается кап из GameConfig | превышается |
+| Metric | PASS | FAIL |
+|--------|------|------|
+| RTP | 95.0–97.0% | outside the range |
+| Reproducibility | one seed → an identical trajectory | divergence |
+| Bucket distribution | no bucket below 0.5% of hits | there is a "dead" bucket |
+| Stability under fps drops | RTP does not change (fixed timestep) | RTP drifts |
+| Active body limit | the GameConfig cap is respected | it is exceeded |
 
-**Ловушка coin pusher.** Накопление монет на полке делает RTP **нестационарным** —
-он зависит от состояния поля. Обязательно замеряется RTP в установившемся режиме
-(после 10 000 «прогревочных» монет), а не с пустого поля.
+**The coin pusher trap.** Coins accumulating on the shelf make the RTP **non-stationary** — it
+depends on the state of the field. RTP must be measured in the steady state (after 10,000
+"warm-up" coins), not from an empty field.
 
 ---
 
-## Общие правила для всех моделей
+## Rules common to every model
 
-1. **Один источник правды.** Числа живут в JSON-конфиге, Dart читает их в `GameConfig`.
-   Дублирование значения в JSON и в коде — нарушение.
-2. **Stateless Outcomes.** Исход вычисляется ДО анимации во всех шести моделях.
-   Анимация только проигрывает уже известный результат.
-3. **`Random.secure()`** — везде, кроме seeded-детерминизма в M5 (и seed стартовых
-   условий в симуляции M6, которая не идёт в продакшн-раунд).
-4. **Отчёт обязателен.** Прогон без записи в `design/balance/simulation-report.md`
-   не считается проведённым.
-5. **Дата прогона.** Поле `simulation.last_run_date` обновляется каждым прогоном;
-   коммит конфига без обновления даты отклоняется хуком.
-6. **Изменение модели = ADR.** Смена целевого RTP, pity или win-rate требует
-   `/architecture-decision`, а не молчаливой правки JSON.
+1. **One source of truth.** The numbers live in the JSON config; Dart reads them into
+   `GameConfig`. Duplicating a value in JSON and in code is a violation.
+2. **Stateless outcomes.** The outcome is computed BEFORE the animation in all six models.
+   The animation only plays back a result that is already known.
+3. **`Random.secure()`** everywhere except the seeded determinism in M5 (and the seed for the
+   starting conditions in the M6 simulation, which does not ship in the production round).
+4. **The report is mandatory.** A run that is not written to
+   `design/balance/simulation-report.md` does not count as having happened.
+5. **The run date.** The `simulation.last_run_date` field is updated by every run; a config
+   commit without an updated date is rejected by the hook.
+6. **Changing the model = an ADR.** Changing the target RTP, pity or win-rate requires
+   `/architecture-decision`, not a silent JSON edit.
 
-## Формат отчёта
+## Report format
 
 ```markdown
-# Simulation Report — [Название игры]
+# Simulation Report — [Game name]
 
-- **Модель**: M[1-6] — [название]
-- **Конфиг**: design/balance/[файл].json
-- **Испытаний**: 1 000 000
-- **Дата**: YYYY-MM-DD
-- **Seed**: [если применимо]
+- **Model**: M[1-6] — [name]
+- **Config**: design/balance/[file].json
+- **Trials**: 1,000,000
+- **Date**: YYYY-MM-DD
+- **Seed**: [if applicable]
 
-## Результат
+## Result
 
-| Метрика | Целевое | Получено | Вердикт |
-|---------|---------|----------|---------|
+| Metric | Target | Measured | Verdict |
+|--------|--------|----------|---------|
 | RTP | 96.0% | 95.87% | ✅ PASS |
 | Hit rate | 28% | 27.4% | ✅ PASS |
 | ... | | | |
 
-## Распределение выплат
-[таблица или гистограмма по тирам выигрыша]
+## Payout distribution
+[a table or histogram by win tier]
 
-## Вердикт
-✅ PASS — модель в целевом окне, можно продолжать.
-⚠️ CONCERNS — [что именно на границе и чем рискуем].
-❌ FAIL — [что вне окна]; game-mathematician правит [конкретные параметры].
+## Verdict
+✅ PASS — the model is inside the target window, we can continue.
+⚠️ CONCERNS — [what exactly is borderline, and what we are risking].
+❌ FAIL — [what is outside the window]; game-mathematician adjusts [specific parameters].
 ```

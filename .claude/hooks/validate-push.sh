@@ -12,11 +12,11 @@ fi
 # Check if pushing to main/master
 if echo "$INPUT_JSON" | grep -qE '"git push.*main|git push.*master|git push --force' 2>/dev/null; then
   echo ""
-  echo "⚠️  ВНИМАНИЕ: Попытка push в защищённую ветку!"
-  echo "   Убедитесь, что:"
-  echo "   1. /balance-check прошёл (RTP в диапазоне 95-97%)"
-  echo "   2. /release-checklist выполнен"
-  echo "   3. Нет state leakage между спинами"
-  echo "   4. RNG использует Random.secure() везде"
+  echo "⚠️  WARNING: attempting to push to a protected branch!"
+  echo "   Make sure that:"
+  echo "   1. /balance-check passed (RTP within 95-97%)"
+  echo "   2. /release-checklist has been run"
+  echo "   3. There is no state leakage between spins"
+  echo "   4. The RNG uses Random.secure() everywhere"
   echo ""
 fi

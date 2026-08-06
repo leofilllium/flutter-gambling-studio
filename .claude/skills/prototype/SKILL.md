@@ -1,20 +1,20 @@
 ---
 name: prototype
-description: "Создание быстрого изолированного Flutter-кода для тестирования 'Сочности' (Juiciness) — анимаций вращения, отскока (bounce), свечения."
+description: "Creates quick, isolated Flutter code for testing juiciness — spin, bounce and glow animations."
 user-invocable: true
 allowed-tools: Bash, Read, Edit, Write
-argument-hint: "[mechanic-name] (например: spin-bounce, glow-effect)"
+argument-hint: "[mechanic-name] (e.g. spin-bounce, glow-effect)"
 ---
 
-# `prototype` — Лаборатория Сочности
+# `prototype` — the juiciness lab
 
-Гемблинг-игры живут за счет визуального фидбека. Этот навык создает изолированный прототип анимации.
+Gambling games live on visual feedback. This skill creates an isolated animation prototype.
 
-## Инструкция
+## Instructions
 
-1. Создайте файл `prototypes/[mechanic-name]/main.dart`.
-2. Напишите минимальный `runApp` с простым экраном.
-3. Добавьте Flame GameWidget, если тестируем физику/Flame эффекты.
-4. Добавьте Flutter Animations, если тестируем UI (свечение, popup).
-5. Не используйте зависимости из `lib/` (прототипы должны собираться отдельно).
-6. Выведите команду `flutter run -t prototypes/[mechanic-name]/main.dart -d chrome` для запуска.
+1. Create the file `prototypes/[mechanic-name]/main.dart`.
+2. Write a minimal `runApp` with a simple screen.
+3. Add a Flame GameWidget if you are testing physics or Flame effects.
+4. Add Flutter animations if you are testing UI (glow, popup).
+5. Do not use dependencies from `lib/` (prototypes must build on their own).
+6. Print the command `flutter run -t prototypes/[mechanic-name]/main.dart -d chrome` to run it.

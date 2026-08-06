@@ -1,75 +1,75 @@
 ---
 name: map-systems
-description: "Декомпозиция концепта гемблинг-игры на технические системы. Строит граф зависимостей и план реализации для программиста, отталкиваясь от категории C1-C6 и математической модели M1-M6."
+description: "Decomposes a gambling game concept into technical systems. Builds a dependency graph and an implementation plan for the programmer, working from the category C1-C6 and the mathematical model M1-M6."
 user-invocable: true
 allowed-tools: Bash, Read, Edit, Write
 ---
 
-# `map-systems` — План сборки игры
+# `map-systems` — the game build plan
 
-Разбирает игру из `design/gdd/game-concept.md` на структурные компоненты для Flame.
+Breaks the game from `design/gdd/game-concept.md` down into structural components for Flame.
 
-## Поведение
+## Behaviour
 
-Не спрашивайте пользователя. Прочитайте концепт (блок **Классификация**), определите
-категорию и математическую модель, сгенерируйте `design/gdd/systems-map.md`.
+Do not ask the user anything. Read the concept (the **Classification** block), determine the
+category and the mathematical model, and generate `design/gdd/systems-map.md`.
 
-## Шаблон вывода
+## Output template
 
 ```markdown
-# Карта систем: [Имя Игры]
+# Systems map: [Game name]
 
-**Категория**: [C1-C6] — [название]
-**Архетип**: [A-AF]
-**Математическая модель**: [M1-M6] → `design/balance/[файл].json`
+**Category**: [C1-C6] — [name]
+**Archetype**: [A-AF]
+**Mathematical model**: [M1-M6] → `design/balance/[file].json`
 
-## 1. Core Logic (Ядро)
-- `GameConfig` (все тюнинги; числа модели загружаются из JSON, не дублируются)
+## 1. Core logic
+- `GameConfig` (every tuning knob; the model's numbers are loaded from JSON, never duplicated)
 - `GameState` (sealed class: Idle / Resolving / Revealing / Win / OutOfFunds / Paused)
-- `WeightedRNG` (`Random.secure()` — ЕДИНСТВЕННЫЙ источник случайности)
-- `[Outcome]Resolver` (исход раунда вычисляется ДО анимации — Stateless Outcomes)
-- `[Evaluator]` (чистая функция оценки: без RNG, без состояния)
+- `WeightedRNG` (`Random.secure()` — the ONLY source of randomness)
+- `[Outcome]Resolver` (the round outcome is computed BEFORE the animation — stateless outcomes)
+- `[Evaluator]` (a pure evaluation function: no RNG, no state)
 
-## 2. Flame Components (Представление)
-- `[MainComponent]` (барабан / стол / поле мин / кривая / поле pegs)
-- `[ElementComponent]` (символы, карты, фишки, шары, капсулы)
-- `WinAnimationComponent` (VFX, масштабированные по значимости выигрыша)
-- `AmbientParticles` (живое поле — экран никогда не статичен)
+## 2. Flame components (presentation)
+- `[MainComponent]` (reel / table / minefield / curve / peg field)
+- `[ElementComponent]` (symbols, cards, chips, balls, capsules)
+- `WinAnimationComponent` (VFX scaled to the significance of the win)
+- `AmbientParticles` (a living field — the screen is never static)
 
-## 3. Flutter UI (Интерфейс)
-- `HudWidget` (баланс/ставка/множитель через ValueNotifier)
-- `BetPanel` (выбор ставки, заблокирован во время раунда)
-- `ActionButton` (дебаунс 300 мс + disabled state + press-анимация)
-- `MainMenuScreen`, `PaytableScreen`, все экраны MVP
+## 3. Flutter UI
+- `HudWidget` (balance/bet/multiplier through a ValueNotifier)
+- `BetPanel` (bet selection, locked during a round)
+- `ActionButton` (a 300 ms debounce + a disabled state + a press animation)
+- `MainMenuScreen`, `PaytableScreen`, every MVP screen
 
-## 4. Compliance (обязательный слой)
-- `AgeGateScreen` (один раз до меню, результат в SharedPreferences)
-- `ComplianceCopy` (дисклеймер, responsible-play, контакты — константы в одном месте)
-- `OddsScreen` (обязателен для C4 и платных спинов C3)
+## 4. Compliance (the mandatory layer)
+- `AgeGateScreen` (once, before the menu; the result in SharedPreferences)
+- `ComplianceCopy` (disclaimer, responsible play, contacts — constants in one place)
+- `OddsScreen` (mandatory for C4 and for paid spins in C3)
 
-## 5. Meta & Audio
+## 5. Meta & audio
 - `SaveService`, `EconomyService`, `ProgressionService`, `AchievementService`
-- `AudioService` (max 3 параллельных звука)
+- `AudioService` (at most 3 concurrent sounds)
 
-## Порядок разработки (План)
-1. Математическая модель → `/design-system [система]` → `/balance-check`
-2. Core Logic (RNG + Resolver + Evaluator) → `/design-system`
-3. Flame Components → `/prototype [механика]`
-4. Flutter UI (все экраны) + compliance-слой
-5. Мета-системы и контент
-6. Интеграция → `/balance-check` → `/ui-audit` → тестирование
+## Development order (the plan)
+1. The mathematical model → `/design-system [system]` → `/balance-check`
+2. Core logic (RNG + Resolver + Evaluator) → `/design-system`
+3. Flame components → `/prototype [mechanic]`
+4. Flutter UI (every screen) + the compliance layer
+5. Meta systems and content
+6. Integration → `/balance-check` → `/ui-audit` → testing
 ```
 
-## Ключевые системы по категориям
+## Key systems by category
 
-| Категория | Ядро механики |
-|-----------|---------------|
-| **C1** 🎰 слот | `WeightedRNG` + `PaylineEvaluator` + `ReelComponent` + `SymbolComponent` |
-| **C1** 🎰 стол | `WeightedRNG` + `HandEvaluator`/`WheelResolver` + `CardComponent`/`WheelComponent` |
+| Category | The mechanic's core |
+|----------|---------------------|
+| **C1** 🎰 slot | `WeightedRNG` + `PaylineEvaluator` + `ReelComponent` + `SymbolComponent` |
+| **C1** 🎰 table | `WeightedRNG` + `HandEvaluator`/`WheelResolver` + `CardComponent`/`WheelComponent` |
 | **C2** ⚡ | `RoundResolver` (seed+nonce) + `MultiplierCurve` + `CashoutController` + `RoundHistory` |
 | **C3** 🏰 | `SpinEventTable` + `EnergyService` + `MetaProgressService` + `RaidResolver` |
-| **C4** 🎁 | `BannerResolver` + `PityCounter` (персистентный!) + `DuplicateConverter` + `PullReveal` |
+| **C4** 🎁 | `BannerResolver` + `PityCounter` (persistent!) + `DuplicateConverter` + `PullReveal` |
 | **C5** 🃏 | `RunRng(seed)` + `HandEvaluator` + `ModifierRegistry` + `ShopController` + `RunState` |
 | **C6** ⚙️ | `PhysicsWorld` (fixed timestep) + `LaunchResolver` + `BucketDetector` + `BodyLimiter` |
 
-Обязательно включите в документ `Порядок разработки` и список классов.
+The document must include the `Development order` section and the list of classes.

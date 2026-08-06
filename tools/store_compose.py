@@ -45,7 +45,7 @@ Examples:
   python3 tools/store_compose.py triptych --src keyart.png --out store/ \\
       --panels 3 --size 1320x2868
   python3 tools/store_compose.py showcase --shot raw/02-menu.png --bg keyart.png \\
-      --out store/store-04.png --size 1320x2868 --caption "Ставка решает" \\
+      --out store/store-04.png --size 1320x2868 --caption "Every Spin Counts" \\
       --type-mood epic --caption-color "#FFF6DC" --caption-color2 "#F0B34A"
   python3 tools/store_compose.py showcase ... --size play   # 9:16 set for Play
   python3 tools/store_compose.py banner --keyart keyart.png --shot raw/02-menu.png \\
@@ -449,11 +449,12 @@ def _render_key(font, char: str) -> bytes:
 def _covers(path: str, charset: str) -> bool:
     """Can this face actually SET this text, or will it come out as tofu boxes?
 
-    This gate matters more than any other font choice here: the studio's UI
-    language is Russian, and most display faces (Bodoni, Didot, Impact, Anton,
-    Orbitron, Press Start 2P) ship Latin only. Without the check, a Cyrillic
-    caption composites as a row of empty rectangles — which is exactly what it
-    did before this existed.
+    This gate matters more than any other font choice here. Store copy is
+    English by default, which every face covers — but a game the user asked for
+    in another language may need glyphs that display faces (Bodoni, Didot,
+    Impact, Anton, Orbitron, Press Start 2P ship Latin only) simply do not have.
+    Without the check such a caption composites as a row of empty rectangles —
+    which is exactly what it did before this existed.
     """
     if not charset:
         return True
@@ -1157,9 +1158,10 @@ def cmd_icon(args) -> None:
 def cmd_fonts(args) -> None:
     """Show what typography this machine can actually deliver, before compositing.
 
-    Always run this with the real copy (--sample) before a listing: a face that
-    is perfect for a Latin title may have no Cyrillic at all, and the report is
-    the cheap way to find that out.
+    Always run this with the real copy (--sample) before a listing. The default
+    sample is Latin + digits, matching the English copy the studio ships; pass
+    the actual strings when the game was requested in another language, since a
+    face that is perfect for a Latin title may not cover that script at all.
     """
     system = [entry for d in FONT_DIRS for entry in _scan_fonts(d)]
     project = [entry for d in (args.font_dir or []) for entry in _scan_fonts(d)]
@@ -1354,9 +1356,9 @@ def main() -> None:
     f.add_argument("--type-mood", choices=tuple(TYPE_MOODS), default="bold")
     f.add_argument("--mood-only", action="store_true",
                    help="report just --type-mood instead of every mood")
-    f.add_argument("--sample", default="Играй Собирай Level Up 7",
+    f.add_argument("--sample", default="Spin Collect Level Up 7",
                    help="the copy the listing will actually set — faces without glyphs "
-                        "for it are excluded (default probes Cyrillic + Latin + digits)")
+                        "for it are excluded (default probes Latin + digits)")
     f.set_defaults(func=cmd_fonts)
 
     c = sub.add_parser("check", help="validate a finished store directory")

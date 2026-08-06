@@ -1,183 +1,183 @@
 ---
 name: auto-idea
-description: "Автономно генерирует готовую концепцию гемблинг-игры (без вопросов пользователю). Выбирает из 32 архетипов A-AF по шести категориям (social casino, casino originals, spin-to-progress, gacha, casino roguelike, coin pusher/plinko) или придумывает уникальную гемблинг-механику. Прокручивает Variety Dimensions (setting/mood/палитра/яркость/layout/стиль арта), чтобы игры не повторялись. Включает Классификацию (категория + матмодель + compliance), Design DNA, Layout Archetype, полную карту экранов MVP (12+), UX-поток и craft-уровень токены."
+description: "Autonomously generates a ready-made concept for a gambling game (without asking the user). Selects from 32 A-AF archetypes in six categories (social casino, casino originals, spin-to-progress, gacha, casino roguelike, coin pusher/plinko) or comes up with a unique gambling mechanic. Scrolls through Variety Dimensions (setting/mood/palette/brightness/layout/style art) so that games are not repeated. Includes Classification (category + mathematical model + compliance), Design DNA, Layout Archetype, full map of MVP screens (12+), UX flow and craft-level tokens."
 argument-hint: "[--list] | [--archetype A-AF] | [--category C1-C6]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write
 ---
 
-# Auto-Idea — Автогенератор Идей Гемблинг-Игр
+# Auto-Idea - Automatic Gambling Game Idea Generator
 
-Не задавайте вопросов пользователю! Полностью автономно создайте `design/gdd/game-concept.md`.
+Don't ask the user questions! Create `design/gdd/game-concept.md` completely autonomously.
 
-> **ТОЛЬКО ГЕМБЛИНГ.** Студия не делает пазлы, раннеры, шутеры и кликеры. Любая идея обязана
-> попадать в одну из шести категорий и иметь объявленную математическую модель.
-> Канонический справочник: `.claude/docs/gambling-categories.md`.
+> **GAMBLING ONLY.** The studio does not make puzzles, runners, shooters or clickers. Any idea must
+> fall into one of six categories and have a declared mathematical model.
+> Canonical reference: `.claude/docs/gambling-categories.md`.
 >
-> **ANTI-SLOP**: Прочитайте `.claude/rules/anti-slop-design.md` (принцип + Craft Fundamentals)
-> и `.claude/docs/layout-archetypes.md` перед генерацией.
-> Концепт ОБЯЗАН включать уникальную визуальную идентичность (Design DNA) и выбранный Layout
-> Archetype. «Гемблинг» ≠ «тёмный неон и золото»: бинго может быть тёплым и бумажным,
-> гашапон — пастельным, рогалик — строгим типографским. Варьируй стиль И композицию.
+> **ANTI-SLOP**: Read `.claude/rules/anti-slop-design.md` (principle + Craft Fundamentals)
+> and `.claude/docs/layout-archetypes.md` before generation.
+> The concept MUST include a unique visual identity (Design DNA) and the selected Layout
+> Archetype. “Gambling” ≠ “dark neon and gold”: bingo can be warm and papery,
+> gashapon can be pastel, while a roguelike can use strict typography. Vary both style and composition.
 
-## Каталог Архетипов (A–AF)
+## Catalog of Archetypes (A–AF)
 
-### 🎰 C1 — Social Casino (A–H) · модель M1 · RTP 95–97%
+### 🎰 C1 – Social Casino (A–H) · M1 model · RTP 95–97%
 
-**A — Классический слот 3×3 «Неоновый Спин»**
-> 3 барабана, фиксированные линии. Низкая волатильность, частые выигрыши. Фича: контролируемый Near Miss (замедление 3-го барабана) — честный, отражающий реальный исход.
+**A – Classic 3x3 slot “Neon Spin”**
+> 3 reels, fixed lines. Low volatility, frequent wins. Feature: controlled Near Miss (slowing down the 3rd reel) - honest, reflecting the real outcome.
 
-**B — Видео-слот 5×3 с Free Spins «Фруктовая Буря»**
-> 5 барабанов, 10–25 линий, скаттер-триггер бонуса. Каскадные выигрыши (Avalanche): символы взрываются, верхние падают вниз с растущим множителем.
+**B – 5x3 video slot with Free Spins “Fruit Storm”**
+> 5 reels, 10–25 lines, bonus scatter trigger. Cascading wins (Avalanche): symbols explode, the top ones fall down with a growing multiplier.
 
-**C — Scatter-pays / cluster слот «Сахарный Взрыв»**
-> Слот без линий: выплата за КОЛИЧЕСТВО символов (8+ одинаковых где угодно). Tumble-каскад, множители-бомбы. Фича: нарастающий tumble multiplier.
+**C – Scatter-pays / cluster slot “Sugar Explosion”**
+> Slot without lines: pays for the NUMBER of symbols (8+ identical anywhere). Tumble cascade, bomb multipliers. Feature: increasing tumble multiplier.
 
-**D — Hold & Spin (Link & Win) «Золотая Связь»**
-> Респины с залипанием монет-символов, 3 тира джекпота. Каждая новая монета сбрасывает счётчик респинов до 3. Фича: напряжение «ещё одна монета».
+**D — Hold & Spin (Link & Win) “Golden Connection”**
+> Respins with sticky coin symbols, 3 jackpot tiers. Each new coin resets the re-spin counter to 3. Feature: “one more coin” tension.
 
-**E — Видео-покер «Покер Экспресс»**
-> Раздача 5 карт, Hold, второй драв. RTP считается с учётом оптимальной стратегии. Фича: Double-up — удвоение на угадывании масти.
+**E — Video poker “Poker Express”**
+> Deal 5 cards, Hold, second draw. RTP is calculated taking into account the optimal strategy. Feature: Double-up - doubling on guessing the suit.
 
-**F — Блэкджек «Стол 21»**
-> Hit / Stand / Double / Split против дилера. Фича: читаемая рука дилера и ненавязчивая подсказка базовой стратегии для новичка.
+**F — Blackjack “Table 21”**
+> Hit/Stand/Double/Split against the dealer. Feature: a readable dealer's hand and an unobtrusive hint of the basic strategy for a beginner.
 
-**G — Рулетка «Кибер Спин»**
-> Европейская рулетка (одно зеро), внутренние и внешние ставки. Фича: физически достоверный отскок шарика по ячейкам.
+**G – Cyber ​​Spin Roulette**
+> European roulette (one zero), inside and outside bets. Feature: physically reliable ball bounce across the cells.
 
-**H — Социальное бинго «Бинго Блиц»**
-> 75-шаровые комнаты, авто-даб, паттерны. Фича: power-ups (доп. шар, мгновенный даб) и коллекционные карточки, XP-прогресс комнат.
+**H – Social Bingo “Bingo Blitz”**
+> 75-ball rooms, auto-dub, patterns. Feature: power-ups (extra ball, instant dub) and collectible cards, XP room progress.
 
-### ⚡ C2 — Casino Originals / Instant-Win (I–P) · модель M2 · RTP 96–99%
+### ⚡ C2 — Casino Originals / Instant-Win (I–P) · M2 model · RTP 96–99%
 
-**I — Crash «Космический Взлёт»**
-> Множитель растёт по кривой, пока летит объект; cash-out до краха. Flame Particles формируют динамический хвост. Фича: визуализированное физическое ускорение + история последних раундов.
+**I — Crash “Space Takeoff”**
+> The multiplier grows along a curve while the object is flying; cash-out until the crash. Flame Particles form a dynamic tail. Feature: visualized physical acceleration + history of recent rounds.
 
-**J — Mines «Минное Поле»**
-> Игрок открывает ячейки, множитель геометрически растёт с каждой безопасной. Фича: напряжённые звуковые эффекты наведения, тишина перед раскрытием.
+**J - Mines “Minefield”**
+> The player opens cells, the multiplier grows geometrically with each safe one. Feature: tense hover sound effects, silence before opening.
 
-**K — Dice roll-under «Квантовые Кости»**
-> Игрок ставит порог; бросок ниже порога = выигрыш. Честная 2D-физика вращения и отскока от бортов (Forge2D). Фича: слайдер порога живо меняет множитель.
+**K — Dice roll-under “Quantum Dice”**
+> The player sets a threshold; throw below threshold = win. Honest 2D physics of rotation and rebound from the sides (Forge2D). Feature: the threshold slider quickly changes the multiplier.
 
-**L — Hi-Lo «Выше-Ниже»**
-> Угадай, следующая карта выше или ниже. Streak множителей, cash-out в любой момент. Фича: переворот карты с риск-метром, который растёт со streak.
+**L - Hi-Lo “Higher-Lower”**
+> Guess whether the next card is higher or lower. Streak multipliers, cash-out at any time. Feature: card flip with a risk meter that grows with streak.
 
-**M — Tower Climb «Башня Дракона»**
-> Подъём по этажам, выбор 1 из N ячеек на этаж. Рост множителя против немедленного сброса. Фича: каждый этаж — решение «забрать или выше».
+**M - Tower Climb “Dragon Tower”**
+> Climbing by floors, choosing 1 of N cells per floor. Multiplier growth versus immediate reset. Feature: each floor is a “take or higher” decision.
 
-**N — Keno «Лотерея Чисел»**
-> Игрок выбирает числа на сетке, затем тираж выбирает выигрышные. Фича: шарики-розыгрыш с физическим подпрыгиванием, подсветка совпадений.
+**N – Keno “Numbers Lottery”**
+> The player selects numbers on the grid, then the draw selects the winning ones. Feature: bouncing draw balls with clear match highlighting.
 
-**O — Скретч-карты «Делюкс Золото»**
-> Игрок «стирает» 9 полей пальцем. 3 одинаковых символа = выигрыш. Фича: партикли стирающейся фольги, тактильность стирания.
+**O – Deluxe Gold Scratch Cards**
+> The player “erases” 9 fields with his finger. 3 identical symbols = win. Feature: erasable foil particles, tactility of erasing.
 
-**P — Bonus Pick «Сундуки Фортуны»**
-> Выбор из N закрытых объектов, каждый раскрывает множитель или «collect». Фича: dramatic reveal с задержкой, нарастающее напряжение.
+**P – Bonus Pick “Fortune Chests”**
+> Select from N hidden objects, each revealing a multiplier or a collect result. Feature: a delayed dramatic reveal that increases tension.
 
-### 🏰 C3 — Spin-to-Progress Hybrids (Q–U) · модель M3 · экономика
+### 🏰 C3 - Spin-to-Progress Hybrids (Q–U) · M3 model · economy
 
-**Q — Build-and-Raid слот «Королевство Монет»**
-> Спин даёт монеты / щит / атаку / набег; монеты строят деревню. Фича: набег на базу соперника с раскопкой 1 из 4 точек.
+**Q — Build-and-Raid slot “Kingdom of Coins”**
+> Spin gives coins / shield / attack / raid; coins build a village. Feature: raid on an opponent's base with excavation of 1 of 4 points.
 
-**R — Board-move dice «Бросок Судьбы»**
-> Бросок кости двигает фишку по доске, тайл = событие. Фича: доска-сезон — полный круг открывает новую тематическую доску.
+**R — Board-move dice “Roll of Fate”**
+> Rolling a dice moves a piece across the board, tile = event. Feature: season board - a full circle opens a new thematic board.
 
-**S — Prize-wheel энергохаб «Колесо Удачи»**
-> Колесо выдаёт энергию/бустеры/валюту; таймеры ожидания спрятаны за анимацией колеса. Фича: сектор-джекпот с прогресс-баром, растущим между спинами.
+**S — Prize-wheel energy hub “Wheel of Fortune”**
+> The wheel gives out energy/boosters/currency; Wait timers are hidden behind the wheel animation. Feature: jackpot sector with a progress bar growing between the spins.
 
-**T — Sticker album «Альбом Коллекционера»**
-> Спин выдаёт паки стикеров; альбом собирается в наборы. Фича: дубликаты → обменная валюта, завершение набора = крупная награда.
+**T — Sticker album “Collector's Album”**
+> Spin gives out packs of stickers; the album is collected into sets. Feature: duplicates → exchange currency, completion of set = large reward.
 
-**U — Raid & Shield ладдер «Щит и Меч»**
-> Спин даёт атаки и щиты; PvP-лайт против ботов-соперников. Фича: месть — список тех, кто напал на тебя, с окном ответа.
+**U — Raid & Shield ladder “Shield and Sword”**
+> Spin gives attacks and shields; PvP light against rival bots. Feature: revenge - a list of those who attacked you, with a response window.
 
-### 🎁 C4 — Gacha & Loot-Box (V–Y) · модель M4 · rates + pity
+### 🎁 C4 – Gacha & Loot-Box (V–Y) · model M4 · rates + pity
 
-**V — Banner pull «Призыв Легенд»**
-> x1/x10 пуллы по баннеру, редкости, hard + soft pity. Фича: видимый счётчик pity и гарант на 10-м пулле — честность как часть UX.
+**V — Banner pull “Summon Legends”**
+> x1/x10 pulls by banner, rarity, hard + soft pity. Feature: visible pity counter and guarantor on the 10th pull - honesty as part of the UX.
 
-**W — Mystery card packs «Колода Чемпионов»**
-> Открытие паков карт, сборка состава/колоды. Фича: дубликаты повышают уровень карты, а не превращаются в мусор.
+**W — Mystery card packs “Deck of Champions”**
+> Opening card packs, assembling the composition/deck. Feature: duplicates increase the level of the card, rather than turning into garbage.
 
-**X — Case opener «Кейс-Рулетка»**
-> Горизонтальный спиннер прокручивает предметы и тормозит на выпавшем. Фича: замедление с near-miss на редком предмете (честное — предмет уже определён).
+**X — Case opener “Case Roulette”**
+> The horizontal spinner spins objects and stops when they fall out. Feature: slowdown with near-miss on a rare item (fair - the item has already been determined).
 
-**Y — Гашапон «Капсульный Автомат»**
-> Физическая метафора: поворот ручки, капсула выкатывается по жёлобу, вскрывается. Фича: двухступенчатое раскрытие — капсула, затем содержимое.
+**Y – Gashapon “Capsule Machine”**
+> Physical metaphor: turn the handle, the capsule rolls out along the chute, and opens. Feature: two-stage opening - capsule, then contents.
 
-### 🃏 C5 — Casino Roguelike & Strategy (Z–AC) · модель M5 · run win-rate 25–40%
+### 🃏 C5 — Casino Roguelike & Strategy (Z–AC) · M5 model · run win-rate 25–40%
 
-**Z — Poker deckbuilder «Джокер»**
-> Покерные руки дают очки против нарастающих целей раунда. Фича: модификаторы-джокеры, меняющие сами правила подсчёта рук.
+**Z — Poker deckbuilder “Joker”**
+> Poker hands score against progressive round goals. Feature: joker modifiers that change the very rules of hand counting.
 
-**AA — Slot-reel roguelike «Свой Барабан»**
-> Игрок сам собирает барабан из символов; спин = доход, нужно платить «аренду». Фича: синергии символов — соседство меняет выплату.
+**AA — Slot-reel roguelike “Own Drum”**
+> The player himself assembles a reel of symbols; spin = income, you need to pay “rent”. Feature: symbol synergies - proximity changes the payout.
 
-**AB — Dice-builder «Кузница Костей»**
-> Кости — ресурс боя; грани улучшаются между схватками. Фича: перековка — замена одной грани на эффект.
+**AB — Dice-builder “Dice Forge”**
+> Dice are a combat resource; their faces improve between rounds. Feature: reforging replaces one face with a new effect.
 
-**AC — Push-your-luck bag «Мешок Алхимика»**
-> Тянешь фишки из мешка, пока не «перебрал» порог. Фича: порог bust виден, но состав мешка меняется каждый раунд.
+**AC — Push-your-luck bag “Alchemist’s Bag”**
+> You pull chips from the bag until you “go over” the threshold. Feature: the bust threshold is visible, but the composition of the bag changes every round.
 
-### ⚙️ C6 — Coin Pusher & Plinko (AD–AF) · модель M6 · эмпирический RTP
+### ⚙️ C6 — Coin Pusher & Plinko (AD–AF) · M6 model · empirical RTP
 
-**AD — Coin Pusher «Золотой Бульдозер»**
-> 2D-физика толкания монет (rigid bodies), монеты взаимодействуют геометрически. Фича: накопление «навеса» у края — визуальное обещание лавины.
+**AD – Coin Pusher “Golden Bulldozer”**
+> 2D physics of pushing coins (rigid bodies), coins interact geometrically. Feature: the accumulation of a “canopy” at the edge is a visual promise of an avalanche.
 
-**AE — Plinko «Неоновый Каскад»**
-> Падение шариков через pegs (Forge2D) в корзины с множителями. Фича: выбор рискового профиля — число рядов и раскладка корзин.
+**AE – Plinko “Neon Cascade”**
+> Drop balls through pegs (Forge2D) into baskets with multipliers. Feature: choice of risk profile - number of rows and layout of baskets.
 
-**AF — Пачинко «Серебряный Дождь»**
-> Вертикальное поле, шары идут в ловушки, попадание в гейт запускает джекпот-раунд. Фича: гейт джекпота открывает отдельный слот-раунд.
+**AF – Pachinko “Silver Rain”**
+> Vertical field, balls go into traps, hitting the gate starts the jackpot round. Feature: the jackpot gate opens a separate slot round.
 
-## Процедурная Уникальная Генерация (Unique Mode)
+## Procedural Unique Generation (Unique Mode)
 
-Если флаг `--archetype` не передан или пользователь явно запросил «уникальную идею», вы
-**ОБЯЗАНЫ** изобрести новую механику, не совпадающую с A–AF — но она **обязана остаться
-гемблинг-механикой** и попадать в одну из шести категорий.
+If the `--archetype` flag is not passed or the user has explicitly requested a "unique idea", you
+**MUST** invent new mechanics that do not coincide with A-AF - but it **must stay
+gambling mechanics** and fall into one of six categories.
 
-Лучшие уникальные идеи живут на стыке двух категорий:
-- «Плинко, где корзины — покерные руки» (C6 × C5)
-- «Crash с pity-счётчиком: чем дольше не везёт, тем выше гарантированный минимум» (C2 × C4)
-- «Coin pusher, где сбитые монеты — это пуллы из баннера» (C6 × C4)
-- «Слот, барабаны которого игрок перестраивает между сессиями деревни» (C1 × C3 × C5)
-- «Скретч-карта с физикой разрушения слоя» (C2 × C6)
+The best unique ideas live at the intersection of two categories:
+- “Plinko, where baskets are poker hands” (C6 × C5)
+- “Crash with pity counter: the longer you are unlucky, the higher the guaranteed minimum” (C2 × C4)
+- “Coin pusher, where the knocked down coins are pulls from the banner” (C6 × C4)
+- "A slot whose reels the player rearranges between village sessions" (C1 × C3 × C5)
+- “Scratch map with layer destruction physics” (C2 × C6)
 
-Запрещено: изобретать пазл, раннер, шутер, тетрис, кликер или match-3 — даже «со ставкой
-сверху». Ставка, приклеенная к не-гемблинг механике, не делает игру гемблингом; ядром
-должен быть случайный исход со ставкой.
+It is prohibited to invent a puzzle, runner, shooter, Tetris clone, clicker, or match-3—even with
+a wager layered on top. A wager attached to a non-gambling mechanic does not make it gambling;
+the core must be a wager on a random outcome.
 
-**Категория и математическая модель фиксируются в блоке «Классификация» ДО остальных секций.**
+**The category and mathematical model are recorded in the “Classification” block BEFORE the other sections.**
 
-## Variety Dimensions — почему одинаковый архетип ≠ одинаковая игра
+## Variety Dimensions - why the same archetype ≠ the same game
 
-Архетип задаёт МЕХАНИКУ. Чтобы две игры одного архетипа выглядели и ощущались по-разному,
-**прокрути эти оси и выбери непохожие на прошлую игру значения**. Записывай выбор в концепт.
+The archetype sets the MECHANICS. To make two games of the same archetype look and feel different,
+**scroll these axes and select values ​​that are different from the last game**. Record your choice in the concept.
 
-| Ось | Примеры значений (выбирай разнообразно) |
+| Axis | Examples of meanings (choose varied) |
 |-----|------------------------------------------|
-| **Setting / мир** | подводный, космос, древний Египет, киберпанк-Токио, зачарованный лес, конфетная страна, нуар-город, дикий запад, дзен-сад, стимпанк, мифы, кофейня |
-| **Mood / настроение** | напряжённое, уютное, эпичное, ироничное, мистическое, бодрое, медитативное |
-| **Palette family** | тёплая земляная, холодная неоновая, пастельная, монохром+1 акцент, драгоценные тона, выгоревшая ретро |
-| **Brightness** | светлая / тёмная / сумеречная — НЕ всегда тёмная |
-| **Layout Archetype** | L1–L6 (см. Секция 3.5) — варьируй композицию |
-| **Cartoon 2.5D treatment** | глянцевый аркадный, мягкий storybook, клэй-подобный, конфетный, рисованный приключенческий, ретро-мультфильм — всегда с объёмом, чистым силуэтом и единым светом |
-| **Audience / тон** | хардкор-каузал, детский, премиум-элегантный, ретро-ностальгия |
+| **Setting/world** | underwater, space, ancient Egypt, cyberpunk Tokyo, enchanted forest, candy land, noir city, wild west, zen garden, steampunk, myths, coffee shop |
+| **Mood/mood** | intense, cozy, epic, ironic, mystical, upbeat, meditative |
+| **Palette family** | warm earthy, cool neon, pastel, monochrome+1 accent, jewel tones, burnt retro |
+| **Brightness** | light / dark / twilight - NOT always dark |
+| **Layout Archetype** | L1–L6 (see Section 3.5) - vary the composition |
+| **Cartoon 2.5D treatment** | glossy arcade, soft storybook, clay-like, candy-like, hand-drawn adventure, retro cartoon—always with volume, clean silhouettes, and consistent light |
+| **Audience/tone** | hardcore casual, children's, premium elegant, retro nostalgia |
 
-> Цель: даже два слота "A" должны выглядеть как РАЗНЫЕ игры — один тёплый египетский светлый,
-> другой холодный космический тёмный, с разными layout-архетипами. Setting + palette + layout
-> вместе дают огромное пространство непохожих результатов.
+> Goal: even two "A" slots should look like DIFFERENT games - one warm Egyptian light,
+> another cold cosmic dark one, with different layout archetypes. Setting + palette + layout
+> together they give a huge range of dissimilar results.
 >
-> **Отдельно против «казино-slop»**: неон + чёрный + золото — ЭТО дефолт, а не стиль.
-> Если игра выходит тёмно-неоново-золотой без причины в Setting — прокрути ось ещё раз.
+> **Separately against “casino-slop”**: neon + black + gold IS a default, not a style.
+> If the game comes out dark neon gold for no reason in Setting, scroll the axis again.
 
-## Алгоритм работы
+## Work algorithm
 
-1. Прочитайте флаг:
-   - `--list` — выведите таблицу архетипов A–AF, сгруппированную по категориям C1–C6.
-   - `--category C1..C6` — выбирайте архетип случайно ВНУТРИ этой категории.
-   - `--archetype A..AF` — берите конкретный.
-2. Иначе выберите архетип псевдослучайно, **не повторяя прошлый**:
+1. Read the flag:
+   - `--list` — display a table of archetypes A–AF, grouped into categories C1–C6.
+   - `--category C1..C6` - choose an archetype randomly INSIDE this category.
+   - `--archetype A..AF` - take a specific one.
+2. Otherwise, choose an archetype pseudo-randomly, **without repeating the previous one**:
    ```python
    import time
    ARCHETYPES = ["A","B","C","D","E","F","G","H",      # C1
@@ -188,322 +188,322 @@ allowed-tools: Read, Glob, Grep, Write
                  "AD","AE","AF"]                       # C6
    archetype = ARCHETYPES[int(time.time()) % len(ARCHETYPES)]
    ```
-3. **Определите категорию и математическую модель** архетипа по
-   `.claude/docs/gambling-categories.md`. Это первое, что попадёт в концепт.
-4. **Прокрутите Variety Dimensions**: setting / mood / palette / brightness /
-   Layout Archetype (L1–L6) / стиль арта — непохожие на прошлую игру.
-5. Создайте детализированный GDD в `design/gdd/game-concept.md`.
+3. **Define the category and mathematical model** of the archetype by
+   `.claude/docs/gambling-categories.md`. This is the first thing that will be included in the concept.
+4. **Scroll Variety Dimensions**: setting / mood / palette / brightness /
+   Layout Archetype (L1–L6) / art style - unlike the previous game.
+5. Create a detailed GDD in `design/gdd/game-concept.md`.
 
-## Обязательные секции GDD
+## Required sections of GDD
 
-### Секция 0: Классификация (ПЕРВАЯ, обязательна)
+### Section 0: Classification (FIRST, mandatory)
 
-> Без этого блока `/gate-check concept` даёт FAIL, а downstream-фазы `/autocreate`
-> не знают, какую математику строить. Заполняется буквально, машиночитаемо.
+> Without this block `/gate-check concept` returns FAIL, and downstream `/autocreate` phases
+> cannot select the correct math implementation. Fill it out literally in machine-readable form.
 
 ```markdown
-## Классификация
-- **Категория**: [C1 | C2 | C3 | C4 | C5 | C6] — [название категории]
-- **Архетип**: [A–AF | UNIQUE] — [название]
-- **Математическая модель**: [M1 | M2 | M3 | M4 | M5 | M6] — [название]
-- **Целевая метрика**: [«RTP 96.0% ±1%» | «hard pity 70, SSR 1.2%» | «run win-rate 32%» | …]
-- **Конфиг модели**: design/balance/[файл].json
-- **Compliance-профиль**: [полный | ослабленный C5 — обоснование]
+## Classification
+- **Category**: [C1 | C2 | C3 | C4 | C5 | C6] - [category name]
+- **Archetype**: [A–AF | UNIQUE] - [name]
+- **Mathematical model**: [M1 | M2 | M3 | M4 | M5 | M6] - [name]
+- **Target Metric**: ["RTP 96.0% ±1%" | "hard pity 70, SSR 1.2%" | “run win-rate 32%” | …]
+- **Model config**: design/balance/[file].json
+- **Compliance profile**: [full | reduced C5 - justification]
 ```
 
-### Секция 1: Обзор
-- Название, категория, архетип, одно предложение
-- Целевая аудитория
-- Уникальное торговое предложение (USP)
+### Section 1: Overview
+- Title, category, archetype, one sentence
+- Target audience
+- Unique Selling Proposition (USP)
 
-### Секция 1.5: Reference Bar (калибровка планки качества)
+### Section 1.5: Reference Bar (quality bar calibration)
 
-> Игра соревнуется с НАСТОЯЩИМИ играми в сторе, а не с другими демками.
-> См. `.claude/docs/quality-bar.md`.
+> The game competes with REAL games in the store, not with other demos.
+> See `.claude/docs/quality-bar.md`.
 
-- **2–3 названных реальных хита категории**:
+- **2–3 named real category hits**:
   - C1 → Slotomania, Heart of Vegas, Zynga Poker, Bingo Blitz
-  - C2 → crash/mines/dice-оригиналы, Hi-Lo
+  - C2 → crash/mines/dice-originals, Hi-Lo
   - C3 → Monopoly GO!, Coin Master, Dice Dreams
   - C4 → Genshin Impact, Honkai: Star Rail, RAID: Shadow Legends
   - C5 → Balatro, Luck be a Landlord, Dicey Dungeons
-  - C6 → Coin Dozer, Plinko, пачинко-автоматы
-- Для каждого: что заимствуем **В ОЩУЩЕНИИ** (тайминг остановки барабанов, вес каскада,
-  нерв перед cash-out, ритм раскрытия пулла, отзывчивость) — не в контенте и не в визуале
-- **Hook**: одна строка — чем НАША игра отличается от референсов
+  - C6 → Coin Dozer, Plinko, pachinko machines
+- For each: what do we borrow **IN FEELING** (timing of stopping the reels, weight of the cascade,
+  nerve before cash-out, rhythm of pull opening, responsiveness) - not in the content and not in the visuals
+- **Hook**: one line - how OUR game differs from the references
 
-### Секция 2: Математический / Балансовый профиль
+### Section 2: Math/Balance Profile
 
-Заполняется по модели из Секции 0. Пороги — `.claude/docs/math-models.md`.
+Filled in according to the model from Section 0. Thresholds - `.claude/docs/math-models.md`.
 
 **M1 (C1) — Paytable RTP:**
-- Предлагаемый RTP (95–97%) и волатильность
-- Таблица символов с весами, таблица выплат
-- Hit rate (20–35%), формула выигрыша
-- Bet-tiers и доля RTP, приходящаяся на бонус
+- Suggested RTP (95–97%) and volatility
+- Symbol table with weights, payout table
+- Hit rate (20–35%), winning formula
+- Bet-tiers and the share of RTP attributable to the bonus
 
 **M2 (C2) — Instant-Win RTP:**
-- House edge (1–4%) и вытекающий RTP (96–99%)
-- Формула множителя по шагам, максимальный множитель (кап обязателен)
-- Схема детерминизма раунда: `serverSeed + clientSeed + nonce`
-- Правило cash-out: выплата на шаге k строго = ставка × multiplier(k)
+- House edge (1–4%) and resulting RTP (96–99%)
+- Multiplier formula in steps, maximum multiplier (cap is required)
+- Round determinism scheme: `serverSeed + clientSeed + nonce`
+- Cash-out rule: payout at step k strictly = bet × multiplier(k)
 
 **M3 (C3) — Economy:**
-- Кап энергии, регенерация в час, стоимость спина
-- Таблица событий спина с весами (сумма = 100%)
-- Лестница цен анлоков, шаг цены ≤ 1.6×
-- Source/sink 0.90–1.15, пейс 2–5 сессий на анлок, сессия 3–7 минут
+- Energy cap, regeneration per hour, spin cost
+- Spin event table with weights (sum = 100%)
+- Unlock price ladder, price step ≤ 1.6×
+- Source/sink 0.90–1.15, pace 2–5 sessions per unlock, session 3–7 minutes
 
 **M4 (C4) — Gacha:**
-- Таблица редкостей с base rates (SSR 0.5–2%), сумма = 1.0
-- Hard pity (50–90), soft pity (старт и шаг)
-- E[пуллов до редчайшей] и 90-й перцентиль
-- Ценность дубликата для КАЖДОЙ редкости
+- Rarity table with base rates (SSR 0.5–2%), amount = 1.0
+- Hard pity (50–90), soft pity (start and step)
+- E[pulls to rarest] and 90th percentile
+- Duplicate value for EACH rarity
 
 **M5 (C5) — Run Win-Rate:**
-- Пороги раундов (шаг ≤ 2×), целевой run win-rate 25–40%
-- Экономика забега: доход за раунд против цен магазина
-- Список модификаторов (≥3) с силой — ни доминирующих, ни мёртвых
-- Схема seed-детерминизма + пометка про ADR на `Random(seed)`
+- Round thresholds (step ≤ 2×), target run win-rate 25–40%
+- Run economics: income per round versus store prices
+- List of modifiers (≥3) with strength - neither dominant nor dead
+- Seed determinism scheme + note about ADR on `Random(seed)`
 
 **M6 (C6) — Physics RTP:**
-- Геометрия поля, множители корзин, целевой RTP 95–97%
-- Фиксированный timestep и детерминированный seed старта
-- Ожидаемое распределение по корзинам (без «мёртвых»)
-- Для coin pusher — как замеряется установившийся режим
+- Field geometry, basket multipliers, target RTP 95–97%
+- Fixed timestep and deterministic start seed
+- Expected distribution by baskets (without “dead”)
+- For coin pusher - how the steady state is measured
 
-### Секция 2.5: Production Plan (что делает игру ПОЛНОЙ, а не мини-демкой)
+### Section 2.5: Production Plan (which makes the game FULL and not a mini-demo)
 
-> **Это ключевая секция для «полной игры».** Один игровой цикл = мини-демо. Полная игра — это
-> цикл + контент (много уровней/режимов) + мета-петля (прогрессия/экономика/достижения) +
-> точки монетизации/телеметрии + compliance-слой. Опиши их КОНКРЕТНО — downstream
-> фазы `/autocreate` (3.5 audio, 4 meta-systems agent, 4.5 content) строят ровно это.
+> **This is the key section for the "full game".** One game loop = mini demo. The full game is
+> loop + content (many levels/modes) + meta-loop (progression/economy/achievements) +
+> monetization/telemetry points + compliance layer. Describe them SPECIFICALLY - downstream
+> phases `/autocreate` (3.5 audio, 4 meta-systems agent, 4.5 content) build exactly this.
 
 ```markdown
 ## Production Plan
 
-### Content Plan (объём контента — НЕ один уровень)
-- **Модель контента**: [levels | endless-stages | bet-tiers+bonus | waves] — что подходит механике
-- **Количество**: [например, 24 уровня в 3 мирах | 8 нарастающих стейджей | 5 bet-tiers + 2 бонус-игры]
-- **Параметры на единицу контента** (что меняется от уровня к уровню): [скорость/плотность/цель/веса]
-- **Кривая прогрессии**: [как растут ставки/цели/цены; ссылка на конфиг контента категории]
-- **Условие прохождения / звёзды**: [как засчитывается успех, 1–3 звезды по порогам]
+### Content Plan (volume of content - NOT one level)
+- **Content model**: [levels | endless-stages | bet-tiers+bonus | waves] - what suits the mechanics
+- **Number**: [for example, 24 levels in 3 worlds | 8 progressive stages | 5 bet-tiers + 2 bonus games]
+- **Parameters per content unit** (which changes from level to level): [speed/density/target/weights]
+- **Progression curve**: [how rates/targets/prices grow; link to category content config]
+- **Condition for passing / stars**: [how success is counted, 1–3 stars according to thresholds]
 
-### Game Modes (2–3 режима — реиграбельность)
-- **Mode 1 (основной)**: [Classic / Campaign — прохождение контента по порядку]
-- **Mode 2**: [High-Roller (повышенные ставки) / Turbo / Survival-серия / Daily Run — подходящий категории]
-- **Mode 3 (опц.)**: [Daily Challenge — детерминированный seed по дате, отдельный leaderboard]
+### Game Modes (2-3 modes - replayability)
+- **Mode 1 (main)**: [Classic / Campaign - completing content in order]
+- **Mode 2**: [High-Roller (high stakes) / Turbo / Survival series / Daily Run - suitable category]
+- **Mode 3 (optional)**: [Daily Challenge - deterministic seed by date, separate leaderboard]
 
-### Progression Model (мета-петля удержания)
-- **Что открывается**: [уровни/миры/скины/темы/режимы по мере прогресса]
-- **Player level / XP**: [есть/нет; если есть — за что XP и что даёт]
-- **Сохраняемый прогресс**: [звёзды, лучшие счёты, открытые уровни, статистика]
+### Progression Model (meta-loop retention)
+- **What unlocks**: [levels/worlds/skins/themes/modes as you progress]
+- **Player level / XP**: [yes/no; if so, what is XP for and what does it give]
+- **Stored progress**: [stars, best scores, open levels, statistics]
 
-### Economy Model (виртуальная — для retention)
-- **Валюта**: [название, напр. «монеты»/«кристаллы»] — за что начисляется
-- **Куда тратится**: [магазин: скины/темы/бустеры/наборы уровней/remove-ads]
-- **Стартовый баланс и цены**: [числа → пойдут в GameConfig / economy-config.json]
-- ⚠️ Валюта строго ВИРТУАЛЬНАЯ: не покупает исход, не конвертируется в деньги, не выводится.
-  Символы реальной валюты рядом с игровым балансом запрещены (responsible-gaming.md §1).
+### Economy Model (virtual - for retention)
+- **Currency**: [name, e.g. “coins”/“crystals”] - what is awarded for
+- **Where is it spent**: [store: skins/themes/boosters/level sets/remove-ads]
+- **Starting balance and prices**: [numbers → will go to GameConfig / economy-config.json]
+- ⚠️ The currency is strictly VIRTUAL: does not buy the outcome, is not converted into money, is not withdrawn.
+  Real currency symbols next to the game balance are prohibited (responsible-gaming.md §1).
 
-### Achievements & Daily (retention-хуки)
-- **Достижения**: [5–12 штук: id + условие + награда]
-- **Daily Bonus**: [streak-механика, что даёт]
-- **Missions (опц.)**: [daily/weekly цели]
+### Achievements & Daily (retention hooks)
+- **Achievements**: [5–12 pieces: id + condition + reward]
+- **Daily Bonus**: [streak mechanics that gives]
+- **Missions (optional)**: [daily/weekly goals]
 
-### Monetization Placements (точки интеграции — реализуются как абстракции/no-op)
-- **Rewarded**: [продолжить после проигрыша | удвоить награду | бонус-спин] — где именно
-- **Interstitial**: [между сессиями, частотный кап N]
-- **IAP-каталог**: [наборы монет, remove-ads, премиум-скины — список product id]
-- **Banner**: [есть/нет; по умолчанию off]
+### Monetization Placements (integration points - implemented as abstractions/no-op)
+- **Rewarded**: [continue after losing | double your reward | bonus spin] - where exactly
+- **Interstitial**: [between sessions, frequency cap N]
+- **IAP catalog**: [coin sets, remove-ads, premium skins - product id list]
+- **Banner**: [yes/no; default off]
 
-### Telemetry Events (таксономия — реализуется через AnalyticsService no-op)
-- Ключевые события: app_open, session_start/end, screen_view, level_start/complete/fail,
+### Telemetry Events (taxonomy - implemented via AnalyticsService no-op)
+- Key events: app_open, session_start/end, screen_view, level_start/complete/fail,
   game_action, purchase, ad_shown/reward, achievement_unlocked, daily_bonus_claimed
-- **Remote-config ключи** (live-tuning): [частота рекламы, цены, RTP/pity-профиль, реген энергии]
+- **Remote-config keys** (live-tuning): [advertising frequency, prices, RTP/pity profile, energy regen]
 
-### Compliance (ОБЯЗАТЕЛЬНО — см. `.claude/rules/responsible-gaming.md`)
-- **Age-gate**: экран при первом запуске, результат в SharedPreferences
-- **Disclaimer**: «Игра на виртуальные фишки. Реальные деньги не принимаются и не выплачиваются.
-  Успех в этой игре не означает успеха в азартных играх на реальные деньги.» — splash + правила
-- **Responsible-play**: блок в настройках (напоминание о сессии, «сделать перерыв», контакты помощи)
-- **Odds disclosure**: [обязателен для C4 и платных спинов C3 | покрыт paytable для C1/C2/C6]
-- **Возрастной рейтинг**: [18+ Google Play / 17+ App Store; C5 без покупок — обычно 12+]
-- **Ослабленный профиль**: [нет | да — только C5 без IAP и без ставок валютой, обоснование]
+### Compliance (MANDATORY - see `.claude/rules/responsible-gaming.md`)
+- **Age-gate**: screen on first launch, result in SharedPreferences
+- **Disclaimer**: “Gaming with virtual chips. Real money is not accepted or paid.
+  Success in this game does not mean success in gambling for real money." - splash + rules
+- **Responsible-play**: block in settings (session reminder, “take a break”, help contacts)
+- **Odds disclosure**: [required for C4 and paid spins C3 | covered by paytable for C1/C2/C6]
+- **Age rating**: [18+ Google Play / 17+ App Store; C5 without purchases - usually 12+]
+- **Weakened Profile**: [none | yes - only C5 without IAP and without currency bets, justification]
 ```
 
-> Объём держи реалистичным для авто-генерации: контент — это ДАННЫЕ (JSON + параметры в
-> GameConfig), а не N рукописных экранов. 8 bet-tiers + 3 баннера = один GameScreen + конфиг
-> с записями. Это и есть «полная игра» малой ценой контекста.
+> Keep the volume realistic for auto-generation: content is DATA (JSON + parameters in
+> GameConfig), rather than N handwritten screens. 8 bet-tiers + 3 banners = one GameScreen + config
+> with records. This is the “full game” at the low cost of context.
 
-### Секция 3: Design DNA (Contextual Visual Identity)
+### Section 3: Design DNA (Contextual Visual Identity)
 
-**Каждое визуальное решение ОБЯЗАНО быть обосновано контекстом ЭТОЙ КОНКРЕТНОЙ игры.**
-Не шаблон. Не "всегда неон + трапеция." Дизайн вытекает из темы, настроения и механики.
+**Each visual decision MUST be justified within the context of THAT SPECIFIC game.**
+Not a template. Not "always neon + trapezoid." Design flows from theme, mood and mechanics.
 
-Прочитай `.claude/rules/anti-slop-design.md` — там объяснён принцип.
+Read `.claude/rules/anti-slop-design.md` - the principle is explained there.
 
 ```markdown
 ## Design DNA: [Game Name]
 
 ### Emotional Core
-[1-2 предложения: что игрок ЧУВСТВУЕТ, играя в ЭТУ КОНКРЕТНУЮ игру?]
-[Пример: "Нарастающее напряжение и эйфория при выигрыше" / "Спокойное удовлетворение от решённой головоломки" / "Адреналин от скорости и рефлексов"]
+[1-2 sentences: how does the player FEEL while playing THIS PARTICULAR game?]
+[Example: “Increasing tension and euphoria when winning” / “Quiet satisfaction from a solved puzzle” / “Adrenaline from speed and reflexes”]
 
 ### Visual World
-[В каком визуальном мире существует эта игра? Это определяет ВСЁ остальное.]
-[Пример: "Подводный мир с мягким свечением медуз" / "Неоновый Токио 2080-х" / "Уютная кофейня с бумажными текстурами"]
+[What visual world does this game exist in? This determines EVERYTHING else.]
+[Example: "Underwater world with soft glow of jellyfish" / "Neon Tokyo 2080s" / "Cozy coffee shop with paper textures"]
 
-### Shape Language (вытекает из Visual World)
-- Primary action button: [форма + ПОЧЕМУ для этой игры]
-  [Пример для подводной игры: "плавная капля — органическая форма, как медуза"]
-  [Пример для механической игры: "рифлёный прямоугольник — как промышленный рычаг"]
-  [Пример для уютной игры: "мягкий скруглённый — как подушка"]
-- Info panels: [форма + ПОЧЕМУ]
-- Decorative elements: [форма + ПОЧЕМУ]
+### Shape Language (derived from Visual World)
+- Primary action button: [form + WHY for this game]
+  [Example for an underwater game: "smooth drop - organic shape, like a jellyfish"]
+  [Example for a mechanical game: “a grooved rectangle is like an industrial lever”]
+  [Example for a cozy game: “soft rounded - like a pillow”]
+- Info panels: [form + WHY]
+- Decorative elements: [shape + WHY]
 
-### Color Palette (5 цветов — КАЖДЫЙ обоснован контекстом игры)
-- Background: #XXXXXX — [ПОЧЕМУ именно этот цвет для ЭТОЙ игры]
-- Surface: #XXXXXX — [ПОЧЕМУ]
-- Primary: #XXXXXX — [ПОЧЕМУ — связь с темой/миром игры]
-- Win/Success: #XXXXXX — [ПОЧЕМУ]
-- Danger/Loss: #XXXXXX — [ПОЧЕМУ]
-[Примечание: если игра про лес — зелёная палитра ЛОГИЧНА, а не запрещена.
-Если игра про космос — синий ЛОГИЧЕН. Цвет запрещён только если он СЛУЧАЕН.]
+### Color Palette (5 colors - EACH justified by the context of the game)
+- Background: #XXXXXX - [WHY this color for THIS game]
+- Surface: #XXXXXX - [WHY]
+- Primary: #XXXXXX - [WHY - connection with the theme/world of the game]
+- Win/Success: #XXXXXX — [WHY]
+- Danger/Loss: #XXXXXX — [WHY]
+[Note: if the game is about a forest, the green palette is LOGICAL, and not prohibited.
+If the game is about space, blue is LOGICAL. Color is only prohibited if it is RANDOM.]
 
-### Typography (вытекает из мира и настроения)
-- Display font: [конкретный Google Font] — [ПОЧЕМУ этот шрифт подходит этой игре]
-  [Пример: "Press Start 2P — ретро-автоматный зал" / "Playfair Display — элегантное казино" / "Nunito — дружелюбное социальное бинго"]
-- Body font: [конкретный Google Font] — [ПОЧЕМУ читаемый и подходит настроению]
+### Typography (derived from world and mood)
+- Display font: [specific Google Font] - [WHY this font suits this game]
+  [Example: "Press Start 2P - Retro Slot Hall" / "Playfair Display - Elegant Casino" / "Nunito - Friendly Social Bingo"]
+- Body font: [specific Google Font] - [WHY readable and fits the mood]
 
-### Motion Character (вытекает из emotional core)
-- Button feedback: [КАКОЙ и ПОЧЕМУ]
-  [Тяжёлая механическая игра: глубокое нажатие с задержкой]
-  [Лёгкая казуальная: пружинистый отскок]
-  [Элегантная: тонкое свечение]
-- Win celebration: [ЧТО именно и ПОЧЕМУ соответствует уровню выигрыша]
-- Screen transitions: [ЧТО и ПОЧЕМУ — связь с метафорой игры]
-  [Карточная игра: переворот карты. Слот: створки. Гачапон: капсула раскрывается.]
-  [Или: быстрый cut для быстрой игры. Намеренная простота — тоже дизайн-решение.]
-- Idle state: [ЧТО оживляет экран когда игрок не взаимодействует]
+### Motion Character (derived from emotional core)
+- Button feedback: [WHAT and WHY]
+  [Heavy mechanical game: deep pressing with delay]
+  [Light Casual: Springy Rebound]
+  [Elegant: subtle glow]
+- Win celebration: [WHAT exactly and WHY corresponds to the level of winning]
+- Screen transitions: [WHAT and WHY - connection with the game metaphor]
+  [Card game: card flip. Slot: doors. Gachapon: capsule opens.]
+  [Or: quick cut for quick play. Intentional simplicity is also a design decision.]
+- Idle state: [WHAT animates the screen when the player is not interacting]
 
 ### Depth & Effects Strategy
-[НЕ "всегда glassmorphism." А: какой приём создания глубины подходит ЭТОЙ игре?]
-- [Пример: "Бумажные слои с тенями" для настольной игры]
-- [Пример: "Голографические оверлеи" для sci-fi]
-- [Пример: "Никакой глубины — плоский минимализм" для строгого рогалика]
-- [Пример: "Glassmorphism" для футуристической темы]
-- Effects: [какие эффекты используются, зачем, и где НЕ используются]
+[NOT "always glassmorphism." A: What technique for creating depth is appropriate for THIS game?]
+- [Example: "Paper layers with shadows" for a board game]
+- [Example: "Holographic overlays" for sci-fi]
+- [Example: “No depth - flat minimalism” for a strict roguelike]
+- [Example: "Glassmorphism" for a futuristic theme]
+- Effects: [what effects are used, why, and where NOT used]
 
 ### What Makes This Design UNIQUE to This Game
-[Если перенести этот UI на другую игру — будет ли он выглядеть неуместно? Если да — дизайн удался.]
-[1-2 предложения: что НЕВОЗМОЖНО было бы перенести на другую игру]
+[If you transfer this UI to another game, will it look out of place? If yes, the design was a success.]
+[1-2 sentences: what would NOT be possible to transfer to another game]
 ```
 
-### Секция 3.5: Layout & Composition Direction (ОБЯЗАТЕЛЬНО)
+### Section 3.5: Layout & Composition Direction (MANDATORY)
 
-**Выбери Layout Archetype** из `.claude/docs/layout-archetypes.md` (L1–L6) — он определяет
-КОМПОЗИЦИЮ экранов независимо от Design DNA (которая определяет вид). **Варьируй архетип
-от прошлой игры** — это главный рычаг против «все экраны одинаковые».
+**Select Layout Archetype** from `.claude/docs/layout-archetypes.md` (L1–L6) - it defines
+COMPOSITION of screens regardless of Design DNA (which determines the look). **Vary the archetype
+from the last game** - this is the main lever against “all screens are the same”.
 
-| ID | Архетип | Суть композиции |
+| ID | Archetype | The essence of the composition |
 |----|---------|-----------------|
-| L1 | Classic Stack | Верхний HUD-бар, поле в центре, управление+действие снизу |
-| L2 | Bottom Command Deck | Поле edge-to-edge сверху, плотная нижняя консоль |
-| L3 | Floating Corners | Full-bleed поле, плавающие чипы по углам, плавающая кнопка |
-| L4 | Side Rail | Вертикальная рейка управления/HUD сбоку |
-| L5 | Split Panel | Две явные зоны: ≈60% поле / ≈40% инфо-панель |
-| L6 | Card / Sheet Stack | Контент на скруглённых карточках/листах |
+| L1 | Classic Stack | Top HUD bar, field in the center, controls+action below |
+| L2 | Bottom Command Deck | Edge-to-edge top, tight bottom console |
+| L3 | Floating Corners | Full-bleed field, floating chips in the corners, floating button |
+| L4 | Side Rail | Side Vertical Control Rail/HUD |
+| L5 | Split Panel | Two explicit zones: ≈60% field / ≈40% info panel |
+| L6 | Card/Sheet Stack | Content on rounded cards/sheets |
 
 ```markdown
 ## Layout & Composition Direction
 
-### Выбранный архетип: [L1–L6] — [название]
-[1 предложение: почему эта композиция подходит этой механике и категории]
+### Selected Archetype: [L1–L6] - [name]
+[1 sentence: why this composition fits this mechanic and category]
 
-### Применение к ключевым экранам
-- Main Menu: [как собрано по архетипу + одето в DNA]
-- Game Screen + HUD: [где HUD, где основное действие, как поле]
-- Overlays: [позиция toast, стиль входа модалок]
-- Transitions: [семейство переходов из архетипа, окрашенное метафорой игры]
+### Applying to key screens
+- Main Menu: [as assembled by archetype + dressed in DNA]
+- Game Screen + HUD: [where is the HUD, where is the main action, like a field]
+- Overlays: [toast position, modal entry style]
+- Transitions: [a family of transitions from an archetype, colored by the game's metaphor]
 ```
 
-> Архетип = композиция (КАК расставлено). DNA = вид (КАК выглядит). Не сваливай дефолтную
-> раскладку «HUD сверху + кнопка по центру снизу» в каждую игру. Описание экранов ниже —
-> ОБЯЗАНО следовать выбранному архетипу.
+> Archetype = composition (HOW it is arranged). DNA = appearance (WHAT it looks like). Don't default
+> "HUD on top + button on bottom center" layout for every game. Description of screens below -
+> MUST follow the chosen archetype.
 
-### Секция 4: Карта экранов MVP (Screen Map)
+### Section 4: MVP Screen Map
 
-**ОБЯЗАТЕЛЬНО. Минимум 10 экранов с описанием и UX-потоком. Композиция каждого — по выбранному Layout Archetype.**
+**NECESSARILY. Minimum 10 screens with description and UX flow. The composition of each is according to the selected Layout Archetype.**
 
 ```markdown
 ## Screen Map
 
-### Экран 1: Splash Screen
-- Что показывает: [анимированный логотип/символ игры]
-- Длительность: 1.5-2 сек
-- Переход на: Main Menu
-- Анимация входа: [конкретный эффект]
+### Screen 1: Splash Screen
+- What it shows: [animated game logo/symbol]
+- Duration: 1.5-2 sec
+- Go to: Main Menu
+- Entrance animation: [specific effect]
 
-### Экран 2: Main Menu
-- Элементы: название (с glow), кнопка ИГРАТЬ (пульсирующая), настройки, помощь
-- Фон: [описание атмосферного фона]
-- Анимация входа: staggered появление элементов
-- Переходы: → Game Screen, → Settings, → Help
+### Screen 2: Main Menu
+- Elements: title (with glow), PLAY button (pulsating), settings, help
+- Background: [description of atmospheric background]
+- Entry animation: staggered appearance of elements
+- Transitions: → Game Screen, → Settings, → Help
 
-### Экран 3: Game Screen + HUD
-- Игровое поле: [барабаны / стол / сетка мин / кривая множителя / баннер / доска / поле pegs]
-- HUD элементы: счёт/баланс (animated counter), управление, кнопка действия
-- Оверлеи: Win/Score (3 уровня), Game Over, уровень пройден
+### Screen 3: Game Screen + HUD
+- Playing field: [reels/table/mine grid/multiplier curve/banner/board/pegs field]
+- HUD elements: account/balance (animated counter), controls, action button
+- Overlays: Win/Score (3 levels), Game Over, level passed
 
-### Экран 4: Paytable / Таблица правил
-- Содержимое: правила, выплаты или комбинации
-- Навигация: свайп или табы
-- Переход обратно: → Game Screen
+### Screen 4: Paytable
+- Content: rules, payouts or combinations
+- Navigation: swipe or tabs
+- Go back: → Game Screen
 
-### Экран 5: Settings / Настройки
-- Элементы: громкость BGM, громкость SFX, вибрация, быстрый режим/пропуск анимации,
-  **блок Responsible Play** (напоминание о сессии, перерыв, контакты помощи)
-- Стиль переключателей: [описание кастомных toggles]
+### Screen 5: Settings
+- Elements: BGM volume, SFX volume, vibration, fast mode/skip animation,
+  **Responsible Play block** (session reminder, break, help contacts)
+- Toggle style: [description of custom toggles]
 
-### Экран 6: Help / Как играть
-- Формат: пошаговое руководство с иллюстрациями
+### Screen 6: Help / How to play
+- Format: step-by-step guide with illustrations
 
-### Экран 7: Win / Score Overlays (3 уровня)
-- Small (базовый): toast снизу, animated counter, auto-dismiss 2s
-- Big (средний): полу-экранный, конфетти particles, 3s
-- Mega (максимальный): полноэкранный, explosion, camera shake
+### Screen 7: Win/Score Overlays (3 levels)
+- Small (basic): toast from below, animated counter, auto-dismiss 2s
+- Big (medium): half-screen, confetti particles, 3s
+- Mega (maximum): full screen, explosion, camera shake
 
-### Экран 8: Game Over / Insufficient Funds
-- Стилизованный модал (НЕ AlertDialog)
-- Повтор / уменьшить ставку / продолжить
+### Screen 8: Game Over / Insufficient Funds
+- Stylized modal (NOT AlertDialog)
+- Repeat / reduce bet / continue
 
-### Экран 9: Bonus / Special Mode (если есть)
-- Бонусный режим категории: free spins / hold&spin / джекпот-гейт / bonus pick
+### Screen 9: Bonus/Special Mode (if available)
+- Bonus category mode: free spins / hold&spin / jackpot gate / bonus pick
 
-### Экран 10: Daily Bonus
-- Механика удержания игроков
-- Переход обратно: → Main Menu
+### Screen 10: Daily Bonus
+- Player retention mechanics
+- Go back: → Main Menu
 
-### Экран 11: Leaderboard / Stats
-- Топ результатов, прогресс игрока
+### Screen 11: Leaderboard / Stats
+- Top results, player progress
 
-### Экран 12: Player Profile
-- Аватар, никнейм, статистика
+### Screen 12: Player Profile
+- Avatar, nickname, statistics
 
-### Экран 13: Level / Mode Select (если контент = уровни/режимы)
-- Сетка/карта уровней с состоянием (заблокирован/открыт/звёзды) или выбор режима
-- Переход: → Game Screen (выбранный уровень/режим)
+### Screen 13: Level / Mode Select (if content = levels/modes)
+- Level grid/map with status (locked/open/stars) or mode selection
+- Go to: → Game Screen (selected level/mode)
 
-### Экран 14: Shop / Магазин (экономика)
-- Список покупаемого за валюту (скины/темы/бустеры/наборы/remove-ads), баланс валюты сверху
-- Состояния: доступно / не хватает валюты / куплено
+### Screen 14: Shop (Economy)
+- List of items purchased for currency (skins/themes/boosters/sets/remove-ads), currency balance at the top
+- Conditions: available / not enough currency / purchased
 
-### Экран 15: Achievements / Достижения
-- Список достижений с прогрессом (разблокировано/в процессе), награды
+### Screen 15: Achievements
+- List of achievements with progress (unlocked/in progress), awards
 ```
 
-**UX Flow (навигация):**
+**UX Flow (navigation):**
 ```
 Splash → Menu → Game ←→ Paytable/Rules
                  ↓  ←→ Settings
@@ -518,20 +518,20 @@ Splash → Menu → Game ←→ Paytable/Rules
           Menu ←→ Player Profile
 ```
 
-### Секция 5: Asset Manifest (ПОЛНЫЙ, format-aware)
+### Section 5: Asset Manifest (FULL, format-aware)
 ```markdown
 ## Asset Manifest
 
-**Default for Codex `/autocreate`: PNG через GPT Images 2.0 → GPT Images/default fallback.**
-SVG допустим только как fallback вне Codex или при явном `--svg`. В концепте НЕ называй
-ассеты `.svg`, если игра будет идти через `/autocreate` в Codex: downstream-агенты читают этот
-манифест буквально.
+**Default for Codex `/autocreate`: PNG via GPT Images 2.0 → GPT Images/default fallback.**
+SVG is only valid as a fallback outside of Codex or with an explicit `--svg`. In concept, DO NOT call
+assets `.svg`, if the game will be played through `/autocreate` in Codex: downstream agents read this
+manifesto literally.
 
 ### Shared Visual Style Anchor
-- Render style: polished cartoon 2.5D casual-game art; [как концепт определяет формы,
-  материалы, детали и характер этого мультяшного мира]
-- Lighting: [единый источник, например soft top-left key + subtle rim]
-- Palette: [3-5 цветов из Design DNA]
+- Render style: polished cartoon 2.5D casual-game art; [how the concept determines the forms,
+  materials, details and character of this cartoon world]
+- Lighting: [single source, for example soft top-left key + subtle rim]
+- Palette: [3-5 colors from Design DNA]
 - Camera/composition: single centered hero object for sprites/icons; 9:16 layered scene for backgrounds
 - Cutout policy: sprites/icons/tiles/items = generate on a flat solid chroma-key background
   (default pure magenta #FF00FF; pure green #00FF00 if the palette contains magenta/pink/purple),
@@ -540,68 +540,68 @@ SVG допустим только как fallback вне Codex или при я�
   no emoji/sticker, no logo, no text, no sprite sheet,
   no generic casino/neon unless this is explicitly in Design DNA
 
-### Спрайты (assets/images/sprites/)
-- sprite_[name].png — [subject identity из мира игры; material/texture; role in gameplay; readable at 64px]
-- ... (минимум 5-8 элементов)
+### Sprites (assets/images/sprites/)
+- sprite_[name].png — [subject identity from the game world; material/texture; role in gameplay; readable at 64px]
+- ... (minimum 5-8 elements)
 
 ### UI Elements (assets/images/ui/)
-- ui_action_button.png — кнопка действия; форма из shape language DNA
-- ui_frame.png — рамка игрового поля
-- ui_panel.png — панель управления / ставок / ресурсов
-- ui_separator.png — декоративный разделитель
-- ui_icon_sound.png — иконка звука
-- ui_icon_settings.png — иконка настроек
-- ui_icon_info.png — иконка помощи
+- ui_action_button.png — action button; shape from shape language DNA
+- ui_frame.png — frame of the playing field
+- ui_panel.png - control panel / rates / resources
+- ui_separator.png — decorative separator
+- ui_icon_sound.png — sound icon
+- ui_icon_settings.png — settings icon
+- ui_icon_info.png — help icon
 
-### Фоны (assets/images/backgrounds/)
-- background_menu.png — 9:16 фон главного меню; мир, глубина и яркость из DNA
-- background_game.png — 9:16 фон игрового экрана; quiet center area, не спорит с полем
+### Backgrounds (assets/images/backgrounds/)
+- background_menu.png — 9:16 background of the main menu; peace, depth and brightness from DNA
+- background_game.png — 9:16 background of the game screen; quiet center area, does not argue with the field
 
-### Аудио (assets/audio/)
-- assets/audio/bgm/bgm_main.wav — фоновая музыка
-- assets/audio/sfx/sfx_action.wav — основное действие (spin/tap/move)
-- assets/audio/sfx/sfx_coin.wav — начисление валюты / счётчик
-- assets/audio/sfx/sfx_error.wav — отказ / ошибка / недостаточно ресурсов
-- assets/audio/sfx/sfx_win_small.wav — малый выигрыш / успех
-- assets/audio/sfx/sfx_win_big.wav — большой выигрыш / успех
-- assets/audio/sfx/sfx_win_mega.wav — мега выигрыш / исключительный успех
-- assets/audio/sfx/sfx_button.wav — нажатие кнопки UI
-- assets/audio/sfx/sfx_navigate.wav — переход между экранами
+### Audio (assets/audio/)
+- assets/audio/bgm/bgm_main.wav — background music
+- assets/audio/sfx/sfx_action.wav - main action (spin/tap/move)
+- assets/audio/sfx/sfx_coin.wav — currency accrual / counter
+- assets/audio/sfx/sfx_error.wav - failure / error / insufficient resources
+- assets/audio/sfx/sfx_win_small.wav - small win / success
+- assets/audio/sfx/sfx_win_big.wav - big win / success
+- assets/audio/sfx/sfx_win_mega.wav - mega win / exceptional success
+- assets/audio/sfx/sfx_button.wav — pressing the UI button
+- assets/audio/sfx/sfx_navigate.wav — transition between screens
 ```
 
-### Секция 6: Code Architecture (ПОЛНАЯ с Data Flow)
+### Section 6: Code Architecture (FULL with Data Flow)
 ```markdown
 ## Dart Classes
 
 ### Game Core
-- [GameName]Game extends FlameGame — точка входа, управляет ValueNotifiers
-- [GameName]World extends World with HasCollisionDetection — игровой мир
-- GameConfig — ВСЕ числовые константы (ставки, скорости, множители, тайминги)
+- [GameName]Game extends FlameGame - entry point, controls ValueNotifiers
+- [GameName]World extends World with HasCollisionDetection - game world
+- GameConfig - ALL numerical constants (bet rates, speeds, multipliers, timings)
 - GameState (sealed) — Idle, Playing, Animating, Win, GameOver, Paused
 
 ### Systems
-- [GameLogic] — основная механика (WeightedRNG/MatchDetector/SpawnManager)
-- [Evaluator] — чистая функция подсчёта результата
+- [GameLogic] - basic mechanics (WeightedRNG/MatchDetector/SpawnManager)
+- [Evaluator] - pure function for calculating the result
 
 ### Components
-- [MainComponent] — основной игровой объект
-- [ElementComponent] — игровые элементы
-- WinAnimationComponent — VFX выигрышей
-- AmbientParticles — фоновые частицы
+- [MainComponent] - main game object
+- [ElementComponent] - game elements
+- WinAnimationComponent - VFX wins
+- AmbientParticles - background particles
 
 ### UI
 - GameApp (MaterialApp) → named routes
 - SplashScreen → MainMenu → GameScreen (GameWidget + HUD overlay)
-- HudWidget — ValueListenableBuilder для баланса/счёта/состояния
-- WinOverlay — 3 уровня
+- HudWidget - ValueListenableBuilder for balance/account/status
+- WinOverlay - 3 levels
 - All other screens (12+)
 
-## ValueNotifier Contracts (между Flame Game и Flutter UI)
+## ValueNotifier Contracts (between Flame Game and Flutter UI)
 | Notifier | Type | Writes | Reads |
 |----------|------|--------|-------|
 | balance | ValueNotifier<int> | Game | HUD, Bet selector, InsufficientFunds |
-| bet | ValueNotifier<int> | HUD (Bet+/-) | Game (при действии) |
-| isPlaying | ValueNotifier<bool> | Game | HUD (блокировка кнопок) |
+| bet | ValueNotifier<int> | HUD (Bet+/-) | Game (on action) |
+| isPlaying | ValueNotifier<bool> | Game | HUD (button lock) |
 | currentState | ValueNotifier<GameState> | Game | HUD, Overlays |
 | score | ValueNotifier<int> | Game | HUD, Leaderboard |
 | lastWin | ValueNotifier<int> | Game | WinOverlay |
@@ -617,7 +617,7 @@ SVG допустим только как fallback вне Codex или при я�
 8. Set isPlaying = false → return to Idle state
 9. Update leaderboard if score > highScore
 
-## Edge Cases (ПОЛНЫЙ список)
+## Edge Cases (FULL list)
 - Balance = 0 → show InsufficientFunds dialog
 - Balance < minBet → show InsufficientFunds
 - Double-click Action → second click ignored (isPlaying check)
@@ -628,97 +628,97 @@ SVG допустим только как fallback вне Codex или при я�
 - First launch → show tutorial/help overlay
 ```
 
-### Секция 7: Требования к "Сочности" (Juiciness) — ПОЛНЫЕ
+### Section 7: Juiciness Requirements - COMPLETE
 
 ```markdown
 ## Anticipation
-- [Описание эффекта ожидания перед результатом]
-- [Замедление / задержка / звуковое нарастание]
+- [Description of the effect of waiting before the result]
+- [Slow down/delay/sound fade in]
 
-## Near Miss / Almost Win (если применимо)
-- [Описание визуального эффекта при почти-выигрыше]
+## Near Miss / Almost Win (if applicable)
+- [Description of visual effect when almost winning]
 
-## Win Celebration (3 уровня)
-- Small (1-5x): [описание — toast + confetti + ding]
-- Big (5-20x): [описание — полуэкранный + burst particles + fanfare]
-- Mega (20x+): [описание — fullscreen + explosion + camera shake + epic music]
+## Win Celebration (3 levels)
+- Small (1-5x): [description - toast + confetti + ding]
+- Big (5-20x): [description - half-screen + burst particles + fanfare]
+- Mega (20x+): [description - fullscreen + explosion + camera shake + epic music]
 
-## Idle Animations (когда игрок не взаимодействует)
-- Основной элемент: [покачивание / блик / пульсация]
-- Фон: [движущиеся частицы / ambient glow]
-- Кнопка действия: [пульсирующий glow]
+## Idle Animations (when the player does not interact)
+- Main element: [wiggle/flare/ripple]
+- Background: [moving particles / ambient glow]
+- Action button: [pulsating glow]
 
 ## Micro-Interactions
-- Каждая кнопка: scale 0.95 при нажатии → 1.0 при отпускании + shadow change
-- Числа: AnimatedCounter при изменении (easeOutCubic)
-- Навигация: тематический переход (не fade/slide)
-- Переключатели: custom toggle с анимацией
+- Each button: scale 0.95 when pressed → 1.0 when released + shadow change
+- Numbers: AnimatedCounter when changing (easeOutCubic)
+- Navigation: thematic transition (not fade/slide)
+- Switches: custom toggle with animation
 
 ## Sound Design Map
-| Событие | Звук | Характер |
+| Event | Sound | Character |
 |---------|------|----------|
-| Action start | sfx_action.wav | Нарастающий |
-| Action complete | (тишина 200ms) | Пауза для anticipation |
-| Small win | sfx_win_small.wav | Мелодичный ding |
-| Big win | sfx_win_big.wav | Фанфары |
+| Action start | sfx_action.wav | Growing |
+| Action complete | (silence 200ms) | Pause for anticipation |
+| Small win | sfx_win_small.wav | Melodious ding |
+| Big win | sfx_win_big.wav | Fanfare |
 | Mega win | sfx_win_mega.wav | Epic orchestra |
-| Button tap | sfx_button.wav | Короткий click |
+| Button tap | sfx_button.wav | Short click |
 | Navigation | sfx_navigate.wav | Swoosh |
-| Error/Fail | sfx_error.wav | Мягкий buzz |
+| Error/Fail | sfx_error.wav | Soft buzz |
 ```
 
-### Секция 8: Anti-Slop Checklist + Production Readiness
+### Section 8: Anti-Slop Checklist + Production Readiness
 ```markdown
-## Anti-Slop (intent + craft, НЕ навязанный стиль)
-- [ ] Палитра обоснована темой игры (не случайный фиолетово-синий по умолчанию)
-- [ ] 2 шрифта из DNA + типографическая иерархия (тип-шкала 4–6 размеров)
-- [ ] Базовый шаг отступов (4/8); форма кнопок из shape language (скруглённый прямоугольник ОК, если подходит)
-- [ ] Layout Archetype выбран и применён (композиция НЕ дефолтная «HUD сверху + кнопка снизу»)
-- [ ] Переходы между экранами тематические (связаны с миром игры)
-- [ ] Все 12+ экранов описаны с полным содержанием
-- [ ] Micro-interactions на каждом интерактивном элементе
-- [ ] Idle-анимации определены
-- [ ] Загрузка — тематический виджет (не CircularProgressIndicator)
-- [ ] Depth-стратегия модалок из DNA (стекло / карточка / бумага / плоско — что подходит миру)
-- [ ] Один чёткий фокус на каждом экране; контраст текста ≥ 4.5:1
+## Anti-Slop (intent + craft, NOT imposed style)
+- [ ] Palette based on the theme of the game (not random purple-blue by default)
+- [ ] 2 fonts from DNA + typographic hierarchy (type scale 4–6 sizes)
+- [ ] Basic indent step (4/8); button shape from shape language (rounded rectangle is OK if it fits)
+- [ ] Layout Archetype selected and applied (composition NOT default “HUD on top + button on bottom”)
+- [ ] Transitions between screens are thematic (related to the game world)
+- [ ] All 12+ screens are described with full content
+- [ ] Micro-interactions on each interactive element
+- [ ] Idle animations defined
+- [ ] Loading - thematic widget (not CircularProgressIndicator)
+- [ ] Depth strategy of DNA modals (glass / card / paper / flat - whatever suits the world)
+- [ ] One clear focus on each screen; text contrast ≥ 4.5:1
 - [ ] Centralized animation timings (animations.dart)
-- [ ] Стиль НЕ переносим на другую игру (неон/тёмная тема — только если обоснованы темой)
+- [ ] The style is NOT transferable to another game (neon/dark theme - only if justified by the theme)
 
 ## Production Readiness
-- [ ] Complete Game Loop описан (шаг за шагом)
-- [ ] ВСЕ edge cases перечислены с решениями
-- [ ] Data Flow определён (ValueNotifier контракты)
-- [ ] Asset Manifest полный (Codex PNG + Audio WAV; SVG только fallback)
-- [ ] Sound Design Map определён
-- [ ] SharedPreferences для: Settings, Profile, Leaderboard, Daily Bonus
+- [ ] Complete Game Loop described (step by step)
+- [ ] ALL edge cases are listed with solutions
+- [ ] Data Flow defined (ValueNotifier contracts)
+- [ ] Asset Manifest full (Codex PNG + Audio WAV; SVG fallback only)
+- [ ] Sound Design Map defined
+- [ ] SharedPreferences for: Settings, Profile, Leaderboard, Daily Bonus
 ```
 
-## Вывод
+## Conclusion
 
-Выведите сообщение:
+Print the message:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 AUTO-IDEA COMPLETE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Игра: [Название]
-Категория: [C1-C6] — [название]
-Архетип: [A-AF | UNIQUE] — [название]
-Матмодель: [M1-M6] — целевая метрика [...]
-Setting / Mood: [мир] / [настроение]
-Layout: [L1-L6] — [название архетипа композиции]
-Баланс: [RTP XX% / Кривая сложности / Система очков]
-Контент: [N уровней/стейджей] | Режимы: [Classic + Endless/Time-Attack/Daily]
-Мета: [валюта + магазин + прогрессия + достижения]
-Compliance: [полный: age-gate + disclaimer + responsible-play + 18+ | ослабленный C5]
-Экранов MVP: [N] экранов
-Design DNA: [ключевые визуальные решения]
+Game: [Name]
+Category: [C1-C6] - [title]
+Archetype: [A-AF | UNIQUE] - [name]
+Mathematical model: [M1-M6] - target metric [...]
+Setting / Mood: [world] / [mood]
+Layout: [L1-L6] - [name of composition archetype]
+Balance: [RTP XX% / Difficulty curve / Points system]
+Content: [N levels/stages] | Modes: [Classic + Endless/Time-Attack/Daily]
+Meta: [currency + store + progression + achievements]
+Compliance: [full: age-gate + disclaimer + responsible-play + 18+ | reduced C5]
+MVP screens: [N] screens
+Design DNA: [key visual decisions]
 
-Сохранено: design/gdd/game-concept.md
+Saved: design/gdd/game-concept.md
 
-Следующий шаг:
-  /autocreate --from-concept    — реализовать как игру
-  /map-systems                  — декомпозировать на системы
-  /design-review                — ревью концепта
+Next step:
+  /autocreate --from-concept - implement as a game
+  /map-systems - decompose into systems
+  /design-review - concept review
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```

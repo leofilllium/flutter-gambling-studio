@@ -1,116 +1,120 @@
-# Быстрый Старт
+# Quick start
 
-Добро пожаловать в **Flutter Gambling Studio** — студию гемблинг-мини-игр:
-слоты, покер, рулетка, бинго, crash, mines, plinko, gacha, казино-рогалики,
-coin pusher и spin-to-progress гибриды.
+Welcome to **Flutter Gambling Studio** — a studio for gambling mini-games:
+slots, poker, roulette, bingo, crash, mines, plinko, gacha, casino roguelikes,
+coin pushers and spin-to-progress hybrids.
 
-Здесь вы выступаете в роли **Директора Студии**, а AI-агенты — ваша команда.
-Ваша главная задача — принимать решения, а всю рутину команда возьмет на себя.
+Here you act as the **studio director**, and the AI agents are your team.
+Your job is to make the decisions; the team handles the rest.
 
-> **ВАЖНО**: Всё общение со студией ведется исключительно на **русском языке**.
+> **IMPORTANT**: all work in the studio is produced in **English** — the conversation, the
+> design documents, the code and the game's own copy. If you want the game itself in another
+> language, say so explicitly and the player-facing text will use it.
 >
-> **Всегда виртуально.** Игры студии не принимают и не выплачивают реальные деньги —
-> см. `.claude/rules/responsible-gaming.md`.
+> **Always virtual.** The studio's games do not accept or pay out real money —
+> see `.claude/rules/responsible-gaming.md`.
 
-## Шесть категорий, в которых работает студия
+## The six categories the studio works in
 
-| ID | Категория | Примеры |
-|----|-----------|---------|
-| C1 🎰 | Social Casino | слот, видео-покер, блэкджек, рулетка, бинго |
-| C2 ⚡ | Casino Originals | crash, mines, dice, hi-lo, tower, keno, скретч |
-| C3 🏰 | Spin-to-Progress | build-and-raid слот, board-dice, prize wheel |
-| C4 🎁 | Gacha & Loot-Box | banner pull, паки карт, case opener, гашапон |
+| ID | Category | Examples |
+|----|----------|----------|
+| C1 🎰 | Social Casino | slot, video poker, blackjack, roulette, bingo |
+| C2 ⚡ | Casino Originals | crash, mines, dice, hi-lo, tower, keno, scratch |
+| C3 🏰 | Spin-to-Progress | build-and-raid slot, board-dice, prize wheel |
+| C4 🎁 | Gacha & Loot-Box | banner pull, card packs, case opener, gashapon |
 | C5 🃏 | Casino Roguelike | poker deckbuilder, slot-reel roguelike |
-| C6 ⚙️ | Coin Pusher & Plinko | дозер, plinko, пачинко |
+| C6 ⚙️ | Coin Pusher & Plinko | dozer, plinko, pachinko |
 
-Полный справочник — `.claude/docs/gambling-categories.md`.
+The full reference is `.claude/docs/gambling-categories.md`.
 
-## 🚀 Как начать новую игру?
+## 🚀 How do I start a new game?
 
-У вас есть два пути:
+There are two paths:
 
-### Путь 1: Автоматический (Я хочу готовую игру)
-Просто введите:
+### Path 1: automatic (I want a finished game)
+Just type:
 ```bash
 /autocreate
 ```
-Студия сама выберет архетип из 32 (A–AF по шести категориям), объявит математическую
-модель, напишет дизайн, нарисует ассеты, создаст код, прогонит баланс и настроит `pubspec.yaml`.
+The studio picks an archetype out of 32 (A–AF across the six categories), declares a
+mathematical model, writes the design, draws the assets, writes the code, runs the balance
+simulation and sets up `pubspec.yaml`.
 
-### Путь 2: Ручной (Я хочу создать уникальную игру)
+### Path 2: manual (I want to build a unique game)
 
-**Шаг 1. Идея и категория**
+**Step 1. Idea and category**
 ```bash
 /brainstorm
 ```
-Вместе с агентом выберете категорию, архетип, тему и уникальную фичу («сочность»).
+Together with the agent you choose the category, the archetype, the theme and the unique
+piece of "juice".
 
-**Шаг 2. Разбор на компоненты**
+**Step 2. Break it into components**
 ```bash
 /map-systems
 ```
-Студия создаст план сборки вашей игры с картой систем.
+The studio produces a build plan with a map of systems.
 
-**Шаг 3. Детальный дизайн механики**
+**Step 3. Detailed mechanic design**
 ```bash
-/design-system rtp-weights        # C1: веса символов и таблица выплат
-/design-system multiplier-curve   # C2: формула множителя от house edge
-/design-system pity-system        # C4: soft/hard pity и раскрытие шансов
-/design-system energy-economy     # C3: реген, кап, source/sink
+/design-system rtp-weights        # C1: symbol weights and the payout table
+/design-system multiplier-curve   # C2: the multiplier formula from the house edge
+/design-system pity-system        # C4: soft/hard pity and odds disclosure
+/design-system energy-economy     # C3: regeneration, cap, source/sink
 ```
-Подключаются `game-mathematician` и `game-designer` — рассчитают модель вашей категории.
+`game-mathematician` and `game-designer` step in and compute the model for your category.
 
-**Шаг 4. Написание кода**
+**Step 4. Write the code**
 ```bash
-/team-dev "Реализуй ядро игры по нашему концепту"
+/team-dev "Implement the game core from our concept"
 ```
-Запустится оркестрация `mechanics-programmer` (логика и RNG) и `juice-artist` (анимации).
+This orchestrates `mechanics-programmer` (logic and RNG) and `juice-artist` (animation).
 
 ---
 
-## 👥 Ваша команда (Агенты)
+## 👥 Your team (the agents)
 
-| Специалист | Кого звать | Что делает |
-|------------|------------|------------|
-| Математик | `@game-mathematician` | Владелец матмодели: RTP, house edge, pity, экономика, run win-rate |
-| Геймдизайнер | `@game-designer` | GDD: раунд, ставки, бонусы, прогрессия, compliance-экраны |
-| Программист механик | `@mechanics-programmer` | `Random.secure()`, Stateless Outcomes, paylines, множители, Forge2D |
-| Мета-системы | `@meta-systems-programmer` | Save, экономика, прогрессия, достижения, ads/iap абстракции |
-| Художник Эффектов | `@juice-artist` | Anticipation, near-miss, win-celebration, партикли |
-| UI/UX | `@ui-programmer` | Все экраны Flutter, HUD, панель ставок, anti-slop дизайн |
-| Звуковик | `@sound-designer` | Ставка, вращение, остановка, победа, cash-out |
+| Specialist | Who to call | What they do |
+|------------|-------------|--------------|
+| Mathematician | `@game-mathematician` | Owner of the math model: RTP, house edge, pity, economy, run win-rate |
+| Game designer | `@game-designer` | GDD: the round, bets, bonuses, progression, compliance screens |
+| Mechanics programmer | `@mechanics-programmer` | `Random.secure()`, stateless outcomes, paylines, multipliers, Forge2D |
+| Meta systems | `@meta-systems-programmer` | Save, economy, progression, achievements, ads/iap abstractions |
+| VFX artist | `@juice-artist` | Anticipation, near-miss, win celebration, particles |
+| UI/UX | `@ui-programmer` | Every Flutter screen, HUD, bet panel, anti-slop design |
+| Sound | `@sound-designer` | Bet, spin, stop, win, cash-out |
 
 ---
 
-## 🛠 Полезные команды в процессе разработки
+## 🛠 Useful commands along the way
 
-Генерация ассетов:
+Generating assets:
 ```bash
-/generate-asset symbol вишня      # символ для барабана
-/generate-asset sprite chip-gold  # фишка / шар / капсула
+/generate-asset symbol cherry     # a reel symbol
+/generate-asset sprite chip-gold  # a chip / ball / capsule
 ```
 
-Проверить математику игры:
+Check the game's mathematics:
 ```bash
-/balance-check                    # выбирает модель M1–M6 по категории игры
+/balance-check                    # picks the model M1–M6 from the game's category
 ```
 
-Напрямую, если нужно быстро:
+Directly, when you need it quickly:
 ```bash
 python3 tools/simulate_math.py --model m1 --config design/balance/rtp-config.json
-python3 tools/simulate_math.py --selftest   # эталонные конфиги всех шести моделей
+python3 tools/simulate_math.py --selftest   # the reference configs for all six models
 ```
 
-Добавить фичу в уже готовую игру:
+Add a feature to a finished game:
 ```bash
-/add-feature "Добавь Free Spins раунд"        # C1
-/add-feature "Добавь авто-ставку с лимитами"  # C2
-/add-feature "Добавь гарант на 10-м пулле"    # C4
+/add-feature "Add a free spins round"           # C1
+/add-feature "Add auto-bet with limits"         # C2
+/add-feature "Add a guarantee on the 10th pull" # C4
 ```
 
-Сделать паузу и продолжить завтра:
+Take a break and continue tomorrow:
 ```bash
 /continue-project
 ```
 
-Готовы начать? Введите `/start` прямо сейчас.
+Ready to start? Type `/start` right now.

@@ -1,6 +1,10 @@
 # GitHub Copilot Instructions — Flutter Gambling Studio
 
-Respond in Russian. Code in English (Dart/Flutter).
+Respond in English. Everything you produce is English: code (Dart/Flutter), design docs and
+reports. The GAME itself also ships in English — every player-facing string, plus store
+metadata. The only exception is an explicit user request for another language: then the
+player-facing copy uses that language and everything else stays English. Never switch the
+game's language on your own initiative or because of the language the user types in.
 
 This is a **gambling-only** mini-game studio using Flutter 3.27+ and Flame 1.18+.
 Puzzles, runners, shooters and clickers are out of scope.

@@ -1,95 +1,98 @@
 ---
 name: start
-description: "Ознакомительный навык. Представляет гемблинг-студию, её шесть категорий и 32 архетипа, направляет пользователя. Запустите в начале любого нового проекта."
+description: "The introductory skill. Presents the gambling studio, its six categories and 32 archetypes, and points the user in the right direction. Run it at the beginning of any new project."
 user-invocable: true
 allowed-tools: Bash, Read
 ---
 
-# `flutter-gambling-studio` — Знакомство со студией
+# `flutter-gambling-studio` — meet the studio
 
-Привет! Вы находитесь в специализированной студии разработки **гемблинг-мини-игр**
-на **Flutter + Flame**.
+Hello! You are in a studio that specialises in building **gambling mini-games** with
+**Flutter + Flame**.
 
-Мы делаем только гемблинг: слоты, покер, рулетку, бинго, crash, mines, plinko, gacha,
-казино-рогалики, coin pusher и spin-to-progress гибриды. Пазлы, раннеры, шутеры и
-кликеры — вне области студии.
+We only make gambling: slots, poker, roulette, bingo, crash, mines, plinko, gacha, casino
+roguelikes, coin pushers and spin-to-progress hybrids. Puzzles, runners, shooters and clickers
+are outside the studio's scope.
 
-> **Правило 1**: Всё общение со мной и агентами студии ведётся на **русском языке**.
+> **Rule 1**: everything here is produced in **English** — the conversation, the design
+> documents, the code and the game's own copy. If you want the game itself in another language,
+> say so explicitly and the player-facing text will use it.
 >
-> **Правило 2**: Все игры — на **виртуальные фишки**. Реальные деньги не принимаются
-> и не выплачиваются (`.claude/rules/responsible-gaming.md`).
+> **Rule 2**: every game runs on **virtual chips**. Real money is neither accepted nor paid out
+> (`.claude/rules/responsible-gaming.md`).
 
-### Главные команды для старта
+### The main commands to get started
 
-| Команда | Что делает |
-|---------|------------|
-| `/brainstorm` | Пошаговая генерация идеи. Выберем категорию, архетип, математику, тему и «сочность». |
-| `/auto-idea` | Мгновенно генерирует полную концепцию (без вопросов) из 32 архетипов A–AF + прокрутка Variety Dimensions и выбор Layout Archetype. |
-| `/autocreate` | Собирает игру от концепции до готового Flutter-проекта за одну сессию. |
-| `/continue-project` | Продолжить работу с игрой с точки остановки. Ваша текущая точка входа. |
+| Command | What it does |
+|---------|--------------|
+| `/brainstorm` | Step-by-step idea generation. Together we pick the category, the archetype, the mathematics, the theme and the "juice". |
+| `/auto-idea` | Instantly generates a complete concept (no questions) from the 32 archetypes A–AF, cycling the Variety Dimensions and choosing a Layout Archetype. |
+| `/autocreate` | Builds the game from concept to a finished Flutter project in one session. |
+| `/continue-project` | Continue an existing game from where you stopped. Your usual entry point. |
 
-### Шесть категорий гемблинга
+### The six gambling categories
 
-| ID | Категория | Что это | Метрика баланса |
-|----|-----------|---------|-----------------|
-| **C1** 🎰 | Social Casino | Симуляция казино-зала на виртуальные фишки | RTP 95–97% |
-| **C2** ⚡ | Casino Originals | Мгновенный раунд, живой множитель, cash-out | RTP 96–99% |
-| **C3** 🏰 | Spin-to-Progress | Спин — топливо для казуальной мета-игры | Экономика source/sink |
-| **C4** 🎁 | Gacha & Loot-Box | Пуллы с редкостями и pity | Rates + pity |
-| **C5** 🃏 | Casino Roguelike | Казино-механика как боевая система рогалика | Run win-rate 25–40% |
-| **C6** ⚙️ | Coin Pusher & Plinko | Физика как генератор исхода | Эмпирический RTP 95–97% |
+| ID | Category | What it is | Balance metric |
+|----|----------|------------|----------------|
+| **C1** 🎰 | Social Casino | A casino floor simulated with virtual chips | RTP 95–97% |
+| **C2** ⚡ | Casino Originals | An instant round, a live multiplier, cash-out | RTP 96–99% |
+| **C3** 🏰 | Spin-to-Progress | The spin is fuel for a casual meta game | A source/sink economy |
+| **C4** 🎁 | Gacha & Loot-Box | Pulls with rarities and pity | Rates + pity |
+| **C5** 🃏 | Casino Roguelike | Casino mechanics as a roguelike's combat system | Run win-rate 25–40% |
+| **C6** ⚙️ | Coin Pusher & Plinko | Physics as the outcome generator | Empirical RTP 95–97% |
 
-### Каталог архетипов (A–AF)
+### The archetype catalogue (A–AF)
 
-| ID | Название | Механика | Кат. |
-|----|----------|----------|------|
-| A | Неоновый Спин | Классический слот 3×3 | C1 |
-| B | Фруктовая Буря | Видео-слот 5×3 + Free Spins, Avalanche | C1 |
-| C | Сахарный Взрыв | Scatter-pays / cluster слот, tumble | C1 |
-| D | Золотая Связь | Hold & Spin (Link & Win), джекпот-тиры | C1 |
-| E | Покер Экспресс | Видео-покер, Hold + Double-up | C1 |
-| F | Стол 21 | Блэкджек против дилера | C1 |
-| G | Кибер Спин | Европейская рулетка | C1 |
-| H | Бинго Блиц | Социальное бинго 75 шаров, power-ups | C1 |
-| I | Космический Взлёт | Crash, множитель + cash-out | C2 |
-| J | Минное Поле | Mines, геометрический множитель | C2 |
-| K | Квантовые Кости | Dice roll-under, физика броска | C2 |
-| L | Выше-Ниже | Hi-Lo, streak множителей | C2 |
-| M | Башня Дракона | Tower Climb, risk/reward по этажам | C2 |
-| N | Лотерея Чисел | Keno, выбор чисел + тираж | C2 |
-| O | Делюкс Золото | Скретч-карты | C2 |
-| P | Сундуки Фортуны | Bonus Pick, dramatic reveal | C2 |
-| Q | Королевство Монет | Build-and-Raid слот | C3 |
-| R | Бросок Судьбы | Board-move dice, тайл-события | C3 |
-| S | Колесо Удачи | Prize-wheel энергохаб | C3 |
-| T | Альбом Коллекционера | Стикеры и наборы из паков | C3 |
-| U | Щит и Меч | Raid & Shield ладдер | C3 |
-| V | Призыв Легенд | Banner pull, soft/hard pity | C4 |
-| W | Колода Чемпионов | Mystery card packs | C4 |
-| X | Кейс-Рулетка | Case opener со спиннером | C4 |
-| Y | Капсульный Автомат | Гашапон, двухступенчатое раскрытие | C4 |
-| Z | Джокер | Poker deckbuilder | C5 |
-| AA | Свой Барабан | Slot-reel roguelike | C5 |
-| AB | Кузница Костей | Dice-builder | C5 |
-| AC | Мешок Алхимика | Push-your-luck bag | C5 |
-| AD | Золотой Бульдозер | Coin Pusher | C6 |
-| AE | Неоновый Каскад | Plinko | C6 |
-| AF | Серебряный Дождь | Пачинко + джекпот-гейт | C6 |
+| ID | Name | Mechanic | Cat. |
+|----|------|----------|------|
+| A | Neon Spin | A classic 3×3 slot | C1 |
+| B | Fruit Storm | A 5×3 video slot + free spins, avalanche | C1 |
+| C | Sugar Blast | A scatter-pays / cluster slot, tumble | C1 |
+| D | Golden Link | Hold & Spin (Link & Win), jackpot tiers | C1 |
+| E | Poker Express | Video poker, hold + double-up | C1 |
+| F | Table 21 | Blackjack against the dealer | C1 |
+| G | Cyber Spin | European roulette | C1 |
+| H | Bingo Blitz | Social 75-ball bingo, power-ups | C1 |
+| I | Cosmic Ascent | Crash, a multiplier + cash-out | C2 |
+| J | Minefield | Mines, a geometric multiplier | C2 |
+| K | Quantum Dice | Dice roll-under, roll physics | C2 |
+| L | Higher-Lower | Hi-Lo, a streak of multipliers | C2 |
+| M | Dragon Tower | Tower climb, risk/reward per floor | C2 |
+| N | Number Lottery | Keno, picking numbers + the draw | C2 |
+| O | Deluxe Gold | Scratch cards | C2 |
+| P | Chests of Fortune | Bonus pick, a dramatic reveal | C2 |
+| Q | Coin Kingdom | A build-and-raid slot | C3 |
+| R | Roll of Fate | Board-move dice, tile events | C3 |
+| S | Wheel of Luck | A prize-wheel energy hub | C3 |
+| T | Collector's Album | Stickers and sets from packs | C3 |
+| U | Shield and Sword | A raid & shield ladder | C3 |
+| V | Summon of Legends | Banner pull, soft/hard pity | C4 |
+| W | Deck of Champions | Mystery card packs | C4 |
+| X | Case Roulette | A case opener with a spinner | C4 |
+| Y | Capsule Machine | Gashapon, a two-stage reveal | C4 |
+| Z | Joker | A poker deckbuilder | C5 |
+| AA | Build Your Reel | A slot-reel roguelike | C5 |
+| AB | Dice Forge | A dice-builder | C5 |
+| AC | The Alchemist's Bag | A push-your-luck bag | C5 |
+| AD | Golden Dozer | Coin pusher | C6 |
+| AE | Neon Cascade | Plinko | C6 |
+| AF | Silver Rain | Pachinko + a jackpot gate | C6 |
 
-> Композиция экранов — отдельная ось: **Layout Archetype L1–L6** (`.claude/docs/layout-archetypes.md`).
-> Вид — из **Design DNA**. Один архетип + разные DNA/Layout = разные игры.
+> Screen composition is a separate axis: the **Layout Archetype L1–L6**
+> (`.claude/docs/layout-archetypes.md`). The look comes from the **Design DNA**.
+> One archetype + different DNA/Layout = different games.
 >
-> Полный справочник категорий: `.claude/docs/gambling-categories.md`.
+> The full category reference: `.claude/docs/gambling-categories.md`.
 
-### Команда специалистов
+### The team of specialists
 
-Вас обслуживают специализированные агенты:
-- **`game-mathematician`** — владелец математической модели: RTP, house edge, pity, экономика, run win-rate.
-- **`game-designer`** — проектирует раунд, ставки, бонусы, прогрессию, compliance-экраны.
-- **`mechanics-programmer`** — пишет логику: `Random.secure()`, Stateless Outcomes, физику на Flame `1.18.x`.
-- **`juice-artist`** — делает anticipation, near-miss и win-celebration «сочными».
+You are served by specialised agents:
+- **`game-mathematician`** — owner of the mathematical model: RTP, house edge, pity, the economy, run win-rate.
+- **`game-designer`** — designs the round, the bets, bonuses, progression and the compliance screens.
+- **`mechanics-programmer`** — writes the logic: `Random.secure()`, stateless outcomes, physics on Flame `1.18.x`.
+- **`juice-artist`** — makes anticipation, near-miss and win celebration feel juicy.
 
 ***
 
-**С чего начнём?** Введите `/brainstorm` для интерактивного создания игры,
-`/auto-idea` для мгновенной генерации концепта или `/autocreate` для быстрого старта.
+**Where shall we start?** Type `/brainstorm` to build a game interactively,
+`/auto-idea` to generate a concept instantly, or `/autocreate` for a fast start.

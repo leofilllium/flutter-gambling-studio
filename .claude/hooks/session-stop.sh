@@ -15,12 +15,12 @@ MODIFIED=$(git status --short 2>/dev/null | grep -c '.' || echo "0")
 # Append to daily log
 cat >> "$LOG_FILE" << EOF
 
-## Сессия завершена: $DATETIME
+## Session finished: $DATETIME
 
-- Изменено файлов: $MODIFIED
-- Активные файлы:
+- Files changed: $MODIFIED
+- Active files:
 $(git status --short 2>/dev/null | head -10 | sed 's/^/  /')
 
 EOF
 
-echo "📝 Сессия записана в $LOG_FILE"
+echo "📝 Session logged to $LOG_FILE"

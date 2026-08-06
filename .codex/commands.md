@@ -1,74 +1,71 @@
 # Codex Command Registry
 
-Если пользователь пишет slash-команду (`$name` или `/name`), Codex обязан трактовать её как
-вызов соответствующего runbook из `.claude/skills/`. Адаптация Claude-механик (Agent tool,
-Skill tool, hooks, vision, image generation) — см. `AGENTS.md` → «Execution Model».
+When the user types a slash command (`$name` or `/name`), Codex must treat it as a call to the
+matching runbook in `.claude/skills/`. For how the Claude mechanics (Agent tool, Skill tool,
+hooks, vision, image generation) are adapted, see `AGENTS.md` → "Execution Model".
 
-## Конвейер производства игры
+## The game production pipeline
 
-| Команда | Skill file | Назначение |
-|---------|------------|------------|
-| `/start` | `.claude/skills/start/SKILL.md` | Онбординг, маршрутизация, выбор следующего шага |
-| `/brainstorm` | `.claude/skills/brainstorm/SKILL.md` | Интерактивный концепт мини-игры |
-| `/auto-idea` | `.claude/skills/auto-idea/SKILL.md` | Автогенерация идеи из 32 архетипов A–AF по 6 категориям (вкл. Классификацию, Reference Bar, Design DNA, Production Plan) |
-| `/autocreate` | `.claude/skills/autocreate/SKILL.md` | **Zero-to-Production конвейер.** В Codex три «сессии» выполняются как три чекпоинта ОДНОЙ сессии: Фазы 1–3.8 → handoff-1 → `autocreate-implement` (Фазы 4–10.7) → handoff → `autocreate-finalize` (Фазы 10.5–12). «5 параллельных агентов» Фазы 4 = последовательные persona-проходы A→E→D→B→C. Ассеты — PNG через GPT Image 2: built-in tool или `tools/gpt_image.py` в headless CLI; простые ассеты на плоском chroma-key фоне + `tools/cutout.py` |
-| `/autocreate-implement` | `.claude/skills/autocreate-implement/SKILL.md` | Сессия 2 (имплементация, Фазы 4–10.7) — также ручной перезапуск после сбоя (`--resume`) |
-| `/autocreate-finalize` | `.claude/skills/autocreate-finalize/SKILL.md` | Сессия 3 (runtime+soak, playtest, release-eng PREP, отчёт) — также ручной перезапуск |
-| `/continue-project` | `.claude/skills/continue-project/SKILL.md` | Возобновление работы по текущему состоянию |
-| `/map-systems` | `.claude/skills/map-systems/SKILL.md` | Декомпозиция концепта на системы |
-| `/design-system` | `.claude/skills/design-system/SKILL.md` | GDD для отдельной механики |
-| `/prototype` | `.claude/skills/prototype/SKILL.md` | Быстрый прототип ощущения и juiciness |
-| `/team-dev` | `.claude/skills/team-dev/SKILL.md` | Оркестрация мультидисциплинарной команды (в Codex — последовательные persona-проходы) |
-| `/add-feature` | `.claude/skills/add-feature/SKILL.md` | Добавление новой фичи в существующую игру |
+| Command | Skill file | Purpose |
+|---------|------------|---------|
+| `/start` | `.claude/skills/start/SKILL.md` | Onboarding, routing, choosing the next step |
+| `/brainstorm` | `.claude/skills/brainstorm/SKILL.md` | Interactive mini-game concept |
+| `/auto-idea` | `.claude/skills/auto-idea/SKILL.md` | Auto-generate an idea from the 32 archetypes A–AF across 6 categories (incl. Classification, Reference Bar, Design DNA, Production Plan) |
+| `/autocreate` | `.claude/skills/autocreate/SKILL.md` | **The Zero-to-Production pipeline.** In Codex the three "sessions" run as three checkpoints of ONE session: Phases 1–3.8 → handoff-1 → `autocreate-implement` (Phases 4–10.7) → handoff → `autocreate-finalize` (Phases 10.5–12). The "5 parallel agents" of Phase 4 become sequential persona passes A→E→D→B→C. Assets are PNG via GPT Image 2: the built-in tool, or `tools/gpt_image.py` in the headless CLI; simple assets go on a flat chroma-key background + `tools/cutout.py` |
+| `/autocreate-implement` | `.claude/skills/autocreate-implement/SKILL.md` | Session 2 (implementation, Phases 4–10.7) — also the manual restart after a failure (`--resume`) |
+| `/autocreate-finalize` | `.claude/skills/autocreate-finalize/SKILL.md` | Session 3 (runtime + soak, playtest, release-eng PREP, report) — also a manual restart |
+| `/continue-project` | `.claude/skills/continue-project/SKILL.md` | Resume work from the current state |
+| `/map-systems` | `.claude/skills/map-systems/SKILL.md` | Decompose the concept into systems |
+| `/design-system` | `.claude/skills/design-system/SKILL.md` | A GDD for one individual mechanic |
+| `/prototype` | `.claude/skills/prototype/SKILL.md` | A quick prototype of feel and juiciness |
+| `/team-dev` | `.claude/skills/team-dev/SKILL.md` | Orchestrate a multi-disciplinary team (in Codex: sequential persona passes) |
+| `/team-gambling` | `.claude/skills/team-gambling/SKILL.md` | Alias of `/team-dev` |
+| `/add-feature` | `.claude/skills/add-feature/SKILL.md` | Add a new feature to an existing game |
 
-## Ассеты
+## Assets
 
-| Команда | Skill file | Назначение |
-|---------|------------|------------|
-| `/generate-asset` | `.claude/skills/generate-asset/SKILL.md` | SVG по умолчанию; PNG только по явному запросу |
-| `/generate-png-asset` | `.claude/skills/generate-png-asset/SKILL.md` | В Codex растровые ассеты через GPT Image 2: built-in tool или `tools/gpt_image.py` в headless CLI; плоский chroma-key фон + `tools/cutout.py` |
-| `/svg-to-png` | `.claude/skills/svg-to-png/SKILL.md` | В Codex конвертация SVG в PNG через GPT Images 2.0 → GPT Images/default fallback |
-| `/asset-review` | `.claude/skills/asset-review/SKILL.md` | **Vision-ревью набора ассетов** (контактные листы, критерии AR1–AR10, перегенерация бракованных). Фаза 3.6 в `/autocreate` |
+| Command | Skill file | Purpose |
+|---------|------------|---------|
+| `/generate-asset` | `.claude/skills/generate-asset/SKILL.md` | SVG by default; PNG only on explicit request |
+| `/generate-png-asset` | `.claude/skills/generate-png-asset/SKILL.md` | In Codex, raster assets via GPT Image 2: the built-in tool, or `tools/gpt_image.py` in the headless CLI; flat chroma-key background + `tools/cutout.py` |
+| `/svg-to-png` | `.claude/skills/svg-to-png/SKILL.md` | In Codex, SVG→PNG conversion via GPT Images 2.0 → GPT Images/default fallback |
+| `/asset-review` | `.claude/skills/asset-review/SKILL.md` | **Vision review of the asset set** (contact sheets, criteria AR1–AR10, regeneration of rejects). Phase 3.6 in `/autocreate` |
 
-## Качество и верификация
+## Quality and verification
 
-| Команда | Skill file | Назначение |
-|---------|------------|------------|
-| `/gate-check` | `.claude/skills/gate-check/SKILL.md` | Quality gate для стадии проекта |
-| `/design-review` | `.claude/skills/design-review/SKILL.md` | Ревью GDD и полноты спецификации |
-| `/code-review` | `.claude/skills/code-review/SKILL.md` | Архитектурное и геймплейное ревью |
-| `/ui-audit` | `.claude/skills/ui-audit/SKILL.md` | Anti-slop аудит (100+ проверок) + автофикс; меряет по `.claude/docs/quality-bar.md` |
-| `/emulator-test` | `.claude/skills/emulator-test/SKILL.md` | Runtime-верификация. **Default platform: Chrome/Web** (headless, `tools/web_verify.mjs`, без эмулятора). Android ADB — только явный fallback `--platform android` |
-| `/playtest` | `.claude/skills/playtest/SKILL.md` | **Глубокая игровая верификация**: реально играет через CDP, проверки P1–P10 (числа меняются, win/lose пути, живое поле, прогрессия, утечки). Фаза 10.6 в finalize |
-| `/balance-check` | `.claude/skills/balance-check/SKILL.md` | RTP, difficulty curve, full-curve валидация контента |
-| `/perf-profile` | `.claude/skills/perf-profile/SKILL.md` | FPS, память, particles, audio |
-| `/tech-debt` | `.claude/skills/tech-debt/SKILL.md` | Реестр технического долга |
-| `/hotfix` | `.claude/skills/hotfix/SKILL.md` | Срочное исправление критической проблемы |
-| `/architecture-decision` | `.claude/skills/architecture-decision/SKILL.md` | ADR и архитектурный выбор |
+| Command | Skill file | Purpose |
+|---------|------------|---------|
+| `/gate-check` | `.claude/skills/gate-check/SKILL.md` | Quality gate for a project stage |
+| `/design-review` | `.claude/skills/design-review/SKILL.md` | Review of the GDD and the completeness of the spec |
+| `/code-review` | `.claude/skills/code-review/SKILL.md` | Architectural and gameplay review |
+| `/ui-audit` | `.claude/skills/ui-audit/SKILL.md` | Anti-slop audit (100+ checks) + auto-fix; measured against `.claude/docs/quality-bar.md` |
+| `/emulator-test` | `.claude/skills/emulator-test/SKILL.md` | Runtime verification. **Default platform: Chrome/Web** (headless, `tools/web_verify.mjs`, no emulator). Android ADB is an explicit fallback via `--platform android` |
+| `/playtest` | `.claude/skills/playtest/SKILL.md` | **Deep gameplay verification**: actually plays through CDP, checks P1–P10 (numbers change, win/lose paths, living board, progression, leaks). Phase 10.6 in finalize |
+| `/balance-check` | `.claude/skills/balance-check/SKILL.md` | RTP, difficulty curve, full-curve content validation |
+| `/perf-profile` | `.claude/skills/perf-profile/SKILL.md` | FPS, memory, particles, audio |
+| `/tech-debt` | `.claude/skills/tech-debt/SKILL.md` | The technical debt register |
+| `/hotfix` | `.claude/skills/hotfix/SKILL.md` | Urgent fix for a critical problem |
+| `/architecture-decision` | `.claude/skills/architecture-decision/SKILL.md` | ADRs and architectural choices |
 
-## Релиз
+## Release
 
-| Команда | Skill file | Назначение |
-|---------|------------|------------|
-| `/release-checklist` | `.claude/skills/release-checklist/SKILL.md` | GO/NO-GO чеклист (persona release-manager; учитывает playtest и asset-review вердикты) |
-| `/release-engineering` | `.claude/skills/release-engineering/SKILL.md` | Иконки/splash/версия/signed AAB/store-metadata/CI. В конвейере — только `--prep-only --no-keystore` |
-| `/release-package` | `.claude/skills/release-package/SKILL.md` | Скриншоты + release APK/AAB + `flutter clean` + архив в `project_zip/`. **Явный запуск пользователя**, НЕ авто-вызов из конвейера |
-| `/store-screenshots` | `.claude/skills/store-screenshots/SKILL.md` | Витрина гемблинг-игры: концепт-триптих вокруг ключевого момента раунда (одна панорама на N панелей, БЕЗ текста) + кадры раунда в рамке телефона с подписями + feature graphic + иконка/эмблема (генерируются И применяются). Два набора — 1320×2868 (App Store 6.9″) и 1080×1920 9:16 (Google Play). Compliance-гейт: ни символов валют, ни обещаний выплат. Арт — GPT Images 2.0, композитинг и типографика — `tools/store_compose.py` → `project_zip/` |
+| Command | Skill file | Purpose |
+|---------|------------|---------|
+| `/release-checklist` | `.claude/skills/release-checklist/SKILL.md` | GO/NO-GO checklist (release-manager persona; takes the playtest and asset-review verdicts into account) |
+| `/release-engineering` | `.claude/skills/release-engineering/SKILL.md` | Icons/splash/version/signed AAB/store metadata/CI. Inside the pipeline: only `--prep-only --no-keystore` |
+| `/release-package` | `.claude/skills/release-package/SKILL.md` | Screenshots + release APK/AAB + `flutter clean` + an archive in `project_zip/`. **An explicit user action**, NOT an automatic call from the pipeline |
+| `/store-screenshots` | `.claude/skills/store-screenshots/SKILL.md` | The gambling game's store showcase: a concept triptych around the key moment of a round (one panorama across N panels, with NO text) + round frames in a phone frame with captions + feature graphic + icon/emblem (generated AND applied). Two sets — 1320×2868 (App Store 6.9″) and 1080×1920 9:16 (Google Play). Compliance gate: no currency symbols, no payout promises. Art from GPT Images 2.0, compositing and typography from `tools/store_compose.py` → `project_zip/` |
 
-## Устаревшее
+## Execution rule
 
-| Команда | Замена |
-|---------|--------|
-| `/team-gambling` | `/team-dev` |
-
-## Правило исполнения
-
-1. Открыть указанный `SKILL.md`.
-2. Выполнить шаги в порядке, указанном в skill, соблюдая критерии выхода фаз.
-3. Если skill требует нескольких ролей — использовать persona-проходы по `.claude/agents/*.md`
-   (см. `agents.md`).
-4. Claude-specific шаг → ближайший эквивалент по таблице Execution Model в `AGENTS.md`:
-   - Claude Agent tool → инлайн persona-проход / продолжение в этой же сессии
-   - Claude Skill tool → открыть SKILL.md как runbook
+1. Open the named `SKILL.md`.
+2. Run the steps in the order the skill gives, respecting each phase's exit criteria.
+3. If the skill needs several roles, use persona passes over `.claude/agents/*.md`
+   (see `agents.md`).
+4. A Claude-specific step maps to its nearest equivalent in the Execution Model table in
+   `AGENTS.md`:
+   - Claude Agent tool → an inline persona pass / continuing in the same session
+   - Claude Skill tool → open the SKILL.md as a runbook
    - Claude hook → `bash tools/codex-hooks.sh ...`
-   - Vision-анализ → встроенный vision Codex; PNG-генерация → GPT Image 2 built-in или `tools/gpt_image.py`; отсутствие built-in tool не разрешает SVG fallback
+   - Vision analysis → Codex's built-in vision; PNG generation → GPT Image 2 built-in or
+     `tools/gpt_image.py`. The absence of a built-in tool does not license an SVG fallback.

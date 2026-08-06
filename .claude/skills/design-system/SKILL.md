@@ -1,69 +1,70 @@
 ---
 name: design-system
-description: "Проектирование отдельной игровой системы гемблинг-игры: веса символов и выплаты (C1), кривая множителя и cash-out (C2), экономика энергии и таблица событий спина (C3), rates и pity (C4), модификаторы и цели забега (C5), геометрия поля и множители корзин (C6). Генерирует GDD документ с участием game-mathematician и game-designer."
+description: "Designs one individual system of a gambling game: symbol weights and payouts (C1), the multiplier curve and cash-out (C2), the energy economy and the spin event table (C3), rates and pity (C4), modifiers and run targets (C5), board geometry and bucket multipliers (C6). Generates a GDD document with game-mathematician and game-designer involved."
 user-invocable: true
 allowed-tools: Bash, Read, Edit, Write
-argument-hint: "<название-системы> (например: rtp-weights, free-spins, multiplier-curve, pity-system, energy-economy)"
+argument-hint: "<system-name> (e.g. rtp-weights, free-spins, multiplier-curve, pity-system, energy-economy)"
 ---
 
-# `design-system` — Детализация игровых систем
+# `design-system` — detailing a game system
 
-Интерактивно проектирует одну **игровую** систему гемблинг-игры (механика/баланс).
+Interactively designs one **game** system of a gambling game (mechanics/balance).
 
-> **Визуальная design-система** (Design DNA → theme-токены: палитра, тип-шкала, формы, motion)
-> и **композиция** (Layout Archetype) живут в концепте: `design/gdd/game-concept.md` (Design DNA)
-> и `design/art-direction.md` (Layout). См. `.claude/rules/anti-slop-design.md` (+ Craft
-> Fundamentals) и `.claude/docs/layout-archetypes.md`. Этот скилл — про игровые системы, не про тему.
+> The **visual design system** (Design DNA → theme tokens: palette, type scale, shapes, motion)
+> and the **composition** (Layout Archetype) live in the concept: `design/gdd/game-concept.md`
+> (Design DNA) and `design/art-direction.md` (Layout). See `.claude/rules/anti-slop-design.md`
+> (plus its craft fundamentals) and `.claude/docs/layout-archetypes.md`. This skill is about
+> game systems, not about the theme.
 
-## Рабочий процесс
+## Workflow
 
-1. **Контекст**: Прочитайте `design/gdd/game-concept.md`, блок **Классификация** —
-   он задаёт категорию (C1–C6) и математическую модель (M1–M6).
+1. **Context**: read `design/gdd/game-concept.md`, the **Classification** block —
+   it sets the category (C1–C6) and the mathematical model (M1–M6).
 
-2. **Тип системы**: определите, кто ведёт работу.
+2. **The system's type**: decide who leads the work.
 
-   | Категория | Математика (`game-mathematician`) | Механика (`game-designer`) |
-   |-----------|-----------------------------------|----------------------------|
-   | **C1** 🎰 | веса символов, таблица выплат, RTP, hit rate | Wild/Scatter, free spins, bonus round, bet-tiers |
-   | **C2** ⚡ | house edge, формула множителя, кап | cash-out, авто-ставка и её лимиты, история раундов |
-   | **C3** 🏰 | веса событий спина, цены анлоков, реген энергии | набеги, щиты, коллекция, сезоны доски |
-   | **C4** 🎁 | base rates, soft/hard pity, E[пуллов] | баннеры, x10 гарант, конвертация дубликатов |
-   | **C5** 🃏 | пороги раундов, сила модификаторов, доход | магазин между раундами, анлоки, daily run |
-   | **C6** ⚙️ | множители корзин, распределение попаданий | рисковый профиль, спец-призы, джекпот-гейт |
+   | Category | Mathematics (`game-mathematician`) | Mechanics (`game-designer`) |
+   |----------|------------------------------------|-----------------------------|
+   | **C1** 🎰 | symbol weights, the payout table, RTP, hit rate | Wild/Scatter, free spins, bonus round, bet tiers |
+   | **C2** ⚡ | house edge, the multiplier formula, the cap | cash-out, auto-bet and its limits, round history |
+   | **C3** 🏰 | spin event weights, unlock prices, energy regeneration | raids, shields, the collection, board seasons |
+   | **C4** 🎁 | base rates, soft/hard pity, E[pulls] | banners, the x10 guarantee, duplicate conversion |
+   | **C5** 🃏 | round thresholds, modifier strength, income | the between-rounds shop, unlocks, the daily run |
+   | **C6** ⚙️ | bucket multipliers, the hit distribution | the risk profile, special prizes, the jackpot gate |
 
-   **Audio/VFX** во всех категориях: `juice-artist` / `sound-designer`
-   (anticipation, near-miss, cash-out, reveal, каскад).
+   **Audio/VFX** in every category: `juice-artist` / `sound-designer`
+   (anticipation, near-miss, cash-out, reveal, cascade).
 
-3. **Интерактив (Вопросы)** — примеры по системам:
+3. **The interactive part (questions)** — examples by system:
 
    `rtp-weights` (C1):
-   - Список базовых символов и их роль (низкие/средние/премиум/Wild/Scatter).
-   - Множитель самого редкого символа (x100? x1000?).
-   - Доля проигрышных раундов (обычно 65–80%, т.е. hit rate 20–35%).
+   - The list of base symbols and their roles (low/medium/premium/Wild/Scatter).
+   - The multiplier on the rarest symbol (x100? x1000?).
+   - The share of losing rounds (usually 65–80%, i.e. a hit rate of 20–35%).
 
    `multiplier-curve` (C2):
-   - Целевой house edge (1% / 2–3% / 4%).
-   - Форма кривой и максимальный множитель (кап обязателен).
-   - На каком шаге игрок обычно забирает — под это калибруется ощущение.
+   - The target house edge (1% / 2–3% / 4%).
+   - The shape of the curve and the maximum multiplier (a cap is mandatory).
+   - Which step the player usually cashes out on — the feel is calibrated around that.
 
    `pity-system` (C4):
-   - Base rate SSR и hard pity (50–90).
-   - Есть ли soft pity, с какого пулла и с каким шагом.
-   - Видит ли игрок счётчик pity (рекомендуется — да).
+   - The SSR base rate and hard pity (50–90).
+   - Whether there is soft pity, from which pull, and with what step.
+   - Whether the player sees the pity counter (recommended: yes).
 
    `energy-economy` (C3):
-   - Кап энергии, реген в час, стоимость спина.
-   - Сколько сессий в сутки должно быть доступно бесплатно.
-   - Шаг цены анлоков (≤ 1.6×) и растёт ли доход вместе с прогрессом.
+   - The energy cap, regeneration per hour, the cost of a spin.
+   - How many sessions a day should be available for free.
+   - The unlock price step (≤ 1.6×) and whether income grows along with progress.
 
-4. **Генерация черновика**:
-   Запишите в `design/gdd/[system-name].md`.
-   Обязательные поля:
-   - *Balance Impact* — как система влияет на целевую метрику модели (RTP / pity / экономику)
-   - *Visual Feedback* — какой фидбек у игрока на срабатывание
-   - *Edge Cases* — граничные ситуации (нулевой баланс, спам-тап, разрыв сессии в середине раунда)
-   - *Config keys* — какие поля появятся в JSON-конфиге модели
+4. **Generating the draft**:
+   Write it to `design/gdd/[system-name].md`, in English.
+   Required fields:
+   - *Balance impact* — how the system affects the model's target metric (RTP / pity / the economy)
+   - *Visual feedback* — what feedback the player gets when it fires
+   - *Edge cases* — boundary situations (zero balance, tap spam, the session breaking mid-round)
+   - *Config keys* — which fields will appear in the model's JSON config
 
-5. **Дальнейшие шаги**:
-   - `/balance-check` — обязательно, если система трогает числа модели
-   - Вызвать `/team-dev` для программирования этой системы
+5. **Next steps**:
+   - `/balance-check` — mandatory if the system touches the model's numbers
+   - Call `/team-dev` to program the system

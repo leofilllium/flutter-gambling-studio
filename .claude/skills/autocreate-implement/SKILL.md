@@ -1,186 +1,190 @@
 ---
 name: autocreate-implement
-description: "Сессия 2 конвейера /autocreate (Фазы 4 → 10): имплементация. 5 агентов последовательно пишут код + мета-системы, wiring контента, интеграция, build до 0 errors, feel-pass, тесты, UI-аудит (compliance), баланс по кривой, crash-prevention. Тяжёлые фазы ДЕЛЕГИРУЮТСЯ свежим суб-агентам без full-history fork, чтобы оркестратор не истощил контекст и TPM. В конце spawn Сессии 3 (autocreate-finalize). Запускается автоматически Сессией 1 через Agent tool, либо вручную в новой conversation."
+description: "Session 2 of the /autocreate pipeline (Phases 4 → 10): implementation. Five agents in sequence write the code plus the meta systems, wire up content, integrate, build to 0 errors, run a feel pass, tests, a UI audit (compliance), curve-based balancing and crash prevention. The heavy phases are DELEGATED to fresh sub-agents without a full-history fork, so the orchestrator does not exhaust its context or TPM. At the end it spawns Session 3 (autocreate-finalize). Started automatically by Session 1 through the Agent tool, or manually in a new conversation."
 argument-hint: "[--resume]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, Skill
 ---
 
-# AutoCreate Implement — Сессия 2 (Имплементация)
+# AutoCreate Implement — Session 2 (implementation)
 
-**Назначение**: превратить pre-production Сессии 1 (концепт + ассеты + аудио + данные) в
-полностью рабочий, чистый и протестированный код игры — и передать его Сессии 3 на runtime-
-верификацию. Это **средняя** из трёх context-сессий `/autocreate`.
+**Purpose**: turn Session 1's pre-production (concept + assets + audio + data) into fully
+working, clean, tested game code — and hand it to Session 3 for runtime verification. This is
+the **middle** of `/autocreate`'s three context sessions.
 
 ```
-Сессия 1 (autocreate)  →[handoff-1]→  Сессия 2 (ЭТОТ skill)  →[autocreate-handoff.md]→  Сессия 3
-   концепт/данные              Фазы 4–10: код/тесты/аудит/баланс         finalize/release-ready
+Session 1 (autocreate)  →[handoff-1]→  Session 2 (THIS skill)  →[autocreate-handoff.md]→  Session 3
+   concept/data                Phases 4–10: code/tests/audit/balance        finalize/release-ready
 ```
 
 ---
 
 ## 🚨 MANDATORY CONTRACT
 
-1. ✅ Читает `production/session-state/autocreate-handoff-1.md` **первым действием**
-2. ✅ Валидирует артефакты Сессии 1 (pubspec, структура, `assets/data/*.json`, `assets/audio/*`)
-3. ✅ Читает `design/asset-format.md` для определения формата ассетов (PNG vs SVG) и передаёт
-   агентам (Agent B: `Image.asset()` для PNG, `SvgPicture` для SVG; Agent A: расширения файлов)
-4. ✅ Выполняет **Фазы 4 → 10** как описано в `.claude/skills/autocreate/SKILL.md`
-   (эти фазы — канонические спецификации; этот skill — драйвер их исполнения)
-5. ✅ **Делегирует тяжёлые фазы суб-агентам** (см. карту ниже) — оркестратор НЕ читает весь
-   `lib/` сам, а оперирует выводами команд (`dart analyze`/`flutter test`) и резюме агентов
-6. ✅ В конце (Фаза 10.7) пишет `autocreate-handoff.md` и **spawn Сессии 3** через Agent tool
+1. ✅ Reads `production/session-state/autocreate-handoff-1.md` **as its first action**
+2. ✅ Validates Session 1's artifacts (pubspec, structure, `assets/data/*.json`, `assets/audio/*`)
+3. ✅ Reads `design/asset-format.md` to determine the asset format (PNG vs SVG) and passes it to
+   the agents (Agent B: `Image.asset()` for PNG, `SvgPicture` for SVG; Agent A: file extensions)
+4. ✅ Runs **Phases 4 → 10** as described in `.claude/skills/autocreate/SKILL.md`
+   (those phases are the canonical specification; this skill drives their execution)
+5. ✅ **Delegates the heavy phases to sub-agents** (see the map below) — the orchestrator does
+   NOT read all of `lib/` itself, it works from command output (`dart analyze`/`flutter test`)
+   and the agents' summaries
+6. ✅ At the end (Phase 10.7) writes `autocreate-handoff.md` and **spawns Session 3** through
+   the Agent tool
 
-**Запрещено:**
-- ❌ Переписывать концепт/ассеты/аудио/данные Сессии 1 (можно лишь дополнять `GameConfig`
-  значениями из `assets/data/*.json`)
-- ❌ Менять баланс/контент-данные кроме как через game-mathematician в Фазе 9
-- ❌ Вызывать `flutter build apk/appbundle/web`, `adb`, `emulator` — это Сессия 3 / release-eng
-- ❌ Отчитываться "готово" при `dart analyze` с errors или красном `flutter test`
-- ❌ Завершиться без spawn Сессии 3 (Фаза 10.7)
-
----
-
-## Стратегия защиты контекста (почему это отдельная сессия)
-
-Полная игра = много кода (5 агентов × десятки файлов + тесты + аудит). Если оркестратор сам
-прочитает всё это — контекст кончится до конца. Поэтому **оркестратор Сессии 2 в основном
-координирует и запускает команды, а файловую работу делают суб-агенты**:
-
-| Фаза | Что делает оркестратор | Кому делегирует (Agent tool, чистый контекст + handoff) |
-|------|------------------------|------------------------------------------------|
-| 4. Implementation | формирует контракт `lib/contracts.md`, запускает 5 агентов строго по одному | **A** mechanics → **E** meta-systems → **D** sound → **B** ui → **C** juice |
-| 4.5. Content wiring | — | склейка данных↔код: **B** (level/mode select) + **E** (progression/economy) |
-| 5. Integration | — | **lead-programmer**: читает все файлы, чинит cross-agent несоответствия, расставляет вызовы сервисов/аудио/VFX |
-| 6. Build & Fix | запускает `dart analyze`, собирает список ошибок | если ошибок много — **mechanics-programmer**/**ui-programmer** чинит свои; оркестратор только повторяет analyze |
-| 6.5. Feel Pass | — | **juice-artist** (живой геймплей, наполнение хуков) |
-| 7. Tests | запускает `flutter test`, собирает падения | **qa-tester** пишет/чинит тесты |
-| 8. UI Audit | — | `/ui-audit` (skill уже использует агентов) ИЛИ **ui-programmer** по 10 категориям |
-| 9. Balance | запускает sim-скрипт | **game-mathematician** при выходе за окно (правит JSON) |
-| 10. Crash Prevention | финальный `dart analyze`+`flutter test` | точечные фиксы — соответствующему агенту |
-
-> **Правило оркестратора:** не открывай файлы `lib/` массово на чтение. Читай только: вывод
-> `dart analyze`/`flutter test`, `design/structure.md`, `lib/contracts.md`, и КРАТКИЕ резюме,
-> которые возвращают суб-агенты. Точечный Read 1–2 файлов допустим для диагностики. Это держит
-> контекст Сессии 2 в бюджете даже для большой игры.
-
-> **🤖 CODEX / среда без Agent tool:** делегирование из таблицы выше выполняется
-> ПОСЛЕДОВАТЕЛЬНЫМИ persona-проходами (см. `AGENTS.md` → «Execution Model»):
-> перед каждым проходом прочитать `.claude/agents/<роль>.md` + `lib/contracts.md`, выполнить
-> зону ответственности этой роли, записать 3–5-строчное резюме прохода в
-> `production/session-state/active.md`, и НЕ держать чужие файлы в контексте.
-> Порядок Фазы 4: **A → E → D → B → C** (логика и сервисы раньше UI, чтобы B видел реальные
-> сигнатуры). Правило «не читай lib/ массово» в Codex ещё важнее — контекст один на всё.
-
-> **TPM-гейт:** одновременно активен максимум один subagent. Каждый получает только
-> `lib/contracts.md`, нужные design/data-файлы, свою роль и краткий handoff. Никогда не
-> передавать ему полный transcript родительской сессии.
+**Forbidden:**
+- ❌ Rewriting Session 1's concept/assets/audio/data (you may only extend `GameConfig` with
+  values from `assets/data/*.json`)
+- ❌ Changing balance or content data other than through game-mathematician in Phase 9
+- ❌ Calling `flutter build apk/appbundle/web`, `adb` or `emulator` — that is Session 3 / release-eng
+- ❌ Reporting "done" while `dart analyze` has errors or `flutter test` is red
+- ❌ Finishing without spawning Session 3 (Phase 10.7)
 
 ---
 
-## Фаза 0 — Preflight & Handoff Read [~30 сек]
+## The context protection strategy (why this is a separate session)
+
+A complete game means a lot of code (5 agents × dozens of files + tests + the audit). If the
+orchestrator read all of that itself, the context would run out before the end. So **the
+Session 2 orchestrator mostly coordinates and runs commands, while the sub-agents do the file work**:
+
+| Phase | What the orchestrator does | Who it delegates to (Agent tool, clean context + handoff) |
+|-------|----------------------------|----------------------------------------------------------|
+| 4. Implementation | builds the `lib/contracts.md` contract, runs the 5 agents strictly one at a time | **A** mechanics → **E** meta-systems → **D** sound → **B** ui → **C** juice |
+| 4.5. Content wiring | — | gluing data↔code: **B** (level/mode select) + **E** (progression/economy) |
+| 5. Integration | — | **lead-programmer**: reads every file, fixes cross-agent mismatches, places the service/audio/VFX calls |
+| 6. Build & Fix | runs `dart analyze`, collects the error list | if there are many errors, **mechanics-programmer**/**ui-programmer** fix their own; the orchestrator only re-runs analyze |
+| 6.5. Feel Pass | — | **juice-artist** (living gameplay, filling in the hooks) |
+| 7. Tests | runs `flutter test`, collects the failures | **qa-tester** writes/fixes the tests |
+| 8. UI Audit | — | `/ui-audit` (the skill already uses agents) OR **ui-programmer** across the 10 categories |
+| 9. Balance | runs the sim script | **game-mathematician** when it falls outside the window (edits the JSON) |
+| 10. Crash Prevention | a final `dart analyze` + `flutter test` | targeted fixes go to the relevant agent |
+
+> **The orchestrator's rule:** do not open `lib/` files en masse for reading. Read only the
+> output of `dart analyze`/`flutter test`, `design/structure.md`, `lib/contracts.md`, and the
+> BRIEF summaries the sub-agents return. A targeted Read of 1–2 files is acceptable for
+> diagnosis. That keeps Session 2's context within budget even for a large game.
+
+> **🤖 CODEX / an environment without the Agent tool:** the delegation in the table above is
+> carried out as SEQUENTIAL persona passes (see `AGENTS.md` → "Execution Model"):
+> before each pass read `.claude/agents/<role>.md` + `lib/contracts.md`, do that role's zone of
+> responsibility, write a 3–5 line summary of the pass into
+> `production/session-state/active.md`, and do NOT keep other roles' files in context.
+> The Phase 4 order is: **A → E → D → B → C** (logic and services before UI, so B sees the real
+> signatures). The "do not read lib/ en masse" rule matters even more under Codex — there is one
+> context for everything.
+
+> **The TPM gate:** at most one sub-agent is active at a time. Each receives only
+> `lib/contracts.md`, the design/data files it needs, its role and a short handoff. Never pass
+> it the parent session's full transcript.
+
+---
+
+## Phase 0 — preflight & handoff read [~30 s]
 
 ```bash
 test -f production/session-state/autocreate-handoff-1.md || {
-  echo "❌ Нет handoff-1. Сессия 1 /autocreate не завершилась?"; exit 1; }
-test -f pubspec.yaml || { echo "❌ Нет pubspec.yaml — проект не инициализирован"; exit 1; }
-test -f design/structure.md || { echo "❌ Нет design/structure.md"; exit 1; }
-ls assets/data/*.json   >/dev/null 2>&1 || echo "⚠️ нет assets/data/*.json — контент-данные отсутствуют"
-ls assets/audio/sfx/*.wav >/dev/null 2>&1 || echo "⚠️ нет аудио — перезапусти tools/synth_sfx.py"
+  echo "❌ No handoff-1. Did Session 1 /autocreate not finish?"; exit 1; }
+test -f pubspec.yaml || { echo "❌ No pubspec.yaml — the project is not initialised"; exit 1; }
+test -f design/structure.md || { echo "❌ No design/structure.md"; exit 1; }
+ls assets/data/*.json   >/dev/null 2>&1 || echo "⚠️ no assets/data/*.json — the content data is missing"
+ls assets/audio/sfx/*.wav >/dev/null 2>&1 || echo "⚠️ no audio — re-run tools/synth_sfx.py"
 
-# Определение формата ассетов (PNG vs SVG). Нельзя молча откатываться в SVG:
-# Session 1 обязана записать design/asset-format.md, а при сбое формат выводится
-# из реально существующих ассетов.
+# Determining the asset format (PNG vs SVG). You may not silently fall back to SVG:
+# Session 1 must write design/asset-format.md, and on a failure the format is inferred
+# from the assets that actually exist.
 ASSET_FORMAT=""
 if [ -f design/asset-format.md ]; then
   ASSET_FORMAT=$(grep '^format:' design/asset-format.md | awk '{print $2}' | tr -d '[:space:]')
 elif ls assets/images/sprites/*.png >/dev/null 2>&1 || ls assets/images/backgrounds/*.png >/dev/null 2>&1; then
   ASSET_FORMAT="png"
-  echo "⚠️ design/asset-format.md отсутствует; inferred format=png from existing assets"
+  echo "⚠️ design/asset-format.md is missing; inferred format=png from existing assets"
 elif ls assets/images/sprites/*.svg >/dev/null 2>&1 || ls assets/images/backgrounds/*.svg >/dev/null 2>&1; then
   ASSET_FORMAT="svg"
-  echo "⚠️ design/asset-format.md отсутствует; inferred format=svg from existing assets"
+  echo "⚠️ design/asset-format.md is missing; inferred format=svg from existing assets"
 else
-  echo "❌ Нет design/asset-format.md и не найдены ассеты PNG/SVG — Сессия 1 неполная"
+  echo "❌ No design/asset-format.md and no PNG/SVG assets found — Session 1 is incomplete"
   exit 1
 fi
 echo "🎨 Asset format: ${ASSET_FORMAT}"
 
-# Валидация ассетов по формату
+# Validating the assets against the format
 if [ "$ASSET_FORMAT" = "png" ]; then
-  ls assets/images/sprites/*.png >/dev/null 2>&1 || echo "⚠️ нет PNG спрайтов — ожидались для Codex-режима"
-  ls assets/images/backgrounds/*.png >/dev/null 2>&1 || echo "⚠️ нет PNG фонов"
+  ls assets/images/sprites/*.png >/dev/null 2>&1 || echo "⚠️ no PNG sprites — they were expected in Codex mode"
+  ls assets/images/backgrounds/*.png >/dev/null 2>&1 || echo "⚠️ no PNG backgrounds"
   if find assets/images -name "*.svg" -print -quit | grep -q .; then
-    echo "⚠️ PNG-режим, но найдены SVG. Не использовать их в коде; проверить, что это не результат ошибочной генерации."
+    echo "⚠️ PNG mode, but SVGs were found. Do not use them in the code; check they are not the result of a mistaken generation."
   fi
 else
-  ls assets/images/sprites/*.svg >/dev/null 2>&1 || echo "⚠️ нет SVG спрайтов"
-  ls assets/images/backgrounds/*.svg >/dev/null 2>&1 || echo "⚠️ нет SVG фонов"
+  ls assets/images/sprites/*.svg >/dev/null 2>&1 || echo "⚠️ no SVG sprites"
+  ls assets/images/backgrounds/*.svg >/dev/null 2>&1 || echo "⚠️ no SVG backgrounds"
 fi
-echo "✅ Preflight OK — Сессия 1 артефакты на месте"
+echo "✅ Preflight OK — Session 1's artifacts are in place"
 ```
 
-Прочитать `autocreate-handoff-1.md`, `design/structure.md`, `design/art-direction.md`,
-`design/asset-format.md` (формат ассетов: PNG или SVG — влияет на код Agent B),
-`design/gdd/game-concept.md` (особенно Production Plan, Screen Map, Design DNA, ValueNotifier
-контракты). Не читать `lib/` массово.
+Read `autocreate-handoff-1.md`, `design/structure.md`, `design/art-direction.md`,
+`design/asset-format.md` (the asset format: PNG or SVG — it affects Agent B's code),
+`design/gdd/game-concept.md` (especially the Production Plan, Screen Map, Design DNA and the
+ValueNotifier contracts). Do not read `lib/` en masse.
 
-> **КРИТИЧЕСКИ для Asset Format:** Если `design/asset-format.md` содержит `format: png`:
-> - Agent B использует `Image.asset('assets/images/sprites/name.png')`, НЕ `SvgPicture`
-> - `flame_svg` НЕ используется в коде (может оставаться в pubspec как fallback)
-> - Константы в `assets_constants` имеют расширение `.png`
-> - Если `format: svg` — всё как раньше: `SvgPicture.asset()` + `flame_svg`
+> **CRITICAL for the asset format:** if `design/asset-format.md` says `format: png`:
+> - Agent B uses `Image.asset('assets/images/sprites/name.png')`, NOT `SvgPicture`
+> - `flame_svg` is NOT used in the code (it may stay in pubspec as a fallback)
+> - The constants in `assets_constants` carry the `.png` extension
+> - If `format: svg`, everything is as before: `SvgPicture.asset()` + `flame_svg`
 
-### `--resume` (после сбоя Сессии 2)
-Определить, с какой фазы продолжить, по артефактам:
-- нет `lib/main.dart`/мало файлов в `lib/` → начать с Фазы 4
-- код есть, но `dart analyze` с errors → Фаза 6
-- analyze чист, тестов нет/красные → Фаза 7
-- тесты зелёные, аудит не проводился → Фаза 8
-Не переделывать уже сделанное.
+### `--resume` (after a Session 2 failure)
+Work out which phase to continue from, using the artifacts:
+- no `lib/main.dart` / few files in `lib/` → start at Phase 4
+- the code exists but `dart analyze` has errors → Phase 6
+- analyze is clean, there are no tests or they are red → Phase 7
+- the tests are green, the audit has not run → Phase 8
+Do not redo what is already done.
 
 ---
 
-## Фазы 4 → 10 — исполнение по канону
+## Phases 4 → 10 — execution against the canon
 
-Выполнить **Фазы 4, 4.5, 5, 6, 6.5, 7, 8, 9, 10** ровно как описано в
-`.claude/skills/autocreate/SKILL.md` (раздел «Фазы 4–10 выполняются в Сессии 2»), применяя
-карту делегирования выше. Критерии выхода каждой фазы — из таблицы Quality Gates автокрейта:
+Run **Phases 4, 4.5, 5, 6, 6.5, 7, 8, 9, 10** exactly as described in
+`.claude/skills/autocreate/SKILL.md` (the "Phases 4–10 run in Session 2" section), applying the
+delegation map above. Each phase's exit criteria come from autocreate's Quality Gates table:
 
-| Фаза | Критерий выхода | Итераций |
-|------|----------------|----------|
-| 4. Implementation | 5 агентов завершены (A/B/C/D/E) | 1 (Фаза 6 чинит) |
-| 4.5. Content wiring | Game принимает (mode,levelId); Level/Mode Select ↔ data | 2 |
-| 5. Integration | 18 связей (вкл. мета-сервисы) | 3 |
+| Phase | Exit criterion | Iterations |
+|-------|----------------|------------|
+| 4. Implementation | the 5 agents have finished (A/B/C/D/E) | 1 (Phase 6 fixes) |
+| 4.5. Content wiring | Game accepts (mode,levelId); Level/Mode Select ↔ data | 2 |
+| 5. Integration | 18 connections (including the meta services) | 3 |
 | 6. Build | `dart analyze lib/` 0 errors | 10 |
-| 6.5. Feel Pass | поле живое (F1–F5), analyze+test чисты | 2 |
-| 7. Tests | `flutter test` все зелёные (вкл. test/services/) | 5 |
-| 8. UI Audit | 100+ проверок (вкл. compliance/content, кат. J) | 3 |
-| 9. Balance | RTP/difficulty по ВСЕЙ кривой в норме | 3 |
-| 10. Crash Prevention | 20/20 + (gambling) age-gate/disclaimer; analyze+test clean | 3 |
+| 6.5. Feel Pass | the field is alive (F1–F5), analyze + test clean | 2 |
+| 7. Tests | `flutter test` all green (including test/services/) | 5 |
+| 8. UI Audit | 100+ checks (including compliance/content, category J) | 3 |
+| 9. Balance | RTP/difficulty in range across the WHOLE curve | 3 |
+| 10. Crash Prevention | 20/20 + (gambling) age gate/disclaimer; analyze + test clean | 3 |
 
-**АБСОЛЮТНЫЙ МИНИМУМ перед Фазой 10.7:** `dart analyze lib/` 0 errors, `flutter test` зелёные,
-15+ экранов, навигация работает, основная механика + контент (N уровней/режимы) + мета-системы
-на месте, (gambling) compliance-флаги расставлены.
-
----
-
-## Фаза 10.7 — Handoff & Spawn Session 3 [~1 мин]
-
-Выполнить **Фазу 10.7 из `.claude/skills/autocreate/SKILL.md`**: записать
-`production/session-state/autocreate-handoff.md` (полный контекст для финализации) и
-**spawn Сессии 3** через Agent tool (промпт — как в Фазе 10.7.2 автокрейта, он указывает
-subagent-у выполнить `.claude/skills/autocreate-finalize/SKILL.md`: runtime+soak, session-state,
-release-eng PREP без сборки AAB/APK, финальный отчёт).
-
-После возврата subagent-а Сессии 3 — вернуть его финальный отчёт наверх (в Сессию 1 / пользователю).
-Если Сессия 3 упала — сообщить причину и команду ручного перезапуска: `/autocreate-finalize`.
+**THE ABSOLUTE MINIMUM before Phase 10.7:** `dart analyze lib/` 0 errors, `flutter test` green,
+15+ screens, working navigation, the core mechanic + content (N levels/modes) + the meta systems
+in place, (gambling) the compliance flags wired up, and every player-facing string in English
+(unless the user explicitly asked for another language).
 
 ---
 
-## Восстановление после сбоев
+## Phase 10.7 — handoff & spawn Session 3 [~1 min]
 
-- **Сессия 2 упала** → пользователь запускает `/autocreate-implement --resume` в новой
-  conversation; skill определяет фазу по артефактам и продолжает.
-- **Сессия 1 не записала handoff-1** → Preflight падает с понятным сообщением; запустить
-  `/autocreate` заново (или вручную дописать `assets/data/*.json` и handoff-1).
+Run **Phase 10.7 from `.claude/skills/autocreate/SKILL.md`**: write
+`production/session-state/autocreate-handoff.md` (the full context for finalisation) and
+**spawn Session 3** through the Agent tool (the prompt is as in autocreate's Phase 10.7.2; it
+tells the sub-agent to run `.claude/skills/autocreate-finalize/SKILL.md`: runtime + soak,
+session state, release-eng PREP without building the AAB/APK, and the final report).
+
+Once the Session 3 sub-agent returns, pass its final report upward (to Session 1 / the user).
+If Session 3 failed, report the reason and the manual restart command: `/autocreate-finalize`.
+
+---
+
+## Recovery after a failure
+
+- **Session 2 crashed** → the user runs `/autocreate-implement --resume` in a new conversation;
+  the skill works out the phase from the artifacts and continues.
+- **Session 1 never wrote handoff-1** → preflight fails with a clear message; run `/autocreate`
+  again (or write `assets/data/*.json` and handoff-1 by hand).

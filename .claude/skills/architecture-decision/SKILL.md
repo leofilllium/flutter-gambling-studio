@@ -1,126 +1,126 @@
 ---
 name: architecture-decision
-description: "Создает ADR для ключевых технических решений с анализом альтернатив и последствий."
-argument-hint: "[краткое описание решения]"
+description: "Creates an ADR for a key technical decision, with an analysis of the alternatives and the consequences."
+argument-hint: "[a short description of the decision]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
 
-# /architecture-decision [решение]
+# /architecture-decision [decision]
 
-Запуск: пользователь вызывает `/architecture-decision [краткое описание решения]`
+Invocation: the user runs `/architecture-decision [a short description of the decision]`
 
-## Цель
+## Goal
 
-Создаёт Architecture Decision Record (ADR) — документ, фиксирующий важное
-техническое решение, его контекст, рассмотренные альтернативы и последствия.
-Каждое значимое техническое решение должно иметь ADR.
+Creates an Architecture Decision Record (ADR) — a document recording a significant technical
+decision, its context, the alternatives considered and the consequences.
+Every significant technical decision should have an ADR.
 
-## Агенты
+## Agents
 
-- `technical-director` — ведёт ADR процесс и принимает финальное решение
-- `lead-programmer` — техническая экспертиза
+- `technical-director` — runs the ADR process and makes the final call
+- `lead-programmer` — technical expertise
 
-## Когда создавать ADR
+## When to create an ADR
 
-- Выбор подхода к RNG (почему Random.secure, а не X)
-- Выбор GameState архитектуры (sealed class vs enum vs boolean)
-- Выбор state management (ValueNotifier vs Riverpod vs Bloc)
-- Выбор структуры барабанов (infinite scroll vs sprite swap)
-- Добавление новой зависимости в pubspec.yaml
-- Изменение структуры директорий
-- Выбор RTP диапазона и волатильности
+- Choosing the RNG approach (why Random.secure and not X)
+- Choosing the GameState architecture (sealed class vs enum vs boolean)
+- Choosing state management (ValueNotifier vs Riverpod vs Bloc)
+- Choosing the reel structure (infinite scroll vs sprite swap)
+- Adding a new dependency to pubspec.yaml
+- Changing the directory structure
+- Choosing the RTP range and volatility
 
-## Порядок выполнения
+## Order of work
 
-### Шаг 1: technical-director — Сбор контекста
+### Step 1: technical-director — gathering context
 
-Задать пользователю вопросы:
-1. Какую проблему решаем?
-2. Какие альтернативы рассматривались?
-3. Какие ограничения (время, технология, совместимость)?
+Ask the user:
+1. What problem are we solving?
+2. Which alternatives were considered?
+3. What are the constraints (time, technology, compatibility)?
 
-### Шаг 2: Анализ альтернатив
+### Step 2: analysing the alternatives
 
 ```
-Вариант A: [название]
-  Плюсы: ...
-  Минусы: ...
-  Game-специфичные риски: ...
+Option A: [name]
+  Pros: ...
+  Cons: ...
+  Game-specific risks: ...
 
-Вариант B: [название]
-  Плюсы: ...
-  Минусы: ...
-  Game-специфичные риски: ...
+Option B: [name]
+  Pros: ...
+  Cons: ...
+  Game-specific risks: ...
 ```
 
-### Шаг 3: Рекомендация technical-director
+### Step 3: the technical-director's recommendation
 
-Чёткая рекомендация с обоснованием.
-Учёт: RNG безопасность, RTP корректность, производительность, поддерживаемость.
+A clear recommendation with its rationale.
+Taking into account: RNG safety, RTP correctness, performance, maintainability.
 
-### Шаг 4: Создание ADR файла
+### Step 4: creating the ADR file
 
-Создать `docs/architecture/adr-NNN-краткое-название.md`:
+Create `docs/architecture/adr-NNN-short-title.md`:
 
 ```markdown
-# ADR-NNN: [Название решения]
+# ADR-NNN: [Decision title]
 
-**Статус**: Proposed | Accepted | Deprecated | Superseded
-**Дата**: YYYY-MM-DD
-**Автор**: technical-director
-**Утверждено**: [пользователь/агент]
+**Status**: Proposed | Accepted | Deprecated | Superseded
+**Date**: YYYY-MM-DD
+**Author**: technical-director
+**Approved by**: [user/agent]
 
-## Контекст
+## Context
 
-[Почему это решение нужно принимать? Какая проблема решается?]
+[Why does this decision need to be made? What problem is being solved?]
 
-## Game Integrity контекст
+## Game integrity context
 
-[Как это решение влияет на: RNG безопасность / RTP корректность / честность игры?]
+[How does this decision affect RNG safety / RTP correctness / the fairness of the game?]
 
-## Рассмотренные варианты
+## Options considered
 
-### Вариант A: [название]
-- Плюсы: ...
-- Минусы: ...
+### Option A: [name]
+- Pros: ...
+- Cons: ...
 
-### Вариант B: [название]
-- Плюсы: ...
-- Минусы: ...
+### Option B: [name]
+- Pros: ...
+- Cons: ...
 
-## Принятое решение
+## The decision
 
-[Вариант X] — потому что [обоснование].
+[Option X] — because [rationale].
 
-## Последствия
+## Consequences
 
-### Положительные
+### Positive
 - ...
 
-### Отрицательные / компромиссы
+### Negative / trade-offs
 - ...
 
 ### Game integrity
-- [Влияние на RNG / RTP / честность игры]
+- [Impact on RNG / RTP / the fairness of the game]
 
-## Реализация
+## Implementation
 
-Ответственный агент: [mechanics-programmer / lead-programmer / ...]
-Связанные файлы: [список файлов которые будут изменены]
+Responsible agent: [mechanics-programmer / lead-programmer / ...]
+Related files: [the list of files that will change]
 ```
 
-## Нумерация ADR
+## ADR numbering
 
-- `docs/architecture/` — папка для всех ADR
-- Нумерация: ADR-001, ADR-002, ...
-- Последний номер берётся из `ls docs/architecture/adr-*.md | tail -1`
+- `docs/architecture/` — the folder for every ADR
+- Numbering: ADR-001, ADR-002, ...
+- The last number comes from `ls docs/architecture/adr-*.md | tail -1`
 
-## Индекс ADR
+## The ADR index
 
-Поддерживать `docs/architecture/README.md` с таблицей всех ADR:
+Maintain `docs/architecture/README.md` with a table of every ADR:
 ```markdown
-| ID | Название | Статус | Дата |
-|----|----------|--------|------|
-| ADR-001 | Использование Random.secure() для RNG | Accepted | 2026-01-15 |
+| ID | Title | Status | Date |
+|----|-------|--------|------|
+| ADR-001 | Using Random.secure() for the RNG | Accepted | 2026-01-15 |
 ```
