@@ -19,19 +19,19 @@
   "max_modifiers": 20,
   "modifiers": [
     {
-      "name": "Пара+",
+      "name": "Pair+",
       "multiplier": 1.45
     },
     {
-      "name": "Флеш+",
+      "name": "Flush+",
       "multiplier": 1.55
     },
     {
-      "name": "Стрит+",
+      "name": "Straight+",
       "multiplier": 1.5
     },
     {
-      "name": "Каре+",
+      "name": "Four of a Kind+",
       "multiplier": 1.6
     }
   ]

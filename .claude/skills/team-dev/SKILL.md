@@ -1,46 +1,49 @@
 ---
 name: team-dev
-description: "Оркеструет разработку механик гемблинг-игры с участием нескольких специалистов. Координирует геймдизайнера, математика, программиста механик, художника VFX и звукового дизайнера."
+description: "Orchestrates development of a gambling game mechanic across several specialists. Coordinates the game designer, the mathematician, the mechanics programmer, the VFX artist and the sound designer."
 user-invocable: true
 allowed-tools: Bash, Read, Edit, Write, Agent
-argument-hint: "<описание фичи/системы> (например: 'Каскадные барабаны с Free Spins' или 'Cash-out с историей раундов' или 'Pity-счётчик и экран шансов')"
+argument-hint: "<feature/system description> (e.g. 'Cascading reels with free spins', 'Cash-out with round history', 'A pity counter and an odds screen')"
 ---
 
-# `team-dev` — Оркестрация Студии
+# `team-dev` — studio orchestration
 
-Запускает агентов в правильном порядке для реализации сложной фичи.
+Runs the agents in the right order to implement a complex feature.
 
-## Инструкция
+## Instructions
 
-1. Уточните задачу у пользователя: какая фича, есть ли готовый GDD?
-   Прочитайте блок **Классификация** в `design/gdd/game-concept.md` — категория (C1–C6)
-   и математическая модель (M1–M6) определяют, кого звать и в каком порядке.
+1. Clarify the task with the user: which feature, and is there already a GDD?
+   Read the **Classification** block in `design/gdd/game-concept.md` — the category (C1–C6)
+   and the mathematical model (M1–M6) determine who to call and in what order.
 
-2. Если GDD нет — вызовите `game-designer` для его написания.
-   Он обязан консультироваться с `game-mathematician` по всему, что касается чисел модели.
+2. If there is no GDD, call `game-designer` to write one.
+   They must consult `game-mathematician` on anything involving the model's numbers.
 
-3. **Математика идёт ПЕРЕД кодом.** Если фича трогает числа:
-   - `game-mathematician` правит JSON-конфиг модели
-   - прогон: `python3 tools/simulate_math.py --model [m1-m6] --config design/balance/[файл].json`
-   - только зелёный прогон открывает дорогу к имплементации
+3. **The mathematics comes BEFORE the code.** If the feature touches the numbers:
+   - `game-mathematician` edits the model's JSON config
+   - run it: `python3 tools/simulate_math.py --model [m1-m6] --config design/balance/[file].json`
+   - only a green run opens the road to implementation
 
-   | Категория | Что считает математик |
-   |-----------|----------------------|
-   | C1 | веса символов, выплаты, RTP, hit rate |
-   | C2 | house edge, формулу множителя, кап |
-   | C3 | веса событий спина, цены анлоков, реген энергии |
+   | Category | What the mathematician computes |
+   |----------|--------------------------------|
+   | C1 | symbol weights, payouts, RTP, hit rate |
+   | C2 | house edge, the multiplier formula, the cap |
+   | C3 | spin event weights, unlock prices, energy regeneration |
    | C4 | base rates, soft/hard pity |
-   | C5 | пороги раундов, силу модификаторов, доход |
-   | C6 | множители корзин, распределение попаданий |
+   | C5 | round thresholds, modifier strength, income |
+   | C6 | bucket multipliers, the hit distribution |
 
-4. Для реализации вызовите `mechanics-programmer` (Core Logic) и `juice-artist` (VFX анимации)
-   в нужном порядке. Обязательно передайте им ссылки на GDD и на конфиг модели.
-   Напомните: `Random.secure()`, Stateless Outcomes, ни одного числа модели литералом в Dart.
+4. For the implementation call `mechanics-programmer` (core logic) and `juice-artist` (VFX
+   animation) in the right order. Always pass them the links to the GDD and to the model config.
+   Remind them: `Random.secure()`, stateless outcomes, and not one model number as a Dart literal.
 
-5. При необходимости подключите `sound-designer` для аудио-событий
-   (ставка, вращение, остановка, near-miss, cash-out, reveal, выигрыш по тирам).
+5. Where needed, bring in `sound-designer` for the audio events
+   (bet, spin, stop, near-miss, cash-out, reveal, wins by tier).
 
-6. Если фича добавляет случайную выдачу за валюту — подключите `ui-programmer`
-   для обновления экрана раскрытия шансов (`.claude/rules/responsible-gaming.md` §2.4).
+6. If the feature adds a random award in exchange for currency, bring in `ui-programmer`
+   to update the odds disclosure screen (`.claude/rules/responsible-gaming.md` §2.4).
 
-7. Предложите пользователю проверить результат когда всё готово: `/balance-check`, `/ui-audit`.
+7. All player-facing copy the feature introduces is written in English (unless the user
+   explicitly asked for the game in another language).
+
+8. When everything is done, suggest the user verify the result: `/balance-check`, `/ui-audit`.

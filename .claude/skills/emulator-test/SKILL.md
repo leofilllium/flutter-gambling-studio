@@ -1,74 +1,74 @@
 ---
 name: emulator-test
-description: "Runtime-верификация готовой мини-игры. Первичная платформа — Chrome/Web (не требует эмулятора). Fallback: Android ADB → iOS. Запускает приложение, навигирует по экранам, делает скриншоты, визуально анализирует через vision, парсит flutter-run.log/logcat на exceptions, автоматически исправляет найденные баги. Интегрируется в /autocreate после dart analyze."
+description: "Runtime verification of a finished mini-game. Primary platform - Chrome/Web (does not require an emulator). Fallback: Android ADB → iOS. Launches the application, navigates through screens, takes screenshots, visually analyzes via vision, parses flutter-run.log/logcat for exceptions, automatically fixes found bugs. Integrated into /autocreate after dart analyze."
 argument-hint: "[--device deviceId | --platform web|android|ios | --no-fix | --quick]  (default: web/chrome)"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
 
-# Emulator Test — Runtime-верификация (Chrome/Web-first)
+# Emulator Test - Runtime verification (Chrome/Web-first)
 
-**Проблема**: `dart analyze` + `flutter test` **не видят** runtime-проблем, которые проявляются
-только при запуске: пустой игровой экран (чёрный прямоугольник вместо барабанов), RenderFlex
-overflow (жёлто-чёрные полосы), Flutter "red screen of death" (необработанный exception),
-кривой layout на конкретном разрешении, `setState() called after dispose`, missing asset, и т.д.
+**Problem**: `dart analyze` + `flutter test` **do not see** runtime problems that appear
+only at startup: empty game screen (black rectangle instead of reels), RenderFlex
+overflow (yellow-black stripes), Flutter "red screen of death" (raw exception),
+layout curve at a specific resolution, `setState() called after dispose`, missing asset, etc.
 
-**Это навык-страховка**: запускает игру в **Chrome** (по умолчанию, без эмулятора),
-навигирует по всем экранам, делает скриншоты, **визуально анализирует их через vision**
-и **парсит flutter-run.log** на предмет исключений. Найденное — автоматически чинит.
+**This is an insurance skill**: launches the game in **Chrome** (default, without an emulator),
+navigates through all screens, takes screenshots, **visually analyzes them through vision**
+and **parses flutter-run.log** for exceptions. Found - automatically repairs.
 
-**Платформы по приоритету:**
-1. **Chrome/Web (дефолт)** — headless `flutter run -d web-server` + headless Chrome по CDP
-   (`tools/web_verify.mjs`). Не нужен эмулятор/дисплей/`xdotool`. Нужны только `node` и бинарь Chrome.
-2. Android ADB — fallback при `--platform android` или если web-путь невозможен
-3. iOS Simulator — только при явном `--platform ios` (macOS)
+**Platforms by priority:**
+1. **Chrome/Web (default)** - headless `flutter run -d web-server` + headless Chrome via CDP
+   (`tools/web_verify.mjs`). No emulator/display/`xdotool` needed. All you need is `node` and the Chrome binary.
+2. Android ADB - fallback at `--platform android` or if the web path is not possible
+3. iOS Simulator - only with explicit `--platform ios` (macOS)
 
-**Режимы:**
-- По умолчанию: полный цикл (найти → визуально проанализировать → исправить → перезапустить)
-- `--no-fix`: только отчёт без изменений
-- `--quick`: только главные экраны (splash/menu/game), без daily-bonus/leaderboard/profile
-- `--device <id>`: использовать конкретное устройство (иначе авто-выбор Chrome)
-- `--platform web|android|ios`: принудительно выбрать платформу (**дефолт: web**).
+**Modes:**
+- Default: full cycle (find → visually analyze → fix → restart)
+- `--no-fix`: only report without changes
+- `--quick`: main screens only (splash/menu/game), without daily-bonus/leaderboard/profile
+- `--device <id>`: use specific device (aka Chrome auto-select)
+- `--platform web|android|ios`: Force platform selection (**default: web**).
 
 ---
 
-## Фаза 0 — Environment Preflight [~15 сек]
+## Phase 0 - Environment Preflight [~15 sec]
 
-**Дефолтная платформа — Chrome web** (headless `web-server` + CDP). Не требует эмулятора/дисплея.
-Порядок авто-выбора: web → Android (ADB) → iOS.
-Принудительный выбор — `--platform android|web|ios`.
+**Default platform - Chrome web** (headless `web-server` + CDP). Does not require an emulator/display.
+Auto-selection order: web → Android (ADB) → iOS.
+The forced choice is `--platform android|web|ios`.
 
 ```bash
-# Проверка Flutter
-flutter --version || { echo "❌ Flutter не найден в PATH"; exit 1; }
+# Flutter check
+flutter --version || { echo "❌ Flutter not found in PATH"; exit 1; }
 
-# Все доступные устройства
+# All available devices
 flutter devices
 
 # Android (ADB)
-adb version 2>/dev/null || echo "⚠️ adb не найден"
+adb version 2>/dev/null || echo "⚠️ adb not found"
 adb devices -l 2>/dev/null
 
 # Chrome / web
-flutter devices 2>/dev/null | grep -iE "Chrome|web" && echo "✅ Chrome web доступен"
+flutter devices 2>/dev/null | grep -iE "Chrome|web" && echo "✅ Chrome web available"
 
 # iOS (macOS only)
 xcrun simctl list devices booted 2>/dev/null
 ```
 
-### Алгоритм выбора платформы
+### Platform selection algorithm
 
 ```bash
-# 1. Android: уже запущенный эмулятор или подключённое устройство
+# 1. Android: already running emulator or connected device
 RUNNING_ANDROID=$(adb devices 2>/dev/null | grep -E "device$" | grep -v "^List" | head -1 | awk '{print $1}')
 
-# 2. Chrome web: всегда доступен если Flutter распознаёт Chrome
+#2. Chrome web: always available if Flutter recognizes Chrome
 CHROME_DEV=$(flutter devices 2>/dev/null | grep -iE "Chrome|web-server" | head -1 | awk -F'•' '{print $2}' | xargs)
 
-# 3. iOS: запущенный симулятор (macOS only)
+# 3. iOS: running simulator (macOS only)
 IOS_DEV=$(xcrun simctl list devices booted 2>/dev/null | grep "Booted" | head -1)
 
-# Chrome — первый приоритет (не требует эмулятора)
+# Chrome - first priority (does not require an emulator)
 if [[ -n "$CHROME_DEV" ]]; then
   PLATFORM=${PLATFORM:-web}
   echo "🌐 Chrome web: $CHROME_DEV (default)"
@@ -79,23 +79,23 @@ elif [[ -n "$IOS_DEV" ]]; then
   PLATFORM=${PLATFORM:-ios}
   echo "✅ iOS simulator fallback"
 else
-  echo "🌐 Нет нативных устройств → headless web (web-server + CDP)."
+  echo "🌐 No native devices → headless web (web-server + CDP)."
   PLATFORM=${PLATFORM:-web}
 fi
 ```
 
-### Если нет ни одного устройства — авто-запуск
+### If there is no device - auto-start
 
-**Chrome web (приоритет 1 — дефолт):**
-Не нужен ни эмулятор, ни открытое окно браузера. Игра раздаётся headless через
-`flutter run -d web-server`, а снимки/тапы делает headless Chrome по CDP (`tools/web_verify.mjs`).
-Достаточно, чтобы в системе были `node` и бинарь Chrome (`google-chrome`/`chromium`, либо
-`$CHROME_EXECUTABLE`). Дисплей/`xdotool`/`osascript` НЕ требуются.
+**Chrome web (priority 1 - default):**
+You don't need an emulator or an open browser window. The game is distributed headless via
+`flutter run -d web-server`, and headless Chrome takes pictures/taps via CDP (`tools/web_verify.mjs`).
+It is enough for the system to have `node` and the Chrome binary (`google-chrome`/`chromium`, or
+`$CHROME_EXECUTABLE`). Display/`xdotool`/`osascript` are NOT required.
 
-**Android AVD (приоритет 2 — fallback):**
+**Android AVD (priority 2 - fallback):**
 ```bash
-# Только при наличии KVM и с жёсткими таймаутами на каждый шаг — иначе headless-зависание
-# (безлимитный adb wait-for-device — главный источник «застряло на эмуляторе»).
+# Only if KVM is available and with hard timeouts for each step - otherwise headless hang
+# (unlimited adb wait-for-device - the main source of “stuck on the emulator”).
 AVD=$(emulator -list-avds 2>/dev/null | head -1)
 if [[ -n "$AVD" && -e /dev/kvm ]]; then
   emulator -avd "$AVD" -no-window -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect -no-audio &
@@ -104,26 +104,26 @@ if [[ -n "$AVD" && -e /dev/kvm ]]; then
      timeout 180 bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null|tr -d "\r")" = "1" ]; do sleep 2; done'; then
     PLATFORM=android
   else
-    echo "⚠️ AVD не загрузился вовремя — пропускаем Android."
+    echo "⚠️ AVD did not load on time - skip Android."
     kill "$EMU_PID" 2>/dev/null || true
   fi
 elif [[ -n "$AVD" ]]; then
-  echo "⚠️ AVD есть, но нет /dev/kvm — запуск свежего эмулятора пропущен (был бы зависанием)."
+  echo "⚠️ AVD is there, but /dev/kvm is not - launching a fresh emulator is skipped (it would freeze)."
 fi
 ```
 
-**iOS (приоритет 3, только macOS):**
+**iOS (priority 3, macOS only):**
 ```bash
 xcrun simctl boot "iPhone 15" 2>/dev/null
 open -a Simulator 2>/dev/null
 PLATFORM=ios
 ```
 
-**Критерий выхода Фазы 0**: `PLATFORM` установлен (android / web / ios).
+**Phase 0 exit criterion**: `PLATFORM` set (android / web / ios).
 
 ---
 
-## Фаза 1 — Build & Install [~2 мин]
+## Phase 1 - Build & Install [~2 min]
 
 ```bash
 flutter pub get
@@ -143,133 +143,135 @@ echo $FLUTTER_PID > .claude/runtime-logs/flutter.pid
 
 for i in $(seq 1 120); do
   grep -q "Syncing files to device\|Flutter run key commands" \
-    .claude/runtime-logs/flutter-run.log 2>/dev/null && { echo "✅ Запущено (Android)"; break; }
+    .claude/runtime-logs/flutter-run.log 2>/dev/null && { echo "✅ Running (Android)"; break; }
   sleep 1
 done
 
-# Параллельно logcat
+# Parallel to logcat
 adb logcat -c
 adb logcat -v time flutter:V *:E > .claude/runtime-logs/logcat.log 2>&1 &
 LOGCAT_PID=$!
 echo $LOGCAT_PID > .claude/runtime-logs/logcat.pid
 ```
 
-### Chrome / Web (PLATFORM=web) — не требует эмулятора и **не требует дисплея**
+### Chrome / Web (PLATFORM=web) - does not require an emulator and **does not require a display**
 
-> **Почему `web-server`, а не `-d chrome`:** `flutter run -d chrome` открывает GUI-окно,
-> которым потом приходится управлять через `xdotool`/`osascript` — а они недоступны или
-> ненадёжны в headless / Wayland-сессиях. Плюс `flutter screenshot` **не поддерживает web**.
-> Поэтому мы поднимаем игру headless через `web-server` и снимаем/навигируем **headless Chrome
-> по Chrome DevTools Protocol** (`tools/web_verify.mjs`). Это работает без дисплея, даёт
-> реальные PNG c CanvasKit-канвы и реальные тапы.
+> **Why `web-server` and not `-d chrome`:** `flutter run -d chrome` opens a GUI window,
+> which then has to be controlled via `xdotool`/`osascript` - and they are unavailable or
+> unreliable in headless/Wayland sessions. Plus `flutter screenshot` **does not support web**.
+> So we bring up the game headless via `web-server` and shoot/navigate **headless Chrome
+> via Chrome DevTools Protocol** (`tools/web_verify.mjs`). This works without a display, gives
+> real PNGs with CanvasKit canvases and real taps.
 
 ```bash
 mkdir -p .claude/runtime-logs
 WEB_PORT="${WEB_PORT:-8099}"
 
-# Headless dev-server: компилирует и раздаёт игру, НЕ открывая браузер.
+# Headless dev-server: compiles and distributes the game without opening the browser.
 nohup flutter run -d web-server --web-port "$WEB_PORT" --web-hostname 127.0.0.1 \
   > .claude/runtime-logs/flutter-run.log 2>&1 &
 echo $! > .claude/runtime-logs/flutter.pid
 
-# Ждём строку "is being served at http://127.0.0.1:PORT" — но с жёстким лимитом и
-# ранним выходом при ошибке компиляции (иначе фаза зависает на сломанной сборке).
+# We are waiting for the line "is being served at http://127.0.0.1:PORT" - but with a hard limit and
+# exit early if there is a compilation error (otherwise the phase hangs on a broken assembly).
 WEB_URL=""
 for i in $(seq 1 120); do
   WEB_URL=$(grep -oE "http://127\.0\.0\.1:[0-9]+" .claude/runtime-logs/flutter-run.log 2>/dev/null | head -1)
   [ -n "$WEB_URL" ] && { echo "✅ web-server: $WEB_URL"; break; }
   if grep -qE "Failed to compile|Target dart2js failed|^Error: |Compilation failed" .claude/runtime-logs/flutter-run.log 2>/dev/null; then
-    echo "❌ web build failed — см. flutter-run.log (Фаза 'Если build упал')"; break
+    echo "❌ web build failed - see flutter-run.log (Phase 'If build failed')"; break
   fi
   sleep 2
 done
 [ -z "$WEB_URL" ] && WEB_URL="http://127.0.0.1:$WEB_PORT"  # fallback
 ```
 
-**Logcat для web**: adb logcat недоступен. Вместо него runtime-исключения собираются из
-**двух** источников: `.claude/runtime-logs/flutter-run.log` (stdout сборки/VM) **и**
-`<SHOT_DIR>/webconsole.log` — консоль браузера + uncaught exceptions, которые `web_verify.mjs`
-снимает по CDP (`Runtime.consoleAPICalled` / `Runtime.exceptionThrown` / `Log.entryAdded`).
+**Logcat for web**: adb logcat is not available. Instead, runtime exceptions are collected from
+**two** sources: `.claude/runtime-logs/flutter-run.log` (Flutter/VM stdout) **and**
+`<SHOT_DIR>/webconsole.log`—browser console output and uncaught exceptions that
+`web_verify.mjs` captures via CDP (`Runtime.consoleAPICalled`, `Runtime.exceptionThrown`,
+and `Log.entryAdded`).
 
-### Если build упал
+### If build is down
 
-Прочитать `.claude/runtime-logs/flutter-run.log`, извлечь ошибки компиляции Gradle/CocoaPods/Dart,
-исправить и повторить. Максимум 3 итерации. Если не удаётся — завершить с отчётом.
+Read `.claude/runtime-logs/flutter-run.log`, extract Gradle/CocoaPods/Dart compilation errors,
+correct and repeat. Maximum 3 iterations. If it fails, finish with a report.
 
 ---
 
-## Фаза 2 — Screenshot Tour [~3 мин]
+## Phase 2 - Screenshot Tour [~3 min]
 
-**Стратегия**: навигировать по игре через ADB input events, после КАЖДОГО экрана ждать
-анимацию (1-2 сек) и делать скриншот. Android — дефолт. Для iOS — `xcrun simctl io booted screenshot`.
+**Strategy**: navigate the game on the selected platform, wait 1–2 seconds after every
+screen animation, and capture a screenshot. Chrome/Web is the default. Android uses ADB
+input events; iOS uses `xcrun simctl io booted screenshot`.
 
-### Chrome / Web скриншоты (PLATFORM=web) — headless CDP, один вызов
+### Chrome / Web screenshots (PLATFORM=web) - headless CDP, one call
 
-`flutter screenshot` **не поддерживает web** (только `device`/`skia` для нативных устройств),
-а `xdotool`/`osascript` недоступны/ненадёжны headless. Поэтому весь тур по экранам выполняет
-**один** скрипт `tools/web_verify.mjs`: он сам поднимает headless Chrome, снимает кадры по CDP,
-тапает по канве (по семантической метке, иначе по thumb-зоне), пишет консоль/исключения и
-ВСЕГДА завершается в рамках `--budget` (не вешает конвейер).
+`flutter screenshot` **does not support web** (only `device`/`skia` for native devices),
+and `xdotool`/`osascript` are unavailable/unreliable headless. Therefore, the entire tour of the screens performs
+**one** script `tools/web_verify.mjs`: it picks up headless Chrome itself, shoots footage via CDP,
+taps on the canvas (on the semantic mark, otherwise on the thumb-zone), writes console/exceptions and
+always completes within `--budget` and cannot hang the pipeline.
 
 ```bash
 TS=$(date +%Y%m%d-%H%M%S)
 SHOT_DIR="production/runtime-screenshots/$TS"
 mkdir -p "$SHOT_DIR"
 
-# --budget — внутренний дедлайн скрипта; внешний `timeout` — страховка сверху.
-# --quick — только splash→menu→game→action (для /autocreate).
+# --budget — internal script deadline; external `timeout` - insurance from above.
+# --quick - only splash→menu→game→action (for /autocreate).
 timeout 220 node tools/web_verify.mjs \
   --url "$WEB_URL" --out "$SHOT_DIR" --budget 180 ${QUICK_FLAG:-} \
   2>&1 | tee "$SHOT_DIR/web_verify.log"
 ```
 
-Скрипт кладёт в `$SHOT_DIR`: `01-splash.png … 05-game-after-action.png` (+ доп. экраны без
-`--quick`), `webconsole.log` (консоль+исключения браузера) и `manifest.json`
+The script places in `$SHOT_DIR`: `01-splash.png … 05-game-after-action.png` (+ additional screens without
+`--quick`), `webconsole.log` (console+browser exceptions) and `manifest.json`
 (`{ steps, semanticLabels, consoleErrors, shots }`).
 
-**Навигация:** скрипт сначала пытается найти кнопку действия по `aria-label`
-(Flutter semantics — студия требует `Semantics(label: …)` на основной кнопке: `играть/спин/
-play/start/spin`), и только если метки нет — тапает thumb-зону (центр нижних 60%). Это покрывает
-все layout-архетипы L1–L6 без угадывания координат окна.
+**Navigation:** the script first tries to find the action button by `aria-label`
+(Flutter semantics - studio requires `Semantics(label: …)` on the main button: `play/spin/
+play/start/spin`), and only if there is no mark - taps the thumb zone (center of the lower 60%). This covers
+all layout archetypes L1–L6 without guessing window coordinates.
 
-**Парсинг ошибок Chrome**: grep по `manifest.json` (`consoleErrors`) и `webconsole.log`
-(EXCEPTION, RenderFlex overflowed, Unable to load asset) **плюс** `flutter-run.log`
-(ошибки компиляции). Отдельный logcat не нужен.
+**Parsing Chrome errors**: grep on `manifest.json` (`consoleErrors`) and `webconsole.log`
+(EXCEPTION, RenderFlex overflowed, Unable to load asset) **plus** `flutter-run.log`
+(compilation errors). A separate logcat is not needed.
 
 ---
 
-### ⚠️ Impeller caveat (корневая причина «invalid image»)
+### ⚠️ Impeller caveat (root cause of “invalid image”)
 
-На Android Flutter по умолчанию использует Impeller. `adb exec-out screencap -p` **не видит
-Impeller surface** на ряде устройств и возвращает либо чёрный кадр, либо PNG с поломанным
-color space, который vision-анализ отвергает как «invalid image».
+On Android, Flutter uses Impeller by default. `adb exec-out screencap -p` **doesn't see
+Impeller surface** on a number of devices and returns either a black frame or a broken PNG
+color space, which vision analysis rejects as “invalid image”.
 
-**Поэтому первичный метод снятия — `flutter screenshot`** (читает с Flutter-стороны, Impeller-safe).
-`adb exec-out screencap -p` используется только как фоллбэк. После каждого снимка **валидируем
-PNG-сигнатуру** (`89 50 4E 47`). Если файл не PNG — retry через альтернативный метод.
+**Therefore, the primary withdrawal method is `flutter screenshot`** (read from the Flutter side, Impeller-safe).
+`adb exec-out screencap -p` is used only as a fallback. After each photo we **validate
+PNG signature** (`89 50 4E 47`). If the file is not PNG, retry using an alternative method.
 
-### Координаты для навигации
+### Coordinates for navigation
 
-Поскольку мы не знаем точные координаты кнопок для каждой игры, применяем эвристику:
-1. Получить разрешение устройства: `adb shell wm size` → например `1080x2400`
-2. Center tap — по центру: `adb shell input tap 540 1200`
-3. Bottom action tap — нижняя треть: `adb shell input tap 540 2000` (кнопка Play/Spin обычно здесь)
+Since we don't know the exact button coordinates for each game, we use a heuristic:
+1. Get device permission: `adb shell wm size` → for example `1080x2400`
+2. Center tap - in the center: `adb shell input tap 540 1200`
+3. Bottom action tap - lower third: `adb shell input tap 540 2000` (Play/Spin button is usually here)
 4. Back: `adb shell input keyevent KEYCODE_BACK`
 
-### Последовательность скриншотов
+### Sequence of screenshots
 
-Создать директорию `production/runtime-screenshots/<timestamp>/` и снимать в неё.
+Create a directory `production/runtime-screenshots/<timestamp>/` and shoot into it.
 
 ```bash
 TS=$(date +%Y%m%d-%H%M%S)
 SHOT_DIR="production/runtime-screenshots/$TS"
 mkdir -p "$SHOT_DIR"
 
-# Платформа фиксирована: web/chrome (default). Переопределяется --platform android|ios.
+# Platform fixed: web/chrome (default). Overridden by --platform android|ios.
 PLATFORM="${PLATFORM:-web}"
-DEVICE_ID="${DEVICE_ID:-}"  # если пусто — flutter сам возьмёт первое устройство
+DEVICE_ID="${DEVICE_ID:-}" # if empty, flutter will take the first device
 
-# Проверка PNG: первые 8 байт должны быть 89 50 4E 47 0D 0A 1A 0A
+# PNG check: first 8 bytes must be 89 50 4E 47 0D 0A 1A 0A
 is_valid_png() {
   local f=$1
   [[ -s "$f" ]] || return 1
@@ -278,7 +280,7 @@ is_valid_png() {
   [[ "$sig" == "89504e470d0a1a0a" ]]
 }
 
-# Один снимок с тройным fallback + валидацией
+# One shot with triple fallback + validation
 shoot() {
   local name=$1
   local out="$SHOT_DIR/$name.png"
@@ -287,20 +289,20 @@ shoot() {
   if [[ "$PLATFORM" == "ios" ]]; then
     xcrun simctl io booted screenshot "$out" 2>/dev/null
     is_valid_png "$out" && { echo "✅ $name (ios simctl)"; return 0; }
-    echo "❌ $name — simctl не дал валидный PNG"
+    echo "❌ $name - simctl did not return a valid PNG"
     return 1
   fi
 
   if [[ "$PLATFORM" == "web" || "$PLATFORM" == "chrome" ]]; then
-    # web НЕ использует эту функцию — весь тур делает tools/web_verify.mjs по CDP
-    # (`flutter screenshot` не поддерживает web). Эта ветка — только страховочный лог.
-    echo "ℹ️ $name — для web используйте tools/web_verify.mjs (см. «Chrome / Web скриншоты»)"
+    # web does NOT use this function - the whole tour is done by tools/web_verify.mjs via CDP
+    # (`flutter screenshot` does not support web). This branch is just a safety net.
+    echo "ℹ️ $name - for web use tools/web_verify.mjs (see “Chrome / Web screenshots”)"
     return 1
   fi
 
   # ANDROID (default)
 
-  # Попытка 1: flutter screenshot — Impeller-safe, снимает с Flutter-стороны
+  # Attempt 1: flutter screenshot - Impeller-safe, shoots from the Flutter side
   local dev_arg=""
   [[ -n "$DEVICE_ID" ]] && dev_arg="-d $DEVICE_ID"
   flutter screenshot $dev_arg --type=device -o "$out" >/dev/null 2>&1 || true
@@ -309,8 +311,8 @@ shoot() {
     return 0
   fi
 
-  # Попытка 2: adb exec-out screencap -p (classic)
-  # ВАЖНО: именно exec-out, не `adb shell` — иначе LF→CRLF сломает PNG
+  # Attempt 2: adb exec-out screencap -p (classic)
+  # IMPORTANT: exactly exec-out, not `adb shell` - otherwise LF→CRLF will break the PNG
   adb ${DEVICE_ID:+-s $DEVICE_ID} exec-out screencap -p > "$tmp" 2>/dev/null
   if is_valid_png "$tmp"; then
     mv "$tmp" "$out"
@@ -318,7 +320,7 @@ shoot() {
     return 0
   fi
 
-  # Попытка 3: screencap на устройстве → pull (обходит stdout-искажения)
+  # Attempt 3: screencap on device → pull (bypasses stdout corruption)
   adb ${DEVICE_ID:+-s $DEVICE_ID} shell screencap -p /sdcard/_shot.png 2>/dev/null
   adb ${DEVICE_ID:+-s $DEVICE_ID} pull /sdcard/_shot.png "$out" >/dev/null 2>&1
   adb ${DEVICE_ID:+-s $DEVICE_ID} shell rm /sdcard/_shot.png 2>/dev/null
@@ -327,18 +329,18 @@ shoot() {
     return 0
   fi
 
-  # Полная неудача — оставляем файл для диагностики, но помечаем
+  # Complete failure - leave the file for diagnostics, but mark
   mv "$tmp" "$out.INVALID" 2>/dev/null || true
-  echo "❌ $name — все 3 метода вернули невалидный PNG. Проверьте:"
-  echo "   - Impeller: перезапустите с --no-enable-impeller"
-  echo "   - Экран устройства разблокирован?"
-  echo "   - file \"$out.INVALID\" (должно быть PNG image data, не ASCII)"
+  echo "❌ $name - all 3 methods returned an invalid PNG. Check:"
+  echo " - Impeller: restart with --no-enable-impeller"
+  echo "Is your device screen unlocked?"
+  echo " - file \"$out.INVALID\" (must be PNG image data, not ASCII)"
   return 1
 }
 
-# Вспомогательная функция навигации (Android ADB tap или Chrome/macOS click)
+# Navigation assist (Android ADB tap or Chrome/macOS click)
 nav_tap() {
-  # Только Android/iOS. Для web навигацию делает tools/web_verify.mjs по CDP.
+  # Android/iOS only. For web, navigation is done by tools/web_verify.mjs via CDP.
   local x=${1:-540} y=${2:-2000}
   [[ "$PLATFORM" == "android" ]] && adb ${DEVICE_ID:+-s $DEVICE_ID} shell input tap "$x" "$y"
 }
@@ -349,14 +351,14 @@ nav_back() {
 # 1. Splash
 sleep 3 && shoot 01-splash
 
-# 2. Main menu (splash авто-переходит)
+# 2. Main menu (splash auto-advances)
 sleep 3 && shoot 02-menu
 
-# 3. Game screen (тап по кнопке PLAY)
+# 3. Game screen (tap on the PLAY button)
 nav_tap 540 2000
 sleep 2 && shoot 03-game-idle
 
-# 4. После основного действия (spin/play/tap)
+#4. After the main action (spin/play/tap)
 nav_tap 540 2000
 sleep 3 && shoot 04-game-action
 sleep 3 && shoot 05-game-after-action
@@ -365,86 +367,86 @@ sleep 3 && shoot 05-game-after-action
 nav_back
 sleep 1 && shoot 06-back-menu
 
-# 6. Дополнительные экраны (если не --quick)
+#6. Additional screens (if not --quick)
 #   Settings, Help, Paytable, Daily Bonus, Leaderboard, Profile
-#   Навигация тапами по координатам кнопок меню
+# Navigation by taps on the coordinates of menu buttons
 # ...
 ```
 
-**ВАЖНО**: если `--quick`, ограничиться снимками 01–05.
+**IMPORTANT**: if `--quick`, limit yourself to images 01–05.
 
-После каждого скриншота сохранить соответствие: какой экран ожидался vs что снято.
+After each screenshot, save the correspondence: what screen was expected vs what was captured.
 
-### Если все три метода дают невалидный PNG
+### If all three methods produce an invalid PNG
 
-1. Убедиться что экран устройства **разблокирован** (adb screencap на lock screen иногда возвращает мусор).
-2. Перезапустить Flutter с отключённым Impeller:
+1. Make sure that the device screen is **unlocked** (adb screencap on lock screen sometimes returns garbage).
+2. Restart Flutter with Impeller disabled:
    ```bash
    flutter run -d "$DEVICE_ID" --no-enable-impeller > .claude/runtime-logs/flutter-run.log 2>&1 &
    ```
-3. На Android 14+ бывает, что `screencap` требует разрешения `READ_FRAME_BUFFER` через
-   `adb shell settings put global hidden_api_policy 1` — делать только в личном dev-окружении.
-4. Диагностика: `file "$SHOT_DIR/*.INVALID"` — если там `ASCII text`, в пайп попала ошибка
+3. On Android 14+ it happens that `screencap` requires permission from `READ_FRAME_BUFFER` via
+   `adb shell settings put global hidden_api_policy 1` - do it only in a personal dev environment.
+4. Diagnostics: `file "$SHOT_DIR/*.INVALID"` - if `ASCII text` is there, an error has entered the pipe
    adb (unauthorized / offline / device not found).
 
 ---
 
-## Фаза 3 — Visual Analysis [~2 мин]
+## Phase 3 - Visual Analysis [~2 min]
 
-**КРИТИЧЕСКАЯ фаза.** Здесь мы используем возможность Read смотреть на PNG как на
-изображение (multimodal vision).
+**CRITICAL phase.** Here we use Read's ability to look at PNG as
+image (multimodal vision).
 
-Для КАЖДОГО скриншота вызвать Read tool:
+For EACH screenshot, call the Read tool:
 
 ```
 Read file_path=production/runtime-screenshots/<ts>/01-splash.png
 ```
 
-И визуально проверить по чеклисту:
+And visually check using the checklist:
 
-### Чеклист визуальных проблем (Severity Scale)
+### Checklist of visual problems (Severity Scale)
 
-| # | Проблема | Как выглядит | Severity | Ответственный агент |
+| # | Problem | What does it look like | Severity | Responsible Agent |
 |---|----------|--------------|----------|---------------------|
-| V1 | **Flutter red screen of death** | Красный фон с текстом exception и stacktrace | CRITICAL | парсинг logcat → mechanics-programmer или ui-programmer |
-| V2 | **Полностью чёрный экран** | Целиком чёрный или тёмный, без контента | CRITICAL | ui-programmer (проверить onLoad, Scaffold, main.dart) |
-| V3 | **Полностью белый экран** | Целиком белый, без контента | CRITICAL | ui-programmer (обычно Navigator stuck или missing route) |
-| V4 | **Пустой игровой экран** | HUD есть, но область игры (барабаны/сетка/поле) пустая | CRITICAL | mechanics-programmer (компоненты не добавлены в World) |
-| V5 | **RenderFlex overflow** | Жёлто-чёрные диагональные полосы на краях | HIGH | ui-programmer (Expanded/Flexible, Text overflow) |
-| V6 | **Missing asset placeholder** | Серый прямоугольник с крестом или пустой SVG slot | HIGH | ui-programmer или generate-asset |
-| V7 | **Overlapping UI** | Текст/кнопки перекрывают друг друга | HIGH | ui-programmer (layout constraints) |
-| V8 | **Text overflow без ellipsis** | Текст обрезан по краю без "..." | MEDIUM | ui-programmer |
-| V9 | **Кнопка невидимая/вне экрана** | Нет видимой кнопки действия в game_screen | HIGH | ui-programmer |
-| V10 | **Низкий контраст** | Текст сливается с фоном, нечитаемо | MEDIUM | ui-programmer (Design DNA palette) |
-| V11 | **Вся графика — дефолтные Material** | Синий AppBar, белые кнопки, generic look | MEDIUM | ui-programmer (нет кастомной темы) |
-| V12 | **Баланс/счёт не отображается** | HUD пустой или показывает NaN/null | HIGH | mechanics-programmer (ValueNotifier не подключён) |
+| V1 | **Flutter red screen of death** | Red background with exception and stacktrace text | CRITICAL | parsing logcat → mechanics-programmer or ui-programmer |
+| V2 | **Completely black screen** | Entirely black or dark, no content | CRITICAL | ui-programmer(check onLoad, Scaffold, main.dart) |
+| V3 | **Completely white screen** | All white, no content | CRITICAL | ui-programmer (usually Navigator stuck or missing route) |
+| V4 | **Blank game screen** | There is a HUD, but the game area (reels/grid/field) is empty | CRITICAL | mechanics-programmer (components not added to World) |
+| V5 | **RenderFlex overflow** | Yellow and black diagonal stripes on edges | HIGH | ui-programmer (Expanded/Flexible, Text overflow) |
+| V6 | **Missing asset placeholder** | Gray rectangle with cross or empty SVG slot | HIGH | ui-programmer or generate-asset |
+| V7 | **Overlapping UI** | Text/buttons overlap each other | HIGH | ui-programmer (layout constraints) |
+| V8 | **Text overflow without ellipsis** | The text is cut off at the edge without the "..." | MEDIUM | ui-programmer |
+| V9 | **Button invisible/off screen** | No visible action button in game_screen | HIGH | ui-programmer |
+| V10 | **Low Contrast** | The text blends into the background, unreadable | MEDIUM | ui-programmer (Design DNA palette) |
+| V11 | **All graphics are default Material** | Blue AppBar, white buttons, generic look | MEDIUM | ui-programmer (no custom theme) |
+| V12 | **Balance/account not displayed** | HUD is empty or shows NaN/null | HIGH | mechanics-programmer (ValueNotifier not connected) |
 
-### Для каждого скриншота создать запись
+### Create an entry for each screenshot
 
 ```markdown
 ### 03-game-idle.png
-- Expected: главный экран игры с барабанами, HUD сверху, кнопка SPIN снизу
-- Observed: [что реально видно]
+- Expected: main game screen with reels, HUD on top, SPIN button on bottom
+- Observed: [what is actually visible]
 - Issues:
-  - V4 — Область барабанов пустая (чёрный прямоугольник 800x600 в центре)
-  - V8 — Текст баланса обрезан: "100..." вместо "1000"
+  - V4 - The reel area is empty (black rectangle 800x600 in the center)
+  - V8 — Balance text is cut off: “100...” instead of “1000”
 - Severity: CRITICAL
-- Suspected cause: ReelComponent не добавлен в world.onLoad() или SymbolComponent
-  не загружает SVG ассеты
+- Suspected cause: ReelComponent not added to world.onLoad() or SymbolComponent
+  doesn't load SVG assets
 - File to investigate: lib/game/[name]_world.dart
 ```
 
 ---
 
-## Фаза 4 — Logcat Analysis [~30 сек]
+## Phase 4 - Logcat Analysis [~30 sec]
 
-**Android**: читать и `logcat.log`, и `flutter-run.log`.
-**Chrome/web**: читать `flutter-run.log` (ошибки компиляции/VM) **и** `<SHOT_DIR>/webconsole.log`
-+ `<SHOT_DIR>/manifest.json` → `consoleErrors[]` (runtime-исключения и console.error из браузера,
-снятые по CDP). Быстрая проверка: `jq '.consoleErrors' "$SHOT_DIR/manifest.json"`.
-Извлечь все runtime-exceptions.
+**Android**: Read both `logcat.log` and `flutter-run.log`.
+**Chrome/web**: read `flutter-run.log` (compilation/VM errors) **and** `<SHOT_DIR>/webconsole.log`
++ `<SHOT_DIR>/manifest.json` → `consoleErrors[]` (runtime exceptions and console.error from the browser,
+taken using CDP). Quick check: `jq '.consoleErrors' "$SHOT_DIR/manifest.json"`.
+Retrieve all runtime-exceptions.
 
-### Паттерны для grep
+### Patterns for grep
 
 ```bash
 # ── Gradle / NDK build errors (checked FIRST — these prevent the app from starting) ──
@@ -494,75 +496,75 @@ grep -B 2 -A 5 "type '.*' is not a subtype" .claude/runtime-logs/flutter-run.log
 grep -B 2 -A 5 "FlameGame\|PositionComponent" .claude/runtime-logs/flutter-run.log | grep -i "error\|exception"
 ```
 
-### Классификация ошибок
+### Error classification
 
-Каждую пойманную ошибку разметить:
-- **file:line** — где произошло (из stacktrace)
+Mark each caught error:
+- **file:line** - where it happened (from stacktrace)
 - **category** — layout / lifecycle / asset / navigation / null / flame / other
-- **fix_owner** — кто чинит (ui-programmer / mechanics-programmer / juice-artist)
+- **fix_owner** - who does the repairs (ui-programmer / mechanics-programmer / juice-artist)
 
 ---
 
-## Фаза 5 — Auto-Fix Loop [~5 мин, до 3 итераций]
+## Phase 5 - Auto-Fix Loop [~5 min, up to 3 iterations]
 
-Консолидировать находки из Фазы 3 (visual) и Фазы 4 (logcat) в единый список проблем.
-Сортировать по severity: CRITICAL → HIGH → MEDIUM.
+Consolidate findings from Phase 3 (visual) and Phase 4 (logcat) into a single list of issues.
+Sort by severity: CRITICAL → HIGH → MEDIUM.
 
-### Стратегия исправления
+### Correction strategy
 
-1. **Остановить запущенное приложение** (иначе hot reload создаст шум):
+1. **Stop the running application** (otherwise hot reload will create noise):
    ```bash
    kill $(cat .claude/runtime-logs/flutter.pid) 2>/dev/null
    kill $(cat .claude/runtime-logs/logcat.pid) 2>/dev/null
    ```
 
-2. **Группировать проблемы по ответственному агенту.**
+2. **Group problems by responsible agent.**
 
-3. **Запустить агентов параллельно** (каждый получает свой список):
+3. **Run agents in parallel** (each gets its own list):
 
    **ui-programmer**:
-   - V2/V3 (чёрный/белый экран): проверить main.dart → runApp, app.dart → routes, SafeArea
-   - V5/V7/V8/V9 (layout): добавить Expanded, overflow: ellipsis, FittedBox
-   - V10/V11 (design): применить палитру из Design DNA, заменить Material defaults
+   - V2/V3 (black/white screen): check main.dart → runApp, app.dart → routes, SafeArea
+   - V5/V7/V8/V9 (layout): add Expanded, overflow: ellipsis, FittedBox
+   - V10/V11 (design): apply palette from Design DNA, replace Material defaults
 
    **mechanics-programmer**:
-   - V4 (пустой игровой экран): проверить [name]_world.dart — onLoad добавляет компоненты,
-     компоненты имеют правильные position/size, загружают ассеты
-   - V12 (HUD не обновляется): проверить что ValueNotifiers созданы в FlameGame и
-     прокинуты в HUD через GameWidget overlayBuilderMap
+   - V4 (blank game screen): check [name]_world.dart - onLoad adds components,
+     components have the correct position/size, load assets
+   - V12 (HUD not updated): check that ValueNotifiers are created in FlameGame and
+     inserted into the HUD via GameWidget overlayBuilderMap
 
-   **juice-artist** (если упоминается VFX):
-   - Particle systems не видны: проверить что ParticleSystemComponent добавлен в World
+   **juice-artist** (if VFX is mentioned):
+   - Particle systems are not visible: check that ParticleSystemComponent is added to World
 
-   **ui-audit skill** (вспомогательно):
-   - Если логкат показал много layout errors, запустить `/ui-audit --fix`
+   **ui-audit skill** (auxiliary):
+   - If the logcat shows a lot of layout errors, run `/ui-audit --fix`
 
-4. **После исправлений**:
+4. **After corrections**:
    ```bash
    dart analyze lib/
    flutter test
    ```
-   Если это ломает компиляцию или тесты — откатить некритичные правки, оставить только те,
-   что чинят CRITICAL/HIGH.
+   If this breaks compilation or tests, roll back non-critical edits and leave only those
+   that they fix CRITICAL/HIGH.
 
-5. **Re-run цикла** (с Фазы 1): заново запустить игру, сделать скриншоты, сравнить.
-   Если количество CRITICAL проблем уменьшилось — продолжаем. Если нет прогресса 2 итерации
-   подряд — остановиться и отчитаться пользователю.
+5. **Re-run cycle** (from Phase 1): restart the game, take screenshots, compare.
+   If the number of CRITICAL problems has decreased, we continue. If there is no progress 2 iterations
+   in a row - stop and report to the user.
 
-### Критерии выхода Фазы 5
+### Phase 5 Exit Criteria
 
-**Успех**: 0 CRITICAL, ≤2 HIGH, MEDIUM — допустимы.
-**Частичный успех**: CRITICAL устранены, HIGH остались — отчитаться пользователю.
-**Неудача**: CRITICAL остались после 3 итераций — подробный отчёт + ручная эскалация.
+**Success**: 0 CRITICAL, ≤2 HIGH, MEDIUM are acceptable.
+**Partial success**: CRITICAL eliminated, HIGH remained - report to the user.
+**Failure**: CRITICAL remained after 3 iterations - detailed report + manual escalation.
 
 ---
 
-## Фаза 6 — Report & Artifacts
+## Phase 6 - Report & Artifacts
 
-Создать `production/runtime-screenshots/<timestamp>/REPORT.md`:
+Create `production/runtime-screenshots/<timestamp>/REPORT.md`:
 
 ```markdown
-# Runtime Verification Report — [дата]
+# Runtime Verification Report - [date]
 
 ## Device
 - Platform: Android / iOS
@@ -607,11 +609,11 @@ grep -B 2 -A 5 "FlameGame\|PositionComponent" .claude/runtime-logs/flutter-run.l
 ✅ PASS — game runs end-to-end without crashes, all CRITICAL/HIGH issues resolved.
 ```
 
-Также обновить `production/session-state/active.md`:
+Also update `production/session-state/active.md`:
 ```markdown
 ## Runtime verified
-- Date: [дата]
-- Device: [устройство]
+- Date: [date]
+- Device: [device]
 - Issues fixed: [N]
 - Verdict: PASS / CONCERNS / FAIL
 - Report: production/runtime-screenshots/<ts>/REPORT.md
@@ -619,17 +621,17 @@ grep -B 2 -A 5 "FlameGame\|PositionComponent" .claude/runtime-logs/flutter-run.l
 
 ---
 
-## Фаза 7 — Cleanup
+## Phase 7 - Cleanup
 
 ```bash
-# Остановить приложение
+# Stop the application
 kill $(cat .claude/runtime-logs/flutter.pid) 2>/dev/null || true
 kill $(cat .claude/runtime-logs/logcat.pid) 2>/dev/null || true
 
-# Логи НЕ удалять (могут понадобиться для отладки)
-# Скриншоты НЕ удалять (артефакт верификации)
+# Do NOT delete logs (may be needed for debugging)
+# Do NOT delete screenshots (verification artifact)
 
-# Опционально: удалить старые раны (оставить последние 5)
+# Optional: remove old wounds (keep the last 5)
 ls -1t production/runtime-screenshots/ | tail -n +6 | xargs -I{} rm -rf "production/runtime-screenshots/{}"
 ```
 
@@ -637,47 +639,47 @@ ls -1t production/runtime-screenshots/ | tail -n +6 | xargs -I{} rm -rf "product
 
 ## Integration in /autocreate
 
-Этот навык автоматически запускается из `/autocreate` в **Фазе 10.5** — сразу после
-`Фаза 10 Crash Prevention` и до `Фаза 11 Session State Update`.
+This skill automatically starts from `/autocreate` in **Phase 10.5** - immediately after
+`Phase 10 Crash Prevention` and up to `Phase 11 Session State Update`.
 
-В `/autocreate` используется режим **`--quick`** (только главные экраны) чтобы уложиться
-в бюджет времени. Если есть критические проблемы — запускается полный режим.
+`/autocreate` uses **`--quick`** mode (main screens only) to fit
+in the time budget. If there are critical problems, the full mode starts.
 
 ---
 
 ## Quality Gates
 
-| Фаза | Критерий выхода | Макс. итераций |
+| Phase | Exit Criteria | Max. iterations |
 |------|----------------|---------------|
-| 0. Preflight | Устройство доступно | 1 (иначе abort) |
-| 1. Build | `flutter run` не падает, приложение запущено | 3 |
-| 2. Screenshots | Минимум 5 снимков сделано | 2 |
-| 3. Visual Analysis | Все снимки проанализированы | 1 |
-| 4. Logcat | Лог прочитан, ошибки классифицированы | 1 |
+| 0.Preflight | Device available | 1 (aka abort) |
+| 1.Build | `flutter run` does not crash, the application is running | 3 |
+| 2. Screenshots | Minimum 5 pictures taken | 2 |
+| 3. Visual Analysis | All images analyzed | 1 |
+| 4. Logcat | Log read, errors classified | 1 |
 | 5. Auto-Fix | 0 CRITICAL | 3 |
-| 6. Report | REPORT.md создан | 1 |
-| 7. Cleanup | Процессы остановлены | 1 |
+| 6.Report | REPORT.md created | 1 |
+| 7. Cleanup | Processes stopped | 1 |
 
 ---
 
-## Запрещено в этом навыке
+## Prohibited in this skill
 
-1. Изменять `pubspec.yaml` зависимости во время auto-fix (это задача основного пайплайна)
-2. Запускать эмулятор с `-wipe-data` — пользователь может потерять state других приложений
-3. Использовать `adb root` или `adb shell su` — не требуется и небезопасно
-4. Удалять скриншоты или логи до окончания отчёта
-5. Делать git commit автоматически — только пользователь решает
+1. Change `pubspec.yaml` dependencies during auto-fix (this is the task of the main pipeline)
+2. Launch the emulator with `-wipe-data` - the user may lose the state of other applications
+3. Using `adb root` or `adb shell su` is unnecessary and unsafe
+4. Delete screenshots or logs before the end of the report
+5. Do git commit automatically - only the user decides
 
 ---
 
-## Аргументы
+## Arguments
 
-- `--device <id>` — конкретный `flutter devices` ID (по умолчанию: авто-выбор Chrome)
-- `--platform web|android|ios` — форсировать платформу.
-  - **По умолчанию: `web`** — headless `web-server` + CDP (`tools/web_verify.mjs`), не нужен эмулятор/дисплей
-  - `android` — ADB + `flutter screenshot`, требует запущенного устройства/эмулятора
-- `--no-fix` — только анализ и отчёт, без исправлений
-- `--quick` — сокращённый тур (splash → menu → game → action). Пробрасывается в `web_verify.mjs --quick`.
-- `--skip-logcat` — пропустить парсинг logcat (для web logcat не нужен — всё в webconsole.log/flutter-run.log)
-- `--no-impeller` — запустить `flutter run` с `--no-enable-impeller` (только Android).
-  Используйте, если первый прогон дал `.INVALID` PNG.
+- `--device <id>` - specific `flutter devices` ID (default: Chrome auto-select)
+- `--platform web|android|ios` - force the platform.
+  - **Default: `web`** - headless `web-server` + CDP (`tools/web_verify.mjs`), no emulator/display needed
+  - `android` - ADB + `flutter screenshot`, requires a running device/emulator
+- `--no-fix` - analysis and report only, no corrections
+- `--quick` - shortened tour (splash → menu → game → action). Forwarded to `web_verify.mjs --quick`.
+- `--skip-logcat` - skip logcat parsing (for web logcat is not needed - everything is in webconsole.log/flutter-run.log)
+- `--no-impeller` - launch `flutter run` from `--no-enable-impeller` (Android only).
+  Use if the first pass yielded `.INVALID` PNG.

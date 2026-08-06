@@ -256,11 +256,11 @@ def infer_mood_from_concept(path="design/gdd/game-concept.md"):
     except OSError:
         return "bright"
     keys = {
-        "dark": ["напряж", "мрач", "нуар", "тревож", "danger", "horror", "dark"],
-        "calm": ["спокой", "дзен", "медит", "уют", "calm", "zen", "cozy", "relax"],
-        "epic": ["эпич", "epic", "космос", "герой", "boss", "битв"],
-        "playful": ["весел", "игрив", "детск", "конфет", "candy", "playful", "cute"],
-        "tense": ["казино", "ставк", "риск", "crash", "mines", "gambl"],
+        "dark": ["danger", "horror", "dark", "noir", "grim", "ominous", "tense night"],
+        "calm": ["calm", "zen", "cozy", "cosy", "relax", "serene", "meditat", "gentle"],
+        "epic": ["epic", "space", "cosmic", "hero", "boss", "battle", "legend", "myth"],
+        "playful": ["playful", "cute", "candy", "cheerful", "childish", "toy", "bouncy"],
+        "tense": ["casino", "bet", "wager", "risk", "crash", "mines", "gambl", "stake"],
     }
     score = {k: 0 for k in keys}
     for mood, words in keys.items():

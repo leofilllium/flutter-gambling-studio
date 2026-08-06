@@ -1,41 +1,41 @@
-# Балансировка математической модели: [Имя Системы]
+# Balancing the mathematical model: [System name]
 
-**Категория:** [C1–C6]
-**Модель:** [M1–M6]
-**Целевая метрика:** [например «RTP 96.0%» / «hard pity 70 при SSR 1.2%» / «run win-rate 32%»]
-**Конфиг:** `design/balance/[файл].json`
-**Дата расчета:** [Дата]
+**Category:** [C1–C6]
+**Model:** [M1–M6]
+**Target metric:** [e.g. "RTP 96.0%" / "hard pity 70 at SSR 1.2%" / "run win-rate 32%"]
+**Config:** `design/balance/[file].json`
+**Date computed:** [date]
 
-## Таблица параметров
+## Parameter table
 
-Для M1 (paytable RTP):
+For M1 (paytable RTP):
 
-| Символ | Вес | Частота выпадения | Множитель (x3) | Вклад в RTP |
-|--------|-----|-------------------|----------------|-------------|
+| Symbol | Weight | Hit frequency | Multiplier (x3) | Contribution to RTP |
+|--------|--------|---------------|-----------------|---------------------|
 | Cherry | 100 | 50% | x2 | 12.5% |
 | Lemon  | ... | ... | ... | ... |
-| **ИТОГО** | **SUM** | **100%** | | **[XX]%** |
+| **TOTAL** | **SUM** | **100%** | | **[XX]%** |
 
-Для остальных моделей — соответствующая таблица: исходы и вероятности (M2), события спина
-и цены анлоков (M3), редкости и pity (M4), пороги раундов и модификаторы (M5), корзины и
-множители (M6).
+For the other models, use the corresponding table: outcomes and probabilities (M2), spin events
+and unlock prices (M3), rarities and pity (M4), round thresholds and modifiers (M5), buckets and
+multipliers (M6).
 
-## Бонусные Факторы
-Wild / Scatter / free spins / pity / джокеры — как именно они влияют на итоговую метрику
-и какую долю от неё дают.
+## Bonus factors
+Wild / Scatter / free spins / pity / jokers — exactly how they affect the final metric and how
+much of it they account for.
 
-## Результаты прогона
+## Run results
 
 ```bash
-python3 tools/simulate_math.py --model [m1-m6] --config design/balance/[файл].json --trials 1000000
+python3 tools/simulate_math.py --model [m1-m6] --config design/balance/[file].json --trials 1000000
 ```
 
-- Теоретическое значение: [XX]
-- Полученное значение: [XX]
-- Погрешность: [X]
-- Вердикт: [PASS / CONCERNS / FAIL]
+- Theoretical value: [XX]
+- Measured value: [XX]
+- Deviation: [X]
+- Verdict: [PASS / CONCERNS / FAIL]
 
-Полный отчёт: `design/balance/simulation-report.md`.
+The full report: `design/balance/simulation-report.md`.
 
-> Прогон без записи отчёта не считается проведённым. Поле `simulation.last_run_date`
-> в конфиге обновляется каждым прогоном.
+> A run that is not written to a report does not count as having happened. The
+> `simulation.last_run_date` field in the config is updated by every run.

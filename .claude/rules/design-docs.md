@@ -5,76 +5,79 @@ globs: ["design/**/*.md", "docs/**/*.md"]
 
 # Design Document Standards — Mini-Game GDD
 
-## Обязательные 8 секций для каждого GDD
+Every GDD is written in English, like the rest of the studio's output.
 
-Каждый документ в `design/gdd/` ОБЯЗАН содержать эти разделы:
+## The 8 required sections for every GDD
 
-### 1. Обзор (Overview)
-Один абзац: что это за механика, для кого, зачем.
+Every document in `design/gdd/` MUST contain these sections:
 
-### 2. Фантазия игрока (Player Fantasy)
-Как должен чувствовать себя игрок? Что он "переживает"?
-Пример: "Игрок чувствует нарастание напряжения при остановке барабанов — каждый удар в пол создаёт ощущение близкой победы."
+### 1. Overview
+One paragraph: what this mechanic is, who it is for, why it exists.
 
-### 3. Детальные правила (Rules)
-Однозначное описание механики. Без двусмысленности.
+### 2. Player fantasy
+How should the player feel? What are they "living through"?
+Example: "The player feels the tension build as the reels come to rest — every thud on the
+floor creates the sense that a win is close."
 
-### 4. Формулы (Formulas)
-ВСЯ математика с переменными:
+### 3. Detailed rules
+An unambiguous description of the mechanic. No room for interpretation.
+
+### 4. Formulas
+ALL the mathematics, with variables:
 ```
-Выигрыш = Ставка × Множитель_символа × Количество_линий_выигрыша
-RTP = Σ(вероятность_комбинации × выплата) / ставка
+Win = Bet × Symbol_multiplier × Number_of_winning_lines
+RTP = Σ(combination_probability × payout) / bet
 ```
 
-### 5. Граничные случаи (Edge Cases)
-- Что если баланс = 0?
-- Что если выигрыш > текущего джекпота?
-- Что если Free Spins прерваны паузой?
-- Что при одновременном Scatter + Wild на одной линии?
+### 5. Edge cases
+- What if the balance is 0?
+- What if the win exceeds the current jackpot?
+- What if free spins are interrupted by a pause?
+- What happens with a Scatter and a Wild on the same line?
 
-### 6. Зависимости (Dependencies)
-Другие системы, от которых зависит эта механика:
-- `WeightedRNG` — источник случайности
-- `PaylineEvaluator` — подсчёт выигрышей
-- `AudioService` — звуковая обратная связь
+### 6. Dependencies
+Other systems this mechanic depends on:
+- `WeightedRNG` — the source of randomness
+- `PaylineEvaluator` — win calculation
+- `AudioService` — audio feedback
 
-### 7. Настроечные параметры (Tuning Knobs)
-Все значения, которые game-mathematician может менять:
-| Параметр | Текущее | Диапазон | Эффект |
-|----------|---------|---------|--------|
-| Вес Wild | 1 | 0–3 | ↑ вес = ↑ RTP |
-| Free Spins множитель | 3 | 1–5 | ↑ множитель = ↑ волатильность |
+### 7. Tuning knobs
+Every value the game-mathematician is allowed to change:
+| Parameter | Current | Range | Effect |
+|-----------|---------|-------|--------|
+| Wild weight | 1 | 0–3 | ↑ weight = ↑ RTP |
+| Free spins multiplier | 3 | 1–5 | ↑ multiplier = ↑ volatility |
 
-### 8. Критерии приёмки (Acceptance Criteria)
-Тестируемые условия успеха:
-- [ ] AC-1: RTP в диапазоне 95–97% при 1М симуляций
+### 8. Acceptance criteria
+Testable success conditions:
+- [ ] AC-1: RTP within 95–97% over 1M simulations
 - [ ] AC-2: Hit rate 25–35%
-- [ ] AC-3: Wild заменяет любой символ кроме Scatter
-- [ ] AC-4: 3 Scatter на любых позициях = Free Spins
+- [ ] AC-3: A Wild substitutes for any symbol except a Scatter
+- [ ] AC-4: 3 Scatters in any position triggers free spins
 
-## Жизненный цикл документа
+## Document lifecycle
 
 ```
-Draft → [OPEN вопросы] → Review → Approved (Status: ✅ Approved YYYY-MM-DD)
-→ Implemented (ссылка на PR) → Deprecated (если механика удалена)
+Draft → [OPEN questions] → Review → Approved (Status: ✅ Approved YYYY-MM-DD)
+→ Implemented (link to the PR) → Deprecated (if the mechanic is removed)
 ```
 
-## Шаблон имени файла
+## File naming template
 
-Общее для всех категорий:
+Common to every category:
 
 ```
 design/gdd/
-├── game-concept.md            # Концепт игры: категория C1–C6, архетип, матмодель, compliance
-├── math-model.md              # Модель M1–M6: формулы, пороги, ссылка на JSON-конфиг
-├── round-flow.md              # Полный цикл раунда: ставка → исход → раскрытие → выплата
-└── compliance-screens.md      # Age-gate, дисклеймер, responsible-play, odds disclosure
+├── game-concept.md            # The concept: category C1–C6, archetype, math model, compliance
+├── math-model.md              # Model M1–M6: formulas, thresholds, link to the JSON config
+├── round-flow.md              # The full round cycle: bet → outcome → reveal → payout
+└── compliance-screens.md      # Age gate, disclaimer, responsible play, odds disclosure
 ```
 
-Плюс документы по механикам конкретной категории:
+Plus documents for the mechanics of the specific category:
 
-| Категория | Типичные GDD |
-|-----------|--------------|
+| Category | Typical GDDs |
+|----------|--------------|
 | C1 🎰 | `reel-mechanics.md`, `payline-system.md`, `wild-scatter.md`, `free-spins.md` |
 | C2 ⚡ | `multiplier-curve.md`, `cashout-rules.md`, `seed-fairness.md` |
 | C3 🏰 | `spin-event-table.md`, `energy-economy.md`, `raid-shield.md`, `collection.md` |
@@ -82,23 +85,23 @@ design/gdd/
 | C5 🃏 | `run-structure.md`, `modifier-registry.md`, `shop-economy.md` |
 | C6 ⚙️ | `physics-setup.md`, `bucket-payouts.md`, `determinism.md` |
 
-## Ссылки в коде
+## References from code
 
-Код ДОЛЖЕН ссылаться на GDD:
+The code MUST reference the GDD:
 ```dart
 /// Implements [design/gdd/payline-system.md].
-/// AC-3: Wild заменяет любой символ кроме Scatter.
+/// AC-3: a Wild substitutes for any symbol except a Scatter.
 class PaylineEvaluator { ... }
 ```
 
-## Таблицы выплат — обязательный формат
+## Payout tables — the required format
 
 ```markdown
-| Символ | 2 подряд | 3 подряд | Вес | Вероятность (3 реела) |
-|--------|----------|----------|-----|----------------------|
-| Вишня  | 1×       | 5×       | 10  | 18.6%               |
-| Бар    | 2×       | 10×      | 7   | 9.1%                |
-| Семёрка| —        | 25×      | 4   | 3.0%                |
-| Алмаз  | —        | 75×      | 2   | 0.7%                |
-| Wild   | —        | 100×     | 1   | 0.2%                |
+| Symbol  | 2 in a row | 3 in a row | Weight | Probability (3 reels) |
+|---------|------------|------------|--------|-----------------------|
+| Cherry  | 1×         | 5×         | 10     | 18.6%                 |
+| Bar     | 2×         | 10×        | 7      | 9.1%                  |
+| Seven   | —          | 25×        | 4      | 3.0%                  |
+| Diamond | —          | 75×        | 2      | 0.7%                  |
+| Wild    | —          | 100×       | 1      | 0.2%                  |
 ```

@@ -1,91 +1,94 @@
 ---
 name: design-review
-description: "Проверяет GDD на полноту, качество и математическую корректность по стандартам студии."
-argument-hint: "[файл или система]"
+description: "Checks a GDD for completeness, quality and mathematical correctness against the studio's standards."
+argument-hint: "[file or system]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Agent
 ---
 
-# /design-review [файл или система]
+# /design-review [file or system]
 
-Запуск: пользователь вызывает `/design-review [путь к GDD или название системы]`
+Invocation: the user runs `/design-review [path to the GDD or the system's name]`
 
-## Цель
+## Goal
 
-Проверяет полноту и качество Game Design Document для мини-игры.
-Убеждается, что GDD содержит все 8 обязательных секций, математика корректна,
-граничные случаи описаны, критерии приёмки тестируемы.
+Checks the completeness and quality of a mini-game's Game Design Document.
+Confirms that the GDD contains all 8 required sections, that the mathematics is correct, that
+edge cases are described and that the acceptance criteria are testable.
 
-## Агенты
+## Agents
 
-- `game-designer` — полнота и корректность дизайна
-- `game-mathematician` — проверка математических формул
+- `game-designer` — design completeness and correctness
+- `game-mathematician` — verification of the mathematical formulas
 
-## Порядок выполнения
+## Order of work
 
-### Шаг 1: Найти GDD документы
+### Step 1: find the GDD documents
 
-Если передан путь — проверяем конкретный файл.
-Если не передан — проверяем все файлы в `design/gdd/`.
+If a path was given, check that specific file.
+If not, check every file in `design/gdd/`.
 
-### Шаг 2: game-designer — Проверка полноты GDD
+### Step 2: game-designer — GDD completeness check
 
-Агент `game-designer` проверяет каждый GDD:
+The `game-designer` agent checks each GDD:
 
-**8 обязательных секций:**
-- [ ] Обзор (Overview) — есть вводный абзац
-- [ ] Фантазия игрока (Player Fantasy) — описано ощущение
-- [ ] Детальные правила (Rules) — однозначно сформулированы
-- [ ] Формулы (Formulas) — все вычисления с переменными
-- [ ] Граничные случаи (Edge Cases) — минимум 5 ситуаций
-- [ ] Зависимости (Dependencies) — перечислены системы
-- [ ] Настроечные параметры (Tuning Knobs) — таблица с диапазонами
-- [ ] Критерии приёмки (Acceptance Criteria) — минимум 5 тестируемых критериев
+**The 8 required sections:**
+- [ ] Overview — there is an introductory paragraph
+- [ ] Player fantasy — the feeling is described
+- [ ] Detailed rules — stated unambiguously
+- [ ] Formulas — every calculation, with variables
+- [ ] Edge cases — at least 5 situations
+- [ ] Dependencies — the systems are listed
+- [ ] Tuning knobs — a table with ranges
+- [ ] Acceptance criteria — at least 5 testable criteria
 
-**Gambling-специфичные проверки (если применимо):**
-- [ ] Целевой RTP указан (95–97%)
-- [ ] Таблица выплат (paytable) присутствует
-- [ ] Wild символ: что он заменяет, что не заменяет
-- [ ] Scatter: как тригерит бонус, с каких позиций
-- [ ] Описан Near Miss эффект (если есть)
-- [ ] Free Spins: условие триггера, количество, множитель
+**Gambling-specific checks (where applicable):**
+- [ ] The target RTP is stated (95–97%)
+- [ ] The paytable is present
+- [ ] The Wild symbol: what it substitutes for, and what it does not
+- [ ] Scatter: how it triggers the bonus, and from which positions
+- [ ] The near-miss effect is described (if there is one)
+- [ ] Free spins: the trigger condition, the count, the multiplier
 
-**Статус документа:**
-- [ ] Есть строка `Status:` (Draft / Review / Approved / Implemented)
-- [ ] Approved документы имеют дату
+**Document status:**
+- [ ] There is a `Status:` line (Draft / Review / Approved / Implemented)
+- [ ] Approved documents carry a date
 
-### Шаг 3: game-mathematician — Математическая проверка
+**Language:**
+- [ ] The document is written in English, like everything else the studio produces
 
-Агент `game-mathematician` проверяет:
+### Step 3: game-mathematician — the mathematical check
 
-- [ ] Формулы RTP корректны и полны
-- [ ] Веса символов в таблице согласуются с `rtp-config.json`
-- [ ] Hit rate реалистичен (15–45%)
-- [ ] Выплаты сбалансированы (нет очевидных дыр в матмодели)
-- [ ] Free Spins contribution к RTP посчитан
+The `game-mathematician` agent checks:
 
-### Шаг 4: Отчёт
+- [ ] The RTP formulas are correct and complete
+- [ ] The symbol weights in the table agree with `rtp-config.json`
+- [ ] The hit rate is realistic (15–45%)
+- [ ] The payouts are balanced (no obvious holes in the math model)
+- [ ] The free spins contribution to the RTP has been computed
+
+### Step 4: the report
 
 ```markdown
-# Design Review — [система] — [дата]
+# Design Review — [system] — [date]
 
-## Проверенные документы
-- design/gdd/XXX.md — [статус]
+## Documents reviewed
+- design/gdd/XXX.md — [status]
 
-## 🚨 НЕДОСТАТКИ (блокируют имплементацию)
-- Отсутствует секция X в документе Y
+## 🚨 DEFICIENCIES (they block implementation)
+- Section X is missing from document Y
 
-## ⚠️ ЗАМЕЧАНИЯ
-- Формула Z неполная
+## ⚠️ OBSERVATIONS
+- Formula Z is incomplete
 
-## ✅ СООТВЕТСТВУЕТ СТАНДАРТУ
-- Все 8 секций присутствуют
+## ✅ MEETS THE STANDARD
+- All 8 sections are present
 
-## Рекомендация: READY TO IMPLEMENT / NEEDS REVISION
+## Recommendation: READY TO IMPLEMENT / NEEDS REVISION
 ```
 
-## Аргументы
+## Arguments
 
-- Без аргументов: ревью всех GDD в `design/gdd/`
-- `reel-mechanics` — ревью `design/gdd/reel-mechanics.md`
-- `--math-only` — только математическая проверка
+- No arguments: review every GDD in `design/gdd/`
+- `reel-mechanics` — review `design/gdd/reel-mechanics.md`
+- `--math-only` — the mathematical check only

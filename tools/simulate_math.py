@@ -98,17 +98,17 @@ class Report:
         out: list[str] = []
         out.append(f"# Simulation Report — {self.title}")
         out.append("")
-        out.append(f"- **Модель**: {self.model}")
-        out.append(f"- **Конфиг**: `{self.config_path}`")
-        out.append(f"- **Метод**: {self.method}")
-        out.append(f"- **Испытаний**: {num(self.trials)}")
+        out.append(f"- **Model**: {self.model}")
+        out.append(f"- **Config**: `{self.config_path}`")
+        out.append(f"- **Method**: {self.method}")
+        out.append(f"- **Trials**: {num(self.trials)}")
         if self.seed is not None:
             out.append(f"- **Seed**: {self.seed}")
-        out.append(f"- **Дата**: {date.today().isoformat()}")
+        out.append(f"- **Date**: {date.today().isoformat()}")
         out.append("")
-        out.append("## Результат")
+        out.append("## Result")
         out.append("")
-        out.append("| Метрика | Целевое | Получено | Вердикт |")
+        out.append("| Metric | Target | Measured | Verdict |")
         out.append("|---------|---------|----------|---------|")
         for m in self.metrics:
             mark = f"{_VERDICT_MARK[m.verdict]} {m.verdict}"
@@ -123,20 +123,20 @@ class Report:
                 out.append("| " + " | ".join(row) + " |")
             out.append("")
         failing = [m for m in self.metrics if m.verdict != PASS]
-        out.append("## Вердикт")
+        out.append("## Verdict")
         out.append("")
         if self.verdict == PASS:
-            out.append("✅ **PASS** — модель в целевом окне, конвейер можно продолжать.")
+            out.append("✅ **PASS** — the model is inside the target window; the pipeline can continue.")
         else:
             head = "⚠️ **CONCERNS**" if self.verdict == CONCERNS else "❌ **FAIL**"
-            out.append(f"{head} — требует внимания `game-mathematician`:")
+            out.append(f"{head} — needs `game-mathematician`'s attention:")
             out.append("")
             for m in failing:
                 detail = f" — {m.note}" if m.note else ""
-                out.append(f"- **{m.name}**: получено {m.rendered()}, цель {m.target}{detail}")
+                out.append(f"- **{m.name}**: measured {m.rendered()}, target {m.target}{detail}")
         if self.notes:
             out.append("")
-            out.append("## Примечания")
+            out.append("## Notes")
             out.append("")
             for n in self.notes:
                 out.append(f"- {n}")
@@ -160,7 +160,7 @@ def band(value: float, ok: tuple[float, float], warn: tuple[float, float] | None
 
 def _require(cfg: dict, key: str, model: str) -> Any:
     if key not in cfg:
-        raise ConfigError(f"[{model}] в конфиге нет обязательного поля '{key}'")
+        raise ConfigError(f"[{model}] the config is missing the required field '{key}'")
     return cfg[key]
 
 
@@ -277,7 +277,7 @@ def _reel_rtp(
             if win > 0:
                 hit += p
         rtp = ev / total_bet if total_bet else 0.0
-        return rtp, hit, scatter_hist, f"точный перебор {num(space)} исходов"
+        return rtp, hit, scatter_hist, f"exact enumeration of {num(space)} outcomes"
 
     # Monte Carlo. Symbols are drawn in large batches so the per-spin cost stays in C.
     rng = random.Random(rng_seed)
@@ -306,7 +306,7 @@ def _reel_rtp(
     rtp = (ev / done) / total_bet if total_bet else 0.0
     hit = wins / done
     scatter_hist = {k: v / done for k, v in scatter_counts.items()}
-    return rtp, hit, scatter_hist, f"Monte Carlo, {num(done)} спинов"
+    return rtp, hit, scatter_hist, f"Monte Carlo, {num(done)} spins"
 
 
 def model_m1(cfg: dict, args: argparse.Namespace, report: Report) -> None:
@@ -318,7 +318,7 @@ def model_m1(cfg: dict, args: argparse.Namespace, report: Report) -> None:
         outcomes = _require(cfg, "outcomes", "M1")
         total_w = sum(float(o.get("weight", o.get("probability", 0.0))) for o in outcomes)
         if total_w <= 0:
-            raise ConfigError("[M1] сумма весов/вероятностей исходов равна нулю")
+            raise ConfigError("[M1] the sum of outcome weights/probabilities is zero")
         ev = 0.0
         hit = 0.0
         rows = []
@@ -332,8 +332,8 @@ def model_m1(cfg: dict, args: argparse.Namespace, report: Report) -> None:
             payoffs.append((p, pay))
             rows.append([o.get("name", "?"), f"{p:.6f}", f"{pay:g}×", f"{p * pay:.6f}"])
         rtp = ev  # payouts are expressed as a multiple of the stake
-        report.method = "точный расчёт по таблице исходов"
-        report.table("Вклад исходов в RTP", ["Исход", "Вероятность", "Выплата", "Вклад в RTP"], rows)
+        report.method = "exact calculation from the outcome table"
+        report.table("Outcome contribution to RTP", ["Outcome", "Probability", "Payout", "RTP contribution"], rows)
         mean = ev
         var = sum(p * (pay - mean) ** 2 for p, pay in payoffs)
         vol = math.sqrt(var) / mean if mean else 0.0
@@ -367,21 +367,21 @@ def model_m1(cfg: dict, args: argparse.Namespace, report: Report) -> None:
             bonus_rtp = p_trigger * spins * mult * fs_rtp
             rtp = base_rtp + bonus_rtp
             report.table(
-                "Разложение RTP",
-                ["Источник", "Значение", "Доля от общего RTP"],
+                "RTP breakdown",
+                ["Source", "Value", "Share of total RTP"],
                 [
-                    ["Базовая игра", f"{base_rtp:.4f}", f"{base_rtp / rtp * 100:.1f}%" if rtp else "—"],
-                    ["Бонус (free spins)", f"{bonus_rtp:.4f}", f"{bonus_rtp / rtp * 100:.1f}%" if rtp else "—"],
+                    ["Base game", f"{base_rtp:.4f}", f"{base_rtp / rtp * 100:.1f}%" if rtp else "—"],
+                    ["Bonus (free spins)", f"{bonus_rtp:.4f}", f"{bonus_rtp / rtp * 100:.1f}%" if rtp else "—"],
                 ],
             )
             report.notes.append(
-                f"Триггер бонуса: P({trigger_n}+ скаттеров) = {p_trigger:.6f}; "
-                f"{spins} спинов × множитель {mult:g}."
+                f"Bonus trigger: P({trigger_n}+ scatters) = {p_trigger:.6f}; "
+                f"{spins} spins × multiplier {mult:g}."
             )
         vol = float(cfg.get("declared_volatility_index", 0.0))
         report.table(
-            "Символы",
-            ["ID", "Имя", "Вес", "Вероятность на ячейку"],
+            "Symbols",
+            ["ID", "Name", "Weight", "Probability per cell"],
             [
                 [
                     s["id"],
@@ -400,18 +400,18 @@ def model_m1(cfg: dict, args: argparse.Namespace, report: Report) -> None:
             "95.0–97.0%",
             band(rtp, (0.95, 0.97), (0.94, 0.98)),
             fmt="{:.2%}",
-            note=f"целевой по конфигу {target:.2%}",
+            note=f"config target {target:.2%}",
         )
     )
     report.add(Metric("Hit rate", hit, "20–35%", band(hit, (0.20, 0.35), (0.15, 0.45)), fmt="{:.2%}"))
     if vol:
-        report.add(Metric("Индекс волатильности", vol, "информативно", PASS, fmt="{:.3f}"))
+        report.add(Metric("Volatility index", vol, "informational", PASS, fmt="{:.3f}"))
 
     declared = cfg.get("simulation", {}).get("last_run_rtp")
     if declared is not None and abs(float(declared) - rtp) > 0.005:
         report.notes.append(
-            f"⚠️ `simulation.last_run_rtp` = {float(declared):.4f} расходится с пересчитанным "
-            f"{rtp:.4f} — обнови конфиг."
+            f"⚠️ `simulation.last_run_rtp` = {float(declared):.4f} disagrees with the recomputed "
+            f"{rtp:.4f} — update the config."
         )
 
 
@@ -428,7 +428,7 @@ def model_m2(cfg: dict, args: argparse.Namespace, report: Report) -> None:
     kind = _require(cfg, "type", "M2")
     edge = float(cfg.get("house_edge", 0.03))
     cap = float(cfg.get("max_multiplier", math.inf))
-    report.method = "точный расчёт"
+    report.method = "exact calculation"
 
     if kind == "step":
         # mines / tower: reveal cells one at a time, each survival multiplies the stake.
@@ -449,23 +449,23 @@ def model_m2(cfg: dict, args: argparse.Namespace, report: Report) -> None:
             rtp_k = p_survive * mult
             rtps.append(rtp_k)
             rows.append([k, f"{p_survive:.6f}", f"{mult:.4f}×", f"{rtp_k:.4%}"])
-        report.table("RTP по числу открытых ячеек", ["Открыто", "P(дожить)", "Множитель", "RTP"], rows)
+        report.table("RTP by number of revealed cells", ["Revealed", "P(survive)", "Multiplier", "RTP"], rows)
         rtp = statistics.fmean(rtps) if rtps else 0.0
         spread = (max(rtps) - min(rtps)) if rtps else 0.0
         report.add(
             Metric(
-                "Разброс RTP по глубинам",
+                "RTP spread across depths",
                 spread,
-                "≤ 0.001 (RTP не зависит от глубины)",
+                "≤ 0.001 (RTP does not depend on depth)",
                 PASS if spread <= 1e-3 else FAIL,
                 fmt="{:.6f}",
-                note="если RTP зависит от числа открытых ячеек — формула множителя или кап дают утечку",
+                note="if RTP depends on the number of revealed cells, the multiplier formula or the cap is leaking",
             )
         )
         if capped_at:
             report.notes.append(
-                f"Кап множителя ({cap:g}×) урезает выплату на глубинах {capped_at} — на них RTP ниже "
-                f"объявленного. Либо подними кап, либо ограничь `max_picks`."
+                f"The multiplier cap ({cap:g}×) trims the payout at depths {capped_at} — RTP there is below "
+                f"the declared value. Either raise the cap or restrict `max_picks`."
             )
 
     elif kind == "crash":
@@ -482,17 +482,17 @@ def model_m2(cfg: dict, args: argparse.Namespace, report: Report) -> None:
             rtp_t = p_win * t
             rtps.append(rtp_t)
             rows.append([f"{t:g}×", f"{p_win:.6f}", f"{rtp_t:.4%}"])
-        report.table("RTP по точке cash-out", ["Цель", "P(выигрыша)", "RTP"], rows)
+        report.table("RTP by cash-out point", ["Target", "P(win)", "RTP"], rows)
         rtp = statistics.fmean(rtps) if rtps else 0.0
         spread = (max(rtps) - min(rtps)) if rtps else 0.0
         report.add(
             Metric(
-                "Разброс RTP по стратегиям",
+                "RTP spread across strategies",
                 spread,
-                "≤ 0.001 (RTP не зависит от цели)",
+                "≤ 0.001 (RTP does not depend on the target)",
                 PASS if spread <= 1e-3 else FAIL,
                 fmt="{:.6f}",
-                note="если RTP зависит от точки cash-out — формула множителя неверна",
+                note="if RTP depends on the cash-out point, the multiplier formula is wrong",
             )
         )
 
@@ -510,7 +510,7 @@ def model_m2(cfg: dict, args: argparse.Namespace, report: Report) -> None:
             rtp_t = p_win * mult
             rtps.append(rtp_t)
             rows.append([thr, f"{p_win:.4f}", f"{mult:.4f}×", f"{rtp_t:.4%}"])
-        report.table("RTP по порогу", ["Порог", "P(выигрыша)", "Множитель", "RTP"], rows)
+        report.table("RTP by threshold", ["Threshold", "P(win)", "Multiplier", "RTP"], rows)
         rtp = statistics.fmean(rtps) if rtps else 0.0
 
     elif kind == "draw":
@@ -526,7 +526,7 @@ def model_m2(cfg: dict, args: argparse.Namespace, report: Report) -> None:
             pay = paytable.get(matches, 0.0)
             rtp += p * pay
             rows.append([matches, f"{p:.8f}", f"{pay:g}×", f"{p * pay:.6f}"])
-        report.table("Вклад совпадений", ["Совпало", "Вероятность", "Выплата", "Вклад в RTP"], rows)
+        report.table("Match contribution", ["Matches", "Probability", "Payout", "RTP contribution"], rows)
 
     elif kind == "table":
         outcomes = _require(cfg, "outcomes", "M2")
@@ -536,8 +536,8 @@ def model_m2(cfg: dict, args: argparse.Namespace, report: Report) -> None:
             for o in outcomes
         )
         report.table(
-            "Исходы",
-            ["Исход", "Вероятность", "Выплата"],
+            "Outcomes",
+            ["Outcome", "Probability", "Payout"],
             [
                 [
                     o.get("name", "?"),
@@ -548,29 +548,29 @@ def model_m2(cfg: dict, args: argparse.Namespace, report: Report) -> None:
             ],
         )
     else:
-        raise ConfigError(f"[M2] неизвестный type='{kind}' (ожидается step|crash|threshold|draw|table)")
+        raise ConfigError(f"[M2] unknown type='{kind}' (expected step|crash|threshold|draw|table)")
 
     report.add(
         Metric("RTP", rtp, "96.0–99.0%", band(rtp, (0.96, 0.99), (0.95, 0.995)), fmt="{:.2%}")
     )
     report.add(
         Metric(
-            "House edge объявлен",
+            "House edge declared",
             edge,
-            "должен быть в правилах игры",
+            "must appear in the game rules",
             PASS if "house_edge" in cfg else FAIL,
             fmt="{:.2%}",
-            note="добавь house_edge в конфиг и покажи его на экране правил",
+            note="add house_edge to the config and show it on the rules screen",
         )
     )
     report.add(
         Metric(
-            "Максимальный множитель",
+            "Maximum multiplier",
             cap if math.isfinite(cap) else 0.0,
-            "объявлен и капнут",
+            "declared and capped",
             PASS if math.isfinite(cap) else FAIL,
             fmt="{:.0f}×",
-            note="без max_multiplier один раунд может пробить любую экономику",
+            note="without max_multiplier a single round can break any economy",
         )
     )
 
@@ -593,7 +593,7 @@ def model_m3(cfg: dict, args: argparse.Namespace, report: Report) -> None:
     events = _require(cfg, "spin_events", "M3")
     total_w = sum(float(e["weight"]) for e in events)
     if total_w <= 0:
-        raise ConfigError("[M3] сумма весов событий спина равна нулю")
+        raise ConfigError("[M3] the sum of spin event weights is zero")
     cum = _cum_weights([float(e["weight"]) for e in events])
 
     unlocks = [float(u) for u in _require(cfg, "unlock_prices", "M3")]
@@ -655,20 +655,20 @@ def model_m3(cfg: dict, args: argparse.Namespace, report: Report) -> None:
     steps = [unlocks[i + 1] / unlocks[i] for i in range(len(unlocks) - 1) if unlocks[i] > 0]
     worst_step = max(steps) if steps else 1.0
 
-    report.method = f"Monte Carlo, {num(sessions)} сессий «среднего игрока»"
+    report.method = f"Monte Carlo, {num(sessions)} average-player sessions"
     report.trials = sessions
     report.add(Metric("Source/sink ratio", ratio, "0.90–1.15", band(ratio, (0.90, 1.15), (0.80, 1.30)), fmt="{:.3f}",
-                      note="приход валюты против стоимости анлоков"))
-    report.add(Metric("Пейс прогресса (сессий на анлок)", pace, "2–5", band(pace, (2, 5), (1.5, 8)), fmt="{:.2f}"))
-    report.add(Metric("Длина сессии, мин", avg_len, "3–7", band(avg_len, (3, 7), (2, 10)), fmt="{:.2f}"))
-    report.add(Metric("Сессий покрыто регеном в сутки", daily_regen, f"≥ {sessions_per_day:g}",
+                      note="currency income against the cost of unlocks"))
+    report.add(Metric("Progress pace (sessions per unlock)", pace, "2–5", band(pace, (2, 5), (1.5, 8)), fmt="{:.2f}"))
+    report.add(Metric("Session length, min", avg_len, "3–7", band(avg_len, (3, 7), (2, 10)), fmt="{:.2f}"))
+    report.add(Metric("Sessions covered by regen per day", daily_regen, f"≥ {sessions_per_day:g}",
                       PASS if daily_regen >= sessions_per_day else CONCERNS, fmt="{:.2f}"))
-    report.add(Metric("Худший шаг цены анлока", worst_step, "≤ 1.60", band(worst_step, (0, 1.6), (0, 2.0)), fmt="{:.2f}×"))
+    report.add(Metric("Worst unlock price step", worst_step, "≤ 1.60", band(worst_step, (0, 1.6), (0, 2.0)), fmt="{:.2f}×"))
     report.add(Metric("Dead-end rate", dead_rate, "< 10%", band(dead_rate, (0, 0.10), (0, 0.20)), fmt="{:.2%}"))
 
     report.table(
-        "Фактическое распределение событий спина",
-        ["Событие", "Вес", "Ожидаемая доля", "Фактическая доля"],
+        "Actual spin event distribution",
+        ["Event", "Weight", "Expected share", "Actual share"],
         [
             [
                 e.get("name", f"#{i}"),
@@ -679,10 +679,10 @@ def model_m3(cfg: dict, args: argparse.Namespace, report: Report) -> None:
             for i, e in enumerate(events)
         ],
     )
-    report.notes.append(f"Открыто анлоков за прогон: {unlock_index} из {len(unlocks)}.")
+    report.notes.append(f"Unlocks reached during the run: {unlock_index} of {len(unlocks)}.")
     if unlock_index < len(unlocks):
         report.notes.append(
-            "⚠️ Не весь контент достижим за смоделированное число сессий — проверь хвост кривой цен."
+            "⚠️ Not all content is reachable within the simulated number of sessions — check the tail of the price curve."
         )
 
 
@@ -737,38 +737,38 @@ def model_m4(cfg: dict, args: argparse.Namespace, report: Report) -> None:
     p90 = gaps_sorted[int(len(gaps_sorted) * 0.90)] if gaps_sorted else 0
     worst = gaps_sorted[-1] if gaps_sorted else 0
 
-    report.method = f"Monte Carlo, {num(pulls)} пуллов"
-    report.add(Metric("Base rate (редчайшая)", base_rate, "0.5–2.0%", band(base_rate, (0.005, 0.02)), fmt="{:.3%}"))
-    report.add(Metric("Сумма вероятностей редкостей", rate_sum, "= 1.000",
+    report.method = f"Monte Carlo, {num(pulls)} pulls"
+    report.add(Metric("Base rate (rarest)", base_rate, "0.5–2.0%", band(base_rate, (0.005, 0.02)), fmt="{:.3%}"))
+    report.add(Metric("Sum of rarity probabilities", rate_sum, "= 1.000",
                       PASS if abs(rate_sum - 1.0) < 1e-6 else FAIL, fmt="{:.6f}",
-                      note="редкости обязаны покрывать всё пространство исходов"))
-    report.add(Metric("Hard pity", float(hard_pity), "50–90 пуллов", band(hard_pity, (50, 90), (40, 100)), fmt="{:.0f}"))
-    report.add(Metric("Эффективный rate", effective, f"расчётный ±0.1 п.п.",
+                      note="the rarities must cover the entire outcome space"))
+    report.add(Metric("Hard pity", float(hard_pity), "50–90 pulls", band(hard_pity, (50, 90), (40, 100)), fmt="{:.0f}"))
+    report.add(Metric("Effective rate", effective, f"computed ±0.1 pp",
                       PASS if effective >= base_rate else FAIL, fmt="{:.3%}",
-                      note="pity обязан поднимать фактический шанс выше base rate"))
-    report.add(Metric("E[пуллов до редчайшей]", expected_pulls, f"≤ {hard_pity}",
+                      note="pity must raise the actual chance above the base rate"))
+    report.add(Metric("E[pulls to the rarest]", expected_pulls, f"≤ {hard_pity}",
                       PASS if expected_pulls <= hard_pity else FAIL, fmt="{:.1f}"))
-    report.add(Metric("90-й перцентиль пуллов", float(p90), f"≤ {hard_pity}",
+    report.add(Metric("90th percentile of pulls", float(p90), f"≤ {hard_pity}",
                       PASS if p90 <= hard_pity else FAIL, fmt="{:.0f}"))
-    report.add(Metric("Худшая серия без редкости", float(worst), f"≤ {hard_pity}",
+    report.add(Metric("Worst streak without the rarity", float(worst), f"≤ {hard_pity}",
                       PASS if worst <= hard_pity else FAIL, fmt="{:.0f}",
-                      note="превышение hard pity означает, что счётчик реализован неверно"))
-    report.add(Metric("Пропусков pity", float(pity_misses), "0",
+                      note="exceeding hard pity means the counter is implemented incorrectly"))
+    report.add(Metric("Pity misses", float(pity_misses), "0",
                       PASS if pity_misses == 0 else FAIL, fmt="{:.0f}"))
 
     report.table(
-        "Таблица редкостей",
-        ["Редкость", "Base rate", "Дубликат конвертируется"],
-        [[r.get("name", "?"), f"{float(r['base_rate']):.3%}", "да" if r.get("duplicate_value") else "❌ нет"]
+        "Rarity table",
+        ["Rarity", "Base rate", "Duplicate converts"],
+        [[r.get("name", "?"), f"{float(r['base_rate']):.3%}", "yes" if r.get("duplicate_value") else "❌ no"]
          for r in rarities],
     )
     if any(not r.get("duplicate_value") for r in rarities):
         report.notes.append(
-            "⚠️ Есть редкости без ценности дубликата — пулл, дающий «ничего», это провал дизайна."
+            "⚠️ Some rarities give a worthless duplicate — a pull that gives \"nothing\" is a design failure."
         )
     report.notes.append(
-        f"Раскрытие шансов игроку обязано показывать base rate ({base_rate:.2%}), hard pity "
-        f"({hard_pity}) и эффективный rate ({effective:.2%}) — см. responsible-gaming.md §2.4."
+        f"The odds disclosure shown to the player must include the base rate ({base_rate:.2%}), hard pity "
+        f"({hard_pity}) and the effective rate ({effective:.2%}) — see responsible-gaming.md §2.4."
     )
 
 
@@ -828,13 +828,13 @@ def model_m5(cfg: dict, args: argparse.Namespace, report: Report) -> None:
     _, _, b_log = play(4242, mod_gain, max_mods)
     deterministic = a_log == b_log
 
-    report.method = f"Monte Carlo, {num(runs)} забегов ботом-«средним игроком»"
+    report.method = f"Monte Carlo, {num(runs)} runs by an average-player bot"
     report.trials = runs
     report.add(Metric("Run win-rate", win_rate, "25–40%", band(win_rate, (0.25, 0.40), (0.15, 0.55)), fmt="{:.2%}"))
-    report.add(Metric("Худший шаг цели раунда", worst_step, "≤ 2.0×", band(worst_step, (0, 2.0), (0, 2.5)), fmt="{:.2f}×"))
-    report.add(Metric("Детерминизм по seed", 1.0 if deterministic else 0.0, "идентичный забег",
+    report.add(Metric("Worst round target step", worst_step, "≤ 2.0×", band(worst_step, (0, 2.0), (0, 2.5)), fmt="{:.2f}×"))
+    report.add(Metric("Determinism by seed", 1.0 if deterministic else 0.0, "an identical run",
                       PASS if deterministic else FAIL, fmt="{:.0f}",
-                      note="один seed обязан воспроизводить забег бит-в-бит"))
+                      note="one seed must reproduce the run bit for bit"))
 
     # Per-modifier balance. Absolute thresholds are meaningless here — any modifier stacked to
     # the budget cap eventually wins — so we rank each modifier against the MEDIAN of the set
@@ -851,36 +851,36 @@ def model_m5(cfg: dict, args: argparse.Namespace, report: Report) -> None:
         for m, r in results:
             delta = r - median
             if delta > spread_limit:
-                verdict, dominant = "доминирует", dominant + 1
+                verdict, dominant = "dominant", dominant + 1
             elif delta < -spread_limit:
-                verdict, dead = "мёртвый", dead + 1
+                verdict, dead = "dead", dead + 1
             else:
-                verdict = "ок"
+                verdict = "ok"
             rows.append([m.get("name", "?"), f"{float(m['multiplier']):.2f}×", f"{r:.2%}", f"{delta:+.1%}", verdict])
         report.table(
-            "Баланс модификаторов (равный бюджет, отклонение от медианы набора)",
-            ["Модификатор", "Множитель", "Win-rate", "Δ к медиане", "Вердикт"],
+            "Modifier balance (equal budget, deviation from the set median)",
+            ["Modifier", "Multiplier", "Win-rate", "Δ vs median", "Verdict"],
             rows,
         )
-        report.add(Metric("Доминирующих модификаторов", float(dominant), "0",
+        report.add(Metric("Dominant modifiers", float(dominant), "0",
                           PASS if dominant == 0 else FAIL, fmt="{:.0f}",
-                          note=f"модификатор сильнее медианы более чем на {spread_limit:.0%} — выбор перестаёт быть выбором"))
-        report.add(Metric("Мёртвых модификаторов", float(dead), "0",
+                          note=f"a modifier more than {spread_limit:.0%} above the median — the choice stops being a choice"))
+        report.add(Metric("Dead modifiers", float(dead), "0",
                           PASS if dead == 0 else CONCERNS, fmt="{:.0f}",
-                          note=f"модификатор слабее медианы более чем на {spread_limit:.0%} — его никогда не возьмут"))
-        report.notes.append(f"Медиана win-rate по набору модификаторов: {median:.2%}.")
+                          note=f"a modifier more than {spread_limit:.0%} below the median — nobody will ever take it"))
+        report.notes.append(f"Median win-rate across the modifier set: {median:.2%}.")
     else:
         report.notes.append(
-            "⚠️ В конфиге нет списка `modifiers` (нужно ≥3) — баланс выбора не верифицирован. "
-            "Добавь `modifiers: [{name, multiplier}, ...]`."
+            "⚠️ The config has no `modifiers` list (≥3 required) — the balance of choice is unverified. "
+            "Add `modifiers: [{name, multiplier}, ...]`."
         )
 
     hist: dict[int, int] = {}
     for d in depths:
         hist[d] = hist.get(d, 0) + 1
     report.table(
-        "Где обрываются забеги",
-        ["Раунд", "Цель", "Доля забегов, оборвавшихся здесь"],
+        "Where runs end",
+        ["Round", "Target", "Share of runs ending here"],
         [[i + 1, f"{targets[i]:g}", f"{hist.get(i, 0) / runs:.2%}"] for i in range(len(targets))],
     )
 
@@ -900,35 +900,35 @@ def model_m6(cfg: dict, args: argparse.Namespace, report: Report) -> None:
         bias = float(cfg.get("right_bias", 0.5))
         if len(multipliers) != rows + 1:
             raise ConfigError(
-                f"[M6] для {rows} рядов нужно {rows + 1} корзин, в конфиге {len(multipliers)}"
+                f"[M6] {rows} rows require {rows + 1} buckets, the config has {len(multipliers)}"
             )
         probs = [_comb(rows, k) * (bias ** k) * ((1 - bias) ** (rows - k)) for k in range(rows + 1)]
-        report.method = f"точное биномиальное распределение, {rows} рядов"
+        report.method = f"exact binomial distribution, {rows} rows"
     elif kind == "buckets":
         probs = [float(p) for p in _require(cfg, "bucket_probabilities", "M6")]
         total = sum(probs)
         probs = [p / total for p in probs]
-        report.method = "точный расчёт по заданному распределению корзин"
+        report.method = "exact calculation from the given bucket distribution"
     elif kind == "empirical":
         # Landing counts dumped by the game's own headless physics harness.
         src = Path(_require(cfg, "empirical_landings", "M6"))
         if not src.exists():
             raise ConfigError(
-                f"[M6] нет файла замеров {src}. Coin pusher/пачинко нельзя посчитать аналитически — "
-                f"выгрузи распределение попаданий из headless-прогона игры (fixed timestep, "
-                f"фиксированный seed, ≥10 000 прогревочных монет)."
+                f"[M6] measurement file {src} is missing. Coin pusher/pachinko cannot be solved analytically — "
+                f"export the hit distribution from a headless run of the game (fixed timestep, "
+                f"fixed seed, ≥10,000 warm-up coins)."
             )
         counts = json.loads(src.read_text())
         counts = [float(c) for c in (counts["landings"] if isinstance(counts, dict) else counts)]
         total = sum(counts)
         probs = [c / total for c in counts]
-        report.method = f"эмпирические замеры из {src} ({num(int(total))} запусков)"
+        report.method = f"empirical measurements from {src} ({num(int(total))} launches)"
         report.trials = int(total)
     else:
-        raise ConfigError(f"[M6] неизвестный type='{kind}' (ожидается plinko|buckets|empirical)")
+        raise ConfigError(f"[M6] unknown type='{kind}' (expected plinko|buckets|empirical)")
 
     if len(probs) != len(multipliers):
-        raise ConfigError(f"[M6] корзин {len(multipliers)}, а вероятностей {len(probs)}")
+        raise ConfigError(f"[M6] {len(multipliers)} buckets but {len(probs)} probabilities")
 
     rtp = sum(p * m for p, m in zip(probs, multipliers))
     # A rare jackpot bucket is the point of the game; a bucket the player literally never
@@ -938,25 +938,25 @@ def model_m6(cfg: dict, args: argparse.Namespace, report: Report) -> None:
     seeded = bool(cfg.get("deterministic_seed", False))
 
     report.table(
-        "Распределение по корзинам",
-        ["Корзина", "Множитель", "Вероятность", "Вклад в RTP"],
+        "Bucket distribution",
+        ["Bucket", "Multiplier", "Probability", "RTP contribution"],
         [[i, f"{m:g}×", f"{p:.6f}", f"{p * m:.6f}"] for i, (p, m) in enumerate(zip(probs, multipliers))],
     )
     report.add(Metric("RTP", rtp, "95.0–97.0%", band(rtp, (0.95, 0.97), (0.94, 0.98)), fmt="{:.2%}"))
-    report.add(Metric("«Мёртвых» корзин (<0.1%)", float(len(dead)), "0",
+    report.add(Metric("Dead buckets (<0.1%)", float(len(dead)), "0",
                       PASS if not dead else CONCERNS, fmt="{:.0f}",
-                      note=f"корзины {dead} практически недостижимы — игрок это заметит" if dead else ""))
-    report.add(Metric("Фиксированный timestep", 1.0 if fixed_step else 0.0, "обязателен",
+                      note=f"buckets {dead} are practically unreachable — the player will notice" if dead else ""))
+    report.add(Metric("Fixed timestep", 1.0 if fixed_step else 0.0, "mandatory",
                       PASS if fixed_step else FAIL, fmt="{:.0f}",
-                      note="без fixed timestep RTP плывёт при просадке fps"))
-    report.add(Metric("Детерминированный seed", 1.0 if seeded else 0.0, "обязателен",
+                      note="without a fixed timestep the RTP drifts when the fps drops"))
+    report.add(Metric("Deterministic seed", 1.0 if seeded else 0.0, "mandatory",
                       PASS if seeded else FAIL, fmt="{:.0f}",
-                      note="без воспроизводимости RTP невозможно верифицировать"))
+                      note="without reproducibility the RTP cannot be verified"))
 
     if kind == "empirical":
         report.notes.append(
-            "Для coin pusher RTP нестационарен: замер обязан быть сделан в установившемся режиме "
-            "(после ≥10 000 прогревочных монет), а не с пустого поля."
+            "For a coin pusher the RTP is non-stationary: the measurement must be taken in the steady "
+            "state (after ≥10,000 warm-up coins), not from an empty field."
         )
 
 
@@ -998,7 +998,7 @@ def run(args: argparse.Namespace) -> int:
     out.write_text(md, encoding="utf-8")
 
     print(md)
-    print(f"\nОтчёт сохранён: {out}")
+    print(f"\nReport saved: {out}")
     return _VERDICT_EXIT[report.verdict]
 
 
@@ -1068,10 +1068,10 @@ SELFTEST_CONFIGS: dict[str, dict] = {
         "modifier_multiplier_sigma": 0.30,
         "max_modifiers": 20,
         "modifiers": [
-            {"name": "Пара+", "multiplier": 1.45},
-            {"name": "Флеш+", "multiplier": 1.55},
-            {"name": "Стрит+", "multiplier": 1.50},
-            {"name": "Каре+", "multiplier": 1.60},
+            {"name": "Pair+", "multiplier": 1.45},
+            {"name": "Flush+", "multiplier": 1.55},
+            {"name": "Straight+", "multiplier": 1.50},
+            {"name": "Four of a Kind+", "multiplier": 1.60},
         ],
     },
     "m6": {
@@ -1107,36 +1107,36 @@ def selftest() -> int:
             try:
                 code = run(args)
                 label = MODELS[model][0]
-                print(f"\n>>> {label}: завершено с кодом {code}\n{'=' * 78}")
+                print(f"\n>>> {label}: finished with code {code}\n{'=' * 78}")
             except Exception as exc:  # noqa: BLE001 — self-test reports, does not crash
                 failures += 1
-                print(f"\n!!! {model} упал: {type(exc).__name__}: {exc}\n{'=' * 78}")
-    print(f"\nSelf-test: моделей {len(MODELS)}, падений {failures}")
+                print(f"\n!!! {model} crashed: {type(exc).__name__}: {exc}\n{'=' * 78}")
+    print(f"\nSelf-test: {len(MODELS)} models, {failures} failures")
     return 1 if failures else 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     p = argparse.ArgumentParser(
-        description="Верификатор математических моделей гемблинг-студии",
+        description="Mathematical model verifier for the gambling studio",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Модели: " + "; ".join(f"{k} = {v[0]}" for k, v in MODELS.items()),
+        epilog="Models: " + "; ".join(f"{k} = {v[0]}" for k, v in MODELS.items()),
     )
-    p.add_argument("--model", choices=sorted(MODELS), help="какую модель проверять")
-    p.add_argument("--config", help="путь к JSON-конфигу модели")
-    p.add_argument("--trials", type=int, default=None, help="число испытаний (по умолчанию — из модели)")
-    p.add_argument("--seed", type=int, default=None, help="seed для Monte Carlo моделей")
+    p.add_argument("--model", choices=sorted(MODELS), help="which model to verify")
+    p.add_argument("--config", help="path to the model's JSON config")
+    p.add_argument("--trials", type=int, default=None, help="number of trials (defaults to the model's own)")
+    p.add_argument("--seed", type=int, default=None, help="seed for the Monte Carlo models")
     p.add_argument(
         "--report",
         default="design/balance/simulation-report.md",
-        help="куда записать отчёт",
+        help="where to write the report",
     )
-    p.add_argument("--selftest", action="store_true", help="прогнать все модели на встроенных конфигах")
+    p.add_argument("--selftest", action="store_true", help="run every model against the built-in configs")
     args = p.parse_args(argv)
 
     if args.selftest:
         return selftest()
     if not args.model or not args.config:
-        p.error("нужны --model и --config (или --selftest)")
+        p.error("--model and --config are required (or --selftest)")
 
     try:
         return run(args)
@@ -1144,7 +1144,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"❌ {exc}", file=sys.stderr)
         return 2
     except FileNotFoundError as exc:
-        print(f"❌ файл не найден: {exc}", file=sys.stderr)
+        print(f"❌ file not found: {exc}", file=sys.stderr)
         return 2
 
 

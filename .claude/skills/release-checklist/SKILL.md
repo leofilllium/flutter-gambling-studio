@@ -1,20 +1,21 @@
 ---
 name: release-checklist
-description: "Вызывает агента release-manager для проведения контроля качества перед релизом игры. Полностью проверяет архитектуру RNG и отсутствие State Leakage."
+description: "Calls the release-manager agent to run quality control before the game is released. Fully verifies the RNG architecture and the absence of state leakage."
 user-invocable: true
 allowed-tools: Bash, Read, Agent
 argument-hint: ""
 ---
 
-# `release-checklist` — Проверка готовности
+# `release-checklist` — readiness check
 
-Запускает процесс релиза. Самостоятельно не работает, делегирует задачу менеджеру релизов.
+Starts the release process. It does no work itself; it delegates to the release manager.
 
-## Инструкция 
+## Instructions
 
-1. Вызовите `release-manager` (в среде без Agent tool — примите persona из
+1. Call `release-manager` (in an environment without the Agent tool, adopt the persona from
    `.claude/agents/release-manager.md`).
-2. Передайте ему команду: `Пожалуйста, проверь этот проект по твоему Gambling Release Checklist И по несгораемым инвариантам из .claude/docs/quality-bar.md (§9 + выборочно §1–§8), и составь отчёт в production/session-logs/release-[date].md`
-3. Если существуют `production/playtest/*/PLAYTEST-REPORT.md` и `design/asset-review.md` —
-   release-manager обязан учесть их вердикты (NOT-PLAYABLE или непройденный asset-review = NO-GO).
-4. Выведите результат (GO / NO-GO) пользователю.
+2. Give it this instruction: `Please check this project against your Gambling Release Checklist AND against the non-negotiable invariants in .claude/docs/quality-bar.md (§9 plus a sample of §1–§8), and write the report to production/session-logs/release-[date].md`
+3. If `production/playtest/*/PLAYTEST-REPORT.md` and `design/asset-review.md` exist, the
+   release-manager must take their verdicts into account (NOT-PLAYABLE, or a failed
+   asset-review, means NO-GO).
+4. Report the result (GO / NO-GO) to the user.

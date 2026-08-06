@@ -1,90 +1,92 @@
 ---
 name: svg-to-png
-description: "Конвертация SVG-ассетов в PNG. Простая пиксельная конвертация выполняется локально; если нужен новый материальный PNG-ассет, в Codex основной путь — GPT Images 2.0, fallback — GPT Images/default Codex image generation только при техническом сбое."
+description: "Converts SVG assets to PNG. A straightforward pixel conversion runs locally; if a genuinely new raster asset is needed, the primary path under Codex is GPT Images 2.0, with GPT Images / the default Codex image generation as a fallback only on a technical failure."
 allowed-tools: Write, Read, Bash, AskUserQuestion, Glob
-argument-hint: "[путь_к_svg] [--bulk папка] [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
+argument-hint: "[path_to_svg] [--bulk folder] [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
 user-invocable: true
 ---
 
-# `svg-to-png` — Конвертер SVG → PNG
+# `svg-to-png` — the SVG → PNG converter
 
-Агент анализирует SVG, формирует промпт из его содержимого и генерирует качественный PNG.
+The agent analyses the SVG, builds a prompt from its content and generates a high-quality PNG.
 
 ---
 
-## Выбор режима
+## Choosing the mode
 
-### Codex default
+### The Codex default
 
-Сначала определить цель. Если нужен только PNG того же SVG без нового материала, света или
-детализации, это локальная конвертация и не требует image generation. Если нужен новый
-материальный игровой ассет, в Codex использовать **GPT Image 2** через встроенную image
-generation возможность, а при отсутствии этого tool в headless Codex CLI — через
-`python3 tools/gpt_image.py generate ...`. Отсутствие built-in tool не считается провалом
-модели. Если оба транспорта GPT Image 2 технически не сработали или не дали валидный PNG,
-повторить тот же prompt через **GPT Images / default Codex image generation**.
+Determine the goal first. If you only need a PNG of the same SVG with no new material, lighting
+or detail, that is a local conversion and needs no image generation. If you need a genuinely new
+material game asset, use **GPT Image 2** under Codex through the built-in image generation
+capability, or — when that tool is absent in the headless Codex CLI — through
+`python3 tools/gpt_image.py generate ...`. The absence of the built-in tool does not count as a
+model failure. If both GPT Image 2 transports technically failed or did not produce a valid PNG,
+retry the same prompt through **GPT Images / the default Codex image generation**.
 
-- Не спрашивать ключи Google/Pollinations/remove.bg.
-- Перед semantic-апгрейдом прочитать `design/asset-manifest.md`: валидное совпадение SHA-256
-  prompt переиспользовать, а вызов разрешён только классу `generate` в его общем бюджете.
-- Один SVG → один вызов image generation → один PNG только для semantic-апгрейда; не
-  применять GPT Images 2.0 как дорогостоящий растровый конвертер UI и уже готовых иконок.
-- Для `sprite`, `symbol`, `icon`, `wild`, `scatter`, `tile`, `item` просить плоский ключевой фон (`flat solid pure magenta #FF00FF background`, либо `pure green #00FF00`, если в палитре есть пурпур) без теней, градиентов и сцены.
-- Для `background`, `ui_panel`, полноэкранной сцены фон не вырезать.
-- Если у простого ассета фон всё же появился, вырезать его через `python3 tools/cutout.py <файл> --type sprite`.
+- Do not ask for Google/Pollinations/remove.bg keys.
+- Before a semantic upgrade, read `design/asset-manifest.md`: reuse a valid SHA-256 prompt
+  match, and only allow a call for the `generate` class within its overall budget.
+- One SVG → one image generation call → one PNG, and only for a semantic upgrade; do not use
+  GPT Images 2.0 as an expensive raster converter for UI and already-finished icons.
+- For `sprite`, `symbol`, `icon`, `wild`, `scatter`, `tile`, `item`, ask for a flat key
+  background (`flat solid pure magenta #FF00FF background`, or `pure green #00FF00` if the
+  palette contains magenta) with no shadows, gradients or scene.
+- For `background`, `ui_panel` and full-screen scenes, do not cut the background out.
+- If a simple asset ends up with a background anyway, cut it out with
+  `python3 tools/cutout.py <file> --type sprite`.
 
-#### Пиксельная конвертация без image generation
+#### Pixel conversion without image generation
 
-Если форма SVG не меняется, использовать уже доступный локальный SVG-рендерер. Например,
-при наличии `rsvg-convert`:
+If the SVG's shape does not change, use whatever local SVG renderer is available. For example,
+with `rsvg-convert`:
 
 ```bash
 rsvg-convert assets/images/sprites/sprite_cherry.svg -o assets/images/sprites/sprite_cherry.png
 ```
 
-Если локального рендерера нет, остановиться и сообщить об этом; не заменять техническую
-конвертацию дополнительным вызовом GPT Images 2.0. Семантический апгрейд остаётся отдельным
-режимом `generate` и работает по манифесту/бюджету выше.
+If there is no local renderer, stop and say so; do not substitute an extra GPT Images 2.0 call
+for a technical conversion. The semantic upgrade remains a separate `generate` mode and works
+through the manifest/budget above.
 
 ### Legacy flags:
-- `--cheap POLL_API_TOKEN` → Pollinations.ai (только если пользователь явно просит legacy fallback)
-- `--free REMOVE_BG_TOKEN` → remove.bg только если пользователь явно передал ключ и попросил этот сервис
-- Без флагов в Codex → не спрашивать: для пиксельной конвертации использовать локальный
-  рендерер, для semantic-апгрейда — GPT Images 2.0; GPT Images/default только после
-  технического сбоя.
+- `--cheap POLL_API_TOKEN` → Pollinations.ai (only if the user explicitly asks for the legacy fallback)
+- `--free REMOVE_BG_TOKEN` → remove.bg, only if the user explicitly passed a key and asked for that service
+- With no flags under Codex → do not ask: use the local renderer for a pixel conversion and GPT
+  Images 2.0 for a semantic upgrade; GPT Images/default only after a technical failure.
 
-### Если флагов нет и агент НЕ работает в Codex — спросить:
+### If there are no flags and the agent is NOT running under Codex — ask:
 
-> "Как конвертировать SVG → PNG?
+> "How should the SVG → PNG conversion run?
 >
-> **1. Codex GPT Images 2.0 → GPT Images fallback** — если доступен в текущем агенте
-> **2. Legacy external provider** — Pollinations.ai или Google, нужен API ключ / billing
-> **3. Ручной режим** — сгенерирую промпт, вы генерируете PNG сами
+> **1. Codex GPT Images 2.0 → GPT Images fallback** — if it is available in the current agent
+> **2. A legacy external provider** — Pollinations.ai or Google; needs an API key / billing
+> **3. Manual mode** — I will produce the prompt and you generate the PNG yourself
 >
-> Введите 1, 2 или 3:"
+> Enter 1, 2 or 3:"
 
 ---
 
-## Вариант А: Одиночный файл
+## Option A: a single file
 
 ```
 /svg-to-png assets/images/sprites/sprite_cherry.svg --cheap pk_xxx --free xxx
 ```
 
-### Алгоритм (агент выполняет сам):
+### The procedure (the agent runs it itself):
 
-**1. Прочитать SVG + концепт** для контекста:
-- Название ассета из имени файла (например `sprite_cherry` → `cherry`)
-- Цвета, форму, назначение из содержимого SVG
-- Если есть `design/gdd/game-concept.md` — прочитать **Design DNA** (мир, материалы,
-  палитра, render style). Конвертация — не просто «обводка картинки», а **апгрейд** плоского
-  SVG до мультяшного объёмного 2.5D ассета того же объекта, достоверного концепту.
+**1. Read the SVG + the concept** for context:
+- The asset's name from the file name (for example `sprite_cherry` → `cherry`)
+- The colours, shape and purpose from the SVG's content
+- If `design/gdd/game-concept.md` exists, read the **Design DNA** (world, materials, palette,
+  render style). A conversion is not "tracing the picture" — it is an **upgrade** of a flat SVG
+  into a cartoon volumetric 2.5D asset of the same object, faithful to the concept.
 
-**2. Сформировать промпт** на английском (concept-grounded cartoon 2.5D — НЕ дешёвый значок):
+**2. Build the prompt** in English (concept-grounded cartoon 2.5D — NOT a cheap icon):
 
-Сначала из SVG+концепта выведи: **Subject** (что это за объект в мире игры),
-**Material/texture** (металл/стекло/камень/дерево/неон/ткань), **Lighting** (единый для набора,
-напр. key верх-слева + rim), **Render style** из DNA.
+First derive from the SVG + concept: the **subject** (what this object is in the game's world),
+the **material/texture** (metal/glass/stone/wood/neon/fabric), the **lighting** (consistent for
+the set, e.g. a key light from the upper left + a rim), and the **render style** from the DNA.
 
 ```
 Polished cartoon 2.5D game asset of [SUBJECT identity], single hero object centered,
@@ -96,18 +98,18 @@ isolated on flat solid single-colour [KEY COLOUR] background, no gradient, no sc
 no photorealism, no product photography, no flat vector clipart, transparent-ready, 1024x1024.
 ```
 
-> Объект на PNG должен совпадать по форме/композиции с исходным SVG (это конвертация, не
-> новая идея), но быть объёмным и материальным, а не плоской заливкой.
+> The object in the PNG must match the source SVG in shape and composition (this is a
+> conversion, not a new idea), but it must have volume and material rather than a flat fill.
 
-**3. Генерация PNG:**
+**3. Generating the PNG:**
 
-### Режим 1: Codex GPT Images 2.0 → GPT Images fallback
+### Mode 1: Codex GPT Images 2.0 → GPT Images fallback
 
-В Codex использовать GPT Images 2.0 первым. При техническом сбое (ошибка, нет файла или
-невалидный PNG) повторить тот же prompt через GPT Images / default Codex image generation.
+Under Codex, use GPT Images 2.0 first. On a technical failure (an error, no file, or an invalid
+PNG), retry the same prompt through GPT Images / the default Codex image generation.
 
-1. Передать prompt из шага 2 во встроенную image generation возможность Codex. Если её нет
-   в tool list, сохранить prompt в UTF-8 файл и выполнить:
+1. Pass the prompt from step 2 into Codex's built-in image generation capability. If it is not
+   in the tool list, save the prompt to a UTF-8 file and run:
 
 ```bash
 python3 tools/gpt_image.py generate \
@@ -116,55 +118,55 @@ python3 tools/gpt_image.py generate \
   --size 1024x1024 \
   --quality high
 ```
-2. Сохранить результат рядом с исходником или в `assets/images/pngs/`.
-3. Если тип ассета простой и PNG содержит фон — вырезать его через `tools/cutout.py`
-   (ручной `magick -fuzz` и голый `rembg i` запрещены: см. `generate-png-asset/SKILL.md`):
+2. Save the result next to the source, or in `assets/images/pngs/`.
+3. If the asset type is simple and the PNG has a background, cut it out with `tools/cutout.py`
+   (a manual `magick -fuzz` and a bare `rembg i` are forbidden: see `generate-png-asset/SKILL.md`):
 
 ```bash
 python3 tools/cutout.py assets/images/sprites/cherry.png --type sprite
 ```
 
-Ненулевой код возврата = сначала проверить исходник и ключевой цвет, затем применить один
-разрешённый recovery-вызов через GPT Images 2.0. GPT Images/default использовать только при
-технической ошибке GPT Images 2.0, а не из-за визуального брака или ошибки cutout.
+A non-zero exit code = check the source and the key colour first, then apply the one permitted
+recovery call through GPT Images 2.0. Use GPT Images/default only on a technical error of GPT
+Images 2.0, never because of a visual defect or a cutout error.
 
-### Режим 2: Legacy fallback Pollinations.ai (--cheap)
+### Mode 2: legacy fallback Pollinations.ai (--cheap)
 
 ```bash
-POLL_API_KEY="[ключ от --cheap]"
+POLL_API_KEY="[the key from --cheap]"
 ASSET_NAME="cherry"
 PROMPT="Professional game asset: cherry. Red glossy cherries, single isolated object, clean edges, vibrant cartoon style, 2D game sprite, pure white background, 1024x1024"
 OUTPUT_DIR="assets/images/sprites"
-REMBG_KEY=""  # только если пользователь явно передал --free
+REMBG_KEY=""  # only if the user explicitly passed --free
 MODEL="flux"  # flux | zimage | gptimage
 
 echo "━━━ SVG→PNG: ${ASSET_NAME} (Pollinations, ${MODEL}) ━━━"
 
-# Генерация через Pollinations.ai
+# Generate through Pollinations.ai
 ENCODED=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${PROMPT}'))")
 curl -s -L "https://gen.pollinations.ai/image/${ENCODED}?width=1024&height=1024&nologo=true&model=${MODEL}&seed=-1" \
   -H "Authorization: Bearer ${POLL_API_KEY}" \
   -o "${OUTPUT_DIR}/${ASSET_NAME}.png"
 
 if [ ! -s "${OUTPUT_DIR}/${ASSET_NAME}.png" ]; then
-  echo "✗ Pollinations не вернул изображение"
+  echo "✗ Pollinations returned no image"
   exit 1
 fi
 
 SIZE=$(ls -lh "${OUTPUT_DIR}/${ASSET_NAME}.png" | awk '{print $5}')
-echo "✓ Сгенерирован: ${SIZE}"
+echo "✓ Generated: ${SIZE}"
 
-# Удаление фона для простого ассета
+# Remove the background for a simple asset
 python3 tools/cutout.py "${OUTPUT_DIR}/${ASSET_NAME}.png" --type sprite
 
 FINAL_SIZE=$(ls -lh "${OUTPUT_DIR}/${ASSET_NAME}.png" | awk '{print $5}')
-echo "✓ Готово: ${OUTPUT_DIR}/${ASSET_NAME}.png (${FINAL_SIZE})"
+echo "✓ Done: ${OUTPUT_DIR}/${ASSET_NAME}.png (${FINAL_SIZE})"
 ```
 
-### Режим 3: Legacy fallback Google Imagen API
+### Mode 3: legacy fallback Google Imagen API
 
 ```bash
-API_KEY="[ключ от пользователя]"
+API_KEY="[the user's key]"
 ASSET_NAME="cherry"
 PROMPT="Professional game asset: cherry. Single isolated object on flat solid pure magenta #FF00FF background, no gradient, 2D game sprite, vibrant style, no scene, no ground shadow, 512x512."
 OUTPUT_DIR="assets/images/sprites"
@@ -176,7 +178,7 @@ curl -s -X POST \
   -d "{\"instances\": [{\"prompt\": \"${PROMPT}\"}], \"parameters\": {\"sampleCount\": 1, \"aspectRatio\": \"1:1\"}}" \
   -o /tmp/imagen_response.json
 
-# Декодировать base64 → PNG
+# Decode base64 → PNG
 python3 -c "
 import json, base64, sys
 with open('/tmp/imagen_response.json') as f:
@@ -190,88 +192,88 @@ print(f'✓ {path}')
 "
 ```
 
-**4. Проверить результат:**
+**4. Check the result:**
 ```bash
 ls -lh ${OUTPUT_DIR}/${ASSET_NAME}.png
 file ${OUTPUT_DIR}/${ASSET_NAME}.png
 ```
 
-**5. Сообщить пользователю** путь к готовому файлу.
+**5. Tell the user** where the finished file is.
 
 ---
 
-## Вариант Б: Bulk-режим (вся папка)
+## Option B: bulk mode (a whole folder)
 
 ```
 /svg-to-png --bulk assets/images/svgs --cheap pk_xxx --free xxx
 ```
 
-Агент:
-1. Находит все `.svg` файлы в папке через Glob
-2. Определяет API ключи из флагов или запрашивает **один раз**
-3. Для каждого файла сначала выбирает локальную конвертацию или semantic-апгрейд и проверяет
-   `design/asset-manifest.md`; совпадающий валидный SHA-256 переиспользует.
-4. В Codex использовать GPT Images 2.0 только для уникального semantic-апгрейда класса
-   `generate`; GPT Images/default разрешён лишь после технического сбоя.
-5. Для legacy Pollinations: пауза 3 сек между запросами.
-6. Для legacy Google Imagen: пауза 4 сек (лимит Free tier: 15 RPM).
-7. Сохраняет PNG в `assets/images/pngs/` или рядом с исходниками
+The agent:
+1. Finds every `.svg` file in the folder through Glob
+2. Determines the API keys from the flags, or asks **once**
+3. For each file, first chooses between a local conversion and a semantic upgrade, and checks
+   `design/asset-manifest.md`; a matching valid SHA-256 is reused.
+4. Under Codex, uses GPT Images 2.0 only for a unique semantic upgrade of the `generate` class;
+   GPT Images/default is permitted only after a technical failure.
+5. For legacy Pollinations: a 3-second pause between requests.
+6. For legacy Google Imagen: a 4-second pause (the free tier limit is 15 RPM).
+7. Saves the PNGs to `assets/images/pngs/` or next to the sources
 
-### Bulk через Codex GPT Images 2.0 → GPT Images fallback:
+### Bulk through Codex GPT Images 2.0 → GPT Images fallback:
 
-Агент делает отдельный image-generation call только для каждого уникального semantic-апгрейда,
-используя шаблон из Режима 1. Простые копии формы рендерит локально, а `reuse` не вызывает
-модель. Не объединять разные игровые предметы в один запрос.
+The agent makes a separate image-generation call only for each unique semantic upgrade, using
+the template from mode 1. Straight shape copies are rendered locally, and `reuse` never calls
+the model. Do not combine different game items into one request.
 
 ---
 
-## Вариант В: Ручной режим (без API)
+## Option C: manual mode (no API)
 
-Если пользователь не хочет использовать API:
+If the user does not want to use an API:
 
-### Шаг 1: Анализ SVG
-Агент читает SVG и составляет детализированный промпт на английском.
+### Step 1: analyse the SVG
+The agent reads the SVG and composes a detailed prompt in English.
 
-### Шаг 2: Промпт для внешнего генератора
+### Step 2: the prompt for an external generator
 ```
-Professional game asset: [название].
+Professional game asset: [name].
 Single isolated object, clean edges, vibrant colors.
 2D game sprite style, flat solid pure magenta #FF00FF background, no gradient, no scene, no ground shadow, 1024x1024 pixels.
-[описание цветов и формы из SVG]
+[the colour and shape description from the SVG]
 ```
 
-### Шаг 3: Пользователь генерирует PNG вручную и сохраняет в проект.
+### Step 3: the user generates the PNG by hand and saves it into the project.
 
 ---
 
-## Legacy-модели Pollinations для конвертации
+## Legacy Pollinations models for conversion
 
-| Модель | Рекомендация | Почему |
-|--------|-------------|--------|
-| `flux` | Legacy fallback | Хорошее качество, быстро, дёшево |
-| `zimage` | Для крупных спрайтов | Встроенный 2x upscale |
-| `gptimage` | Для сложных ассетов | Лучшее качество, поддержка прозрачности (`transparent: true`) |
+| Model | Recommendation | Why |
+|-------|----------------|-----|
+| `flux` | Legacy fallback | Good quality, fast, cheap |
+| `zimage` | For large sprites | Built-in 2x upscale |
+| `gptimage` | For complex assets | The best quality, transparency support (`transparent: true`) |
 
 ---
 
-## Важные правила
+## Important rules
 
-1. В Codex использовать GPT Images 2.0 первым только для semantic-апгрейда; GPT Images/default
-   доступен исключительно после технического сбоя GPT Images 2.0.
-2. **Один image-generation call = один уникальный source asset** — не объединять разные
-   игровые объекты в один запрос.
-3. API ключ legacy-provider никогда не записывается в файлы.
-4. Если legacy API вернул ошибку — показать пользователю полный ответ.
-5. Готовые PNG сохранять в `assets/images/sprites/` (одиночный) или `assets/images/pngs/` (bulk).
-6. После завершения — показать `ls -lh` с результатами.
+1. Under Codex, use GPT Images 2.0 first and only for a semantic upgrade; GPT Images/default is
+   available exclusively after a technical failure of GPT Images 2.0.
+2. **One image-generation call = one unique source asset** — do not combine different game
+   objects into one request.
+3. A legacy provider's API key is never written into a file.
+4. If a legacy API returns an error, show the user the full response.
+5. Save finished PNGs to `assets/images/sprites/` (single) or `assets/images/pngs/` (bulk).
+6. When finished, show `ls -lh` with the results.
 
-## Диагностика
+## Diagnostics
 
-| Симптом | Причина | Решение |
-|---------|---------|---------|
-| HTTP 401 (Pollinations) | Неверный API ключ | Проверить ключ на https://enter.pollinations.ai |
-| HTTP 402 (Pollinations) | Недостаточно pollen | Пополнить или использовать бесплатную модель (flux) |
-| Пустой PNG | Сервер не вернул данные | Попробовать другую модель или промпт |
-| Плохое качество | Промпт слишком простой | Добавить детали из SVG (цвета, форма, стиль) |
-| `cutout.py` вернул FAIL | Фон не плоский, или ключ совпал с палитрой объекта | Проверить исходник/ключ и перевырезать; при непригодном источнике использовать один GPT Images 2.0 recovery, не fallback по качеству |
-| `cutout.py: requires numpy + Pillow` | Нет зависимостей | `apt-get install -y python3-numpy python3-pil` (или `pip install numpy pillow`) |
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| HTTP 401 (Pollinations) | An invalid API key | Check the key at https://enter.pollinations.ai |
+| HTTP 402 (Pollinations) | Not enough pollen | Top up, or use the free model (flux) |
+| An empty PNG | The server returned no data | Try a different model or prompt |
+| Poor quality | The prompt is too simple | Add detail from the SVG (colours, shape, style) |
+| `cutout.py` returned FAIL | The background is not flat, or the key matched the object's palette | Check the source/key and re-cut; if the source is unusable, use one GPT Images 2.0 recovery, not a quality-driven fallback |
+| `cutout.py: requires numpy + Pillow` | Missing dependencies | `apt-get install -y python3-numpy python3-pil` (or `pip install numpy pillow`) |

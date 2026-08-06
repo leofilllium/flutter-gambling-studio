@@ -68,13 +68,13 @@ install_prompts() {
   while IFS= read -r -d '' skill_dir; do
     name="$(basename "$skill_dir")"
     cat > "$PROMPTS_DST/$name.md" <<EOF
-Выполни runbook навыка "/$name" студии Flutter Game Studio.
+Run the "/$name" skill runbook of Flutter Game Studio.
 
-1. Если ещё не прочитан — прочитай $REPO_ROOT/AGENTS.md (раздел «Execution Model»:
-   как адаптировать Claude-механики — Agent tool, Skill tool, hooks — к Codex).
-2. Открой $REPO_ROOT/.claude/skills/$name/SKILL.md и выполни его фазы по порядку,
-   соблюдая критерии выхода каждой фазы. Общение — на русском языке.
-3. Аргументы пользователя (если есть): \$ARGUMENTS
+1. If you have not read it yet, read $REPO_ROOT/AGENTS.md (the "Execution Model"
+   section: how to adapt the Claude mechanics — Agent tool, Skill tool, hooks — to Codex).
+2. Open $REPO_ROOT/.claude/skills/$name/SKILL.md and run its phases in order,
+   respecting each phase's exit criteria. Work in English.
+3. The user's arguments (if any): \$ARGUMENTS
 EOF
     installed=$((installed + 1))
   done < <(find "$SKILLS_SRC" -mindepth 1 -maxdepth 1 -type d -print0)

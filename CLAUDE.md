@@ -1,272 +1,287 @@
-# Flutter Gambling Studio — Студия гемблинг-игр
+# Flutter Gambling Studio
 
-> Специализированная студия для создания **гемблинг-мини-игр** на Flutter + Flame
-> через координированных агентов Claude Code.
+> A specialised studio for building **gambling mini-games** on Flutter + Flame
+> through coordinated Claude Code agents.
 >
-> Для OpenAI Codex используйте `AGENTS.md` и `.codex/` как слой совместимости поверх этих же правил.
+> For OpenAI Codex, use `AGENTS.md` and `.codex/` as a compatibility layer over these same rules.
 
-## Специализация студии
+## What the studio specialises in
 
-**Студия делает только гемблинг-игры.** Это не универсальная студия мини-игр: пазлы,
-раннеры, шутеры, тетрисы и кликеры — вне области. Любой концепт обязан попадать в одну из
-шести категорий гемблинга (см. ниже) и иметь **объявленную математическую модель**,
-которую можно верифицировать прогоном.
+**The studio builds gambling games only.** This is not a general-purpose mini-game studio:
+puzzles, runners, shooters, tetris clones and clickers are out of scope. Every concept must
+fall into one of the six gambling categories below and must have a **declared mathematical
+model** that can be verified by a simulation run.
 
-**Всегда виртуально.** Ни одна игра не принимает и не выплачивает реальные деньги.
-Виртуальная валюта не конвертируется обратно. Это не «фича безопасности», а рамка,
-внутри которой существует вся студия — см. `.claude/rules/responsible-gaming.md`.
+**Always virtual.** No game accepts or pays out real money. Virtual currency never converts
+back. This is not a "safety feature" — it is the frame the whole studio exists inside. See
+`.claude/rules/responsible-gaming.md`.
 
-## Визуальный стандарт ассетов
+## Visual standard for assets
 
-Все игровые изображения выполняются в polished cartoon 2.5D casual-game языке:
-крупные читаемые силуэты,
-округлённые/слегка преувеличенные формы, насыщенная тематическая палитра, плавный
-градиентный объём, чистые цветные или золотые канты, глянцевые блики, умеренные
-star-glints и единый свет сверху-слева.
+All game imagery uses a polished cartoon 2.5D casual-game language: bold readable silhouettes,
+rounded or slightly exaggerated forms, a saturated theme-aware palette, smooth modelled
+gradients, clean colour or gold edging, glossy highlights, restrained star glints and one
+consistent light from the top left.
 
-Тема, персонажи, предметы, материалы, формы, детали и цвета самостоятельно выводятся из
-концепта и Design DNA конкретной игры. Нельзя зависеть от папки с референсами или
-копировать символы из других игр. Фотореализм, product-shot, плоский vector clipart и
-emoji/sticker стиль не допускаются.
+The theme, characters, objects, materials, shapes, details and colours are all derived
+independently from the concept and Design DNA of the specific game. Do not depend on a
+reference folder and do not copy symbols from other games. Photorealism, product-shot
+rendering, flat vector clipart and emoji/sticker styling are not allowed.
 
-## Технологический стек
+## Technology stack
 
-- **Движок**: Flutter 3.27+ / Flame 1.18+
-- **Язык**: Dart 3.6+ (null-safe, sealed classes, pattern matching)
-- **Специализация**: гемблинг-мини-игры (mobile-first)
-- **Рендеринг**: Flutter Impeller (iOS/Android), Skia (desktop)
-- **Математика**: `tools/simulate_math.py` — верификатор всех шести моделей
+- **Engine**: Flutter 3.27+ / Flame 1.18+
+- **Language**: Dart 3.6+ (null-safe, sealed classes, pattern matching)
+- **Specialisation**: gambling mini-games (mobile-first)
+- **Rendering**: Flutter Impeller (iOS/Android), Skia (desktop)
+- **Mathematics**: `tools/simulate_math.py` — the verifier for all six models
 
-> **Вы — творческий директор и продюсер.** Агенты реализуют вашу идею.
-> Запустите `/start` для начала работы.
+> **You are the creative director and producer.** The agents implement your idea.
+> Run `/start` to begin.
 
-## Язык общения
+## Language
 
-**ВСЕ взаимодействия ведутся на русском языке.** Это обязательное требование для всех агентов.
+**ALL work is produced in English.** This is a hard requirement for every agent.
 
-Исключения (остаются на английском): код Dart/Flutter, пути файлов, имена классов, команды CLI.
+That covers agent responses and questions, design documents, concepts, GDDs, reports,
+session state and commit messages — as well as Dart/Flutter code, file paths, class names
+and CLI commands, which are English by definition.
 
-## Шесть категорий гемблинга
+**The game itself ships in English too.** Every string the player sees — menus, buttons,
+HUD labels, rules and paytable, win messages, empty states, achievement names, the age gate,
+the disclaimer and the whole responsible-play block, plus store metadata and screenshot
+captions — is written in English by default.
 
-| ID | Категория | Иконка | Ядро | Метрика баланса | Архетипы |
-|----|-----------|--------|------|-----------------|----------|
-| **C1** | Social Casino | 🎰 | Симуляция казино-зала на виртуальные фишки | RTP 95–97% | A–H |
-| **C2** | Casino Originals / Instant-Win | ⚡ | Мгновенный раунд, живой множитель, cash-out | RTP 96–99% | I–P |
-| **C3** | Spin-to-Progress Hybrids | 🏰 | Спин как источник энергии для казуальной меты | Экономика source/sink | Q–U |
-| **C4** | Gacha & Loot-Box | 🎁 | Пулл из баннера с редкостями и pity | Rates + pity | V–Y |
-| **C5** | Casino Roguelike & Strategy | 🃏 | Казино-механика как боевая система рогалика | Run win-rate 25–40% | Z–AC |
-| **C6** | Coin Pusher & Plinko | ⚙️ | Физика как генератор исхода | Эмпирический RTP 95–97% | AD–AF |
+**The single exception is an explicit user request.** If the user asks for the game in another
+language, produce the player-facing copy in that language and record the choice in
+`design/gdd/game-concept.md`. Even then, everything else stays English: code identifiers,
+file and asset names, comments, design documents, reports and session state. Never switch the
+game's language on your own initiative, and never infer it from the language the user happens
+to be typing in — only an explicit request counts.
 
-Полное описание каждой категории, её обязательных систем, compliance-профиля и архетипов —
-в `.claude/docs/gambling-categories.md`. Это канонический справочник, он важнее памяти.
+## The six gambling categories
+
+| ID | Category | Icon | Core | Balance metric | Archetypes |
+|----|----------|------|------|----------------|------------|
+| **C1** | Social Casino | 🎰 | A casino floor simulated with virtual chips | RTP 95–97% | A–H |
+| **C2** | Casino Originals / Instant-Win | ⚡ | Instant round, live multiplier, cash-out | RTP 96–99% | I–P |
+| **C3** | Spin-to-Progress Hybrids | 🏰 | The spin is the energy source for a casual meta game | Source/sink economy | Q–U |
+| **C4** | Gacha & Loot-Box | 🎁 | Pulls from a banner with rarities and pity | Rates + pity | V–Y |
+| **C5** | Casino Roguelike & Strategy | 🃏 | Casino mechanics as a roguelike's combat system | Run win-rate 25–40% | Z–AC |
+| **C6** | Coin Pusher & Plinko | ⚙️ | Physics as the outcome generator | Empirical RTP 95–97% | AD–AF |
+
+A full description of every category, its required systems, its compliance profile and its
+archetypes lives in `.claude/docs/gambling-categories.md`. That is the canonical reference —
+it outranks memory.
 
 @.claude/docs/gambling-categories.md
 
-## Архетипы A–AF (краткий индекс)
+## Archetypes A–AF (short index)
 
-| Категория | Архетипы |
-|-----------|----------|
-| **C1** 🎰 | **A** слот 3×3 · **B** видео-слот 5×3 + Free Spins · **C** scatter-pays/cluster · **D** Hold & Spin · **E** видео-покер · **F** блэкджек · **G** рулетка · **H** бинго |
-| **C2** ⚡ | **I** crash · **J** mines · **K** dice · **L** hi-lo · **M** tower climb · **N** keno · **O** скретч · **P** bonus pick |
-| **C3** 🏰 | **Q** build-and-raid слот · **R** board-move dice · **S** prize-wheel хаб · **T** альбом стикеров · **U** raid & shield |
-| **C4** 🎁 | **V** banner pull · **W** card packs · **X** case opener · **Y** гашапон |
+| Category | Archetypes |
+|----------|------------|
+| **C1** 🎰 | **A** 3×3 slot · **B** 5×3 video slot + free spins · **C** scatter-pays/cluster · **D** Hold & Spin · **E** video poker · **F** blackjack · **G** roulette · **H** bingo |
+| **C2** ⚡ | **I** crash · **J** mines · **K** dice · **L** hi-lo · **M** tower climb · **N** keno · **O** scratch · **P** bonus pick |
+| **C3** 🏰 | **Q** build-and-raid slot · **R** board-move dice · **S** prize-wheel hub · **T** sticker album · **U** raid & shield |
+| **C4** 🎁 | **V** banner pull · **W** card packs · **X** case opener · **Y** gashapon |
 | **C5** 🃏 | **Z** poker deckbuilder · **AA** slot-reel roguelike · **AB** dice-builder · **AC** push-your-luck |
-| **C6** ⚙️ | **AD** coin pusher · **AE** plinko · **AF** пачинко |
+| **C6** ⚙️ | **AD** coin pusher · **AE** plinko · **AF** pachinko |
 
-## Быстрый старт
-
-```
-/start             — Ориентация: с чего начать прямо сейчас
-/brainstorm        — Интерактивная генерация концепта гемблинг-игры
-/auto-idea         — Автономная генерация готовой идеи (без вопросов)
-/autocreate        — Zero-to-Production: полная рабочая игра за одну команду
-                     (концепт + матмодель + ассеты + код + тесты + аудит + баланс)
-```
-
-## Полный путь создания игры
+## Quick start
 
 ```
-Идея → Концепт → Матмодель → Дизайн → Gate → Код → UI Audit → Runtime → Gate → QA → Gate → Релиз
-  │       │          │          │       │      │      │          │        │      │       │       │
-/start /brain-   /balance-  /design-  /gate  /team- /ui-     /emulator- /code- /balance /gate /release-
-       storm     check      system    check  dev    audit    test       review  check   check checklist
+/start             — Orientation: where to begin right now
+/brainstorm        — Interactive gambling game concept generation
+/auto-idea         — Autonomous generation of a finished idea (no questions)
+/autocreate        — Zero-to-Production: a complete working game from one command
+                     (concept + math model + assets + code + tests + audit + balancing)
 ```
 
-## Команды студии (навыки)
+## The full path to a finished game
 
-### Создание игры (по порядку)
+```
+Idea → Concept → Math model → Design → Gate → Code → UI audit → Runtime → Gate → QA → Gate → Release
+  │       │          │          │       │      │      │           │        │      │      │       │
+/start /brain-   /balance-  /design-  /gate  /team- /ui-      /emulator- /code- /balance /gate /release-
+       storm     check      system    check  dev    audit     test       review  check   check checklist
+```
 
-| Команда | Описание | Когда использовать |
-|---------|----------|-------------------|
-| `/start` | Онбординг и маршрутизация | В начале каждой сессии |
-| `/brainstorm [хинт]` | Интерактивный концепт гемблинг-игры | Нет идеи или нужно оформить |
-| `/auto-idea` | Автономный концепт (32 архетипа A–AF по 6 категориям + Variety Dimensions) | Быстрая генерация без вопросов |
-| `/auto-idea --list` | Показать все архетипы A–AF по категориям | Выбор архетипа вручную |
-| `/auto-idea --archetype [A-AF]` | Развернуть конкретный архетип | Есть предпочтение |
-| `/auto-idea --category [C1-C6]` | Случайный архетип внутри категории | Знаю категорию, не знаю механику |
-| `/autocreate` | Zero-to-Production: полная рабочая игра без вопросов | Хочу полностью рабочую игру |
-| `/autocreate --from-concept` | Реализовать сохранённую идею | После `/auto-idea` |
-| `/map-systems` | Декомпозиция на системы | После концепта |
-| `/design-system [система]` | GDD для одной системы игры | По одной системе за раз |
-| `/prototype [механика]` | Прототип juiciness / feel | Перед полной реализацией |
-| `/generate-asset [тип] [имя]` | SVG ассеты по умолчанию, без вопроса о формате | Перед кодом |
-| `/generate-asset [тип] [имя] --png` | PNG/image generation; GPT Image 2 built-in или `tools/gpt_image.py` в headless Codex CLI | Когда нужен растр |
-| `/generate-png-asset [описание]` | PNG через GPT Image 2; headless bridge использует per-user API key, простые ассеты проходят локальный cutout | Нужен качественный растр быстро |
-| `/generate-png-asset --batch "items"` | Batch-генерация нескольких PNG за раз | Генерация всех ассетов |
-| `/generate-png-asset --from-concept` | Генерировать все PNG из концепта | После дизайна |
-| `/svg-to-png [путь]` | Конвертация SVG в PNG через Codex GPT Images 2.0 → GPT Images/default fallback | Есть SVG, нужен растр |
+## Studio commands (skills)
 
-### Ворота качества (проходить перед каждым переходом)
+### Building a game (in order)
 
-| Команда | Описание | Когда |
-|---------|----------|-------|
-| `/gate-check concept` | Готов ли концепт (категория + матмодель + compliance)? | После brainstorm |
-| `/gate-check design` | Готов ли GDD к имплементации? | Перед командой программистов |
-| `/gate-check code` | Готов ли код к QA? | После завершения кодирования |
-| `/gate-check qa` | Готов ли к релизу? | После всех тестов |
+| Command | Description | When to use |
+|---------|-------------|-------------|
+| `/start` | Onboarding and routing | At the start of every session |
+| `/brainstorm [hint]` | Interactive gambling game concept | No idea yet, or one that needs shaping |
+| `/auto-idea` | Autonomous concept (32 archetypes A–AF across 6 categories + Variety Dimensions) | Fast generation with no questions |
+| `/auto-idea --list` | Show every archetype A–AF by category | Choosing an archetype by hand |
+| `/auto-idea --archetype [A-AF]` | Expand one specific archetype | You already have a preference |
+| `/auto-idea --category [C1-C6]` | A random archetype inside one category | You know the category, not the mechanic |
+| `/autocreate` | Zero-to-Production: a complete working game, no questions | You want a fully working game |
+| `/autocreate --from-concept` | Implement a saved idea | After `/auto-idea` |
+| `/map-systems` | Decompose into technical systems | After the concept |
+| `/design-system [system]` | A GDD for one game system | One system at a time |
+| `/prototype [mechanic]` | A juiciness / feel prototype | Before full implementation |
+| `/generate-asset [type] [name]` | SVG assets by default, no format question | Before writing code |
+| `/generate-asset [type] [name] --png` | PNG/image generation; GPT Image 2 built-in, or `tools/gpt_image.py` in headless Codex CLI | When you need raster |
+| `/generate-png-asset [description]` | PNG via GPT Image 2; the headless bridge uses the per-user API key, and simple assets go through a local cutout | High-quality raster, fast |
+| `/generate-png-asset --batch "items"` | Batch-generate several PNGs at once | Generating all assets |
+| `/generate-png-asset --from-concept` | Generate every PNG from the concept | After design |
+| `/svg-to-png [path]` | Convert SVG to PNG via Codex GPT Images 2.0 → GPT Images/default fallback | You have SVG, you need raster |
 
-### Ревью и качество
+### Quality gates (pass one before every transition)
 
-| Команда | Описание |
-|---------|----------|
-| `/code-review` | Полное ревью кода (архитектура, Flame API, RNG-целостность, State, тесты) |
-| `/ui-audit` | Автоматический аудит UI/UX на anti-slop качество + compliance-экраны + автофикс |
-| `/asset-review` | Vision-ревью набора ассетов на целостность (стиль/свет/палитра/читаемость, AR1–AR10) + перегенерация бракованных (агент art-director) |
-| `/emulator-test` | Runtime-верификация на ADB/эмуляторе: запуск, скриншоты, визуальный анализ (vision), парсинг logcat, автофикс багов |
-| `/playtest` | Глубокая ИГРОВАЯ верификация через CDP: реально играет N раундов, проверяет что баланс меняется, win/lose пути работают, cash-out честен, поле живое (P1–P10) |
-| `/design-review` | Ревью GDD на полноту и математическую корректность |
-| `/balance-check` | Верификация математической модели: `tools/simulate_math.py` по модели M1–M6 категории |
-| `/release-checklist` | Финальный GO/NO-GO чеклист перед релизом, включая compliance (агент release-manager) |
-| `/release-engineering` | Ship-engineering: app-иконки (adaptive+iOS) + native splash + версия + **signed AAB** + iOS-каркас + store-metadata (с обязательными compliance-полями) + CI |
-| `/release-package` | Упаковка релиза: скрины всех экранов + release APK/AAB + `flutter clean` + `.zip` в `project_zip/` |
-| `/store-screenshots` | Витрина гемблинг-игры для стора: концепт-триптих вокруг ключевого момента раунда (панорама БЕЗ текста, нарезанная на панели) + кадры раунда в рамке телефона + feature graphic + app-иконка и эмблема (генерируются И применяются к проекту). Два набора: **1320×2868** для App Store Connect (iPhone 6.9″) и **1080×1920** 9:16 для Google Play. Compliance-гейт на тексты и арт → `.zip` в `project_zip/` |
+| Command | Description | When |
+|---------|-------------|------|
+| `/gate-check concept` | Is the concept ready (category + math model + compliance)? | After brainstorm |
+| `/gate-check design` | Is the GDD ready for implementation? | Before the programming team |
+| `/gate-check code` | Is the code ready for QA? | After coding is finished |
+| `/gate-check qa` | Is it ready for release? | After all tests |
 
-### Диагностика и долг
+### Review and quality
 
-| Команда | Описание |
-|---------|----------|
-| `/perf-profile [область]` | Профилирование FPS/памяти/партиклей |
-| `/tech-debt` | Сканирование и реестр технического долга |
-| `/hotfix [описание]` | Экстренное исправление критических багов |
-| `/architecture-decision [решение]` | Создание ADR для важных решений (включая смену матмодели) |
+| Command | Description |
+|---------|-------------|
+| `/code-review` | Full code review (architecture, Flame API, RNG integrity, state, tests) |
+| `/ui-audit` | Automatic UI/UX audit for anti-slop quality + compliance screens + auto-fix |
+| `/asset-review` | Vision review of the asset set for consistency (style/light/palette/readability, AR1–AR10) + regeneration of rejects (art-director agent) |
+| `/emulator-test` | Runtime verification on Chrome/Web (primary) or ADB/emulator: launch, screenshots, vision analysis, log parsing, automatic bug fixes |
+| `/playtest` | Deep GAMEPLAY verification via CDP: actually plays N rounds, checks that the balance changes, that win/lose paths work, that cash-out is honest, that the board is alive (P1–P10) |
+| `/design-review` | GDD review for completeness and mathematical correctness |
+| `/balance-check` | Math model verification: `tools/simulate_math.py` against the category's model M1–M6 |
+| `/release-checklist` | Final GO/NO-GO checklist before release, including compliance (release-manager agent) |
+| `/release-engineering` | Ship engineering: app icons (adaptive + iOS) + native splash + versioning + **signed AAB** + iOS scaffold + store metadata (with the mandatory compliance fields) + CI |
+| `/release-package` | Release packaging: screenshots of every screen + release APK/AAB + `flutter clean` + a `.zip` in `project_zip/` |
+| `/store-screenshots` | The store showcase for a gambling game: a concept triptych built around the key moment of a round (a panorama with NO text, sliced into panels) + round frames inside a phone frame + feature graphic + app icon and emblem (generated AND applied to the project). Two sets: **1320×2868** for App Store Connect (iPhone 6.9″) and **1080×1920** 9:16 for Google Play. Compliance gate on both copy and art → a `.zip` in `project_zip/` |
 
-### Командная работа
+### Diagnostics and debt
 
-| Команда | Что оркестрирует |
-|---------|-----------------|
-| `/team-dev [описание]` | game-designer + mechanics-programmer + juice-artist + sound-designer + qa |
+| Command | Description |
+|---------|-------------|
+| `/perf-profile [area]` | FPS / memory / particle profiling |
+| `/tech-debt` | Technical debt scan and register |
+| `/hotfix [description]` | Emergency fix for critical bugs |
+| `/architecture-decision [decision]` | Create an ADR for a significant decision (including a change of math model) |
 
-### Работа с существующим проектом
+### Teamwork
 
-| Команда | Описание |
-|---------|----------|
-| `/continue-project` | Продолжить работу с точки остановки |
-| `/add-feature [фича]` | Добавить фичу в готовую игру |
+| Command | What it orchestrates |
+|---------|----------------------|
+| `/team-dev [description]` | game-designer + mechanics-programmer + juice-artist + sound-designer + qa |
+| `/team-gambling [description]` | Alias of `/team-dev` |
 
-## Агенты студии
+### Working with an existing project
 
-### Tier 1 — Директора (высокоуровневые решения)
+| Command | Description |
+|---------|-------------|
+| `/continue-project` | Continue from where work stopped |
+| `/add-feature [feature]` | Add a feature to a finished game |
 
-| Агент | Роль |
+## Studio agents
+
+### Tier 1 — Directors (high-level decisions)
+
+| Agent | Role |
 |-------|------|
-| `creative-director` | Общее видение, концепт, категория игры, творческие решения |
-| `technical-director` | Архитектурные решения, ADR, разрешение технических конфликтов |
+| `creative-director` | Overall vision, concept, game category, creative decisions |
+| `technical-director` | Architectural decisions, ADRs, resolving technical conflicts |
 
-### Tier 2 — Специалисты гемблинг-механик
+### Tier 2 — Gambling mechanics specialists
 
-| Агент | Роль |
+| Agent | Role |
 |-------|------|
-| `game-mathematician` | **Владелец математической модели**: RTP, веса, house edge, pity, экономика, run win-rate. Единственный, кто меняет числа модели |
-| `game-designer` | GDD: механика раунда, ставки, бонусы, прогрессия, compliance-экраны |
-| `mechanics-programmer` | Реализация: WeightedRNG на `Random.secure()`, Stateless Outcomes, paylines, множители, физика |
-| `meta-systems-programmer` | Мета-системы: SaveService, Economy, Progression, Achievements + abstractions Analytics/Ads/IAP/RemoteConfig (no-op). Превращает один раунд в полную игру |
-| `art-director` | Визуальная целостность набора ассетов: vision-ревью (единый стиль/свет/палитра, читаемость в 64px, AR1–AR10), перегенерация бракованных |
-| `juice-artist` | VFX, партикли, анимации anticipation/near-miss/win-celebration — делает раунд «сочным» |
+| `game-mathematician` | **Owner of the math model**: RTP, weights, house edge, pity, economy, run win-rate. The only agent who changes the model's numbers |
+| `game-designer` | GDD: round mechanics, bets, bonuses, progression, compliance screens |
+| `mechanics-programmer` | Implementation: WeightedRNG on `Random.secure()`, stateless outcomes, paylines, multipliers, physics |
+| `meta-systems-programmer` | Meta systems: SaveService, Economy, Progression, Achievements + Analytics/Ads/IAP/RemoteConfig abstractions (no-op). Turns one round into a full game |
+| `art-director` | Visual consistency of the asset set: vision review (uniform style/light/palette, readability at 64px, AR1–AR10), regeneration of rejects |
+| `juice-artist` | VFX, particles, anticipation / near-miss / win-celebration animations — what makes a round feel "juicy" |
 
-### Tier 3 — Базовые специалисты
+### Tier 3 — Core specialists
 
-| Агент | Роль |
+| Agent | Role |
 |-------|------|
-| `lead-programmer` | Архитектура, ревью кода |
-| `performance-analyst` | FPS, память, оптимизация Flame, профилирование |
-| `ui-programmer` | Экраны Flutter, HUD, панели ставок, compliance-экраны |
-| `sound-designer` | Аудио: ставка, вращение, остановка, победа, near-miss |
-| `qa-tester` | Тест-кейсы, edge cases, RNG-дистрибуция, state leakage |
-| `release-manager` | Подготовка к выпуску, compliance-аудит |
+| `lead-programmer` | Architecture, code review |
+| `performance-analyst` | FPS, memory, Flame optimisation, profiling |
+| `ui-programmer` | Flutter screens, HUD, bet panels, compliance screens |
+| `sound-designer` | Audio: bet, spin, stop, win, near-miss |
+| `qa-tester` | Test cases, edge cases, RNG distribution, state leakage |
+| `release-manager` | Release preparation, compliance audit |
 
-## Критические правила (game integrity)
+## Critical rules (game integrity)
 
-> Нарушение этих правил блокирует релиз. В гемблинг-студии они **безусловны** —
-> нет «жанров, к которым они не применяются».
+> Breaking these rules blocks the release. In a gambling studio they are **unconditional** —
+> there are no "genres they don't apply to".
 
-1. **RNG**: ТОЛЬКО `Random.secure()` — нет `math.Random()`, нет `Random()`.
-   Единственное исключение — seeded-детерминизм забега в C5 (модель M5), и оно
-   обязано быть зафиксировано в ADR.
-2. **Stateless Outcomes**: результат раунда вычислен ДО начала анимации.
-   Анимация только проигрывает уже известный исход.
-3. **GameState**: sealed class — нет boolean флагов.
-4. **GameConfig**: все игровые константы только в конфиг-файле (`game_config.dart`),
-   а числа математической модели — в JSON-конфиге модели.
-5. **No hardcoded probability**: нет `if (rng < 0.1) win!`. Веса читаются из конфига.
-6. **No magic numbers**: нет захардкоженных игровых параметров вне конфига.
-7. **Двойная защита**: основная кнопка действия заблокирована во время анимации (дебаунс 300 мс).
-8. **Матмодель верифицирована**: `tools/simulate_math.py` даёт PASS по модели категории.
-   Игра без зелёного прогона не уходит в релиз.
-9. **Compliance-слой на месте**: age-gate, дисклеймер, responsible-play, odds disclosure
-   (где требуется) — см. `.claude/rules/responsible-gaming.md`.
+1. **RNG**: ONLY `Random.secure()` — no `math.Random()`, no `Random()`.
+   The single exception is the seeded run determinism in C5 (model M5), and it must be
+   recorded in an ADR.
+2. **Stateless Outcomes**: the round result is computed BEFORE the animation starts.
+   The animation only plays back an outcome that is already known.
+3. **GameState**: a sealed class — no boolean flags.
+4. **GameConfig**: every game constant lives in the config file (`game_config.dart`),
+   and the math model's numbers live in the model's JSON config.
+5. **No hardcoded probability**: no `if (rng < 0.1) win!`. Weights are read from the config.
+6. **No magic numbers**: no hardcoded gameplay parameters outside the config.
+7. **Double protection**: the main action button is locked during the animation (300 ms debounce).
+8. **The math model is verified**: `tools/simulate_math.py` returns PASS for the category's model.
+   A game without a green run does not ship.
+9. **The compliance layer is in place**: age gate, disclaimer, responsible play, odds disclosure
+   where required — see `.claude/rules/responsible-gaming.md`.
 
 @.claude/docs/math-models.md
 
 @.claude/rules/responsible-gaming.md
 
-## Протокол совместной работы
+## Collaboration protocol
 
-**Сотрудничество под управлением пользователя, не автономное выполнение.**
+**User-directed collaboration, not autonomous execution.**
 
-Схема: **Вопрос → Варианты → Решение → Черновик → Одобрение**
+The pattern: **Question → Options → Decision → Draft → Approval**
 
-- Агенты ОБЯЗАНЫ спрашивать «Могу ли я записать это в [путь]?» перед Write/Edit
-- Исключение: `/autocreate` и `/auto-idea` работают автономно (это намеренно)
+- Agents MUST ask "May I write this to [path]?" before Write/Edit
+- Exception: `/autocreate` and `/auto-idea` run autonomously — that is deliberate
 
-## Contextual Design (Human-Crafted UI)
+## Contextual Design (human-crafted UI)
 
-> Каждое визуальное решение вытекает из контекста КОНКРЕТНОЙ игры — её темы, настроения,
-> механики. Нет единого шаблона. Неон-трапеции для ВСЕХ игр — такой же slop, как фиолетовые
-> градиенты. **«Гемблинг» не означает «тёмный неон и золото»**: бинго-комната может быть
-> тёплой и бумажной, гашапон — пастельным и игрушечным, рогалик — строгим типографским.
-> Тест: если UI можно перенести на другую игру без изменений — дизайн провалился.
+> Every visual decision follows from the context of THIS specific game — its theme, mood and
+> mechanics. There is no single template. Neon trapezoids for EVERY game are just as much slop
+> as purple gradients. **"Gambling" does not mean "dark neon and gold"**: a bingo room can be
+> warm and papery, a gashapon pastel and toy-like, a roguelike strict and typographic.
+> The test: if the UI could be moved to another game unchanged, the design failed.
 >
-> Разнообразие держится на ДВУХ независимых осях:
-> - **Design DNA** (вид: палитра/шрифты/формы/motion) — из темы игры. См. anti-slop-design.md.
-> - **Layout Archetype** (композиция: где HUD/действие/как меню) — L1–L6. См. layout-archetypes.md.
+> Variety rests on TWO independent axes:
+> - **Design DNA** (the look: palette/fonts/shapes/motion) — from the game's theme. See anti-slop-design.md.
+> - **Layout Archetype** (the composition: where the HUD and the action go, how the menu works) — L1–L6. See layout-archetypes.md.
 
 @.claude/rules/anti-slop-design.md
 
 @.claude/docs/layout-archetypes.md
 
-## Планка качества (Professional Quality Bar)
+## Professional quality bar
 
-> Единый эталон «профессионального уровня» для всех навыков конвейера: главный тест —
-> «поставил бы игрок 4+ звезды, не зная, что игру сделал ИИ?». Конкретные, проверяемые
-> пороги: TTF ≤ 10 с, отклик ≤ 100 мс, масштабированный фидбек, живое поле, 60 fps на
-> win-celebration, завершённость продукта.
+> One shared benchmark for "professional level" across every skill in the pipeline. The main
+> test: "would a player give this 4+ stars without knowing an AI made it?" With concrete,
+> checkable thresholds: TTF ≤ 10 s, response ≤ 100 ms, scaled feedback, a living board,
+> 60 fps during win celebration, product completeness.
 
 @.claude/docs/quality-bar.md
 
-## Стандарты кода
+## Code standards
 
 @.claude/docs/technical-preferences.md
 
 @.claude/docs/coding-standards.md
 
-## Структура директорий
+## Directory structure
 
 @.claude/docs/directory-structure.md
 
-## Правила координации
+## Coordination rules
 
 @.claude/docs/coordination-rules.md
 
-## Управление контекстом
+## Context management
 
 @.claude/docs/context-management.md

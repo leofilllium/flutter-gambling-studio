@@ -1,129 +1,129 @@
 ---
 name: hotfix
-description: "Экстренное исправление критической проблемы с минимальным diff и обязательной верификацией."
-argument-hint: "[краткое описание критической проблемы]"
+description: "An emergency fix for a critical problem, with a minimal diff and mandatory verification."
+argument-hint: "[a short description of the critical problem]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
 
-# /hotfix [описание проблемы]
+# /hotfix [problem description]
 
-Запуск: пользователь вызывает `/hotfix [краткое описание критической проблемы]`
+Invocation: the user runs `/hotfix [a short description of the critical problem]`
 
-## Цель
+## Goal
 
-Экстренное исправление критической проблемы в мини-игре. Обходит обычный
-процесс разработки с полным аудит-следом. Используется для:
-- Критических багов RNG (неправильное распределение)
-- RTP вышло за пределы 90–98%
-- State leakage (баланс некорректен)
-- Краш во время спина
-- Критический UI-баг (невозможно крутить)
+An emergency fix for a critical problem in the mini-game. It bypasses the normal development
+process while keeping a full audit trail. Use it for:
+- Critical RNG bugs (an incorrect distribution)
+- The RTP falling outside 90–98%
+- State leakage (an incorrect balance)
+- A crash during a spin
+- A critical UI bug (spinning is impossible)
 
-## Когда НЕ использовать
+## When NOT to use it
 
-- Обычные баги → используй стандартный процесс
-- Новые фичи → `/add-feature`
-- Рефакторинг → обычный PR
+- Ordinary bugs → use the standard process
+- New features → `/add-feature`
+- Refactoring → a normal PR
 
-## Порядок выполнения
+## Order of work
 
-### Шаг 1: Оценка критичности
+### Step 1: assessing severity
 
-Агент `lead-programmer` оценивает:
-- Затронут ли RNG или баланс? → CRITICAL
-- Возможна ли потеря монет игроком? → CRITICAL
-- Только визуальный баг? → NOT HOTFIX
+The `lead-programmer` agent assesses:
+- Does it touch the RNG or the balance? → CRITICAL
+- Can the player lose coins? → CRITICAL
+- Purely a visual bug? → NOT A HOTFIX
 
-### Шаг 2: Диагностика
+### Step 2: diagnosis
 
 ```bash
-# Проверяем dart analyze
+# Check dart analyze
 dart analyze lib/
 
-# Ищем очевидную причину
+# Look for the obvious cause
 grep -rn "TODO\|FIXME\|HACK" lib/ --include="*.dart"
 
-# Проверяем тесты
-flutter test --name "повреждённая_механика"
+# Check the tests
+flutter test --name "broken_mechanic"
 ```
 
-Агент `mechanics-programmer` анализирует gambling-специфичные файлы:
-- `lib/systems/weighted_rng.dart` — проверка RNG
-- `lib/systems/payline_evaluator.dart` — проверка логики
-- `lib/game/slot_config.dart` — проверка конфига
-- `lib/models/game_state.dart` — проверка state machine
+The `mechanics-programmer` agent analyses the gambling-specific files:
+- `lib/systems/weighted_rng.dart` — checking the RNG
+- `lib/systems/payline_evaluator.dart` — checking the logic
+- `lib/game/slot_config.dart` — checking the config
+- `lib/models/game_state.dart` — checking the state machine
 
-### Шаг 3: Создание ветки hotfix
+### Step 3: creating the hotfix branch
 
 ```bash
 DATE=$(date '+%Y%m%d')
-git checkout -b hotfix/$DATE-краткое-описание
+git checkout -b hotfix/$DATE-short-description
 ```
 
-### Шаг 4: Исправление
+### Step 4: the fix
 
-- Исправляет ТОЛЬКО выявленную проблему
-- Никаких попутных улучшений
-- Минимальный diff
+- Fix ONLY the identified problem
+- No opportunistic improvements
+- The smallest possible diff
 
-### Шаг 5: Верификация
+### Step 5: verification
 
 ```bash
-# Обязательно после исправления
+# Mandatory after the fix
 flutter test
 dart analyze lib/
-python3 tools/simulate_math.py --model [m1-m6] --config design/balance/[файл].json --trials 100000
+python3 tools/simulate_math.py --model [m1-m6] --config design/balance/[file].json --trials 100000
 ```
 
-Проверочный чеклист:
-- [ ] Исправление не ломает существующие тесты
-- [ ] RTP всё ещё в диапазоне 95–97% (или был за пределами и теперь в норме)
-- [ ] Нет новых `math.Random()` введено
-- [ ] State leakage не появился
+The verification checklist:
+- [ ] The fix does not break existing tests
+- [ ] The RTP is still within 95–97% (or it was outside and is now back in range)
+- [ ] No new `math.Random()` was introduced
+- [ ] No state leakage appeared
 
-### Шаг 6: Аудит-след
+### Step 6: the audit trail
 
-Создать `production/session-logs/hotfix-YYYY-MM-DD.md`:
+Create `production/session-logs/hotfix-YYYY-MM-DD.md`:
 ```markdown
-# Hotfix — [дата и время]
+# Hotfix — [date and time]
 
-## Проблема
-[Описание критической проблемы]
+## Problem
+[A description of the critical problem]
 
-## Диагноз
-[Корневая причина]
+## Diagnosis
+[The root cause]
 
-## Исправление
-[Что было изменено и почему]
+## The fix
+[What was changed and why]
 
-## Файлы изменены
-- path/to/file.dart — [что изменено]
+## Files changed
+- path/to/file.dart — [what changed]
 
-## Верификация
+## Verification
 - flutter test: [PASS/FAIL]
 - dart analyze: [0 issues / N issues]
-- Simulate RTP (100K): [XX.X%]
+- Math simulation (100K): [XX.X%]
 
-## Утверждено
-- Технически: [lead-programmer / technical-director]
-- Математически: [game-mathematician — если затронут RTP]
+## Approved
+- Technically: [lead-programmer / technical-director]
+- Mathematically: [game-mathematician — if the RTP was affected]
 ```
 
-### Шаг 7: Слияние
+### Step 7: merging
 
 ```bash
-git add [только изменённые файлы]
-git commit -m "hotfix: [краткое описание проблемы]
+git add [only the changed files]
+git commit -m "hotfix: [a short description of the problem]
 
-Проблема: [что было неправильно]
-Исправление: [что изменено]
-Верификация: тесты GREEN, RTP XX.X%"
+Problem: [what was wrong]
+Fix: [what changed]
+Verification: tests GREEN, RTP XX.X%"
 ```
 
-## Аргументы
+## Arguments
 
-- `[описание]` — краткое описание проблемы (обязательно)
-- `--rng` — фокус на RNG/вероятности
-- `--balance` — фокус на балансе игрока
-- `--crash` — фокус на краше/ошибке
+- `[description]` — a short description of the problem (required)
+- `--rng` — focus on the RNG/probabilities
+- `--balance` — focus on the player's balance
+- `--crash` — focus on the crash/error

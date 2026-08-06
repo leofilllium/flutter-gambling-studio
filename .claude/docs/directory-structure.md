@@ -1,24 +1,24 @@
-# Директории Игровой Студии
+# Game Studio directories
 
-Студия поддерживает **5 вариантов архитектурной структуры проекта**.
-При каждом запуске `/autocreate` один вариант выбирается автоматически через `design/structure.md`.
-Это обеспечивает разнообразие между играми — каждая получает свою уникальную организацию кода.
+The studio supports **5 variants of project architecture**.
+On every `/autocreate` run one variant is chosen automatically and recorded in `design/structure.md`.
+This creates variety between games — each one gets its own code organisation.
 
 ---
 
-## V1 — Layer Architecture (Слоевая)
+## V1 — Layer Architecture
 
-Классическая MVC-подобная организация: каждый слой в отдельной папке.
+The classic MVC-like organisation: every layer in its own folder.
 
 ```text
 lib/
 ├── main.dart
-├── app.dart                          # MaterialApp, именованные routes
-├── assets.dart                       # Константы путей ко всем ассетам
+├── app.dart                          # MaterialApp, named routes
+├── assets.dart                       # Path constants for every asset
 ├── game/
 │   ├── [name]_game.dart              # FlameGame
 │   ├── [name]_world.dart             # World with HasCollisionDetection
-│   └── game_config.dart              # Все игровые константы
+│   └── game_config.dart              # Every game constant
 ├── components/
 │   ├── [main_component].dart
 │   ├── [element_component].dart
@@ -27,16 +27,16 @@ lib/
 │   └── screen_shake.dart
 ├── systems/
 │   ├── [game_logic].dart             # RNG / match_detector / spawn_manager
-│   └── [evaluator].dart              # Чистая функция подсчёта результата
+│   └── [evaluator].dart              # The pure result-scoring function
 ├── models/
-│   ├── game_state.dart               # Sealed class состояний
+│   ├── game_state.dart               # The sealed state class
 │   └── [game_element].dart
 ├── screens/
 │   ├── splash_screen.dart
 │   ├── main_menu.dart
 │   ├── game_screen.dart
 │   ├── hud_widget.dart
-│   └── [others].dart                 # 12+ экранов
+│   └── [others].dart                 # 12+ screens
 ├── widgets/
 │   └── [shared_widgets].dart
 ├── audio/
@@ -48,9 +48,9 @@ lib/
 
 ---
 
-## V2 — Feature Slice (По фичам)
+## V2 — Feature Slice
 
-Gameplay (Flame) отделён от UI (Flutter) и сервисов — каждая фича в своей папке.
+Gameplay (Flame) is separated from UI (Flutter) and services — each feature in its own folder.
 
 ```text
 lib/
@@ -61,7 +61,7 @@ lib/
 │   └── theme/
 │       ├── game_theme.dart
 │       └── animations.dart
-├── gameplay/                         # Всё Flame: игра + компоненты + логика
+├── gameplay/                         # Everything Flame: game + components + logic
 │   ├── [name]_game.dart
 │   ├── [name]_world.dart
 │   ├── components/
@@ -71,7 +71,7 @@ lib/
 │   └── systems/
 │       ├── [game_logic].dart
 │       └── [evaluator].dart
-├── ui/                               # Всё Flutter: экраны + виджеты
+├── ui/                               # Everything Flutter: screens + widgets
 │   ├── screens/
 │   │   ├── splash_screen.dart
 │   │   ├── main_menu.dart
@@ -80,11 +80,11 @@ lib/
 │   │   └── [others].dart
 │   └── widgets/
 │       └── [shared_widgets].dart
-├── domain/                           # Модели + состояния + конфиг
+├── domain/                           # Models + states + config
 │   ├── game_config.dart
 │   ├── game_state.dart
 │   └── [game_element].dart
-└── services/                         # Внешние сервисы
+└── services/                         # External services
     └── audio_service.dart
 ```
 
@@ -92,14 +92,14 @@ lib/
 
 ## V3 — Presentation-Domain-Data (PDD)
 
-Чёткое разделение: presentation (Flutter UI), domain (бизнес-логика + Flame), data (конфиги).
+A clean separation: presentation (Flutter UI), domain (business logic + Flame), data (configs).
 
 ```text
 lib/
 ├── main.dart
 ├── app.dart
 ├── assets.dart
-├── presentation/                     # Flutter UI слой
+├── presentation/                     # The Flutter UI layer
 │   ├── screens/
 │   │   ├── splash_screen.dart
 │   │   ├── main_menu.dart
@@ -111,7 +111,7 @@ lib/
 │   └── theme/
 │       ├── game_theme.dart
 │       └── animations.dart
-├── domain/                           # Бизнес-логика + Flame
+├── domain/                           # Business logic + Flame
 │   ├── game/
 │   │   ├── [name]_game.dart
 │   │   └── [name]_world.dart
@@ -121,12 +121,12 @@ lib/
 │   └── models/
 │       ├── game_state.dart
 │       └── [game_element].dart
-├── data/                             # Конфиги и сервисы
+├── data/                             # Configs and services
 │   ├── config/
 │   │   └── game_config.dart
 │   └── services/
 │       └── audio_service.dart
-└── components/                       # Flame визуальные компоненты
+└── components/                       # Flame visual components
     ├── [main_component].dart
     ├── win_animation.dart
     └── ambient_particles.dart
@@ -134,27 +134,27 @@ lib/
 
 ---
 
-## V4 — Module Architecture (Модульная)
+## V4 — Module Architecture
 
-По функциональным модулям: engine, mechanics, visuals, interface, infrastructure.
+By functional module: engine, mechanics, visuals, interface, infrastructure.
 
 ```text
 lib/
 ├── main.dart
 ├── app.dart
 ├── assets.dart
-├── engine/                           # Ядро Flame
+├── engine/                           # The Flame core
 │   ├── [name]_game.dart
 │   ├── [name]_world.dart
 │   └── game_config.dart
-├── mechanics/                        # Игровая логика
+├── mechanics/                        # Game logic
 │   ├── systems/
 │   │   ├── [game_logic].dart
 │   │   └── [evaluator].dart
 │   └── models/
 │       ├── game_state.dart
 │       └── [game_element].dart
-├── visuals/                          # Визуальный слой (Flame компоненты + тема)
+├── visuals/                          # The visual layer (Flame components + theme)
 │   ├── components/
 │   │   ├── [main_component].dart
 │   │   ├── win_animation.dart
@@ -171,31 +171,31 @@ lib/
 │   │   └── [others].dart
 │   └── widgets/
 │       └── [shared_widgets].dart
-└── infrastructure/                   # Внешние зависимости
+└── infrastructure/                   # External dependencies
     └── audio/
         └── audio_service.dart
 ```
 
 ---
 
-## V5 — Vertical Slice (Вертикальные срезы)
+## V5 — Vertical Slice
 
-Организация по игровым областям: bootstrap, arena, rules, hud, menus, foundation.
+Organised by game area: bootstrap, arena, rules, hud, menus, foundation.
 
 ```text
 lib/
 ├── main.dart
-├── bootstrap/                        # Точка входа приложения
+├── bootstrap/                        # The application entry point
 │   ├── app.dart
 │   └── assets.dart
-├── arena/                            # Игровое поле (Flame)
+├── arena/                            # The play field (Flame)
 │   ├── [name]_game.dart
 │   ├── [name]_world.dart
 │   └── components/
 │       ├── [main_component].dart
 │       ├── win_animation.dart
 │       └── ambient_particles.dart
-├── rules/                            # Правила и механики
+├── rules/                            # Rules and mechanics
 │   ├── systems/
 │   │   ├── [game_logic].dart
 │   │   └── [evaluator].dart
@@ -204,16 +204,16 @@ lib/
 │   │   └── [game_element].dart
 │   └── config/
 │       └── game_config.dart
-├── hud/                              # HUD и игровые оверлеи
+├── hud/                              # HUD and in-game overlays
 │   ├── hud_widget.dart
 │   ├── win_overlay.dart
 │   └── bonus_overlay.dart
-├── menus/                            # Экраны меню
+├── menus/                            # Menu screens
 │   ├── splash_screen.dart
 │   ├── main_menu.dart
 │   ├── game_screen.dart
 │   └── [others].dart
-└── foundation/                       # Общая база
+└── foundation/                       # The shared base
     ├── audio/
     │   └── audio_service.dart
     ├── theme/
@@ -225,93 +225,94 @@ lib/
 
 ---
 
-## Как выбирается вариант
+## How the variant is chosen
 
-В Фазе 2 `/autocreate` Python-скрипт записывает выбранный вариант в `design/structure.md`:
+In Phase 2 of `/autocreate` a Python snippet writes the chosen variant to `design/structure.md`:
 
 ```python
 import time
-variant = (int(time.time()) % 5) + 1  # равномерно 1–5
+variant = (int(time.time()) % 5) + 1  # uniformly 1–5
 ```
 
-`design/structure.md` содержит полный маппинг путей для всех категорий файлов.
-Агенты Фазы 4 читают этот файл через `lib/contracts.md` и создают все файлы по указанным путям.
+`design/structure.md` contains the full path mapping for every file category.
+The Phase 4 agents read this file through `lib/contracts.md` and create every file at the
+paths it specifies.
 
 ---
 
-## Инварианты (одинаковы для ВСЕХ вариантов)
+## Invariants (identical in ALL variants)
 
-- `lib/main.dart` — точка входа, всегда в корне `lib/`
-- `assets/` — папка ассетов, всегда в корне проекта
-- `design/` — GDD и balance docs, всегда в корне
-- `GameConfig` содержит ТОЛЬКО константы, никакой логики
-- `GameState` — sealed class, присутствует в каждом варианте
-- `AudioService` — max 3 параллельных звука
-- Пути ассетов регистрируются в `pubspec.yaml` по одним и тем же директориям `assets/`
+- `lib/main.dart` — the entry point, always at the root of `lib/`
+- `assets/` — the assets folder, always at the project root
+- `design/` — GDD and balance docs, always at the root
+- `GameConfig` contains ONLY constants, no logic
+- `GameState` — a sealed class, present in every variant
+- `AudioService` — at most 3 concurrent sounds
+- Asset paths are registered in `pubspec.yaml` under the same `assets/` directories
 
 ---
 
-## Примеры ключевых файлов по категориям гемблинга (V1 paths)
+## Key file examples by gambling category (V1 paths)
 
-Во ВСЕХ категориях присутствует один и тот же костяк — источник случайности, чистый
-оценщик исхода и конфиг математической модели. Меняется только их наполнение.
+Every category shares the same skeleton — a source of randomness, a pure outcome evaluator and
+the math model's config. Only what fills them changes.
 
 ```
-lib/systems/weighted_rng.dart       # Random.secure() — ЕДИНСТВЕННЫЙ источник случайности
-lib/systems/[outcome]_resolver.dart # Чистая функция: исход раунда ДО анимации
-design/balance/[model]-config.json  # Числа математической модели (читает simulate_math.py)
+lib/systems/weighted_rng.dart       # Random.secure() — the ONLY source of randomness
+lib/systems/[outcome]_resolver.dart # Pure function: the round outcome BEFORE the animation
+design/balance/[model]-config.json  # The math model's numbers (read by simulate_math.py)
 ```
 
-### C1 — Social Casino (слот)
+### C1 — Social Casino (a slot)
 ```
 lib/systems/weighted_rng.dart
-lib/systems/payline_evaluator.dart  # Подсчёт выигрышей по линиям
-lib/components/reel_component.dart  # Вращающийся барабан
+lib/systems/payline_evaluator.dart  # Scoring wins by line
+lib/components/reel_component.dart  # A spinning reel
 lib/components/symbol_component.dart
-design/balance/rtp-config.json      # модель M1
+design/balance/rtp-config.json      # model M1
 ```
 
 ### C2 — Casino Originals (crash / mines / dice)
 ```
-lib/systems/round_resolver.dart     # serverSeed+clientSeed+nonce → исход раунда
-lib/systems/multiplier_curve.dart   # Формула множителя от house edge
+lib/systems/round_resolver.dart     # serverSeed+clientSeed+nonce → the round outcome
+lib/systems/multiplier_curve.dart   # The multiplier formula from the house edge
 lib/components/multiplier_display.dart
 lib/components/cashout_button.dart
-design/balance/rtp-config.json      # модель M2
+design/balance/rtp-config.json      # model M2
 ```
 
 ### C3 — Spin-to-Progress (build-and-raid)
 ```
 lib/systems/weighted_rng.dart
-lib/systems/spin_event_table.dart   # Веса событий спина
-lib/systems/energy_service.dart     # Регенерация, кап, трата
+lib/systems/spin_event_table.dart   # Spin event weights
+lib/systems/energy_service.dart     # Regeneration, cap, spending
 lib/components/village_component.dart
-design/balance/economy-config.json  # модель M3
+design/balance/economy-config.json  # model M3
 ```
 
 ### C4 — Gacha (banner pull)
 ```
 lib/systems/weighted_rng.dart
-lib/systems/pity_counter.dart       # soft/hard pity — сохраняется между сессиями
-lib/systems/banner_resolver.dart    # Редкость → конкретный предмет
+lib/systems/pity_counter.dart       # soft/hard pity — persisted between sessions
+lib/systems/banner_resolver.dart    # Rarity → a specific item
 lib/components/pull_reveal.dart
-design/balance/gacha-config.json    # модель M4
+design/balance/gacha-config.json    # model M4
 ```
 
 ### C5 — Casino Roguelike (poker deckbuilder)
 ```
-lib/systems/run_rng.dart            # ИСКЛЮЧЕНИЕ: Random(seed) — забег воспроизводим (ADR!)
-lib/systems/hand_evaluator.dart     # Покерная рука → очки
-lib/systems/modifier_registry.dart  # Джокеры/символы и их эффекты
+lib/systems/run_rng.dart            # EXCEPTION: Random(seed) — the run is reproducible (ADR!)
+lib/systems/hand_evaluator.dart     # A poker hand → points
+lib/systems/modifier_registry.dart  # Jokers/symbols and their effects
 lib/models/run_state.dart
-design/balance/run-config.json      # модель M5
+design/balance/run-config.json      # model M5
 ```
 
 ### C6 — Physics (plinko / coin pusher)
 ```
-lib/systems/physics_world.dart      # Forge2D, ФИКСИРОВАННЫЙ timestep
-lib/systems/launch_resolver.dart    # Стартовые условия из Random.secure()
+lib/systems/physics_world.dart      # Forge2D, a FIXED timestep
+lib/systems/launch_resolver.dart    # Starting conditions from Random.secure()
 lib/components/ball_component.dart
 lib/components/peg_component.dart
-design/balance/physics-config.json  # модель M6
+design/balance/physics-config.json  # model M6
 ```

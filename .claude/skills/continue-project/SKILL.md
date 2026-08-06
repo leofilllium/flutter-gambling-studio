@@ -1,25 +1,25 @@
 ---
 name: continue-project
-description: "Анализирует текущее состояние проекта и предлагает следующие логические шаги разработки. Запускайте при возвращении к работе над игрой."
+description: "Analyses the current state of the project and proposes the next logical development steps. Run it when you come back to work on a game."
 user-invocable: true
 allowed-tools: Bash, Read, Edit, Write
 argument-hint: ""
 ---
 
-# `continue-project` — Вход в проект
+# `continue-project` — entering the project
 
-Автоматически восстанавливает контекст разработки и направляет в нужную стадию.
+Automatically restores the development context and points you at the right stage.
 
-## Алгоритм
+## Procedure
 
-1. Прочитайте `design/gdd/game-concept.md` (если есть).
-2. Прочитайте `pubspec.yaml` (если есть).
-3. Прочитайте `production/session-state/active.md` (если есть).
-4. Определите стадию проекта:
-   - **Нет ничего**: предложите `/start` или `/brainstorm`
-   - **Есть только GDD**: предложите `/design-system rtp-weights` или `/generate-asset symbols`
-   - **Есть Flutter проект, но нет логики слота**: предложите вызов `mechanics-programmer`
-   - **Есть готовый слот без звука/VFX**: предложите `juice-artist` и `sound-designer`
-   - **Проект выглядит готовым**: предложите `/release-checklist`
+1. Read `design/gdd/game-concept.md` (if it exists).
+2. Read `pubspec.yaml` (if it exists).
+3. Read `production/session-state/active.md` (if it exists).
+4. Determine the project's stage:
+   - **Nothing yet**: suggest `/start` or `/brainstorm`
+   - **Only a GDD**: suggest `/design-system rtp-weights` or `/generate-asset symbols`
+   - **A Flutter project but no slot logic**: suggest calling `mechanics-programmer`
+   - **A working slot with no sound/VFX**: suggest `juice-artist` and `sound-designer`
+   - **The project looks finished**: suggest `/release-checklist`
 
-5. Выведите статус красивым блоком с 3-мя рекомендованными командами для продолжения.
+5. Print the status as a clean block with 3 recommended commands for continuing.

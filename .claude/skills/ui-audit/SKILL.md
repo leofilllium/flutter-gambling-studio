@@ -1,144 +1,144 @@
 ---
 name: ui-audit
-description: "Глубокий аудит UI/UX кода на anti-slop качество, краш-уязвимости, layout overflow, state ошибки, навигацию, отзывчивость, craft-композицию, живой геймплей, production-полноту/compliance и визуальные проблемы. 100+ проверок (10 категорий) с автоматическим исправлением. Проверяет НАМЕРЕНИЕ и КРАФТ, не навязывая house-style. Ловит реальные баги, а не только стилистику."
+description: "Deep audit of UI/UX code for anti-slop quality, crash vulnerabilities, layout overflow, state errors, navigation, responsiveness, craft composition, live gameplay, production completeness/compliance and visual problems. 100+ checks (10 categories) with automatic correction. Checks INTENT and CRAFT, without imposing house-style. Catches real bugs, not just stylistics."
 argument-hint: "[--fix | --report-only]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
 
-# UI Audit — Глубокий Аудит и Исправление UI/UX
+# UI Audit - Deep Audit and Correction of UI/UX
 
-Сканирует весь код в `lib/screens/`, `lib/widgets/`, `lib/theme/`, `lib/components/`,
-`lib/app.dart`, `lib/main.dart` и находит **реальные баги**, краш-уязвимости и
-визуальные проблемы.
+Scans all code in `lib/screens/`, `lib/widgets/`, `lib/theme/`, `lib/components/`,
+`lib/app.dart`, `lib/main.dart` and finds **real bugs**, crash vulnerabilities and
+visual problems.
 
-**Это НЕ линтер. Это глубокий аудит, который ловит ошибки, вызывающие краши и плохой UX.**
+**This is NOT a linter. This is an in-depth audit that catches bugs that cause crashes and poor UX.**
 
-**Режимы:**
-- По умолчанию: найти и исправить
-- `--report-only`: только отчёт, без изменений
-- `--fix`: исправить всё без подтверждения
-
----
-
-## Фаза 1 — Сбор данных
-
-1. Прочитать `.claude/rules/anti-slop-design.md` (принцип + Craft Fundamentals + Audit guard)
-2. Прочитать `.claude/rules/ui-code.md`
-2a. Прочитать `design/gdd/game-concept.md` → **Design DNA** (палитра/шрифты/формы/motion ЭТОЙ игры)
-2b. Прочитать `design/art-direction.md` (если есть) → выбранный **Layout Archetype** (L1–L6)
-2c. Прочитать `.claude/docs/quality-bar.md` → пороги профессионального уровня
-    (§1 первые 30 сек: TTP ≤ 3 тапа; §2 отклик ≤ 100 мс; §3 масштабированный фидбек;
-    §7 завершённость; §8 визуальная целостность) — аудит меряет ПО НИМ, не «на глаз»
-3. `glob lib/screens/**/*.dart` — найти все экраны
-4. `glob lib/widgets/**/*.dart` — найти все виджеты
-5. `glob lib/theme/**/*.dart` — найти тему и анимации
-6. `glob lib/components/**/*.dart` — найти Flame компоненты
-7. Прочитать КАЖДЫЙ найденный файл полностью
-8. Прочитать `lib/app.dart` и `lib/main.dart`
-9. Прочитать `pubspec.yaml` (секция assets и fonts)
-10. `glob assets/**/*` — найти все реальные ассеты на диске
+**Modes:**
+- Default: find and fix
+- `--report-only`: report only, no changes
+- `--fix`: fix everything without confirmation
 
 ---
 
-## Фаза 2 — Аудит (100+ проверок, 10 категорий)
+## Phase 1 - Data Collection
 
-### Категория A: КРАШ-УЯЗВИМОСТИ (Critical — приложение падает)
+1. Read `.claude/rules/anti-slop-design.md` (principle + Craft Fundamentals + Audit guard)
+2. Read `.claude/rules/ui-code.md`
+2a. Read `design/gdd/game-concept.md` → **Design DNA** (palette/fonts/shapes/motion of THIS game)
+2b. Read `design/art-direction.md` (if any) → selected **Layout Archetype** (L1–L6)
+2c. Read `.claude/docs/quality-bar.md` → professional level thresholds
+    (§1 first 30 sec: TTP ≤ 3 taps; §2 response ≤ 100 ms; §3 scaled feedback;
+    §7 completeness; §8 visual integrity) - the audit measures BY THEM, not “by eye”
+3. `glob lib/screens/**/*.dart` - find all screens
+4. `glob lib/widgets/**/*.dart` - find all widgets
+5. `glob lib/theme/**/*.dart` - find theme and animations
+6. `glob lib/components/**/*.dart` - find Flame components
+7. Read EVERY file found completely
+8. Read `lib/app.dart` and `lib/main.dart`
+9. Read `pubspec.yaml` (assets and fonts section)
+10. `glob assets/**/*` - find all real assets on disk
 
-> Эти ошибки ГАРАНТИРОВАННО крашат приложение. Исправлять ПЕРВЫМИ.
+---
 
-| # | Проверка | Как найти | Почему крашит | Автофикс |
+## Phase 2 - Audit (100+ audits, 10 categories)
+
+### Category A: CRASH VULNERABILITIES (Critical - application crashes)
+
+> These errors are GUARANTEED to crash the application. Fix it FIRST.
+
+| # | Check | How to find | Why does it crash | Autofix |
 |---|---------|-----------|---------------|----------|
-| A1 | **RenderFlex overflow**: Column/Row без ограничения высоты/ширины | Найти `Column(` или `Row(` внутри другого `Column`/`Row`/`ListView` без `Expanded`/`Flexible`/`SizedBox` обёртки | "A RenderFlex overflowed by N pixels" — красно-жёлтые полосы | Обернуть в `Expanded` или `Flexible` |
-| A2 | **ListView в Column без bounds** | `grep -n 'ListView'` внутри `Column` без `Expanded` wrapper | "Vertical viewport was given unbounded height" | Обернуть ListView в `Expanded` |
-| A3 | **setState after dispose** | StatefulWidget с `setState` но без `if (!mounted) return;` проверки перед каждым `setState`, особенно в callbacks, Futures, Timers | "setState() called after dispose()" | Добавить `if (!mounted) return;` перед каждым `setState` в async контексте |
-| A4 | **AnimationController без dispose** | StatefulWidget с `AnimationController` но без `controller.dispose()` в `dispose()` | Memory leak → eventual crash | Добавить `dispose()` |
-| A5 | **Timer/StreamSubscription без cancel** | `Timer.periodic` или `.listen(` без `cancel()` в `dispose()` | Callback вызывается на disposed widget | Добавить `cancel()` в `dispose()` |
-| A6 | **Navigator.pop на пустом стеке** | `Navigator.pop(context)` без проверки `Navigator.canPop(context)` | "Navigator cannot pop — route stack is empty" | Добавить `if (Navigator.canPop(context))` |
-| A7 | **Отсутствующий ассет** | Сравнить пути в коде (`'assets/...'`) с реальными файлами в `assets/` | "Unable to load asset" — белый экран или crash | Создать отсутствующий файл или исправить путь |
-| A8 | **Шрифт не зарегистрирован** | fontFamily в коде vs fonts в `pubspec.yaml` | Шрифт не загружается, fallback на системный | Добавить в pubspec.yaml или использовать GoogleFonts |
-| A9 | **Infinite size**: Unconstrained widget | `MediaQuery.of(context).size` используется для задания constraints внутри `build` до layout | "BoxConstraints forces an infinite width/height" | Использовать `LayoutBuilder` вместо `MediaQuery` для constraints |
-| A10 | **Missing Key на анимированных списках** | `ListView.builder` или `AnimatedList` без `key:` на children | Неправильная анимация, мерцание, потенциальный краш при удалении | Добавить `ValueKey` на каждый child |
+| A1 | **RenderFlex overflow**: Column/Row without height/width limitation | Find `Column(` or `Row(` inside another `Column`/`Row`/`ListView` without `Expanded`/`Flexible`/`SizedBox` wrapper | "A RenderFlex overflowed by N pixels" - red and yellow stripes | Wrap in `Expanded` or `Flexible` |
+| A2 | **ListView in Column without bounds** | `grep -n 'ListView'` inside `Column` without `Expanded` wrapper | "Vertical viewport was given unbounded height" | Wrap ListView in `Expanded` |
+| A3 | **setState after dispose** | StatefulWidget with `setState` but without `if (!mounted) return;` checking before each `setState`, especially in callbacks, Futures, Timers | "setState() called after dispose()" | Add `if (!mounted) return;` before every `setState` in async context |
+| A4 | **AnimationController without dispose** | StatefulWidget with `AnimationController` but without `controller.dispose()` in `dispose()` | Memory leak → eventual crash | Add `dispose()` |
+| A5 | **Timer/StreamSubscription without cancel** | `Timer.periodic` or `.listen(` without `cancel()` in `dispose()` | Callback is called on disposed widget | Add `cancel()` to `dispose()` |
+| A6 | **Navigator.pop on empty stack** | `Navigator.pop(context)` without check `Navigator.canPop(context)` | "Navigator cannot pop - route stack is empty" | Add `if (Navigator.canPop(context))` |
+| A7 | **Missing asset** | Compare paths in code (`'assets/...'`) with real files in `assets/` | "Unable to load asset" - white screen or crash | Create missing file or fix path |
+| A8 | **Font not registered** | fontFamily in code vs fonts in `pubspec.yaml` | The font does not load, it falls back to the system one | Add to pubspec.yaml or use GoogleFonts |
+| A9 | **Infinite size**: Unconstrained widget | `MediaQuery.of(context).size` is used to set the constraints inside `build` to layout | "BoxConstraints forces an infinite width/height" | Use `LayoutBuilder` instead of `MediaQuery` for constraints |
+| A10 | **Missing Key on Animated Lists** | `ListView.builder` or `AnimatedList` without `key:` on children | Incorrect animation, flickering, potential crash when deleted | Add `ValueKey` to each child |
 
-### Категория B: LAYOUT ОШИБКИ (High — визуальные баги, не краш)
+### Category B: LAYOUT BUGS (High - visual bugs, no crash)
 
-> Приложение работает, но выглядит сломанным на некоторых устройствах.
+> The app works but appears broken on some devices.
 
-| # | Проверка | Как найти | Симптом | Автофикс |
+| # | Check | How to find | Symptom | Autofix |
 |---|---------|-----------|---------|----------|
-| B1 | **Нет SafeArea** | Корневой виджет экрана (Scaffold body) без `SafeArea` | Контент уходит под notch/status bar/navigation bar | Обернуть в `SafeArea` |
-| B2 | **Фиксированные пиксели** | `height: [число]` или `width: [число]` без `MediaQuery` рядом (исключая иконки <48 и padding) | На маленьком экране — overflow, на большом — пустота | Заменить на `MediaQuery.of(context).size.height * fraction` или `LayoutBuilder` |
-| B3 | **Текст overflow** | `Text(` без `overflow:`, `maxLines:`, `FittedBox` или `Flexible` родителя | Текст выходит за экран, жёлтые полосы | Добавить `overflow: TextOverflow.ellipsis, maxLines: 1` или обернуть в `FittedBox` |
-| B4 | **Клавиатура перекрывает ввод** | `TextField`/`TextFormField` не внутри `SingleChildScrollView` или `resizeToAvoidBottomInset: true` не установлен | Поле ввода скрыто за клавиатурой | Обернуть в `SingleChildScrollView` + `resizeToAvoidBottomInset: true` |
-| B5 | **Отсутствует Scaffold** | Экран возвращает виджет без `Scaffold` wrapper | Нет фона, нет appbar, нет safe area handling | Обернуть в `Scaffold(body: ...)` |
-| B6 | **Padding внутри Padding** | Вложенные `Padding` виджеты — двойные отступы | Слишком большие отступы, потеря пространства | Объединить в один Padding |
-| B7 | **SingleChildScrollView с Column** | `SingleChildScrollView` → `Column` с `Expanded` children | Expanded не работает в unbounded scroll — crash или unexpected behavior | Убрать `Expanded` внутри `SingleChildScrollView`, использовать фиксированные или intrinsic размеры |
-| B8 | **Image без размеров** | `Image.asset(` / `SvgPicture.asset(` без `width:`, `height:` или `fit:` | Изображение может растянуться или сжаться непредсказуемо | Добавить `width`, `height`, `fit: BoxFit.contain` |
-| B9 | **Stack без Positioned** | `Stack` с children без `Positioned` или `Align` — элементы наложены друг на друга | Элементы в углу друг на друге | Добавить `Positioned` или `Align` |
-| B10 | **Обрезание контента на маленьких экранах** | Контент высотой > 600px без scroll | На iPhone SE / маленьких телефонах — overflow | Обернуть в `SingleChildScrollView` или использовать `LayoutBuilder` для адаптации |
+| B1 | **No SafeArea** | Root screen widget (Scaffold body) without `SafeArea` | Content goes under notch/status bar/navigation bar | Wrap in `SafeArea` |
+| B2 | **Fixed pixels** | `height: [number]` or `width: [number]` without `MediaQuery` next to it (excluding icons <48 and padding) | On a small screen - overflow, on a large screen - emptiness | Replace with `MediaQuery.of(context).size.height * fraction` or `LayoutBuilder` |
+| B3 | **Text overflow** | `Text(` without `overflow:`, `maxLines:`, `FittedBox` or `Flexible` parent | Text goes off screen, yellow stripes | Add `overflow: TextOverflow.ellipsis, maxLines: 1` or wrap in `FittedBox` |
+| B4 | **Keyboard blocking input** | `TextField`/`TextFormField` not inside `SingleChildScrollView` or `resizeToAvoidBottomInset: true` not installed | The input field is hidden behind the keyboard | Wrap in `SingleChildScrollView` + `resizeToAvoidBottomInset: true` |
+| B5 | **Missing Scaffold** | Screen returns widget without `Scaffold` wrapper | No background, no appbar, no safe area handling | Wrap in `Scaffold(body: ...)` |
+| B6 | **Padding inside Padding** | Nested `Padding` widgets - double indentation | Too much padding, wasted space | Combine into one Padding |
+| B7 | **SingleChildScrollView with Column** | `SingleChildScrollView` → `Column` with `Expanded` children | Expanded does not work in unbounded scroll - crash or unexpected behavior | Remove `Expanded` inside `SingleChildScrollView`, use fixed or intrinsic sizes |
+| B8 | **Image without dimensions** | `Image.asset(` / `SvgPicture.asset(` without `width:`, `height:` or `fit:` | The image may stretch or shrink unpredictably | Add `width`, `height`, `fit: BoxFit.contain` |
+| B9 | **Stack without Positioned** | `Stack` with children without `Positioned` or `Align` - elements superimposed on each other | Elements in corner on top of each other | Add `Positioned` or `Align` |
+| B10 | **Cutting content on small screens** | Content height > 600px without scroll | On iPhone SE/small phones - overflow | Wrap in `SingleChildScrollView` or use `LayoutBuilder` to adapt |
 
-### Категория C: НАВИГАЦИЯ И СОСТОЯНИЕ (High — приложение работает неправильно)
+### Category C: NAVIGATION AND STATUS (High - the application is not working properly)
 
-| # | Проверка | Как найти | Симптом | Автофикс |
+| # | Check | How to find | Symptom | Autofix |
 |---|---------|-----------|---------|----------|
-| C1 | **Маршрут не определён** | `pushNamed('/...')` в коде vs `routes:` в `MaterialApp` | "Could not find route" — чёрный экран или exception | Добавить маршрут в `app.dart` |
-| C2 | **Нет Back button handling** | Экраны без `PopScope` (Flutter 3.12+) или `WillPopScope` | Кнопка "Назад" закрывает приложение вместо возврата на предыдущий экран | Добавить `PopScope(canPop: false, onPopInvokedWithResult: ...)` |
-| C3 | **Game overlay не закрывается** | Flame `overlays.add('win')` без соответствующего `overlays.remove('win')` по таймеру или тапу | Оверлей висит навсегда, блокирует игру | Добавить auto-dismiss Timer + tap-to-dismiss |
-| C4 | **Settings не сохраняются** | Settings экран без `SharedPreferences` вызовов | Настройки сбрасываются при перезапуске | Добавить SharedPreferences load/save |
-| C5 | **Settings не применяются** | Sound toggle не проверяется перед воспроизведением | Звук играет даже если выключен | Добавить проверку `isSoundEnabled` перед `FlameAudio.play` |
-| C6 | **Daily Bonus даёт бесконечно** | Нет проверки даты последнего получения | Игрок может получать бонус неограниченно | Добавить `SharedPreferences` с датой + проверку |
-| C7 | **Leaderboard не обновляется** | Нет записи результата после игры | Leaderboard всегда пустой | Добавить запись результата при Game Over / новом high score |
-| C8 | **Profile не сохраняет** | Nickname/avatar не записываются в SharedPreferences | Данные теряются при перезапуске | Добавить persistence |
-| C9 | **Splash не переходит** | Splash screen без `Timer` или `Future.delayed` для авто-навигации | Приложение застревает на splash | Добавить `Future.delayed(Duration(seconds: 2), () => Navigator.pushReplacementNamed(context, '/menu'))` |
-| C10 | **Множественный push без replacement** | `Navigator.pushNamed` вместо `pushReplacementNamed` для splash→menu | Стек навигации растёт, кнопка "назад" ведёт обратно на splash | Использовать `pushReplacementNamed` для splash→menu |
+| C1 | **Route not defined** | `pushNamed('/...')` in code vs `routes:` in `MaterialApp` | "Could not find route" - black screen or exception | Add route to `app.dart` |
+| C2 | **No Back button handling** | Screens without `PopScope` (Flutter 3.12+) or `WillPopScope` | Back button closes app instead of returning to previous screen | Add `PopScope(canPop: false, onPopInvokedWithResult: ...)` |
+| C3 | **Game overlay does not close** | Flame `overlays.add('win')` without corresponding `overlays.remove('win')` by timer or tap | Overlay hangs forever, blocks the game | Add auto-dismiss Timer + tap-to-dismiss |
+| C4 | **Settings are not saved** | Settings screen without `SharedPreferences` calls | Settings are reset on restart | Add SharedPreferences load/save |
+| C5 | **Settings not applied** | Sound toggle is not checked before playback | The sound plays even if it is turned off | Add check `isSoundEnabled` before `FlameAudio.play` |
+| C6 | **Daily Bonus gives endlessly** | No last received date check | The player can receive the bonus unlimitedly | Add `SharedPreferences` with date + check |
+| C7 | **Leaderboard not updating** | No record of result after game | Leaderboard is always empty | Add score entry for Game Over / new high score |
+| C8 | **Profile does not save** | Nickname/avatar is not recorded in SharedPreferences | Data is lost on restart | Add persistence |
+| C9 | **Splash does not transition** | Splash screen without `Timer` or `Future.delayed` for auto-navigation | Application gets stuck on splash | Add `Future.delayed(Duration(seconds: 2), () => Navigator.pushReplacementNamed(context, '/menu'))` |
+| C10 | **Multiple push without replacement** | `Navigator.pushNamed` instead of `pushReplacementNamed` for splash→menu | The navigation stack grows, the back button leads back to splash | Use `pushReplacementNamed` for splash→menu |
 
-### Категория D: КНОПКИ И ВЗАИМОДЕЙСТВИЕ (High — UX баги)
+### Category D: BUTTONS AND INTERACTION (High - UX bugs)
 
-| # | Проверка | Как найти | Симптом | Автофикс |
+| # | Check | How to find | Symptom | Autofix |
 |---|---------|-----------|---------|----------|
-| D1 | **Двойной клик на кнопке действия** | Кнопка Spin/Play без `isSpinning`/`isPlaying` check | Два спина/действия одновременно, баланс списывается дважды | Добавить `if (isPlaying) return;` + debounce 300ms |
-| D2 | **Bet изменяется во время действия** | Кнопки Bet+/Bet- без disabled state при `isSpinning` | Ставка меняется между списанием и начислением выигрыша | Добавить `IgnorePointer(ignoring: isSpinning)` или disabled state |
-| D3 | **Кнопка без обратной связи** | `GestureDetector(onTap:)` без анимации при нажатии | Пользователь не понимает, нажал ли он | Добавить `AnimatedScale` (0.95 при нажатии) или `InkWell` с splash |
-| D4 | **Tap target < 48px** | Кнопки/иконки с `width` или `height` < 48 | Сложно нажать на мобильном | Обернуть в `SizedBox(width: 48, height: 48)` или добавить padding |
-| D5 | **Invisible tap blocker** | `Opacity(opacity: 0)` или `Container(color: Colors.transparent)` с `GestureDetector` поверх контента | Пользователь нажимает — ничего не происходит, хотя кнопка видна | Убрать невидимый blocker или добавить `IgnorePointer` |
-| D6 | **Scroll внутри scroll** | `ListView` внутри `ListView` без `shrinkWrap: true` + `NeverScrollableScrollPhysics` | Конфликт жестов, невозможно прокрутить | Добавить `shrinkWrap: true, physics: NeverScrollableScrollPhysics()` на внутренний |
-| D7 | **Нет обработки пустого состояния** | `ListView.builder(itemCount: items.length)` без проверки `items.isEmpty` | Пустой экран без объяснения | Добавить `if (items.isEmpty) return EmptyStateWidget(...)` |
-| D8 | **GestureDetector перехватывает скролл** | `GestureDetector` с `onVerticalDragUpdate` внутри `ListView` | Скролл не работает | Использовать `onTap` или `Listener` вместо drag gestures |
-| D9 | **Кнопка действия не показывает disabled** | Кнопка "SPIN" / "PLAY" визуально одинакова в enabled и disabled | Пользователь нажимает — ничего не происходит — фрустрация | Добавить визуальное различие: тусклый цвет, пониженная opacity, другая иконка |
-| D10 | **Нет Insufficient Funds обработки** | При `balance < bet` нет проверки перед действием | Баланс уходит в минус ИЛИ ничего не происходит при нажатии | Добавить проверку + показ InsufficientFundsDialog |
+| D1 | **Double click on action button** | Spin/Play button without `isSpinning`/`isPlaying` check | Two spins/actions at the same time, the balance is debited twice | Add `if (isPlaying) return;` + debounce 300ms |
+| D2 | **Bet changes during action** | Bet+/Bet- buttons without disabled state at `isSpinning` | The bet changes between debiting and accruing winnings | Add `IgnorePointer(ignoring: isSpinning)` or disabled state |
+| D3 | **Button without feedback** | `GestureDetector(onTap:)` without animation when pressed | The user does not understand whether he clicked | Add `AnimatedScale` (0.95 when pressed) or `InkWell` with splash |
+| D4 | **Tap target < 48px** | Buttons/icons with `width` or `height` < 48 | Difficult to click on mobile | Wrap in `SizedBox(width: 48, height: 48)` or add padding |
+| D5 | **Invisible tap blocker** | `Opacity(opacity: 0)` or `Container(color: Colors.transparent)` with `GestureDetector` over content | The user clicks - nothing happens, although the button is visible | Remove invisible blocker or add `IgnorePointer` |
+| D6 | **Scroll inside scroll** | `ListView` inside `ListView` without `shrinkWrap: true` + `NeverScrollableScrollPhysics` | Gesture conflict, unable to scroll | Add `shrinkWrap: true, physics: NeverScrollableScrollPhysics()` to internal |
+| D7 | **No handling of empty state** | `ListView.builder(itemCount: items.length)` without check `items.isEmpty` | Blank screen with no explanation | Add `if (items.isEmpty) return EmptyStateWidget(...)` |
+| D8 | **GestureDetector intercepts scrolling** | `GestureDetector` with `onVerticalDragUpdate` inside `ListView` | Scroll doesn't work | Use `onTap` or `Listener` instead of drag gestures |
+| D9 | **Action button doesn't show disabled** | The "SPIN" / "PLAY" button is visually the same in enabled and disabled | User clicks - nothing happens - frustration | Add visual difference: dull color, lower opacity, different icon |
+| D10 | **No Insufficient Funds Processing** | With `balance < bet` there is no check before action | The balance goes into minus OR nothing happens when you press | Add check + show InsufficientFundsDialog |
 
-### Категория E: DESIGN INTENT (Medium — контекстуальный дизайн)
+### Category E: DESIGN INTENT (Medium - contextual design)
 
-> Не проверяем "есть ли neon glow." Проверяем: "есть ли НАМЕРЕНИЕ за каждым решением."
-> Прочитай `.claude/rules/anti-slop-design.md` для понимания принципа.
-> Также прочитай `design/gdd/game-concept.md` (Design DNA) чтобы понять контекст ЭТОЙ игры.
+> We do not check “whether there is neon glow.” We check: “is there INTENTION behind every decision.”
+> Read `.claude/rules/anti-slop-design.md` to understand the principle.
+> Also read `design/gdd/game-concept.md` (Design DNA) to understand the context of THIS game.
 >
-> 🛑 **AUDIT GUARD — не меняй один slop на другой.** Этот аудит проверяет НАМЕРЕНИЕ,
-> СОГЛАСОВАННОСТЬ и КРАФТ — НИКОГДА не конкретный стиль. НЕЛЬЗЯ "чинить" экран, добавляя
-> неон, glassmorphism, скошенные кнопки или тёмную тему, если их нет в DNA игры. Чистый
-> светлый уютный экран, соблюдающий Craft Fundamentals, — это PASS. Любой автофикс обязан
-> двигать UI К Design DNA, а не к house-style студии.
+> 🛑 **AUDIT GUARD - do not change one slop for another.** This audit checks the INTENT,
+> CONSISTENCY and CRAFT are NEVER a specific style. DO NOT "fix" the screen by adding
+> neon, glassmorphism, beveled buttons or dark theme, if they are not in the DNA of the game. Clean
+> a bright, cozy screen that respects Craft Fundamentals is PASS. Any autofix must
+> move the UI towards Design DNA, and not towards a house-style studio.
 
-| # | Проверка | Как проверить | Автофикс |
+| # | Check | How to check | Autofix |
 |---|---------|--------------|----------|
-| E1 | **Нет default framework widgets без кастомизации** | `ThemeData.dark()`, `ThemeData.light()` без модификации | → Кастомная тема из Design DNA |
-| E2 | **Нет generic loading** | `CircularProgressIndicator`, `LinearProgressIndicator` | → Тематический загрузчик (из контекста игры) |
-| E3 | **Нет generic dialogs** | `AlertDialog(` без стилизации | → Стилизованный диалог (стиль из Design DNA) |
-| E4 | **Нет generic transitions** | `MaterialPageRoute` | → Тематический `PageRouteBuilder` |
-| E5 | **Нет print()** | `print(` | → `debugPrint` или удалить |
-| E6 | **Есть animations.dart** | `lib/theme/animations.dart` не существует | Создать файл |
-| E7 | **Нет хардкоженных Duration в screens** | `Duration(milliseconds:` вне animations.dart | → `AnimationConfig.xxx` |
-| E8 | **Design DNA существует и используется** | Прочитать `design/gdd/game-concept.md` — есть ли Design DNA? Используются ли цвета из DNA в `game_theme.dart`? | Если нет DNA — создать. Если есть но не используется — связать. |
-| E9 | **Цвета обоснованы контекстом** | Прочитать game_theme.dart — цвета соответствуют теме игры? (лес = зелёный OK, казино = золотой OK, произвольный фиолетовый = НЕТ) | Скорректировать палитру |
-| E10 | **Шрифты соответствуют настроению** | Шрифт подходит миру игры? (ретро-автоматный зал = пиксельный, элегантное казино = serif, уютное бинго = rounded) | Заменить на подходящий |
-| E11 | **Кнопки имеют форму из Design DNA** | Все primary кнопки используют одну форму, secondary — другую | Привести к единому стилю из DNA |
-| E12 | **Визуальная консистентность** | Все экраны используют одну палитру, одни шрифты, один стиль кнопок | Привести к единству |
-| E13 | **Меню — концептуальное (centerpiece)** | В `main_menu` есть фирменный тематический визуал-якорь из мира игры (не просто лого + столбик кнопок); многослойная глубина | Добавить живой centerpiece + слои (параллакс/частицы) из DNA |
-| E14 | **Игровой экран — сдержанный HUD** | На game_screen HUD компактный, прижат к краям, не наезжает на поле; поле ≈60%+ — фокус; нет тяжёлых эффектов на HUD | Уменьшить/прижать HUD к краям, приглушить вторичные элементы, убрать отвлекающие эффекты |
+| E1 | **No default framework widgets without customization** | `ThemeData.dark()`, `ThemeData.light()` without modification | → Custom theme from Design DNA |
+| E2 | **No generic loading** | `CircularProgressIndicator`, `LinearProgressIndicator` | → Thematic loader (from the context of the game) |
+| E3 | **No generic dialogs** | `AlertDialog(` unstylized | → Stylized dialogue (style from Design DNA) |
+| E4 | **No generic transitions** | `MaterialPageRoute` | → Thematic `PageRouteBuilder` |
+| E5 | **No print()** | `print(` | → `debugPrint` or delete |
+| E6 | **There are animations.dart** | `lib/theme/animations.dart` does not exist | Create file |
+| E7 | **No hard-skinned Duration in screens** | `Duration(milliseconds:` outside animations.dart | → `AnimationConfig.xxx` |
+| E8 | **Design DNA exists and is in use** | Read `design/gdd/game-concept.md` - is there Design DNA? Are the colors from DNA used in `game_theme.dart`? | If there is no DNA, create it. If you have it but are not using it, tie it up. |
+| E9 | **Colors based on context** | Read game_theme.dart - do the colors match the theme of the game? (forest = green OK, casino = gold OK, random purple = NO) | Adjust palette |
+| E10 | **Fonts match the mood** | Does the font suit the game world? (retro slot machine = pixelated, elegant casino = serif, cozy bingo = rounded) | Replace with a suitable one |
+| E11 | **Buttons are shaped from Design DNA** | All primary buttons use one form, secondary - another | Bring to a unified style from DNA |
+| E12 | **Visual Consistency** | All screens use the same palette, same fonts, same button style | Bring to unity |
+| E13 | **Menu - conceptual (centerpiece)** | `main_menu` has a branded thematic visual anchor from the game world (not just a logo + a column of buttons); layered depth | Add live centerpiece + layers (parallax/particles) from DNA |
+| E14 | **Game screen - discreet HUD** | On the game_screen, the HUD is compact, pressed to the edges, and does not interfere with the field; field ≈60%+ - focus; no heavy effects on HUD | Shrink/tighten HUD to edges, mute secondary elements, remove distracting effects |
 
-### Категория F: ОТСУТСТВУЮЩИЕ ЭКРАНЫ (Medium)
+### Category F: MISSING SCREENS (Medium)
 
-| # | Проверка | Как проверить |
+| # | Check | How to check |
 |---|---------|--------------|
 | F1 | Splash Screen | `glob lib/screens/splash*` |
 | F2 | Main Menu | `glob lib/screens/main_menu*` |
@@ -148,138 +148,138 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 | F6 | Settings | `glob lib/screens/settings*` |
 | F7 | Help | `glob lib/screens/help*` |
 | F8 | Win Overlay | `glob lib/screens/win_overlay*` |
-| F9 | Insufficient Funds | `grep 'insufficient\|InsufficientFunds'` в screens |
+| F9 | Insufficient Funds | `grep 'insufficient\|InsufficientFunds'` in screens |
 | F10 | Game Theme | `glob lib/theme/game_theme*` |
 | F11 | Daily Bonus | `glob lib/screens/daily_bonus*` |
 | F12 | Leaderboard | `glob lib/screens/leaderboard*` |
 | F13 | Profile | `glob lib/screens/profile*` |
 
-### Категория G: UX POLISH (Low — но делает разницу между "работает" и "хочется играть")
+### Category G: UX POLISH (Low - but makes the difference between “works” and “want to play”)
 
-| # | Проверка | Как проверить | Автофикс |
+| # | Check | How to check | Autofix |
 |---|---------|--------------|----------|
-| G1 | 2+ шрифта подключены (display + body) | `grep 'fontFamily\|GoogleFonts'` | Добавить подходящую пару для контекста игры |
-| G2 | Кнопка действия: idle + press + disabled визуально различимы | Прочитать код кнопки | Добавить feedback (характер — из Design DNA) |
-| G3 | Числа анимируются при изменении | `grep 'TweenAnimationBuilder\|AnimatedCount'` | Обернуть в TweenAnimationBuilder |
-| G4 | Interactive elements имеют visual feedback | `grep 'onTapDown\|AnimatedScale\|ScaleTransition'` | Добавить feedback на все GestureDetector |
-| G5 | Win overlay масштабируется по размеру выигрыша | Прочитать win_overlay — есть ли small/big/mega | Добавить switch по multiplier |
-| G6 | Контраст текста к фону >= 4.5:1 | Проверить цвета в theme | Скорректировать |
-| G7 | Game screen: основное действие доминирует (60%+) | Прочитать layout | Скорректировать proportions |
-| G8 | Пустые состояния стилизованы | `grep 'empty\|EmptyState\|no data'` | Добавить placeholder с текстом и иллюстрацией |
-| G9 | Loading state стилизован под игру | `grep 'Loading\|loading'` в screens | Заменить generic → тематический |
-| G10 | **Transferability test** | Мысленно перенести UI на другую игру — выглядит ли неуместно? | Если UI generic (подходит к любой игре) — усилить тематическую привязку |
+| G1 | 2+ fonts included (display + body) | `grep 'fontFamily\|GoogleFonts'` | Add a suitable pair for the context of the game |
+| G2 | Action button: idle + press + disabled visually distinguishable | Read button code | Add feedback (character - from Design DNA) |
+| G3 | Numbers animate as they change | `grep 'TweenAnimationBuilder\|AnimatedCount'` | Wrap in TweenAnimationBuilder |
+| G4 | Interactive elements have visual feedback | `grep 'onTapDown\|AnimatedScale\|ScaleTransition'` | Add feedback to all GestureDetector |
+| G5 | Win overlay scales to win size | Read win_overlay - is there small/big/mega | Add switch by multiplier |
+| G6 | Text to background contrast >= 4.5:1 | Check colors in theme | Adjust |
+| G7 | Game screen: main action dominates (60%+) | Read layout | Adjust proportions |
+| G8 | Empty states are stylized | `grep 'empty\|EmptyState\|no data'` | Add a placeholder with text and illustration |
+| G9 | Loading state is stylized as a game | `grep 'Loading\|loading'` in screens | Replace generic → thematic |
+| G10 | **Transferability test** | Does it look out of place to mentally transfer the UI to another game? | If the UI is generic (suitable for any game) - strengthen the thematic connection |
 
-### Категория H: CRAFT & COMPOSITION (Low — то, что отличает «дизайнерский» экран от сгенерированного)
+### Category H: CRAFT & COMPOSITION (Low is what distinguishes a “designer” screen from a generated one)
 
-> Это не про стиль, а про крафт. Применимо к ЛЮБОЙ DNA. См. "Craft Fundamentals" в `anti-slop-design.md`.
+> This is not about style, but about craft. Applicable to ANY DNA. See "Craft Fundamentals" in `anti-slop-design.md`.
 
-| # | Проверка | Как найти | Автофикс |
+| # | Check | How to find | Autofix |
 |---|---------|-----------|----------|
-| H1 | **Тип-шкала** | В theme задано 4–6 размеров текста и они переиспользуются (нет россыпи случайных `fontSize:`) | Свести размеры к шкале в теме |
-| H2 | **Шаг отступов** | Паддинги/гэпы кратны базовому шагу (4 или 8), а не произвольные числа | Привести к кратным базового шага |
-| H3 | **Согласованность палитры** | Не более 1–2 акцентов; цвета из одной DNA-палитры (нет случайных hue) | Свести к палитре DNA |
-| H4 | **Один фокус на экран** | На каждом экране один доминирующий элемент, остальные тише | Усилить иерархию (размер/цвет/позиция) |
-| H5 | **Единый shape language** | Радиусы/формы кнопок и карточек консистентны в пределах игры | Привести к единому радиусу/форме из DNA |
-| H6 | **Выравнивание и поля** | Элементы делят линии выравнивания; равные оптические поля от краёв | Выровнять, выровнять отступы от краёв |
-| H7 | **Сдержанность эффектов** | Нет «супа» из слабых теней/градиентов; эффекты осмысленны | Убрать лишние эффекты |
-| H8 | **Единая иконография** | Иконки в одном стиле и одной толщине обводки | Привести к одному стилю |
-| H9 | **Соответствие Layout Archetype** | Композиция экранов следует выбранному L1–L6 из `design/art-direction.md` (а не дефолтной раскладке) | Перекомпоновать по архетипу |
+| H1 | **Type-scale** | The theme has 4-6 text sizes and they are reused (no random `fontSize:`) | Reduce dimensions to scale in topic |
+| H2 | **Indent Step** | Paddings/gaps are multiples of the base step (4 or 8), not arbitrary numbers | Reduce to multiples of base step |
+| H3 | **Palette Consistency** | No more than 1–2 accents; colors from one DNA palette (no random hue) | Reduce to DNA palette |
+| H4 | **One focus per screen** | Each screen has one dominant element, the rest are quieter | Reinforce Hierarchy (Size/Color/Position) |
+| H5 | **Unified shape language** | The radii/shapes of buttons and cards are consistent within the game | Convert to a single radius/shape from DNA |
+| H6 | **Alignment and Margins** | Elements are divided by alignment lines; equal optical fields from the edges | Align, align margins from edges |
+| H7 | **Restraint effects** | There is no “soup” of weak shadows/gradients; the effects are meaningful | Remove unnecessary effects |
+| H8 | **Unified iconography** | Icons in the same style and stroke thickness | Bring to one style |
+| H9 | **Layout Archetype Matching** | Screen composition follows the selected L1–L6 from `design/art-direction.md` (not the default layout) | Rearrange by archetype |
 
-### Категория I: ЖИВОЙ ГЕЙМПЛЕЙ (Medium — анимация ВНУТРИ поля, не меню)
+### Category I: LIVE GAMEPLAY (Medium - animation INSIDE the field, not menu)
 
-> Самая частая «дыра»: меню и HUD анимированы, а сами игровые компоненты на поле статичны.
-> Здесь проверяем `lib/components/` (игровые компоненты), а не экраны. Если поле мертво —
-> это провал «живой игры», даже когда меню красивое. Принципы — `juice-artist.md` (раздел 0.5).
+> The most common “hole”: the menu and HUD are animated, but the game components themselves on the field are static.
+> Here we check `lib/components/` (game components), not screens. If the field is dead -
+> this is a failure of the “live game”, even when the menu is beautiful. Principles - `juice-artist.md` (Section 0.5).
 
-| # | Проверка | Как найти | Автофикс |
+| # | Check | How to find | Autofix |
 |---|---------|-----------|----------|
-| I1 | **Idle-движение** на основном игровом элементе | `update(` в components с накоплением фазы/ScaleEffect/sin (дыхание/покачивание) | Добавить idle в `update(dt)` (без аллокаций) |
-| I2 | **Entrance-анимация** элементов (не возникают мгновенно) | `playEntrance`/scale-in/move-in при спавне | Добавить entrance при добавлении в World |
-| I3 | **Impact/Reaction** на главное действие | `playImpact`/`playMatch`/squash&stretch/вспышка вызывается из логики | Добавить реакцию + вызов из game/systems |
-| I4 | **State transition** игрового объекта анимирован | reveal/morph/flip при смене состояния (не щелчком кадра) | Анимировать переход состояния |
-| I5 | **Хуки реально ВЫЗЫВАЮТСЯ** из логики | `grep -rn "play...(" lib/ \| grep -v "void play"` — непусто | Расставить вызовы хуков в нужных точках цикла |
-| I6 | **Нет аллокаций** в `update()`/`render()` компонентов | `Vector2(`/`Paint()`/`Rect.` внутри update | Прединициализировать поля |
-| I7 | **Тайминги из animations-файла** (не хардкод в компонентах) | `Duration(milliseconds:` в `lib/components/` | Вынести в `AnimationConfig` |
+| I1 | **Idle movement** on the main game element | `update(` in components with phase accumulation/ScaleEffect/sin (breathing/swaying) | Add idle to `update(dt)` (without allocations) |
+| I2 | **Entrance animation** of elements (does not appear instantly) | `playEntrance`/scale-in/move-in on spawn | Add entrance when adding to World |
+| I3 | **Impact/Reaction** on the main action | `playImpact`/`playMatch`/squash&stretch/flash called from logic | Add reaction + call from game/systems |
+| I4 | **State transition** of the game object is animated | reveal/morph/flip when changing state (not by clicking a frame) | Animate state transition |
+| I5 | **Hooks are actually CALLED** from logic | `grep -rn "play...(" lib/ \| grep -v "void play"` - non-empty | Place hook calls at the right points in the loop |
+| I6 | **No allocations** in `update()`/`render()` components | `Vector2(`/`Paint()`/`Rect.` inside update | Preinitialize fields |
+| I7 | **Timings from the animations file** (not hardcode in components) | `Duration(milliseconds:` to `lib/components/` | Place in `AnimationConfig` |
 
-> ⚠️ Если автофикс требует существенной работы (оживить весь геймплей) — делегируй её агенту
-> **juice-artist** через Agent tool (роль «Gameplay Feel Pass»), как в Фазе 6.5 `/autocreate`.
+> ⚠️ If autofix requires significant work (to revive the entire gameplay) - delegate it to an agent
+> **juice-artist** via Agent tool (Gameplay Feel Pass role), as in Phase 6.5 `/autocreate`.
 
-### Категория J: PRODUCTION COMPLETENESS & COMPLIANCE (Medium — «полная игра», не демо)
+### Category J: PRODUCTION COMPLETENESS & COMPLIANCE (Medium - “full game”, not demo)
 
-> Отличие полной игры от мини-демо: объём контента, мета-петля и compliance-слой.
-> Проверяем наличие подсистем и точек интеграции, а не один игровой цикл. Категория — из
-> `design/gdd/game-concept.md` (секция Production Plan). Если игра намеренно одно-уровневая
-> (напр. чистый endless без мета) — отметь N/A с обоснованием, не форси контент ради контента.
+> The difference between the full game and the mini-demo: the amount of content, the meta-loop and the compliance layer.
+> We check the presence of subsystems and integration points, and not just one game loop. Category - from
+> `design/gdd/game-concept.md` (Production Plan section). If the game is intentionally one-level
+> (e.g. pure endless without meta) - mark N/A with justification, do not force content for the sake of content.
 
-| # | Проверка | Как найти | Автофикс |
+| # | Check | How to find | Autofix |
 |---|---------|-----------|----------|
-| J1 | **Контент = данные, не одна точка** | Конфиг контента категории есть и >1 записи (`bet-tiers.json` C1/C2, `stage-config.json` C3, `banners.json` C4, `run-config.json` C5, `board-config.json` C6) | Сгенерировать конфиг контента (Фаза 3.7 autocreate) |
-| J2 | **Level/Mode Select связан с данными** | экран читает реальный список уровней/режимов, не хардкод 3 кнопки | Связать с ProgressionService/конфигом |
-| J3 | **Режимы реализованы** | enum режимов + ветвление в Game (Classic + ещё ≥1) | Добавить mode-параметр в GameScreen |
-| J4 | **SaveService единый** | нет россыпи прямых `SharedPreferences.getInstance()` по экранам | Консолидировать в SaveService |
-| J5 | **Economy подключена** | EconomyService + Shop читают/тратят валюту; победы начисляют | Подключить магазин к Economy |
-| J6 | **Progression сохраняется** | открытые уровни/звёзды/лучшие счёты пишутся и читаются | Добавить recordResult/unlock |
-| J7 | **Achievements работают** | список + проверка по событиям + награда | Подписать на события |
-| J8 | **Analytics-вызовы расставлены** | `grep -rn "analytics\.\(log\|logEvent\)" lib/` непусто (screen_view + level_* + game_action) | Добавить вызовы (no-op сервис) |
-| J9 | **Нет внешних SDK по умолчанию** | `firebase_`/`google_mobile_ads`/`in_app_purchase` НЕ в pubspec | Заменить на abstraction + no-op |
-| J10 | **Age-gate** | Экран при первом запуске, флаг в SaveService, при отказе — не пускает в игру | Добавить AgeGateScreen + флаг |
-| J11 | **Disclaimer** | «Игра на виртуальные фишки… Успех не означает успеха в азартных играх на реальные деньги» на splash + в правилах | Добавить строку в `ComplianceCopy` и вывести |
-| J12 | **Responsible-play** | Блок в settings: напоминание о сессии, «сделать перерыв», контакты помощи | Добавить блок в настройки |
-| J13 | **Odds disclosure** | Экран «Шансы» доступен ДО траты валюты (обязателен для C4 и платных спинов C3) | Добавить экран, числа читать из конфига модели |
-| J14 | **Нет реальной валюты у баланса** | `grep -rnE '\$\{?balance\|USD\|€\|₽' lib/` пусто (кроме экрана IAP) | Убрать символы реальной валюты |
-| J15 | **Нет обещаний выигрыша** | `grep -rniE 'real money\|реальные деньги\|выиграй деньги\|payout\|заработай' lib/ store/` пусто | Переписать тексты |
-| J16 | **Показанное = конфигу** | Числа в paytable/на экране шансов совпадают с JSON-конфигом матмодели | Привязать UI к конфигу, не дублировать |
+| J1 | **Content = data, not one point** | There is a category content config and >1 entries (`bet-tiers.json` C1/C2, `stage-config.json` C3, `banners.json` C4, `run-config.json` C5, `board-config.json` C6) | Generate content config (Phase 3.7 autocreate) |
+| J2 | **Level/Mode Select linked to data** | the screen reads the real list of levels/modes, not hardcode 3 buttons | Link to ProgressionService/config |
+| J3 | **Modes implemented** | enum modes + branching in Game (Classic + ≥1 more) | Add mode parameter to GameScreen |
+| J4 | **SaveService single** | no scattering of straight lines `SharedPreferences.getInstance()` across the screens | Consolidate to SaveService |
+| J5 | **Economy connected** | EconomyService + Shop read/spend currency; victories are awarded | Connect your store to Economy |
+| J6 | **Progression preserved** | open levels/stars/best scores written and read | Add recordResult/unlock |
+| J7 | **Achievements working** | list + event check + reward | Subscribe to events |
+| J8 | **Analytics calls arranged** | `grep -rn "analytics\.\(log\|logEvent\)" lib/` non-empty (screen_view + level_* + game_action) | Add calls (no-op service) |
+| J9 | **No external SDKs by default** | `firebase_`/`google_mobile_ads`/`in_app_purchase` NOT in pubspec | Replace with abstraction + no-op |
+| J10 | **Age-gate** | Screen on first launch, flag in SaveService, if it fails, it won’t let you into the game | Add AgeGateScreen + flag |
+| J11 | **Disclaimer** | “Playing with virtual chips...Success does not mean success in gambling for real money” on splash + in the rules | Add a line to `ComplianceCopy` and print |
+| J12 | **Responsible-play** | Block in settings: session reminder, “take a break”, help contacts | Add block to settings |
+| J13 | **Odds disclosure** | The Odds screen is available BEFORE spending currency (required for C4 and C3 paid spins) | Add screen, read numbers from model config |
+| J14 | **No real currency on balance** | `grep -rnE '\$\{?balance\|USD\|€\|₽' lib/` empty (except IAP screen) | Remove real currency symbols |
+| J15 | **No promises to win** | `grep -rniE 'real money\|real money\|win money\|payout\|earn' lib/ store/` empty | Rewrite texts |
+| J16 | **Shown = config** | The numbers in the paytable/odds screen match the JSON config of the mathematical model | Link UI to config, do not duplicate |
 
-> J10–J12 — **release-блокеры compliance** (без них стор отклонит). Обязательны для всех
-> категорий; ослабление возможно только для C5 без покупок — см. `.claude/rules/responsible-gaming.md`.
-> J1–J9 — про «полноту»: если их нет, игра функциональна, но остаётся мини-демо. Помечать как
-> Medium и чинить там, где Production Plan концепта это предусматривает.
+> J10–J12 — **compliance release blockers** (without them the store will reject). Mandatory for everyone
+> categories; weakening is only possible for C5 without purchases - see `.claude/rules/responsible-gaming.md`.
+> J1–J9 - about “completeness”: if they are not there, the game is functional, but a mini-demo remains. Mark as
+> Medium and repair where the Production Plan of the concept provides for it.
 
 ---
 
-## Фаза 3 — Автоисправление
+## Phase 3 - Auto-correction
 
-### Порядок исправлений (СТРОГО)
+### Order of corrections (STRICTLY)
 
-**Этап 1 — Краш-уязвимости (A1-A10):**
-Исправить ВСЕ потенциальные краши. Каждое исправление — прочитать файл → понять контекст → точечный Edit.
+**Stage 1 - Crash Vulnerabilities (A1-A10):**
+Fix ALL potential crashes. Each correction - read the file → understand the context → spot Edit.
 
-**Типовые фиксы для категории A:**
+**Typical fixes for category A:**
 
 ```dart
-// A1: RenderFlex overflow — Column в Column
-// БЫЛО:
+// A1: RenderFlex overflow - Column in Column
+// WAS:
 Column(children: [
   Column(children: [Widget1(), Widget2(), Widget3()])
 ])
-// СТАЛО:
+// NOW:
 Column(children: [
   Expanded(child: Column(children: [Widget1(), Widget2(), Widget3()]))
 ])
 
-// A2: ListView в Column
-// БЫЛО:
+// A2: ListView in Column
+// WAS:
 Column(children: [Header(), ListView.builder(...)])
-// СТАЛО:
+// NOW:
 Column(children: [Header(), Expanded(child: ListView.builder(...))])
 
 // A3: setState after dispose
-// БЫЛО:
+// WAS:
 Future.delayed(Duration(seconds: 2), () {
   setState(() { _showOverlay = false; });
 });
-// СТАЛО:
+// NOW:
 Future.delayed(Duration(seconds: 2), () {
   if (!mounted) return;
   setState(() { _showOverlay = false; });
 });
 
-// A4: AnimationController без dispose
-// БЫЛО:
+// A4: AnimationController without dispose
+// WAS:
 class _MyState extends State<My> with SingleTickerProviderStateMixin {
   late final _ctrl = AnimationController(vsync: this, duration: ...);
 }
-// СТАЛО:
+// NOW:
 class _MyState extends State<My> with SingleTickerProviderStateMixin {
   late final _ctrl = AnimationController(vsync: this, duration: ...);
   @override
@@ -290,9 +290,9 @@ class _MyState extends State<My> with SingleTickerProviderStateMixin {
 }
 
 // A5: Timer without cancel
-// БЫЛО:
+// WAS:
 Timer.periodic(Duration(seconds: 1), (t) { ... });
-// СТАЛО:
+// NOW:
 late final Timer _timer;
 @override
 void initState() {
@@ -306,127 +306,127 @@ void dispose() {
 }
 ```
 
-**Этап 2 — Layout ошибки (B1-B10):**
-Исправить все layout проблемы. Особое внимание: SafeArea, overflow, responsive.
+**Stage 2 - Layout errors (B1-B10):**
+Fix all layout problems. Special attention: SafeArea, overflow, responsive.
 
-**Этап 3 — Навигация и состояние (C1-C10):**
-Проверить все маршруты, все persistence, все overlay lifecycle.
+**Stage 3 - Navigation and Status (C1-C10):**
+Check all routes, all persistence, all overlay lifecycle.
 
-**Этап 4 — Кнопки и взаимодействие (D1-D10):**
-Обеспечить что каждая кнопка имеет обратную связь, защиту от двойного клика, disabled state.
+**Stage 4 - Buttons and Interactions (D1-D10):**
+Ensure that each button has feedback, double-click protection, and a disabled state.
 
-**Этап 5 — Anti-Slop (E1-E14):**
-Заменить все запрещённые паттерны на кастомные. Сделать меню концептуальным (centerpiece, E13)
-и игровой HUD сдержанным (E14).
+**Stage 5 - Anti-Slop (E1-E14):**
+Replace all prohibited patterns with custom ones. Make the menu conceptual (centerpiece, E13)
+and the game HUD is discreet (E14).
 
-**Этап 6 — Недостающие экраны (F1-F13):**
-Создать недостающие экраны через Agent (ui-programmer).
+**Step 6 - Missing Screens (F1-F13):**
+Create missing screens using Agent (ui-programmer).
 
-**Этап 7 — Визуальное качество + craft (G1-G10, H1-H9):**
-Polish — шрифты, анимации, micro-interactions, тип-шкала, отступы, выравнивание.
+**Stage 7 - Visual quality + craft (G1-G10, H1-H9):**
+Polish - fonts, animations, micro-interactions, type-scale, indents, alignment.
 
-**Этап 8 — Живой геймплей (I1-I7):**
-Оживить игровые компоненты на поле (idle/entrance/impact/state) и связать хуки с событиями.
-При большом объёме — делегировать агенту juice-artist («Gameplay Feel Pass») через Agent tool.
+**Stage 8 - Live Gameplay (I1-I7):**
+Animate game components on the field (idle/entrance/impact/state) and associate hooks with events.
+For large volumes, delegate juice-artist (“Gameplay Feel Pass”) to the agent via the Agent tool.
 
 ---
 
-## Фаза 4 — Верификация (ОБЯЗАТЕЛЬНАЯ)
+## Phase 4 - Verification (MANDATORY)
 
 ```bash
 dart analyze lib/
 ```
 
-Если появились ошибки от автофиксов → исправить (до 5 попыток).
+If errors from autofixes appear → correct (up to 5 attempts).
 
-Затем проверить что автофиксы не сломали функциональность:
+Then check that autofixes do not break functionality:
 ```bash
 flutter test
 ```
 
-Если тесты падают → исправить (до 3 попыток). Если тест правильный — исправить код, не тест.
+If tests fail → fix (up to 3 attempts). If the test is correct, fix the code, not the test.
 
 ---
 
-## Фаза 5 — Отчёт
+## Phase 5 - Report
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔍 UI/UX AUDIT COMPLETE — DEEP SCAN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📱 Экраны: [N] найдено / [M] создано
-🧩 Виджеты: [N] найдено
+📱 Screens: [N] found / [M] created
+🧩 Widgets: [N] found
 
-💥 A: Краш-уязвимости (Critical):
-   [✅|❌] A1: RenderFlex overflow — [статус]
-   [✅|❌] A2: ListView в Column — [статус]
-   [✅|❌] A3: setState after dispose — [статус]
-   [✅|❌] A4: AnimationController dispose — [статус]
-   [✅|❌] A5: Timer/Stream cancel — [статус]
-   [✅|❌] A6: Navigator.pop safety — [статус]
-   [✅|❌] A7: Asset existence — [статус]
-   [✅|❌] A8: Font registration — [статус]
-   [✅|❌] A9: Infinite constraints — [статус]
-   [✅|❌] A10: Missing Keys — [статус]
-   Итого: [X]/10
+💥 A: Crash vulnerabilities (Critical):
+   [✅|❌] A1: RenderFlex overflow - [status]
+   [✅|❌] A2: ListView in Column - [status]
+   [✅|❌] A3: setState after dispose - [status]
+   [✅|❌] A4: AnimationController dispose - [status]
+   [✅|❌] A5: Timer/Stream cancel — [status]
+   [✅|❌] A6: Navigator.pop safety - [status]
+   [✅|❌] A7: Asset existence - [status]
+   [✅|❌] A8: Font registration - [status]
+   [✅|❌] A9: Infinite constraints - [status]
+   [✅|❌] A10: Missing Keys - [status]
+   Total: [X]/10
 
-📐 B: Layout ошибки (High):
-   [✅|❌] B1-B10: [краткий статус]
-   Итого: [X]/10
+📐 B: Layout errors (High):
+   [✅|❌] B1-B10: [short status]
+   Total: [X]/10
 
-🧭 C: Навигация и состояние (High):
-   [✅|❌] C1-C10: [краткий статус]
-   Итого: [X]/10
+🧭 C: Navigation and Status (High):
+   [✅|❌] C1-C10: [short status]
+   Total: [X]/10
 
-👆 D: Кнопки и взаимодействие (High):
-   [✅|❌] D1-D10: [краткий статус]
-   Итого: [X]/10
+👆 D: Buttons and interactions (High):
+   [✅|❌] D1-D10: [short status]
+   Total: [X]/10
 
-🎨 E: Anti-Slop + меню/HUD (Medium):
-   [✅|❌] E1-E14: [краткий статус, вкл. E13 концептуальное меню, E14 сдержанный HUD]
-   Итого: [X]/14
+🎨 E: Anti-Slop + menu/HUD (Medium):
+   [✅|❌] E1-E14: [short status, on. E13 concept menu, E14 discreet HUD]
+   Total: [X]/14
 
-📱 F: Экраны (Medium):
-   [✅|❌] F1-F13: [краткий статус]
-   Итого: [X]/13
+📱 F: Screens (Medium):
+   [✅|❌] F1-F13: [short status]
+   Total: [X]/13
 
-✨ G: Визуальное качество (Low):
-   [✅|❌] G1-G10: [краткий статус]
-   Итого: [X]/10
+✨ G: Visual quality (Low):
+   [✅|❌] G1-G10: [short status]
+   Total: [X]/10
 
 🎯 H: Craft & Composition (Low):
-   [✅|❌] H1-H9: [краткий статус — тип-шкала, отступы, палитра, фокус, формы, выравнивание, эффекты, иконки, layout]
-   Итого: [X]/9
+   [✅|❌] H1-H9: [short status - type-scale, indents, palette, focus, shapes, alignment, effects, icons, layout]
+   Total: [X]/9
 
-🕹 I: Живой геймплей (Medium):
-   [✅|❌] I1-I7: [idle, entrance, impact, state-transition, вызовы хуков, аллокации, тайминги]
-   Итого: [X]/7
+🕹 I: Live gameplay (Medium):
+   [✅|❌] I1-I7: [idle, entrance, impact, state-transition, hook calls, allocations, timings]
+   Total: [X]/7
 
 🏗 J: Production completeness & compliance (Medium):
-   [✅|❌] J1-J9: [контент-данные, level/mode select, режимы, SaveService, economy, progression,
-          achievements, analytics-вызовы, нет внешних SDK]
-   [✅|❌] J10-J12 (gambling): [age-gate, disclaimer, responsible-play] — release-блокеры
-   Итого: [X]/16  (J10-J16 = compliance-блокеры; N/A только для C5 без покупок)
+   [✅|❌] J1-J9: [content-data, level/mode select, modes, SaveService, economy, progression,
+          achievements, analytics calls, no external SDK]
+   [✅|❌] J10-J12 (gambling): [age-gate, disclaimer, responsible-play] - release blockers
+   Total: [X]/16 (J10-J16 = compliance blockers; N/A only for C5 without purchases)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 ОБЩИЙ РЕЗУЛЬТАТ: [PASS ✅ | NEEDS FIX ⚠️ | BLOCKED ❌]
+📊 OVERALL RESULT: [PASS ✅ | NEEDS FIX ⚠️ | BLOCKED ❌]
 
-   Найдено проблем: [X]
-   Автоисправлено: [Y]
-   Требуют ручного вмешательства: [Z]
+   Issues found: [X]
+   Autocorrected: [Y]
+   Require manual intervention: [Z]
 
-   Критических (crash): [N]  ← ДОЛЖНО БЫТЬ 0
-   Layout (visual bug): [N]  ← ДОЛЖНО БЫТЬ 0
-   Навигация/состояние: [N] ← ДОЛЖНО БЫТЬ 0
-   UX (interaction): [N]     ← ДОЛЖНО БЫТЬ 0
+   Critical (crash): [N] ← MUST BE 0
+   Layout (visual bug): [N] ← MUST BE 0
+   Navigation/State: [N] ← MUST BE 0
+   UX (interaction): [N] ← MUST BE 0
    Anti-Slop: [N]
-   Экраны: [N]
+   Screens: [N]
    Visual quality: [N]
    Craft & composition: [N]
 
-   Вердикт: PASS = 0 Critical + 0 High
-            NEEDS FIX = любые High незакрытые
-            BLOCKED = любые Critical незакрытые
+   Verdict: PASS = 0 Critical + 0 High
+            NEEDS FIX = any High unclosed
+            BLOCKED = any Critical unblocked
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```

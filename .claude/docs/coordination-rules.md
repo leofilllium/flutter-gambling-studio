@@ -1,38 +1,51 @@
-# Правила Координации Игровой Студии
+# Game Studio Coordination Rules
 
-Успех мини-игры зависит от синхронизации Баланса (математика/сложность), Проектирования кода и "Сочности" отдачи (Juiciness).
+A mini-game succeeds when balance (mathematics/difficulty), code design and juiciness stay in sync.
 
-## Принципы Коллаборации
+## Collaboration principles
 
-1. **Русский Язык**
-   Все взаимодействия между пользователем и агентами (ответы, вопросы, логи) — на **русском языке**. На английском: только код, классы и файлы.
+1. **English**
+   All interaction between the user and the agents — answers, questions, logs — is in
+   **English**, and so is everything the studio produces: design documents, reports, code and
+   the player-facing copy in the game itself. The only exception is an explicit user request
+   for the game in another language, which affects the player-facing strings only. See
+   `CLAUDE.md` → Language.
 
-2. **Консультативный Стиль**
-   Агенты не принимают самостоятельных решений без пользователя (кроме навыков `/auto-*`).
-   Паттерн: *Задал вопрос -> Предложил 2-3 варианта -> Пользователь выбрал -> Написал черновик -> Пользователь утвердил -> Сохранил в файл*.
+2. **A consultative style**
+   Agents do not make decisions on their own without the user (except in the `/auto-*` skills).
+   The pattern: *Ask a question → offer 2-3 options → the user chooses → write a draft →
+   the user approves → save to file*.
 
-3. **Соблюдайте Субординацию**
-   - Только `creative-director` меняет кор-геймплей и видение (Pillars).
-   - Только `game-mathematician` утверждает новую модель баланса после проверки `/balance-check`.
-   - `mechanics-programmer` НЕ ИМЕЕТ ПРАВА захардкодить игровые параметры. Он обязан считывать их из `GameConfig`/GDD.
-   - `mechanics-programmer` не хардкодит шанс выигрыша (например, `if (Random().nextDouble() < 0.1) win!`) и не подменяет `Random.secure()`.
-   - `juice-artist` не делает анимацию длиннее 3-4 секунд, чтобы не замедлять Game Loop. `game-designer` утверждает длину.
-   - `release-manager` — единственный, кто снимает compliance-блокер. Ни один агент не «упрощает» age-gate или дисклеймер ради скорости.
+3. **Respect the chain of command**
+   - Only `creative-director` changes the core gameplay and the vision (pillars).
+   - Only `game-mathematician` approves a new balance model after `/balance-check` passes.
+   - `mechanics-programmer` MAY NOT hardcode game parameters. They must be read from
+     `GameConfig`/the GDD.
+   - `mechanics-programmer` does not hardcode a win chance (e.g. `if (Random().nextDouble() < 0.1) win!`)
+     and does not substitute anything for `Random.secure()`.
+   - `juice-artist` does not make an animation longer than 3–4 seconds, so the game loop does
+     not slow down. `game-designer` approves the length.
+   - `release-manager` is the only agent who can lift a compliance blocker. No agent
+     "simplifies" the age gate or the disclaimer for the sake of speed.
 
-## Механизмы Обработки Конфликтов
+## Conflict resolution
 
-Ошибки неизбежны. Если одна механика противоречит другой, сделайте паузу и привлеките профи:
+Mistakes are inevitable. If one mechanic contradicts another, pause and bring in the specialist:
 
-**Если код противоречит GDD:** `lead-programmer` и `game-designer` приходят к общему знаменателю. Если фича невозможна из-за архитектуры Flame, GDD обновляется.
+**If the code contradicts the GDD:** `lead-programmer` and `game-designer` find common ground.
+If a feature is impossible because of Flame's architecture, the GDD is updated.
 
-**Если математическая модель вне окна** (`tools/simulate_math.py` даёт FAIL): производство
-останавливается. Вызываем `game-mathematician`, он итерирует ТОЛЬКО числа в JSON-конфиге
-модели. Только после зелёного прогона `mechanics-programmer` обновляет код. Пороги по
-моделям M1–M6 — в `.claude/docs/math-models.md`.
+**If the math model is outside its window** (`tools/simulate_math.py` returns FAIL): production
+stops. Bring in `game-mathematician`, who iterates ONLY on the numbers in the model's JSON
+config. Only after a green run does `mechanics-programmer` update the code. The thresholds for
+models M1–M6 are in `.claude/docs/math-models.md`.
 
-**Если «красивее» противоречит «честно»:** побеждает честность. Визуальный near-miss
-допустим только если он отражает реальный исход; подкрутка анимации в пользу ощущения
-выигрыша — нарушение целостности игры, а не находка juice-artist.
+**If "prettier" conflicts with "honest":** honesty wins. A visual near-miss is acceptable only
+when it reflects the real outcome; tuning the animation to feel more like a win is a breach of
+game integrity, not a juice-artist's clever find.
 
-## Передача Работы
-При передаче задачи от Математика → Дизайнеру → Программисту → Спец-эффектам, используйте навык `/team-dev`. Агент обязан передать точную ссылку на рабочие документы (например GDD `design/gdd/[file].md`) следующему агенту в цепи.
+## Handing off work
+
+When passing a task from the mathematician → designer → programmer → VFX, use the `/team-dev`
+skill. Each agent must pass the exact reference to the working documents (for example the GDD
+at `design/gdd/[file].md`) to the next agent in the chain.

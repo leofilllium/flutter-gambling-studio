@@ -1,64 +1,64 @@
-# Стандарты кода — Flutter Game Studio
+# Coding standards — Flutter Game Studio
 
-Все производственные стандарты специализированы под мини-игры на Flame 1.18.x.
+All production standards are specialised for mini-games on Flame 1.18.x.
 
 ---
 
-## 1. Dart Style Guide
+## 1. Dart style guide
 
-### Порядок импортов
+### Import order
 
 ```dart
-// 1. dart: SDK (алфавитный порядок)
+// 1. dart: SDK (alphabetical)
 import 'dart:async';
 import 'dart:math';
 
-// 2. package: (алфавитный порядок)
+// 2. package: (alphabetical)
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:my_slot/game/slot_config.dart';
 
-// 3. Относительные (только внутри package)
+// 3. Relative (inside the package only)
 import '../components/reel_component.dart';
 ```
 
-### Файл класса — порядок членов
+### Class file — member order
 
-1. Статические константы и поля
-2. Поля экземпляра (`final` перед изменяемыми, public перед private)
-3. Конструкторы
-4. Статические методы
-5. Lifecycle методы (onLoad → onMount → update → render → onRemove)
-6. Публичные методы (алфавитный порядок)
-7. Приватные методы (алфавитный порядок)
+1. Static constants and fields
+2. Instance fields (`final` before mutable, public before private)
+3. Constructors
+4. Static methods
+5. Lifecycle methods (onLoad → onMount → update → render → onRemove)
+6. Public methods (alphabetical)
+7. Private methods (alphabetical)
 
 ### `final` vs `var` vs `const`
 
-| Ключевое слово | Когда использовать |
-|----------------|-------------------|
-| `const` | Константы времени компиляции — всегда предпочтительно |
-| `final` | Присваивается один раз в runtime — по умолчанию для полей и локальных переменных |
-| `var` | Только когда переменная переприсваивается — требует комментария о причине |
+| Keyword | When to use it |
+|---------|----------------|
+| `const` | Compile-time constants — always preferred |
+| `final` | Assigned once at runtime — the default for fields and locals |
+| `var` | Only when the variable is reassigned — requires a comment explaining why |
 
-### Null Safety
+### Null safety
 
-- Нет голого `!` без inline комментария — почему значение гарантировано non-null
-- Предпочитай `??` для default значений
-- Используй pattern matching для сложных null проверок
-- `late final` только когда инициализация не может быть в конструкторе
+- No bare `!` without an inline comment explaining why the value is guaranteed non-null
+- Prefer `??` for default values
+- Use pattern matching for complex null checks
+- `late final` only when initialisation cannot happen in the constructor
 
 ---
 
-## 2. Flame Component Standards
+## 2. Flame component standards
 
-### Обязательный порядок lifecycle методов
+### The required lifecycle method order
 
 ```dart
 class ReelComponent extends PositionComponent with HasGameRef<SlotMachineGame> {
-  // Поля
-  final _tempPos = Vector2.zero(); // Прединициализация!
+  // Fields
+  final _tempPos = Vector2.zero(); // Pre-initialised!
 
-  // Конструктор
+  // Constructor
 
   @override
   Future<void> onLoad() async { ... }
@@ -68,31 +68,31 @@ class ReelComponent extends PositionComponent with HasGameRef<SlotMachineGame> {
 
   @override
   void onGameResize(Vector2 size) {
-    if (!isMounted) return; // Проверка обязательна!
+    if (!isMounted) return; // The check is mandatory!
     super.onGameResize(size);
   }
 
   @override
-  void update(double dt) { ... } // ТОЛЬКО синхронный!
+  void update(double dt) { ... } // SYNCHRONOUS only!
 
   @override
-  void render(Canvas canvas) { ... } // ТОЛЬКО синхронный!
+  void render(Canvas canvas) { ... } // SYNCHRONOUS only!
 
   @override
   void onRemove() { ... }
 }
 ```
 
-### Нет аллокаций в hot path
+### No allocation in the hot path
 
 ```dart
-// ❌ Каждый кадр создаёт объекты — ЗАПРЕЩЕНО
+// ❌ Creates objects every frame — FORBIDDEN
 void update(double dt) {
-  position = Vector2(x, y + scrollOffset); // аллокация!
-  final paint = Paint()..color = Colors.red; // аллокация!
+  position = Vector2(x, y + scrollOffset); // allocation!
+  final paint = Paint()..color = Colors.red; // allocation!
 }
 
-// ✅ Прединициализация
+// ✅ Pre-initialised
 final _tempPos = Vector2.zero();
 late final Paint _symbolPaint;
 
@@ -108,24 +108,24 @@ void update(double dt) {
 }
 ```
 
-### Лимиты компонентов
+### Component limits
 
-- Максимум строк в компоненте: 300 — иначе декомпозировать
-- Максимум прямых children в onLoad: 10
-- Максимум параметров конструктора: 8 (иначе config data class)
-- Максимум уровней наследования: 3 ниже Component
+- Maximum lines in a component: 300 — otherwise decompose it
+- Maximum direct children in onLoad: 10
+- Maximum constructor parameters: 8 (otherwise use a config data class)
+- Maximum inheritance depth: 3 below Component
 
 ---
 
-## 3. Game-Specific Standards
+## 3. Game-specific standards
 
-### WeightedRNG — единственный источник случайности (Gambling)
+### WeightedRNG — the single source of randomness (gambling)
 
 ```dart
 /// Weighted random number generator using cryptographically secure Random.
 /// See design/gdd/rtp-math-model.md for weight specifications.
 class WeightedRNG {
-  // Один экземпляр на всю игру
+  // One instance for the whole game
   final _rng = Random.secure();
 
   /// Picks a symbol index based on weights.
@@ -143,7 +143,7 @@ class WeightedRNG {
 }
 ```
 
-### PaylineEvaluator — чистая функция (Gambling)
+### PaylineEvaluator — a pure function (gambling)
 
 ```dart
 /// Evaluates winning combinations on a slot result grid.
@@ -158,7 +158,7 @@ class PaylineEvaluator {
 }
 ```
 
-### GameState — sealed class обязателен
+### GameState — a sealed class is mandatory
 
 ```dart
 /// Represents all possible states of the slot machine.
@@ -171,7 +171,7 @@ sealed class GameState {
 final class IdleState extends GameState { const IdleState(); }
 final class SpinningState extends GameState {
   const SpinningState({required this.outcome});
-  final SpinOutcome outcome; // Результат ИЗВЕСТЕН до анимации!
+  final SpinOutcome outcome; // The result is KNOWN before the animation!
 }
 final class EvaluatingState extends GameState { const EvaluatingState(); }
 final class WinState extends GameState {
@@ -187,16 +187,16 @@ final class FreeSpinsState extends GameState {
 
 ---
 
-## 4. Flutter UI Standards (HUD / Screens)
+## 4. Flutter UI standards (HUD / screens)
 
-### Разделение состояний
+### Separating state
 
 ```dart
-// ✅ Правильно — HUD только читает
+// ✅ Correct — the HUD only reads
 class HudWidget extends StatelessWidget {
-  final ValueNotifier<int> balance;     // Из SlotMachineGame
-  final ValueNotifier<int> bet;         // Из SlotMachineGame
-  final ValueNotifier<bool> isSpinning; // Из SlotMachineGame
+  final ValueNotifier<int> balance;     // From SlotMachineGame
+  final ValueNotifier<int> bet;         // From SlotMachineGame
+  final ValueNotifier<bool> isSpinning; // From SlotMachineGame
 
   const HudWidget({
     required this.balance,
@@ -215,7 +215,7 @@ class HudWidget extends StatelessWidget {
 }
 ```
 
-### Spin Button — защита от двойного клика
+### Spin button — double-tap protection
 
 ```dart
 class SpinButtonWidget extends StatefulWidget {
@@ -233,7 +233,7 @@ class _SpinButtonWidgetState extends State<SpinButtonWidget> {
     final now = DateTime.now();
     if (_lastTap != null &&
         now.difference(_lastTap!) < const Duration(milliseconds: 300)) {
-      return; // Дебаунс
+      return; // Debounce
     }
     _lastTap = now;
     if (!widget.isSpinning.value) {
@@ -245,9 +245,9 @@ class _SpinButtonWidgetState extends State<SpinButtonWidget> {
 
 ---
 
-## 5. Audio Standards
+## 5. Audio standards
 
-### AudioService — максимум 3 параллельных
+### AudioService — at most 3 concurrent
 
 ```dart
 /// Manages game audio — max 3 concurrent sounds: BGM + Spin + Effect.
@@ -278,10 +278,10 @@ class AudioService {
 
 ---
 
-## 6. Error Handling
+## 6. Error handling
 
 ```dart
-// ✅ Всегда указывай тип исключения
+// ✅ Always name the exception type
 try {
   await loadRtpConfig();
 } on FileSystemException catch (e, stack) {
@@ -289,11 +289,11 @@ try {
   // Fallback to SlotConfig.defaults
 }
 
-// ❌ Запрещено — глотать ошибки
+// ❌ Forbidden — swallowing errors
 try {
   await loadRtpConfig();
 } catch (e) {
-  // молчание
+  // silence
 }
 ```
 
@@ -301,7 +301,7 @@ try {
 
 ## 7. Documentation
 
-### Doc comments — обязательны для public API
+### Doc comments — mandatory for public APIs
 
 ```dart
 /// Computes the weighted random outcome for a spin.
@@ -314,25 +314,25 @@ try {
 SpinOutcome computeOutcome({required int bet, required int balance}) { ... }
 ```
 
-### TODO формат
+### TODO format
 
 ```dart
-// TODO(agent-name): Описание [ЗАДАЧА-NNN]
-// Пример:
+// TODO(agent-name): Description [TASK-NNN]
+// Example:
 // TODO(mechanics-programmer): Add Near Miss detection [SLOT-42]
 ```
 
 ---
 
-## 8. Testing Standards
+## 8. Testing standards
 
-### AAA структура — обязательна
+### The AAA structure — mandatory
 
 ```dart
 test('PaylineEvaluator determines 3-match horizontal win', () {
   // Arrange
-  final grid = [[0, 0, 0], [1, 2, 3], [4, 5, 6]]; // Row 0: три вишни
-  final paylines = [[0, 0, 0]]; // Верхняя линия
+  final grid = [[0, 0, 0], [1, 2, 3], [4, 5, 6]]; // Row 0: three cherries
+  final paylines = [[0, 0, 0]]; // The top line
 
   // Act
   final result = PaylineEvaluator.evaluate(grid, paylines);
@@ -343,9 +343,9 @@ test('PaylineEvaluator determines 3-match horizontal win', () {
 });
 ```
 
-### Минимальное покрытие
+### Minimum coverage
 
-| Файл | Минимум |
+| File | Minimum |
 |------|---------|
 | weighted_rng.dart | 95% |
 | payline_evaluator.dart | 95% |
@@ -355,43 +355,43 @@ test('PaylineEvaluator determines 3-match horizontal win', () {
 
 ---
 
-## 9. Git Standards
+## 9. Git standards
 
-### Формат коммитов
+### Commit format
 
 ```
-<тип>(<область>): <описание>
+<type>(<scope>): <description>
 
-Примеры:
+Examples:
 feat(slot): add Wild symbol substitution [SLOT-42]
 fix(rng): replace math.Random() with Random.secure() [BUG-7]
 test(payline): add scatter position tests [QA-12]
 ```
 
-Типы: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`
-Области: `slot`, `rng`, `ui`, `audio`, `vfx`, `balance`, `qa`
+Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`
+Scopes: `slot`, `rng`, `ui`, `audio`, `vfx`, `balance`, `qa`
 
-### PR чеклист
+### PR checklist
 
-- [ ] dart analyze — 0 ошибок
-- [ ] flutter test — все зелёные
-- [ ] Нет `math.Random()` в production коде
-- [ ] Нет захардкоженных вероятностей
-- [ ] Все игровые константы в GameConfig / SlotConfig
-- [ ] GDD ссылка в doc comment (если новая механика)
-- [ ] Нет аллокаций в update()/render()
+- [ ] dart analyze — 0 errors
+- [ ] flutter test — all green
+- [ ] No `math.Random()` in production code
+- [ ] No hardcoded probabilities
+- [ ] Every game constant in GameConfig / SlotConfig
+- [ ] A GDD reference in the doc comment (for a new mechanic)
+- [ ] No allocation in update()/render()
 
 ---
 
-## 10. Запрещённые паттерны
+## 10. Forbidden patterns
 
-1. **`math.Random()` или `Random()`** — только `Random.secure()`
-2. **Захардкоженные вероятности** вне GameConfig / SlotConfig
-3. **`isPaused = true`** — используй `GameState` + `pauseEngine()`
-4. **`await` в `update()` / `render()`** — должны быть синхронными
-5. **`BuildContext` в Flame компонентах** — используй колбэки
-6. **`print()`** — используй `Logger`
-7. **Аллокация в `update()` / `render()`** — прединициализируй
-8. **`dynamic`** вне JSON-границ
-9. **Наследование > 3 уровней** ниже Component
-10. **Изменение RTP весов** вне `rtp-config.json` + подтверждения game-mathematician
+1. **`math.Random()` or `Random()`** — only `Random.secure()`
+2. **Hardcoded probabilities** outside GameConfig / SlotConfig
+3. **`isPaused = true`** — use `GameState` + `pauseEngine()`
+4. **`await` in `update()` / `render()`** — they must be synchronous
+5. **`BuildContext` in Flame components** — use callbacks
+6. **`print()`** — use `Logger`
+7. **Allocation in `update()` / `render()`** — pre-initialise
+8. **`dynamic`** outside JSON boundaries
+9. **Inheritance more than 3 levels** below Component
+10. **Changing RTP weights** outside `rtp-config.json` + game-mathematician's approval

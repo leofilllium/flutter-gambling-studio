@@ -6,13 +6,13 @@ CUSTOM_INPUT="${2:-}"
 HOOK_DIR=".claude/hooks"
 
 if [ -z "$HOOK_NAME" ]; then
-  echo "Использование: bash tools/codex-hooks.sh <hook-name>"
-  echo "Доступные hook'и: session-start, detect-gaps, validate-assets, validate-commit, validate-push, pre-compact, session-stop, log-agent, all"
+  echo "Usage: bash tools/codex-hooks.sh <hook-name>"
+  echo "Available hooks: session-start, detect-gaps, validate-assets, validate-commit, validate-push, pre-compact, session-stop, log-agent, all"
   exit 1
 fi
 
 if [ ! -d "$HOOK_DIR" ]; then
-  echo "Каталог $HOOK_DIR не найден"
+  echo "Directory $HOOK_DIR not found"
   exit 1
 fi
 
@@ -22,7 +22,7 @@ run_hook() {
   local default_input=""
 
   if [ ! -f "$script_path" ]; then
-    echo "Hook не найден: $hook"
+    echo "Hook not found: $hook"
     return 1
   fi
 
@@ -66,7 +66,7 @@ case "$HOOK_NAME" in
     run_hook "$HOOK_NAME"
     ;;
   *)
-    echo "Неизвестный hook: $HOOK_NAME"
+    echo "Unknown hook: $HOOK_NAME"
     exit 1
     ;;
 esac

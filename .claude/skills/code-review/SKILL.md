@@ -1,159 +1,159 @@
 ---
 name: code-review
-description: "Комплексное ревью кода мини-игры: архитектура, game integrity, Flame API, тесты и риски."
-argument-hint: "[путь или область]"
+description: "A comprehensive code review of the mini-game: architecture, game integrity, the Flame API, tests and risks."
+argument-hint: "[path or area]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Bash, Agent
 ---
 
 # /code-review
 
-Запуск: пользователь вызывает `/code-review [путь или область]`
+Invocation: the user runs `/code-review [path or area]`
 
-## Цель
+## Goal
 
-Комплексное ревью кода мини-игры. Проверяет:
-- Gambling-специфичные критические требования (RNG, State integrity)
-- Архитектуру Flame 1.18.x (правильное использование API)
-- Качество кода (паттерны, читаемость, тесты)
-- Безопасность (нет math.Random, нет захардкоженных вероятностей)
-- Производительность (нет аллокаций в update/render)
+A comprehensive code review of the mini-game. It checks:
+- The gambling-specific critical requirements (RNG, state integrity)
+- The Flame 1.18.x architecture (correct API usage)
+- Code quality (patterns, readability, tests)
+- Safety (no math.Random, no hardcoded probabilities)
+- Performance (no allocations in update/render)
 
-## Агенты
+## Agents
 
-- `lead-programmer` — архитектура, паттерны, Dart качество
-- `mechanics-programmer` — gambling логика, RNG безопасность, Flame API
-- `qa-tester` — покрытие тестами, edge cases
+- `lead-programmer` — architecture, patterns, Dart quality
+- `mechanics-programmer` — gambling logic, RNG safety, the Flame API
+- `qa-tester` — test coverage, edge cases
 
-## Порядок выполнения
+## Order of work
 
-### Шаг 1: Определить область ревью
+### Step 1: determine the review scope
 
-Если передан путь (например `lib/systems/weighted_rng.dart`) — ревью этого файла.
-Если не передан — ревью всей директории `lib/`.
+If a path is given (for example `lib/systems/weighted_rng.dart`), review that file.
+If not, review the whole `lib/` directory.
 
-### Шаг 2: lead-programmer — Архитектурное ревью
+### Step 2: lead-programmer — the architectural review
 
-Агент `lead-programmer` проверяет:
+The `lead-programmer` agent checks:
 
-**Структура проекта:**
-- [ ] `lib/game/slot_config.dart` существует и содержит ТОЛЬКО константы
-- [ ] `lib/systems/weighted_rng.dart` использует `Random.secure()`
-- [ ] `lib/models/game_state.dart` содержит sealed class
-- [ ] Нет бизнес-логики в `screens/` (только UI)
-- [ ] Нет `BuildContext` в Flame компонентах
+**Project structure:**
+- [ ] `lib/game/slot_config.dart` exists and contains ONLY constants
+- [ ] `lib/systems/weighted_rng.dart` uses `Random.secure()`
+- [ ] `lib/models/game_state.dart` contains a sealed class
+- [ ] No business logic in `screens/` (UI only)
+- [ ] No `BuildContext` in Flame components
 
-**Паттерны Dart:**
-- [ ] Нет `dynamic` вне JSON-границ
-- [ ] Нет `print()` в production коде
-- [ ] Нет `await` в `update()` / `render()`
-- [ ] Используется `final` где возможно
-- [ ] Нет магических чисел вне SlotConfig
+**Dart patterns:**
+- [ ] No `dynamic` outside JSON boundaries
+- [ ] No `print()` in production code
+- [ ] No `await` in `update()` / `render()`
+- [ ] `final` is used wherever possible
+- [ ] No magic numbers outside SlotConfig
 
-**Flame 1.18.x API:**
-- [ ] `HasCollisionDetection` на `World`, не на `FlameGame`
-- [ ] `CameraComponent(world: world)` — новый API
-- [ ] Нет `isPaused = true` — используется `GameState`
-- [ ] Прединициализированные Vector2/Rect/Paint в `update()`
+**The Flame 1.18.x API:**
+- [ ] `HasCollisionDetection` on the `World`, not on `FlameGame`
+- [ ] `CameraComponent(world: world)` — the new API
+- [ ] No `isPaused = true` — `GameState` is used
+- [ ] Pre-initialised Vector2/Rect/Paint in `update()`
 
-### Шаг 3: mechanics-programmer — Game Integrity
+### Step 3: mechanics-programmer — game integrity
 
-Агент `mechanics-programmer` проверяет:
+The `mechanics-programmer` agent checks:
 
-**КРИТИЧЕСКИЕ gambling требования:**
-- [ ] `Random.secure()` — единственный источник случайности
-- [ ] Нет захардкоженных вероятностей (`if (rng.nextDouble() < 0.1)`)
-- [ ] Результат спина вычислен ДО начала анимации (Stateless Outcomes)
-- [ ] Двойной клик Spin заблокирован во время спина
-- [ ] Баланс обновляется только ПОСЛЕ завершения спина и подтверждения результата
-- [ ] Нет State Leakage между спинами
+**CRITICAL gambling requirements:**
+- [ ] `Random.secure()` is the only source of randomness
+- [ ] No hardcoded probabilities (`if (rng.nextDouble() < 0.1)`)
+- [ ] The spin result is computed BEFORE the animation starts (stateless outcomes)
+- [ ] Double-clicking Spin is blocked while a spin runs
+- [ ] The balance updates only AFTER the spin finishes and the result is confirmed
+- [ ] No state leakage between spins
 
-**RTP и математика:**
-- [ ] Веса символов читаются из `SlotConfig` / `rtp-config.json`
-- [ ] Метод `PaylineEvaluator.evaluate()` — чистая функция без состояния
-- [ ] Wild символ заменяет только нужные символы
-- [ ] Scatter не привязан к payline
+**RTP and mathematics:**
+- [ ] Symbol weights are read from `SlotConfig` / `rtp-config.json`
+- [ ] `PaylineEvaluator.evaluate()` is a pure function with no state
+- [ ] The Wild symbol substitutes only for the symbols it should
+- [ ] Scatter is not tied to a payline
 
-**Free Spins / Бонусы (если есть):**
-- [ ] Счётчик Free Spins не может стать отрицательным
-- [ ] Мультипликатор применяется корректно
-- [ ] Повторный триггер Free Spins обрабатывается
+**Free spins / bonuses (if there are any):**
+- [ ] The free spins counter cannot go negative
+- [ ] The multiplier is applied correctly
+- [ ] A re-trigger of free spins is handled
 
-### Шаг 4: qa-tester — Покрытие тестами
+### Step 4: qa-tester — test coverage
 
-Агент `qa-tester` проверяет:
+The `qa-tester` agent checks:
 
-**Наличие тестов:**
-- [ ] `test/systems/weighted_rng_test.dart` — дистрибуционный тест
-- [ ] `test/systems/payline_evaluator_test.dart` — все комбинации
-- [ ] Тест: недостаточный баланс блокирует спин
-- [ ] Тест: двойной клик не запускает два спина
-- [ ] Тест: GameState возвращается в Idle после спина
-- [ ] Тест: баланс корректен после N спинов
+**Tests present:**
+- [ ] `test/systems/weighted_rng_test.dart` — a distribution test
+- [ ] `test/systems/payline_evaluator_test.dart` — every combination
+- [ ] Test: an insufficient balance blocks the spin
+- [ ] Test: a double click does not start two spins
+- [ ] Test: GameState returns to Idle after a spin
+- [ ] Test: the balance is correct after N spins
 
-**Качество тестов:**
-- [ ] Используется `Random.secure()` или seed-based mock, не `Random()`
-- [ ] Нет пустых тестов без assertions
-- [ ] Следование AAA (Arrange-Act-Assert)
+**Test quality:**
+- [ ] `Random.secure()` or a seed-based mock is used, not `Random()`
+- [ ] No empty tests without assertions
+- [ ] AAA (Arrange-Act-Assert) is followed
 
-### Шаг 5: Формирование отчёта
+### Step 5: producing the report
 
-Создать файл `docs/review-YYYY-MM-DD.md` со структурой:
+Create `docs/review-YYYY-MM-DD.md` with this structure:
 
 ```markdown
-# Code Review — [Дата]
-## Область: [путь или "весь проект"]
+# Code Review — [date]
+## Scope: [path or "the whole project"]
 
-## 🚨 КРИТИЧЕСКИЕ ПРОБЛЕМЫ (блокируют релиз)
-- Список критических находок
+## 🚨 CRITICAL PROBLEMS (they block the release)
+- The list of critical findings
 
-## ⚠️ ВАЖНЫЕ ЗАМЕЧАНИЯ (требуют исправления)
-- Список важных проблем
+## ⚠️ IMPORTANT OBSERVATIONS (they need fixing)
+- The list of important problems
 
-## 💡 РЕКОМЕНДАЦИИ (улучшения)
-- Список рекомендаций
+## 💡 RECOMMENDATIONS (improvements)
+- The list of recommendations
 
-## ✅ ХОРОШО СДЕЛАНО
-- Список того, что сделано правильно
+## ✅ WELL DONE
+- The list of what was done right
 
-## Итог
-- Статус: APPROVED / NEEDS WORK / BLOCKED
-- Следующие шаги: [список действий]
+## Summary
+- Status: APPROVED / NEEDS WORK / BLOCKED
+- Next steps: [the list of actions]
 ```
 
-## Аргументы
+## Arguments
 
-- Без аргументов: полное ревью `lib/`
-- `lib/systems/` — ревью только systems
-- `lib/game/` — ревью game layer
-- `--quick` — только критические проверки целостности (RNG, Stateless Outcomes, конфиг), без архитектуры
-- `--rng` — только RNG безопасность
+- No arguments: a full review of `lib/`
+- `lib/systems/` — review systems only
+- `lib/game/` — review the game layer
+- `--quick` — only the critical integrity checks (RNG, stateless outcomes, config), no architecture
+- `--rng` — RNG safety only
 
-## Инструменты
+## Tools
 
 ```
 Read, Glob, Grep, Bash(grep*), Bash(dart analyze*)
 ```
 
-## Пример вывода
+## Example output
 
 ```
-🔍 Начинаю code review мини-игры...
+🔍 Starting the mini-game code review...
 
-📋 Проверяю RNG безопасность...
-   ✅ Random.secure() используется в weighted_rng.dart
-   🚨 math.Random() найден в lib/components/test_helper.dart:42
+📋 Checking RNG safety...
+   ✅ Random.secure() is used in weighted_rng.dart
+   🚨 math.Random() found in lib/components/test_helper.dart:42
 
-📋 Проверяю Stateless Outcomes...
-   ✅ Результат спина вычисляется до анимации
+📋 Checking stateless outcomes...
+   ✅ The spin result is computed before the animation
 
-📋 Проверяю SlotConfig...
-   ⚠️  Найдены магические числа в reel_component.dart:78: `if (multiplier > 20)`
-   → Перенести в SlotConfig.bigWinMultiplier
+📋 Checking SlotConfig...
+   ⚠️  Magic numbers found in reel_component.dart:78: `if (multiplier > 20)`
+   → Move it into SlotConfig.bigWinMultiplier
 
-📋 Проверяю тестовое покрытие...
-   ❌ Отсутствует тест: двойной клик Spin
+📋 Checking test coverage...
+   ❌ Missing test: a double click on Spin
 
-Итог: NEEDS WORK (1 критическая, 2 важных, 0 блокирующих)
-Отчёт сохранён: docs/review-2026-03-24.md
+Summary: NEEDS WORK (1 critical, 2 important, 0 blocking)
+Report saved: docs/review-2026-03-24.md
 ```

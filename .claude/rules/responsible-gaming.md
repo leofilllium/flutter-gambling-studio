@@ -1,43 +1,46 @@
-# Responsible Gaming & Store Compliance — обязательный слой каждой игры
+# Responsible Gaming & Store Compliance — the mandatory layer in every game
 
-> Студия делает **симулированный** гемблинг. Ни одна игра не принимает и не выплачивает
-> реальные деньги. Из этого следуют требования, которые не обсуждаются и не «добавляются
-> потом»: без них игру снимут со стора, а `/gate-check qa` и `/release-checklist` дают FAIL.
+> The studio builds **simulated** gambling. No game accepts or pays out real money. That
+> implies a set of requirements which are not up for discussion and are not "added later":
+> without them the game gets pulled from the store, and `/gate-check qa` and
+> `/release-checklist` return FAIL.
 >
-> Применяется ко всем категориям C1–C6. Единственное послабление — у C5 (казино-рогалики
-> без покупок и без валютных ставок): см. раздел «Ослабленный профиль».
+> Applies to all categories C1–C6. The single relaxation is for C5 (casino roguelikes with
+> no purchases and no currency wagers): see "Relaxed profile".
 
 ---
 
-## 1. Несгораемые запреты (нарушение = блок релиза)
+## 1. Absolute prohibitions (violation = release blocked)
 
-1. **Никаких реальных денег как исхода.** Игра не выплачивает деньги, призы или что-либо
-   обмениваемое на деньги. Нет вывода, нет кэш-аута в валюту, нет «обмена фишек на подарочные карты».
-2. **Виртуальная валюта не конвертируется обратно.** Купить фишки можно, продать — нельзя.
-   Односторонняя стрелка, и это должно быть очевидно из UI.
-3. **Никаких символов реальной валюты у игрового баланса.** Запрещено `$`, `€`, `₽`, `USD`
-   рядом с игровым балансом. Только название виртуальной валюты: «фишки», «монеты», «кристаллы».
-   Символы реальной валюты допустимы ТОЛЬКО на экране покупки IAP.
-4. **Никаких обещаний выигрыша.** Ни в UI, ни в текстах, ни в store-метаданных, ни на
-   скриншотах: «выиграй деньги», «реальные выплаты», «casino payout», «заработай» — запрещено.
-5. **Исход не продаётся.** Покупка валюты не улучшает шансы. Плата за спин не меняет RTP.
-   Любое «плати больше — выигрывай чаще» запрещено и математически, и в текстах.
-6. **Нет тёмных паттернов.** Запрещены: фейковые «почти выиграл» в пользу монетизации
-   (визуальный near-miss допустим ТОЛЬКО если он честно отражает исход), поддельные таймеры
-   дефицита, скрытая стоимость, невозможность закрыть оффер.
+1. **No real money as an outcome.** The game does not pay out money, prizes, or anything
+   exchangeable for money. No withdrawals, no cashing out into currency, no "swap chips for
+   gift cards".
+2. **Virtual currency never converts back.** You can buy chips; you cannot sell them.
+   A one-way arrow, and the UI must make that obvious.
+3. **No real-currency symbols next to the game balance.** `$`, `€`, `₽`, `USD` next to the
+   in-game balance are forbidden. Use only the name of the virtual currency: "chips",
+   "coins", "crystals". Real-currency symbols are allowed ONLY on the IAP purchase screen.
+4. **No promises of winnings.** Not in the UI, not in copy, not in store metadata, not on
+   screenshots: "win money", "real payouts", "casino payout", "earn cash" are forbidden.
+5. **The outcome is not for sale.** Buying currency does not improve the odds. Paying for a
+   spin does not change the RTP. Any "pay more, win more often" is forbidden both
+   mathematically and in the copy.
+6. **No dark patterns.** Forbidden: fake "almost won" moments engineered for monetisation
+   (a visual near-miss is allowed ONLY when it honestly reflects the outcome), fake scarcity
+   timers, hidden costs, offers that cannot be dismissed.
 
 ---
 
-## 2. Обязательные экраны и элементы
+## 2. Required screens and elements
 
-Каждая игра студии ОБЯЗАНА содержать (это часть карты экранов MVP):
+Every game in the studio MUST contain the following (this is part of the MVP screen map):
 
-### 2.1 Age Gate — при первом запуске
+### 2.1 Age gate — on first launch
 
-- Показывается ОДИН раз, до главного меню, результат в `SharedPreferences`.
-- Спрашивает дату рождения или подтверждение «мне есть 18».
-- При отказе/недоборе возраста — вежливый экран выхода, БЕЗ прохода в игру.
-- Не является модалкой поверх игры: это полноценный экран в маршрутах.
+- Shown ONCE, before the main menu; the result is persisted in `SharedPreferences`.
+- Asks for a date of birth or confirmation of "I am 18 or older".
+- On refusal or an underage answer: a polite exit screen, with NO route into the game.
+- It is not a modal over the game: it is a full screen in the routes.
 
 ```dart
 /// Gate shown once before the main menu.
@@ -45,125 +48,130 @@
 class AgeGateScreen extends StatelessWidget { ... }
 ```
 
-### 2.2 Дисклеймер — на splash И в paytable/правилах
+### 2.2 Disclaimer — on the splash AND in the paytable/rules
 
-Точная формулировка (можно адаптировать под голос игры, но смысл сохранить):
+The exact wording (it may be adapted to the game's voice, but the meaning must survive):
 
-> «Игра на виртуальные фишки. Реальные деньги не принимаются и не выплачиваются.
-> Игра не даёт возможности выиграть настоящие деньги или призы.
-> Успех в этой игре не означает успеха в азартных играх на реальные деньги.»
+> "This game is played with virtual chips. Real money is neither accepted nor paid out.
+> This game does not offer an opportunity to win real money or prizes.
+> Success in this game does not imply future success at real-money gambling."
 
-Последнее предложение — не украшение, это ключевая формулировка, которую требуют сторы
-от social casino игр.
+That last sentence is not decoration — it is the key phrase stores require from social
+casino games.
 
-### 2.3 Responsible Play — блок в настройках
+### 2.3 Responsible Play — a block in settings
 
-Обязательные пункты:
-- Напоминание о времени сессии (включаемое, интервал 30/60 минут);
-- Кнопка «Сделать перерыв» — мягко возвращает в меню;
-- Текст о том, что игра предназначена для развлечения;
-- Ссылка/текст с контактами помощи при игровой зависимости (константа в конфиге,
-  не хардкод в виджете).
+Required items:
+- A session-time reminder (toggleable, 30/60 minute intervals);
+- A "Take a break" button that gently returns the player to the menu;
+- Text stating the game is intended for entertainment;
+- A link or text with problem-gambling help contacts (a constant in the config, not
+  hardcoded in a widget).
 
-### 2.4 Odds Disclosure — экран «Шансы»
+### 2.4 Odds disclosure — the "Odds" screen
 
-Обязателен для **C4 (gacha)** и для **C3**, если за спины можно платить. Рекомендуется
-для C1/C2 (там роль играет paytable).
+Required for **C4 (gacha)** and for **C3** when spins can be paid for. Recommended for
+C1/C2 (there the paytable plays that role).
 
-- Доступен **ДО** траты валюты, не после.
-- Показывает: base rate по каждой редкости, hard pity, эффективный rate с учётом pity.
-- Числа берутся из того же конфига, что использует игра — не дублируются в виджете.
+- Reachable **BEFORE** currency is spent, not after.
+- Shows: the base rate for each rarity, hard pity, and the effective rate including pity.
+- The numbers come from the same config the game uses — never duplicated in the widget.
 
-### 2.5 Paytable / Правила
+### 2.5 Paytable / rules
 
-- Полная таблица выплат или формула множителя.
-- Для C2 — объявленный house edge и максимальный множитель.
-- Для C6 — множители корзин и заявленный RTP.
-- Доступна с игрового экрана в один тап.
-
----
-
-## 3. Store-метаданные и рейтинг
-
-| Пункт | Требование |
-|-------|------------|
-| Возрастной рейтинг | 18+ (Google Play), 17+/18+ (App Store) для C1–C4, C6 |
-| Категория Google Play | Casino / Card / Casual — с анкетой «simulated gambling: yes» |
-| Скриншоты стора | Без символов реальной валюты и без обещаний выплат |
-| Описание | Содержит дисклеймер о виртуальной валюте в первых 3 строках |
-| Заголовок / ключевые слова | Без «real money», «payout», «win cash», «casino bonus» |
-| Регионы | Список стран с ограничениями на social casino фиксируется в `store/metadata.md` |
-| IAP | Только наборы виртуальной валюты / remove-ads / косметика. Никаких «покупок шанса» |
-
-`/release-engineering` генерирует `store/metadata.md` уже с этими полями; пустые поля
-блокируют `/release-checklist`.
+- The full payout table, or the multiplier formula.
+- For C2: the declared house edge and the maximum multiplier.
+- For C6: the bucket multipliers and the stated RTP.
+- Reachable from the game screen in one tap.
 
 ---
 
-## 4. Ослабленный профиль (только C5)
+## 3. Store metadata and rating
 
-Казино-рогалик без покупок и без ставок валютой (Balatro-подобный) — это премиум-игра
-с азартной **эстетикой**, но без симуляции ставок.
+| Item | Requirement |
+|------|-------------|
+| Age rating | 18+ (Google Play), 17+/18+ (App Store) for C1–C4, C6 |
+| Google Play category | Casino / Card / Casual — with "simulated gambling: yes" on the questionnaire |
+| Store screenshots | No real-currency symbols and no payout promises |
+| Description | Contains the virtual-currency disclaimer in the first 3 lines |
+| Title / keywords | No "real money", "payout", "win cash", "casino bonus" |
+| Regions | The list of countries restricting social casino is recorded in `store/metadata.md` |
+| IAP | Only virtual currency bundles / remove-ads / cosmetics. Never "buying a chance" |
 
-Требуется:
-- дисклеймер о том, что это игра-рогалик, а не азартная игра (если визуально это казино);
-- отсутствие любых IAP, связанных со случайностью;
-- рейтинг обычно 12+.
-
-Не требуется: age-gate, responsible-play блок, odds disclosure.
-
-**Решение об ослабленном профиле принимается один раз, на этапе концепта, и записывается
-в блок «Классификация» с обоснованием.** Если в игру позже добавляются покупки валюты —
-профиль автоматически становится полным.
+`/release-engineering` generates `store/metadata.md` with these fields already present;
+empty fields block `/release-checklist`.
 
 ---
 
-## 5. Проверки в конвейере
+## 4. Relaxed profile (C5 only)
 
-| Где | Что проверяется |
-|-----|-----------------|
-| `/gate-check concept` | Блок «Классификация» содержит compliance-профиль |
-| `/gate-check design` | Age-gate, дисклеймер, responsible-play, odds есть в карте экранов |
-| `/ui-audit` | Экраны реализованы; нет символов реальной валюты у игрового баланса |
-| `/balance-check` | Объявленные игроку числа совпадают с конфигом симуляции |
-| `/playtest` | Age-gate реально показывается на чистом запуске и запоминается |
-| `/release-checklist` | Store-метаданные, рейтинг, тексты — финальный GO/NO-GO |
+A casino roguelike with no purchases and no currency wagering (Balatro-like) is a premium
+game with gambling **aesthetics** but no simulated betting.
 
-### Автоматические grep-проверки (используются в `/ui-audit` и `/release-checklist`)
+Required:
+- A disclaimer stating this is a roguelike, not a gambling game (if it looks like a casino);
+- No IAP tied to randomness;
+- Typically a 12+ rating.
+
+Not required: age gate, responsible-play block, odds disclosure.
+
+**The decision to use the relaxed profile is made once, at the concept stage, and recorded in
+the "Classification" block with a justification.** If currency purchases are added to the game
+later, the profile automatically becomes the full one.
+
+---
+
+## 5. Checks across the pipeline
+
+| Where | What is checked |
+|-------|-----------------|
+| `/gate-check concept` | The "Classification" block contains a compliance profile |
+| `/gate-check design` | Age gate, disclaimer, responsible play and odds are in the screen map |
+| `/ui-audit` | The screens are implemented; no real-currency symbols next to the game balance |
+| `/balance-check` | The numbers shown to the player match the simulation config |
+| `/playtest` | The age gate really does appear on a clean launch, and is remembered |
+| `/release-checklist` | Store metadata, rating and copy — the final GO/NO-GO |
+
+### Automatic grep checks (used by `/ui-audit` and `/release-checklist`)
 
 ```bash
-# Символы реальной валюты рядом с игровым балансом
+# Real-currency symbols next to the game balance
 grep -rnE '\$\{?balance|\$\{?coins|USD|€|₽' lib/ --include="*.dart"
 
-# Запрещённые обещания в UI-текстах и метаданных
-grep -rniE 'real money|реальные деньги|выиграй деньги|cash ?out|payout|заработай' \
+# Forbidden promises in UI copy and metadata
+grep -rniE 'real money|win money|win cash|cash ?out|payout|earn cash' \
   lib/ store/ --include="*.dart" --include="*.md"
 
-# Наличие обязательных экранов
+# Presence of the required screens
 grep -rl 'AgeGate' lib/ && grep -rl 'ResponsiblePlay' lib/ && grep -rl 'Disclaimer' lib/
 ```
 
-Первые две команды ОБЯЗАНЫ не находить ничего (кроме экрана покупки IAP и самого текста
-дисклеймера). Третья — обязана находить все три.
+The first two commands MUST find nothing (other than the IAP purchase screen and the text of
+the disclaimer itself). The third MUST find all three.
 
 ---
 
-## 6. Тексты-константы
+## 6. Copy constants
 
-Все compliance-тексты живут в одном месте, а не разбросаны по виджетам:
+All compliance copy lives in one place rather than scattered across widgets:
 
 ```dart
 /// Compliance copy required by .claude/rules/responsible-gaming.md.
 /// Do not inline these strings into widgets — stores audit them and they change per region.
 class ComplianceCopy {
   static const String disclaimer =
-      'Игра на виртуальные фишки. Реальные деньги не принимаются и не выплачиваются. '
-      'Успех в этой игре не означает успеха в азартных играх на реальные деньги.';
+      'This game is played with virtual chips. Real money is neither accepted nor paid out. '
+      'Success in this game does not imply future success at real-money gambling.';
 
-  static const String ageGatePrompt = 'Подтвердите, что вам исполнилось 18 лет';
+  static const String ageGatePrompt = 'Please confirm that you are 18 or older';
   static const String responsiblePlay =
-      'Играйте для удовольствия. Делайте перерывы.';
-  static const String helpContact = '...'; // из конфига региона
+      'Play for fun. Take regular breaks.';
+  static const String helpContact = '...'; // from the region config
   static const int sessionReminderMinutes = 60;
 }
 ```
+
+> These strings are English by default, like the rest of the game's copy. If the user has
+> explicitly asked for the game in another language, translate the compliance copy along with
+> the rest of the player-facing text — the meaning of the disclaimer must survive the
+> translation intact, because that is what the stores audit.

@@ -5,17 +5,17 @@ globs: ["test/**/*.dart", "integration_test/**/*.dart"]
 
 # Test Standards — Gambling Game QA
 
-## Обязательные тесты для каждой игры
+## Mandatory tests for every game
 
-### 1. RNG Дистрибуция (КРИТИЧЕСКИ ВАЖНО)
-Каждый WeightedRNG ОБЯЗАН иметь дистрибуционный тест:
+### 1. RNG distribution (CRITICALLY IMPORTANT)
+Every WeightedRNG MUST have a distribution test:
 
 ```dart
 group('WeightedRNG', () {
-  test('распределяет символы согласно весам', () {
+  test('distributes symbols according to their weights', () {
     // Arrange
     final rng = WeightedRNG();
-    final weights = [10, 5, 2, 1]; // Символы 0,1,2,3
+    final weights = [10, 5, 2, 1]; // Symbols 0,1,2,3
     final counts = List.filled(4, 0);
     const spins = 100000;
 
@@ -24,7 +24,7 @@ group('WeightedRNG', () {
       counts[rng.pickSymbol(weights)]++;
     }
 
-    // Assert — погрешность не более 5%
+    // Assert — the error must stay within 5%
     final total = weights.reduce((a, b) => a + b); // 18
     expect(counts[0] / spins, closeTo(10/total, 0.05)); // ~55.6%
     expect(counts[1] / spins, closeTo(5/total, 0.05));  // ~27.8%
@@ -32,7 +32,7 @@ group('WeightedRNG', () {
     expect(counts[3] / spins, closeTo(1/total, 0.05));  // ~5.6%
   });
 
-  test('использует Random.secure() — не Math.Random()', () {
+  test('uses Random.secure() — not math.Random()', () {
     // Verify RNG class uses secure random
     final source = File('lib/systems/weighted_rng.dart').readAsStringSync();
     expect(source, contains('Random.secure()'));
@@ -41,22 +41,22 @@ group('WeightedRNG', () {
 });
 ```
 
-### 2. Payline Evaluator
+### 2. Payline evaluator
 ```dart
 group('PaylineEvaluator', () {
-  test('определяет горизонтальную выигрышную линию', () { ... });
-  test('определяет Wild как замену любого символа', () { ... });
-  test('3 одинаковых символа = выигрыш', () { ... });
-  test('2 символа = не выигрыш (если не Wild)', () { ... });
-  test('смешанные символы = проигрыш', () { ... });
-  test('Scatter не зависит от позиции на линии', () { ... });
+  test('detects a horizontal winning line', () { ... });
+  test('treats a Wild as a substitute for any symbol', () { ... });
+  test('3 identical symbols is a win', () { ... });
+  test('2 symbols is not a win (unless Wild)', () { ... });
+  test('mixed symbols is a loss', () { ... });
+  test('a Scatter does not depend on its position on the line', () { ... });
 });
 ```
 
-### 3. Граничные состояния (Edge Cases)
+### 3. Edge cases
 ```dart
-group('Граничные ситуации', () {
-  test('недостаточный баланс блокирует спин', () {
+group('Edge cases', () {
+  test('an insufficient balance blocks the spin', () {
     final game = SlotMachineGame();
     game.balance = 0;
     game.bet = 1;
@@ -65,18 +65,18 @@ group('Граничные ситуации', () {
     expect(result, isFalse);
   });
 
-  test('быстрый двойной клик не запускает два спина', () async {
+  test('a fast double tap does not start two spins', () async {
     final game = SlotMachineGame();
     game.balance = 1000;
 
-    game.spin(); // Первый спин
-    final secondSpinResult = game.spin(); // Должен быть проигнорирован
+    game.spin(); // The first spin
+    final secondSpinResult = game.spin(); // Must be ignored
 
-    expect(secondSpinResult, isNull); // Или false
+    expect(secondSpinResult, isNull); // Or false
     expect(game.gameState, isA<SpinningState>());
   });
 
-  test('восстановление состояния после паузы', () async {
+  test('state recovers after a pause', () async {
     final game = SlotMachineGame();
     await game.spin();
     game.pause();
@@ -86,7 +86,7 @@ group('Граничные ситуации', () {
     expect(game.balance, isNonNegative);
   });
 
-  test('ставка > баланса невозможна', () {
+  test('a bet larger than the balance is impossible', () {
     final game = SlotMachineGame();
     game.balance = 5;
     game.bet = 10;
@@ -96,10 +96,10 @@ group('Граничные ситуации', () {
 });
 ```
 
-### 4. State Leakage Tests
+### 4. State leakage tests
 ```dart
-group('State Leakage — нет утечки между спинами', () {
-  test('баланс корректен после 1000 спинов', () async {
+group('State leakage — nothing leaks between spins', () {
+  test('the balance is correct after 1000 spins', () async {
     final game = SlotMachineGame();
     final initialBalance = game.balance;
     var totalBet = 0;
@@ -114,47 +114,49 @@ group('State Leakage — нет утечки между спинами', () {
     expect(game.balance, equals(initialBalance - totalBet + totalWin));
   });
 
-  test('GameState возвращается в Idle после каждого спина', () async {
+  test('GameState returns to Idle after every spin', () async {
     final game = SlotMachineGame();
 
     for (var i = 0; i < 10; i++) {
       await game.spin();
       expect(game.gameState, isA<IdleState>(),
-             reason: 'После спина #$i GameState должен быть Idle');
+             reason: 'After spin #$i the GameState should be Idle');
     }
   });
 });
 ```
 
-## Минимальное покрытие по категориям
+## Minimum coverage by area
 
-| Категория | Минимум |
-|-----------|---------|
+| Area | Minimum |
+|------|---------|
 | WeightedRNG | 95% |
 | PaylineEvaluator | 95% |
-| SlotConfig / математика | 90% |
-| GameState машина | 85% |
-| HUD виджеты | 70% |
-| Анимации (компоненты) | 60% |
+| SlotConfig / mathematics | 90% |
+| The GameState machine | 85% |
+| HUD widgets | 70% |
+| Animations (components) | 60% |
 
-## Формат тестов (AAA)
+## Test format (AAA)
 
 ```dart
-test('описание в третьем лице настоящего времени', () {
-  // Arrange — подготовка
+test('a description in the third person, present tense', () {
+  // Arrange — set up
   final game = ...;
 
-  // Act — действие
+  // Act — do the thing
   final result = game.method();
 
-  // Assert — проверка
+  // Assert — check it
   expect(result, ...);
 });
 ```
 
-## Запрещено в тестах
+Test names and `reason:` strings are written in English, like the rest of the codebase.
 
-1. `Random()` или `Random.secure()` в тестах — используй фиксированные seed или моки
-2. `sleep()` или `Future.delayed()` — используй `FakeAsync` или `pump()`
-3. Тесты без единого `expect` — пустые тесты запрещены
-4. Зависимость порядка тестов — каждый тест должен быть независимым
+## Forbidden in tests
+
+1. `Random()` or `Random.secure()` inside tests — use a fixed seed or a mock
+2. `sleep()` or `Future.delayed()` — use `FakeAsync` or `pump()`
+3. Tests without a single `expect` — empty tests are forbidden
+4. Dependence on test order — every test must be independent

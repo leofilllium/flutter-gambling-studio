@@ -1,51 +1,61 @@
 # Gemini CLI / Antigravity Guide for Flutter Gambling Studio
 
-> Управляйте гемблинг-студией через агента Gemini / Antigravity.
-> Студия делает ТОЛЬКО гемблинг-игры: шесть категорий C1–C6, 32 архетипа A–AF.
-> Этот файл адаптирует команды студии для запуска в `gemini` CLI.
+> Drive the gambling studio through the Gemini / Antigravity agent.
+> The studio builds ONLY gambling games: six categories C1–C6, 32 archetypes A–AF.
+> This file adapts the studio's commands for use in the `gemini` CLI.
 >
-> Для Claude: `CLAUDE.md` и `.claude/`
-> Для Codex: `AGENTS.md` и `.codex/`
-> Для Cursor: `.cursorrules`
+> For Claude: `CLAUDE.md` and `.claude/`
+> For Codex: `AGENTS.md` and `.codex/`
+> For Cursor: `.cursorrules`
 
-## Установка и интеграция (Gemini CLI)
+## Installation and integration (Gemini CLI)
 
-Для того, чтобы навыки (skills) и агенты отображались в Gemini / Antigravity:
+To make the skills and agents show up in Gemini / Antigravity:
 ```bash
 ./tools/setup-gemini-cli.sh link
 ```
-Это добавит проектный плагин студии в директорию `~/.gemini/antigravity/plugins/flutter-gambling-studio/skills`. 
+This adds the studio's project plugin to `~/.gemini/antigravity/plugins/flutter-gambling-studio/skills`.
 
-## Использование
+## Usage
 
-Ваш бот (например, Antigravity) обучен запускать команды как "ручные ранбуки" или полноценные навыки.
-Просто напишите в чат нужную команду (например, `/brainstorm`) или используйте упоминание агента.
+Your bot (Antigravity, for example) is trained to run commands as "manual runbooks" or as
+full skills. Just type the command you want in the chat (`/brainstorm`, for instance) or
+mention the agent.
 
-### Доступные команды:
+### Available commands
 
-| Команда | Описание |
-|---------|----------|
-| `/brainstorm` | Интерактивный генератор концепта |
-| `/auto-idea` | Автономный концепт (32 архетипа A–AF по 6 категориям + Variety Dimensions + Layout Archetype) |
-| `/autocreate` | Полный цикл создания игры |
-| `/team-dev` | Оркестрация команды разработчиков |
-| `/ui-audit` | Выявление проблем anti-slop дизайна |
-| `/emulator-test` | Тестирование в реальном Android эмуляторе через ADB (default). Скриншоты — `flutter screenshot` с fallback на `adb screencap` и валидацией PNG. Флаг `--no-impeller` если кадры невалидны. |
-| `/code-review` | Ревью архитектуры Flame и Flutter |
-| `/balance-check`| Верификация матмодели M1–M6 через `tools/simulate_math.py` |
+| Command | Description |
+|---------|-------------|
+| `/brainstorm` | Interactive concept generator |
+| `/auto-idea` | Autonomous concept (32 archetypes A–AF across 6 categories + Variety Dimensions + Layout Archetype) |
+| `/autocreate` | The full game creation cycle |
+| `/team-dev` | Developer team orchestration |
+| `/ui-audit` | Find anti-slop design problems |
+| `/emulator-test` | Runtime testing — Chrome/Web by default, with a real Android emulator over ADB as the fallback. Screenshots come from `flutter screenshot`, falling back to `adb screencap`, with PNG validation. Use `--no-impeller` if the frames come out invalid. |
+| `/code-review` | Review of the Flame and Flutter architecture |
+| `/balance-check` | Math model verification M1–M6 via `tools/simulate_math.py` |
 
-Полный список см. в файле [CLAUDE.md](CLAUDE.md).
+For the full list see [CLAUDE.md](CLAUDE.md).
 
-## Правила кодирования
+## Language
 
-При написании кода бот Gemini будет использовать стандарты, описанные в:
+Everything produced in this repository is in English: agent responses, design documents,
+reports and code. The generated game ships in English too — every player-facing string plus
+store metadata. The only exception is an explicit user request for a different language: then
+the player-facing copy uses it and everything else stays English. Never switch the game's
+language on your own initiative or because of the language the user types in.
+
+## Coding rules
+
+When writing code, the Gemini bot follows the standards described in:
 - `.claude/rules/game-code.md`
 - `.claude/rules/engine-code.md`
 - `.claude/rules/ui-code.md`
 
-Всегда обращайте внимание на требования к `Random.secure()` и "stateless outcomes", а также избегайте магических чисел вне `game_config.dart`.
+Always pay attention to the `Random.secure()` and "stateless outcomes" requirements, and
+avoid magic numbers outside `game_config.dart`.
 
-Обязательны к прочтению перед работой:
-- `.claude/docs/gambling-categories.md` — шесть категорий и 32 архетипа
-- `.claude/docs/math-models.md` — модели M1–M6 и пороги верификации
-- `.claude/rules/responsible-gaming.md` — compliance-слой (release-блокер)
+Required reading before starting work:
+- `.claude/docs/gambling-categories.md` — the six categories and 32 archetypes
+- `.claude/docs/math-models.md` — models M1–M6 and their verification thresholds
+- `.claude/rules/responsible-gaming.md` — the compliance layer (a release blocker)

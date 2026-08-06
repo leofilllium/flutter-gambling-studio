@@ -1,55 +1,55 @@
 ---
 name: generate-png-asset
-description: "Генерация PNG-ассетов. В Codex основной путь — GPT Image 2: встроенный image generation tool, а в headless Codex CLI — прямой Images API через tools/gpt_image.py. SVG допустим только как последний явный fallback. Простые ассеты генерируются на плоском ключевом фоне и вырезаются через tools/cutout.py."
+description: "Generation of PNG assets. In Codex, the main path is GPT Image 2: built-in image generation tool, and in the headless Codex CLI - direct Images API via tools/gpt_image.py. SVG is only allowed as the last explicit fallback. Simple assets are generated on a flat key background and cut via tools/cutout.py."
 allowed-tools: Write, Read, Bash, AskUserQuestion, Glob
-argument-hint: "[описание] | [--batch список] | [--from-concept] | [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
+argument-hint: "[description] | [--batch list] | [--from-concept] | [--cheap POLL_API_TOKEN] [--free REMOVE_BG_TOKEN]"
 user-invocable: true
 ---
 
-# `generate-png-asset` — PNG ассеты для мини-игр
+# `generate-png-asset` - PNG assets for mini-games
 
-## Правило по умолчанию
+## Default rule
 
-1. **Исключение для `/autocreate`:** если вызов идёт из `/autocreate` или `--from-concept`
-   полного проекта в Codex, PNG/image generation является дефолтом даже без `--png`; SVG
-   запрещён без явного `--svg`.
-2. Если пользователь не просил PNG/image generation и это НЕ `/autocreate` — вернуться к
-   `/generate-asset` и создать **SVG**.
-3. Если пользователь явно просил PNG/image generation и агент работает в **Codex** —
-   использовать **GPT Image 2 (`gpt-image-2`)** первым:
-   - если встроенный image-generation tool доступен — вызвать его;
-   - если tool отсутствует в headless Codex CLI — вызвать
-     `python3 tools/gpt_image.py generate ...`. Отсутствие встроенного tool **не является**
-     провалом GPT Image 2 и не разрешает переход к SVG.
-   Если оба GPT Image 2 транспорта дали документированный технический сбой или не создали
-   валидный PNG, только тогда допустим GPT Images/default Codex image generation.
-   SVG остаётся последним fallback и не выбирается автоматически в `/autocreate`.
-4. Не спрашивать ключи Google, Pollinations или remove.bg в Codex-пути.
-5. Внешние провайдеры ниже считаются legacy fallback и используются только по явной просьбе пользователя или если Codex image generation недоступна.
+1. **Exception for `/autocreate`:** if the call comes from `/autocreate` or `--from-concept`
+   of a complete project in Codex, PNG/image generation is default even without `--png`; SVG
+   prohibited without an explicit `--svg`.
+2. If the user did not request PNG/image generation and this is not `/autocreate`, use
+   `/generate-asset` to create **SVG**.
+3. If the user explicitly requested PNG/image generation and the agent works in **Codex** -
+   use **GPT Image 2 (`gpt-image-2`)** first:
+   - if the built-in image-generation tool is available, call it;
+   - if tool is not in the headless Codex CLI - call
+     `python3 tools/gpt_image.py generate ...`. Lack of built-in tool **is not**
+     a GPT Image 2 failure and does not justify switching to SVG.
+   If both GPT Image 2 transports have a documented technical failure or fail to create a
+   valid PNG, only then is GPT Images/default Codex image generation allowed.
+   The SVG remains the last fallback and is not automatically selected in `/autocreate`.
+4. Don't ask for Google, Pollinations or remove.bg keys in the Codex path.
+5. The external providers below are considered legacy fallback and are used only at the explicit request of the user or if Codex image generation is not available.
 
-## Сервисы генерации
+## Generation services
 
-| Сервис | Когда использовать | Требования |
+| Service | When to use | Requirements |
 |--------|--------------------|------------|
-| **Codex GPT Image 2** | Основной PNG/image-generation путь в Codex app | Встроенный Codex image generation tool |
-| **GPT Image 2 API bridge** | Основной путь в headless `codex exec`, когда built-in tool не экспонирован | `python3 tools/gpt_image.py`; в web-service `OPENAI_API_KEY` инжектируется автоматически |
-| **Codex GPT Images / default image generation** | Первый fallback, если GPT Images 2.0 не сработал | Встроенный Codex image generation tool |
-| **SVG** | Только ручной default вне `/autocreate` или последний явно зафиксированный fallback | Ничего |
-| **Pollinations.ai / Google Gemini** | Только legacy fallback или явный запрос пользователя | Внешний API ключ / billing |
+| **Codex GPT Image 2** | Main PNG/image-generation path in Codex app | Built-in Codex image generation tool |
+| **GPT Image 2 API bridge** | The main path in headless is `codex exec` when the built-in tool is not exposed | `python3 tools/gpt_image.py`; in web-service `OPENAI_API_KEY` is injected automatically |
+| **Codex GPT Images / default image generation** | First fallback after a documented GPT Image 2 failure | Built-in Codex image generation tool |
+| **SVG** | Only manual default outside `/autocreate` or last explicitly committed fallback | Nothing |
+| **Pollinations.ai / Google Gemini** | Only legacy fallback or explicit user request | External API key / billing |
 
-**Удаление фона:** только `python3 tools/cutout.py`. Ручной `magick -fuzz`, голый `rembg i`
-и `remove.bg` запрещены (см. «Локальное удаление фона» ниже).
+**Background removal:** `python3 tools/cutout.py` only. Manual `magick -fuzz`, naked `rembg i`
+and `remove.bg` are prohibited (see "Local background removal" below).
 
 ---
 
-## Бюджетный манифест и кэш (ОБЯЗАТЕЛЬНО)
+## Budget manifesto and cache (MANDATORY)
 
-Экономия достигается не упрощением промпта, а исключением повторных и не нужных вызовов.
-GPT Images 2.0 остаётся единственным штатным генератором растрового исходника в Codex.
+Savings are achieved not by simplifying the prompt, but by eliminating repeated and unnecessary calls.
+GPT Images 2.0 remains the only standard raster source generator in Codex.
 
-Перед первой генерацией создать `design/asset-manifest.md`; `design/asset-prompts.md`
-остаётся подробным художественным ledger. Манифест — это машиночитаемая для агента запись
-решения о расходе каждого вызова:
+Before the first generation, create `design/asset-manifest.md`; `design/asset-prompts.md`
+remains a detailed artistic ledger. A manifest is a machine-readable record for an agent.
+decisions on the flow of each call:
 
 ```markdown
 # Asset Manifest — Budgeted GPT Images 2.0
@@ -60,108 +60,108 @@ budget: unique_sources=12, technical_recovery_calls=2
 |------------|-------|-------------|---------------|-----------|----------|------------|--------|
 ```
 
-Классы манифеста:
+Manifest classes:
 
-| Класс | Когда применять | Расход GPT Images 2.0 |
+| Class | When to use | Consumption GPT Images 2.0 |
 |-------|-----------------|-----------------------|
-| `generate` | Уникальный силуэт игрового символа, hero-объект или полноэкранная сцена | 1 успешный источник |
-| `derive` | Кадрирование, масштаб, безопасный цветовой вариант или локальная анимационная фаза существующего ассета | 0 |
-| `code` | UI, текст, кнопки, панели, иконки, рамки, тени, glow, частицы и VFX | 0 |
-| `reuse` | Уже валидированный источник без изменения его игрового смысла | 0 |
+| `generate` | Unique silhouette of game symbol, hero object or full screen scene | 1 successful source |
+| `derive` | Crop, scale, safe color option or local animation phase of an existing asset | 0 |
+| `code` | UI, text, buttons, panels, icons, frames, shadows, glow, particles and VFX | 0 |
+| `reuse` | Already validated source without changing its game meaning | 0 |
 
-Для каждого `generate` до вызова построить нормализованный prompt (включая тип, Design DNA,
-ключевой цвет и путь) и записать его SHA-256. Если в манифесте уже есть тот же
-`prompt_sha256`, файл существует, валиден и прошёл `cutout.py --check` для простого ассета,
-переиспользовать его без нового вызова. Например:
+For each `generate` before the call, construct a normalized prompt (including type, Design DNA,
+key color and path) and write it SHA-256. If the manifest already has the same
+`prompt_sha256`, the file exists, is valid and passed `cutout.py --check` for a simple asset,
+reuse it without calling again. For example:
 
 ```bash
 printf '%s' "$NORMALIZED_PROMPT" | shasum -a 256
 ```
 
-Стандартный бюджет для `/autocreate` и `--from-concept`: не более **12 уникальных успешных
-исходников** и не более **2 технических recovery-вызовов** на игру. Внутри этих 12 по
-умолчанию допускаются 5–8 уникальных игровых символов и не более двух полноэкранных сцен.
-Выход за лимит не делается молча: для ручной команды нужен явный запрос пользователя, а
-автоконвейер обязан сначала переклассифицировать элемент в `derive`, `code` или `reuse`.
+Standard budget for `/autocreate` and `--from-concept`: no more than **12 unique successful
+source codes** and no more than **2 technical recovery calls** per game. Inside these 12
+By default, 5-8 unique game symbols and a maximum of two full-screen scenes are allowed.
+Exceeding the limit is not done silently: a manual command requires an explicit user request, and
+the autopipe is required to first reclassify the element to `derive`, `code` or `reuse`.
 
-Цветовые варианты разрешены только если не меняют распознаваемый результат раунда,
-редкость, выплату или вероятность. В противном случае это отдельный `generate`-ассет.
+Color variations are allowed only if they do not change the recognizable result of the round,
+rarity, payout or probability. Otherwise it is a separate `generate` asset.
 
-### Fallback без лишнего расхода
+### Fallback at no extra cost
 
-GPT Images / default Codex image generation допускается **только** после документированного
-технического сбоя GPT Image 2 через оба доступных транспорта: built-in tool (если он
-экспонирован) и `tools/gpt_image.py` (headless CLI). Само отсутствие built-in tool не является
-сбоем: немедленно использовать API bridge. Записать HTTP/validation причину в
-`attempts`/`status` манифеста и повторить **тот же** prompt. Визуальный вкус, AR1–AR10,
-неподходящая композиция или неудачный chroma-key не являются основанием для смены модели:
-сначала применить локальную обработку, затем при необходимости использовать один из двух
-recovery-вызовов снова через GPT Image 2. SVG не создавать молча.
+GPT Images / default Codex image generation is allowed **only** after documented
+technical failure of GPT Image 2 through both available transports: built-in tool (if it
+exposed) and `tools/gpt_image.py` (headless CLI). The very absence of a built-in tool is not
+failure: use API bridge immediately. Record the HTTP/validation reason in
+`attempts`/`status` manifest and repeat **same** prompt. Visual taste, AR1–AR10,
+an unsuitable composition or an unsuccessful chroma-key are not grounds for changing the model:
+apply local processing first, then use one of the two if necessary
+recovery calls again via GPT Image 2. SVG are not created silently.
 
 ---
 
-## Ключевой цвет фона (chroma key) — выбирать ДО генерации
+## Key background color (chroma key) - select BEFORE generation
 
-Белый фон нельзя вырезать у белого объекта: курица, перо, лёд, стекло, хром, пена, снег
-сливаются с фоном, и от них остаются дыры. Поэтому простые ассеты генерируются на
-**плоском ключевом цвете, максимально далёком от палитры объекта**.
+The white background cannot be cut out from a white object: chicken, feather, ice, glass, chrome, foam, snow
+They blend into the background and leave holes behind. Therefore, simple assets are generated on
+**flat key color, as far from the object’s palette as possible**.
 
-Правило выбора (выполнять для КАЖДОГО ассета, писать выбор в `design/asset-prompts.md`):
+Selection rule (perform for EVERY asset, write selection in `design/asset-prompts.md`):
 
-| Палитра объекта (Design DNA) | Ключ | В промпте |
+| Object Palette (Design DNA) | Key | In prompt |
 |------------------------------|------|-----------|
-| нет пурпурного/розового/фиолетового | **magenta** (по умолчанию) | `flat solid pure magenta #FF00FF background` |
-| есть пурпур/розовый/фиолетовый, нет зелёного | **green** | `flat solid pure green #00FF00 background` |
-| есть и пурпур, и зелёный | **blue** | `flat solid pure blue #0000FF background` |
-| объект яркий, насыщенный, без белого и светлых бликов | white (допустим) | `flat solid pure white background` |
+| no magenta/pink/violet | **magenta** (default) | `flat solid pure magenta #FF00FF background` |
+| there is purple/pink/violet, no green | **green** | `flat solid pure green #00FF00 background` |
+| there are both purple and green | **blue** | `flat solid pure blue #0000FF background` |
+| the object is bright, saturated, without white and light reflections | white (let's say) | `flat solid pure white background` |
 
-Всегда добавлять в промпт: `flat solid single-colour background, no gradient, no vignette,
+Always add to the prompt: `flat solid single-color background, no gradient, no vignette,
 no shadow on the background, subject fully inside frame`.
 
-Ключ определяется автоматически при вырезании — но выбрать его правильно всё равно
-обязательно: измеренная ошибка вырезания при плохом ключе (фон того же тона, что объект)
-в разы выше, чем при правильном.
+The key is detected automatically when cutting - but choose it correctly anyway
+mandatory: measured cutting error with bad key (background of the same tone as the subject)
+many times higher than with the correct one.
 
 ---
 
-## Шаг 0: Определение режима
+## Step 0: Determine the mode
 
-### Если агент работает в Codex
+### If the agent works in Codex
 
-- Всегда выбрать Codex image-generation chain:
-  **built-in GPT Image 2 (если доступен) → `tools/gpt_image.py` (`gpt-image-2`) →
+- Always select Codex image-generation chain:
+  **built-in GPT Image 2 (if available) → `tools/gpt_image.py` (`gpt-image-2`) →
   GPT Images/default Codex fallback**.
-- Сначала создать/прочитать `design/asset-manifest.md`, проверить SHA-256 prompt и лимиты;
-  создавать PNG только для класса `generate` без валидного кэшированного совпадения.
-- Создавать один PNG за один вызов image generation.
-- Сохранять результат в `assets/images/pngs/`, `assets/images/sprites/`, `assets/images/ui/` или `assets/images/backgrounds/` по типу ассета.
-- Для `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item` просить **плоский ключевой фон** (см. «Ключевой цвет фона» выше) без теней, градиентов и сцены; прозрачность появляется только после `tools/cutout.py`.
-- Для `background`, `main_menu_bg`, `game_bg`, полноэкранных иллюстраций фон НЕ вырезать.
-- Для `/autocreate` создать/обновить `design/asset-prompts.md`: полный prompt, subject,
-  material, lighting, render style, путь файла и post-processing verdict для каждого ассета.
+- First create/read `design/asset-manifest.md`, check SHA-256 prompt and limits;
+  create a PNG only for class `generate` without a valid cached match.
+- Create one PNG per image generation call.
+- Save the result in `assets/images/pngs/`, `assets/images/sprites/`, `assets/images/ui/` or `assets/images/backgrounds/` by asset type.
+- For `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item` ask for a **flat key background** (see "Key background color" above) without shadows, gradients or scene; transparency appears only after `tools/cutout.py`.
+- For `background`, `main_menu_bg`, `game_bg`, full-screen illustrations, DO NOT cut out the background.
+- For `/autocreate` create/update `design/asset-prompts.md`: full prompt, subject,
+  material, lighting, render style, file path and post-processing verdict for each asset.
 
-### Если переданы legacy-флаги:
-- `--cheap POLL_API_TOKEN` → Pollinations.ai с ключом (legacy fallback)
-- `--cheap POLL_API_TOKEN --free REMOVE_BG_TOKEN` → Pollinations + remove.bg только если пользователь явно просит этот сервис
-- Без legacy-флагов в Codex → не спрашивать внешние ключи; использовать GPT Image 2.
-  В flutter-game-web-service per-user `OPENAI_API_KEY` уже передаётся bridge-процессу.
+### If legacy flags are passed:
+- `--cheap POLL_API_TOKEN` → Pollinations.ai with key (legacy fallback)
+- `--cheap POLL_API_TOKEN --free REMOVE_BG_TOKEN` → Pollinations + remove.bg only if the user explicitly requests this service
+- Without legacy flags in Codex → ​​do not ask for foreign keys; use GPT Image 2.
+  In flutter-game-web-service per-user `OPENAI_API_KEY` is already passed to the bridge process.
 
-### Если флагов нет и агент НЕ работает в Codex — спросить:
+### If there are no flags and the agent does NOT work in Codex, ask:
 
-> "Как генерировать PNG ассеты?
+> "How to generate PNG assets?
 >
-> **1. SVG** — режим по умолчанию, через /generate-asset
-> **2. Внешний PNG provider** — Pollinations.ai или Google Gemini, нужен API ключ / billing
-> **3. Ручной промпт** — агент подготовит prompt, пользователь генерирует вне студии
+> **1. SVG** - default mode, via /generate-asset
+> **2. External PNG provider** – Pollinations.ai or Google Gemini, API key / billing required
+> **3. Manual prompt** - the agent will prepare the prompt, the user generates it outside the studio
 >
-> Введите 1, 2 или 3:"
+>Enter 1, 2 or 3:"
 
 ---
 
-## Codex-режим: GPT Image 2 tool/API → GPT Images fallback
+## Codex mode: GPT Image 2 tool/API → GPT Images fallback
 
-**Использовать `gpt-image-2` первым в Codex.** В Codex app вызвать встроенный image-generation
-tool. В headless `codex exec`, где этого tool нет в списке, использовать штатный bridge:
+**Use `gpt-image-2` first in Codex.** In Codex app, call built-in image-generation
+tool. In headless `codex exec`, where this tool is not in the list, use the standard bridge:
 
 ```bash
 python3 tools/gpt_image.py probe
@@ -172,44 +172,44 @@ python3 tools/gpt_image.py generate \
   --quality high
 ```
 
-Один `generate` = один ассет. Bridge жёстко использует модель `gpt-image-2`, проверяет
-`data[0].b64_json`, PNG signature/IHDR и пишет файл атомарно. В web-service ключ пользователя
-передаётся автоматически только дочернему `codex exec`; не печатать и не сохранять его.
-В standalone Codex CLI пользователь сам задаёт `OPENAI_API_KEY` в окружении — никогда не
-просить вставлять ключ в prompt или чат.
+One `generate` = one asset. Bridge strictly uses the `gpt-image-2` model, checks
+`data[0].b64_json`, PNG signature/IHDR and writes the file atomically. In web-service user key
+is transmitted automatically only to the child `codex exec`; do not print or save it.
+In standalone Codex CLI, the user himself sets `OPENAI_API_KEY` in the environment - never
+ask to insert the key into the prompt or chat.
 
-Если API вернул `403`, проверить доступ/верификацию OpenAI organization; `429` — rate limit;
-прочие ошибки показывать дословно без секрета. Не заменять такой сбой SVG автоматически.
-GPT Images/default или legacy provider разрешены только после зафиксированного технического
-провала GPT Image 2 либо по явной просьбе пользователя.
+If the API returned `403`, check OpenAI organization access/verification; `429` — rate limit;
+show other errors verbatim without secret. Do not automatically replace such a failure with SVG.
+GPT Images/default or legacy provider are allowed only after fixed technical
+failure of GPT Image 2 or at the explicit request of the user.
 
-### Cartoon finish & concept fidelity (читать ПЕРЕД построением промпта)
+### Cartoon finish & concept fidelity (read BEFORE building the prompt)
 
-> Цель — НЕ «нарисуй абстрактный значок». Цель — **выразительный мультяшный 2.5D ассет,
-> который безошибочно принадлежит миру ЭТОЙ игры**. Перед генерацией каждого ассета
-> самостоятельно выведи из концепта (`design/gdd/game-concept.md`) и Design DNA четыре
-> вещи и подставь их в промпт:
+> The goal is NOT “draw an abstract icon.” The goal is an **expressive cartoon 2.5D asset,
+> which unmistakably belongs to the world of THIS game**. Before generating each asset
+> independently derive from the concept (`design/gdd/game-concept.md`) and Design DNA four
+> things and substitute them in the prompt:
 
-1. **Subject identity** — что это конкретно за объект в мире игры (не «гем», а «гранёный
-   аметист с внутренним свечением»; не «кнопка», а «латунная клавиша с гравировкой»).
-2. **Material & texture** — из чего сделан: металл/стекло/дерево/драгоценный камень/неон/ткань;
-   как материал упрощается в чистый мультяшный объём, градиенты и глянцевые блики.
-3. **Lighting** — единый для ВСЕГО набора источник (например, мягкий верхне-левый key light
-   + лёгкий rim). Свет = главный признак «дорогого» ассета.
+1. **Subject identity** - what exactly is this object in the game world (not “heme”, but “faceted”
+   amethyst with inner glow"; not a “button”, but a “brass key with engraving”).
+2. **Material & texture** - what it is made of: metal/glass/wood/gem/neon/fabric;
+   how the material is simplified into pure cartoon volume, gradients and glossy highlights.
+3. **Lighting** - a single source for the ENTIRE set (for example, soft upper-left key light
+   + light rim). Light = the main sign of an “expensive” asset.
 4. **Render style** — polished cartoon 2.5D casual-game art: bold rounded/exaggerated
    silhouette, smooth modeled gradients, saturated theme-aware colors, clean edging,
-   glossy highlights and restrained star glints. DNA определяет мир, формы, материалы,
-   палитру и детали. Держи finish одинаковым во всём наборе.
+   glossy highlights and restrained star glints. DNA determines the world, forms, materials,
+   palette and details. Keep the finish the same throughout the entire set.
 
-**Жёсткий quality floor для `/autocreate`:** photorealistic/product-shot render, flat
-vector icon, emoji/sticker, generic logo, дешёвый clipart, случайный neon/casino asset без
-связи с концептом, sprite sheet, текст внутри изображения или объект с другой схемой света
-считается FAIL.
-Сначала устранить локально исправимые дефекты (cutout, нормализация кадра, переклассификация
-в `code`/`derive`); для дефекта исходной генерации разрешён один recovery-вызов GPT Images 2.0
-на `logical_id`. Нельзя автоматически переключаться на fallback из-за эстетической оценки.
+**Hard quality floor for `/autocreate`:** photorealistic/product-shot render, flat
+vector icon, emoji/sticker, generic logo, cheap clipart, random neon/casino asset without
+connections to a concept, sprite sheet, text within an image, or an object with a different light pattern
+considered FAIL.
+First eliminate locally correctable defects (cutout, frame normalization, reclassification
+in `code`/`derive`); one recovery call to GPT Images 2.0 is allowed for a source generation defect
+to `logical_id`. You cannot automatically switch to fallback due to aesthetic considerations.
 
-### Промпт для простого ассета (concept-grounded, cartoon 2.5D)
+### Prompt for a simple asset (concept-grounded, cartoon 2.5D)
 
 ```
 Polished cartoon 2.5D mobile game asset of [SUBJECT IDENTITY from concept],
@@ -225,12 +225,12 @@ NO product photography, NO flat vector clipart, NO emoji/sticker, 1024x1024 PNG.
 [TYPE_DETAILS]
 ```
 
-> `[KEY COLOUR]` подставляется по таблице из «Ключевой цвет фона» (по умолчанию
-> `pure magenta #FF00FF`). Сразу после генерации — `python3 tools/cutout.py <файл>
-> --type sprite`. Никогда не проси сложную сцену, тень под объектом или градиентный
-> фон у простого ассета — это ломает вырезание, и cutout.py такой ассет отклонит.
+> `[KEY COLOUR]` is substituted according to the table from “Key background color” (default
+> `pure magenta #FF00FF`). Immediately after generation - `python3 tools/cutout.py <file>
+> --type sprite`. Never ask for a complex scene, a shadow under an object, or a gradient
+> background for a simple asset - this breaks the cut, and cutout.py will reject such an asset.
 
-### Промпт для background (без вырезания фона)
+### Prompt for background (without cutting out the background)
 
 ```
 Polished cartoon 2.5D 9:16 mobile game background: [SCENE from concept & DNA].
@@ -239,75 +239,75 @@ Full atmospheric scene with saturated layered depth (foreground / midground / sk
 calm readable empty area in the vertical center for gameplay, high quality PNG.
 ```
 
-### После генерации
+### After generation
 
-1. Сохранить PNG в целевую папку.
-2. Проверить файл через `file path/to/asset.png`.
-3. Если это простой ассет — применить локальное удаление ключевого фона.
-4. Добавить папку в `pubspec.yaml`, если она новая.
+1. Save the PNG to the target folder.
+2. Check the file using `file path/to/asset.png`.
+3. If this is a simple asset, apply local removal of the key background.
+4. Add the folder to `pubspec.yaml` if it is new.
 
-### Локальное удаление фона — ТОЛЬКО через `tools/cutout.py`
+### Local background removal - ONLY via `tools/cutout.py`
 
-Только для `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`.
-Не применять к `background`, `ui_panel`, полноэкранным сценам и иллюстрациям
-(эти типы навык сам пропустит).
+Only for `symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`.
+Do not apply to `background`, `ui_panel`, full screen scenes and artwork
+(the skill itself will skip these types).
 
-> **Запрещено вырезать фон вручную** — ни `magick -fuzz ... -transparent white`,
-> ни голый `rembg i`. Глобальный fuzz-матч пробивает дыры в белых бликах, глазах,
-> хроме и пене, даёт бинарную (рваную) альфу и оставляет белый ореол по краю.
-> `tools/cutout.py` делает то, что делает компоузер: заливка фона от границы кадра
-> (внутренние белые пиксели не трогаются), дробная альфа на краю, декантаминация
-> (снятие цвета фона с полупрозрачных пикселей), despill, обрезка по контенту и
-> нормализация кадра. `rembg`, если установлен, используется как ассист.
+> **It is forbidden to cut out the background manually** - neither `magick -fuzz ... -transparent white`,
+> neither naked `rembg i`. Global fuzz match punches holes in white highlights, eyes,
+> chrome and foam, gives a binary (torn) alpha and leaves a white halo around the edge.
+> `tools/cutout.py` does what a composer does: fill the background from the edge of the frame
+> (inner white pixels not touched), fractional alpha on edge, decantation
+> (removing background color from translucent pixels), despill, cropping to content and
+> frame normalization. `rembg`, if set, is used as an assist.
 
 ```bash
 python3 tools/cutout.py assets/images/pngs/cherry.png --type sprite
 ```
 
-Вывод: `✅ cherry.png 512×512 flood+matte` — фон снят и проверен.
-`✗` означает, что ассет непригоден (фон не плоский / ключевой цвет не тот) —
-сначала проверить исходник и ключ, затем использовать только разрешённый recovery GPT Images
-2.0; не «дожимать» вручную и не переключаться на fallback по качеству.
+Conclusion: `✅ cherry.png 512×512 flood+matte` - the background has been removed and checked.
+`✗` means the asset is unusable (the background is not flat / the key color is not the same) -
+first check the source and key, then use only authorized recovery GPT Images
+2.0; don’t “press” manually and don’t switch to fallback in terms of quality.
 
-| Флаг | Зачем |
+| Flag | Why |
 |------|-------|
-| `--type sprite\|icon\|ui\|tile\|background` | пресет холста и полей; `background`/`ui_panel` пропускаются |
-| `--key auto\|magenta\|green\|blue\|white\|#RRGGBB` | ключевой цвет; `auto` определяет его по рамке кадра |
-| `--dir assets/images/sprites` | пакетно по папке |
-| `--check` | только аудит альфы, без записи (используется в `/asset-review`) |
-| `--no-trim` | не перекадрировать (когда важна исходная композиция) |
-| `--backup` | сохранить оригинал как `*.orig.png` |
+| `--type sprite\|icon\|ui\|tile\|background` | canvas and margin preset; `background`/`ui_panel` skipped |
+| `--key auto\|magenta\|green\|blue\|white\|#RRGGBB` | key color; `auto` identifies it by frame |
+| `--dir assets/images/sprites` | batch by folder |
+| `--check` | alpha audit only, no recording (used in `/asset-review`) |
+| `--no-trim` | do not reframe (when the original composition is important) |
+| `--backup` | save original as `*.orig.png` |
 
-Один вызов на ассет сразу после генерации; для всего набора — `--dir` в конце.
+One call per asset immediately after generation; for the entire set - `--dir` at the end.
 
 ---
 
 ## Legacy fallback: Pollinations.ai
 
-### Модели изображений (Pollinations)
+### Image Models (Pollinations)
 
-| Модель | Качество | Цена | Особенности |
+| Model | Quality | Price | Features |
 |--------|---------|------|-------------|
-| `flux` | Хорошее | Дёшево | Быстрая |
-| `zimage` | Хорошее + 2x upscale | Дёшево | Fast 6B Flux с апскейлом |
-| `gptimage` | Высокое | Платно (pollen) | OpenAI image gen, поддержка прозрачности |
-| `gptimage-large` | Очень высокое | Платно | HD, прозрачность |
-| `klein` | Среднее | Дёшево | FLUX.2 Klein 4B, быстрая |
+| `flux` | good | Cheap | Fast |
+| `zimage` | Good + 2x upscale | Cheap | Fast 6B Flux with upscale |
+| `gptimage` | High | Paid (pollen) | OpenAI image gen, transparency support |
+| `gptimage-large` | Very high | Paid | HD, transparency |
+| `klein` | Average | Cheap | FLUX.2 Klein 4B, fast |
 
-### Удаление фона в legacy fallback
+### Removing background in legacy fallback
 
-Тот же `python3 tools/cutout.py` — он не зависит от провайдера генерации.
-`remove.bg` и ручной ImageMagick не используются даже в legacy-пути.
+The same `python3 tools/cutout.py` - it does not depend on the generation provider.
+`remove.bg` and manual ImageMagick are not used even in the legacy path.
 
 ---
 
-### Шаблон одного символа (один Bash call):
+### Single character pattern (one Bash call):
 
-Ассеты типа `symbol`, `icon`, `wild`, `scatter` → **фон удаляется автоматически**.
-Ассеты типа `background`, `ui_panel` → фон НЕ удаляется.
+Assets like `symbol`, `icon`, `wild`, `scatter` → **background is removed automatically**.
+Assets like `background`, `ui_panel` → background are NOT removed.
 
 ```bash
-POLL_API_KEY="[ключ от --cheap или от пользователя]"
+POLL_API_KEY="[key from --cheap or from user]"
 ASSET_NAME="cherry"
 ASSET_TYPE="symbol"   # symbol | icon | wild | scatter | background | ui_panel
 PROMPT="red glossy cherries fruit, game sprite icon, flat solid pure magenta #FF00FF background, no gradient, vibrant colors, cartoon style, isolated object"
@@ -315,39 +315,39 @@ OUTPUT_DIR="assets/images/pngs"
 MODEL="flux"          # legacy: flux | zimage | gptimage | klein
 mkdir -p "${OUTPUT_DIR}"
 
-echo "━━━ [${ASSET_TYPE}] Генерирую: ${ASSET_NAME} (модель: ${MODEL}) ━━━"
+echo "━━━ [${ASSET_TYPE}] Generating: ${ASSET_NAME} (model: ${MODEL}) ━━━"
 
-# 1. Генерация через Pollinations.ai (новый API)
+#1. Generation via Pollinations.ai (new API)
 ENCODED=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${PROMPT}'))")
 curl -s -L "https://gen.pollinations.ai/image/${ENCODED}?width=1024&height=1024&nologo=true&model=${MODEL}&seed=-1" \
   -H "Authorization: Bearer ${POLL_API_KEY}" \
   -o "${OUTPUT_DIR}/${ASSET_NAME}.png"
 
 if [ ! -s "${OUTPUT_DIR}/${ASSET_NAME}.png" ]; then
-  echo "✗ Pollinations не вернул изображение"
+  echo "✗ Pollinations did not return the image"
   exit 1
 fi
 
 SIZE=$(ls -lh "${OUTPUT_DIR}/${ASSET_NAME}.png" | awk '{print $5}')
-echo "✓ Сгенерирован: ${SIZE}"
+echo "✓ Generated: ${SIZE}"
 
-# 2. Удаление фона (только для symbol/icon/wild/scatter)
+# 2. Removing the background (only for symbol/icon/wild/scatter)
 if [[ "${ASSET_TYPE}" == "symbol" || "${ASSET_TYPE}" == "icon" || "${ASSET_TYPE}" == "wild" || "${ASSET_TYPE}" == "scatter" ]]; then
   python3 tools/cutout.py "${OUTPUT_DIR}/${ASSET_NAME}.png" --type sprite
 else
-  echo "⏭ Тип '${ASSET_TYPE}' — удаление фона пропущено"
+  echo "⏭ Type '${ASSET_TYPE}' - background removal skipped"
 fi
 
 FINAL_SIZE=$(ls -lh "${OUTPUT_DIR}/${ASSET_NAME}.png" | awk '{print $5}')
-echo "✓ Готово: ${OUTPUT_DIR}/${ASSET_NAME}.png (${FINAL_SIZE})"
+echo "✓ Done: ${OUTPUT_DIR}/${ASSET_NAME}.png (${FINAL_SIZE})"
 ```
 
-### Альтернатива: OpenAI-совместимый endpoint (POST)
+### Alternative: OpenAI-compatible endpoint (POST)
 
-Для более сложных сценариев (прозрачность, editing):
+For more complex scenarios (transparency, editing):
 
 ```bash
-POLL_API_KEY="[ключ]"
+POLL_API_KEY="[key]"
 ASSET_NAME="cherry"
 PROMPT="red glossy cherries fruit, game sprite icon, flat solid pure magenta #FF00FF background, no gradient"
 OUTPUT_DIR="assets/images/pngs"
@@ -359,7 +359,7 @@ RESPONSE=$(curl -s -X POST "https://gen.pollinations.ai/v1/images/generations" \
   -H "Content-Type: application/json" \
   -d "{\"prompt\":\"${PROMPT}\",\"model\":\"flux\",\"size\":\"1024x1024\",\"response_format\":\"url\"}")
 
-# Извлечь URL и скачать
+# Extract URL and download
 IMG_URL=$(echo "${RESPONSE}" | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['url'])")
 curl -s -L "${IMG_URL}" -o "${OUTPUT_DIR}/${ASSET_NAME}.png"
 echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
@@ -367,17 +367,17 @@ echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
 
 ---
 
-### Промпты — выводятся из Design DNA (пример ниже — для ОДНОГО конкретного слота)
+### Prompts - derived from Design DNA (example below - for ONE specific slot)
 
-> ⚠️ Таблица ниже — иллюстрация для классического фруктового слота. **Для ЭТОЙ игры
-> символы, палитра и стиль берутся из Design DNA концепта** (`design/gdd/game-concept.md`),
-> а НЕ казино/неон по умолчанию. Для `/autocreate` базовый стиль — polished cartoon
-> 2.5D casual-game art. Подставь в промпты тему/мир, палитру, формы, материалы, единый
-> свет и яркость из DNA.
-> Египетский слот → скарабеи/анкхи с фактурой золота и лазурита; космос → кристаллы/
-> сплавы/звёздная керамика в холодных; и т.д. Держи единый стиль во всём наборе.
+> ⚠️ The table below is an illustration for a classic fruit slot. **For THIS game
+> symbols, palette and style are taken from the Design DNA concept** (`design/gdd/game-concept.md`),
+> and NOT casino/neon by default. For `/autocreate` the basic style is polished cartoon
+> 2.5D casual-game art. Substitute theme/world, palette, shapes, materials, single
+> light and brightness from DNA.
+> Egyptian slot → scarabs/ankhi with the texture of gold and lapis lazuli; space → crystals/
+> alloys/stellar ceramics in cold temperatures; etc. Maintain a consistent style throughout the entire set.
 
-| Символ (пример-слот) | ASSET_TYPE | Промпт (стиль/палитра — подставить из DNA) |
+| Symbol (example-slot) | ASSET_TYPE | Prompt (style/palette - substitute from DNA) |
 |--------|-----------|--------|
 | cherry | symbol | `red glossy cherries fruit, game sprite, flat solid [KEY] background, vibrant cartoon` |
 | bar | symbol | `chrome metallic BAR text, slot machine symbol, flat solid [KEY] background, shiny 3D` |
@@ -385,102 +385,102 @@ echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
 | diamond | symbol | `blue diamond gemstone, crystal faceted, game icon, flat solid green #00FF00 background, glossy` |
 | wild | wild | `golden star wild, glowing rainbow aura, game icon, flat solid green #00FF00 background` |
 | scatter | scatter | `purple hexagon lightning bolt, scatter symbol, game icon, flat solid green #00FF00 background` |
-| main_menu_bg | background | `[DNA theme] background, [DNA palette], atmospheric, no characters` — яркость и мир из DNA, не «всегда тёмное казино» |
+| main_menu_bg | background | `[DNA theme] background, [DNA palette], atmospheric, no characters` - brightness and peace from DNA, not an “always dark casino” |
 
-### Особенности:
-- В Codex для простых ассетов просить плоский ключевой фон сразу, затем `tools/cutout.py`
-- Прозрачный фон напрямую не является дефолтом: плоский ключ даёт предсказуемо чистую альфу,
-  а «transparent background» модели выполняют через раз и часто отдают белый JPEG-подобный фон
-- Модели legacy fallback: `flux`, `zimage`, `gptimage`
-- Каждый Bash call = один ассет (не объединять в цикл)
-- `seed=-1` для случайного результата каждый раз
+### Peculiarities:
+- In Codex, for simple assets, ask for a flat key background immediately, then `tools/cutout.py`
+- A transparent background is not directly a default: a flat key gives a predictably clean alpha,
+  and “transparent background” models are performed every other time and often produce a white JPEG-like background
+- Legacy fallback models: `flux`, `zimage`, `gptimage`
+- Each Bash call = one asset (do not loop)
+- `seed=-1` for random result every time
 
 ---
 
-## Legacy fallback: Google Gemini — требует биллинг
+## Legacy fallback: Google Gemini - requires billing
 
-### Шаг 1: Проверка ключа (быстрая диагностика)
+### Step 1: Checking the key (quick diagnostics)
 
-Запусти перед генерацией — убеждаемся что ключ рабочий:
+Run it before generating - make sure the key is working:
 
 ```bash
-API_KEY="[ключ от пользователя]"
+API_KEY="[user key]"
 
 PROBE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${API_KEY}" -H "Content-Type: application/json" -d '{"contents":[{"parts":[{"text":"red dot"}]}],"generationConfig":{"responseModalities":["IMAGE"]}}')
 
-echo "HTTP статус: ${PROBE}"
+echo "HTTP status: ${PROBE}"
 
 if [ "$PROBE" = "200" ]; then
-  echo "✓ Ключ работает, gemini-2.5-flash-image доступна"
+  echo "✓ The key works, gemini-2.5-flash-image is available"
 elif [ "$PROBE" = "403" ]; then
-  echo "✗ 403 — неверный API ключ или Gemini API не включён в AI Studio"
+  echo "✗ 403 - invalid API key or Gemini API is not included in AI Studio"
 elif [ "$PROBE" = "404" ]; then
-  echo "✗ 404 — попробуй альтернативное имя модели (см. Диагностику)"
+  echo "✗ 404 - try an alternative model name (see Diagnostics)"
 else
-  echo "✗ HTTP ${PROBE} — проверь ключ и подключение"
+  echo "✗ HTTP ${PROBE} - check the key and connection"
 fi
 ```
 
 ---
 
-## Шаг 2: Контекст игры
+## Step 2: Game Context
 
-Прочитать если есть:
-- `design/gdd/game-concept.md` → тема, цвета, стиль
-- `design/balance/rtp-config.json` → список символов (gambling)
+Read if available:
+- `design/gdd/game-concept.md` → theme, colors, style
+- `design/balance/rtp-config.json` → list of symbols (gambling)
 
 ---
 
-## Шаг 3: Построение промпта
+## Step 3: Building a prompt
 
-> Стиль, палитра и яркость подставляются из **Design DNA** концепта — НЕ casino/neon по
-> умолчанию. Для `/autocreate` `[АРТ-СТИЛЬ]` = polished cartoon 2.5D casual-game art.
-> Сначала выведи **Subject / Material / Lighting** (см. «Cartoon finish & concept
-> fidelity» выше) — без них получится дешёвый плоский значок.
+> Style, palette and brightness are taken from the **Design DNA** concept - NOT casino/neon
+> default. For `/autocreate` `[ART-STYLE]` = polished cartoon 2.5D casual-game art.
+> First output **Subject / Material / Lighting** (see “Cartoon finish & concept
+> fidelity" above) - without them you will get a cheap flat icon.
 
 ```
-Polished cartoon 2.5D mobile game asset of [SUBJECT IDENTITY из концепта],
+Polished cartoon 2.5D mobile game asset of [SUBJECT IDENTITY from concept],
 single hero object centered, bold rounded and slightly exaggerated silhouette,
-[MATERIAL/TEXTURE: металл/стекло/камень/дерево/неон] simplified into smooth modeled
-gradients, glossy highlights and restrained star glints, [АРТ-СТИЛЬ] render,
-soft [LIGHTING: key верх-слева + лёгкий rim], rich [ПАЛИТРА из DNA] colors,
+[MATERIAL/TEXTURE: metal/glass/stone/wood/neon] simplified into smooth modeled
+gradients, glossy highlights and restrained star glints, [ART STYLE] render,
+soft [LIGHTING: key top-left + light rim], rich [PALETTE from DNA] colors,
 crisp clean silhouette, sharp focus, isolated on flat solid single-colour [KEY COLOUR]
 background, no gradient, no scene, no ground shadow, no text, no photorealism,
 no product photography, no flat vector clipart, transparent-ready, 1024x1024.
-[ТИП-ДЕТАЛИ]
+[TYPE-DETAILS]
 ```
 
-### Детали по типу (эффекты — только если они в DNA):
-| Тип | Добавить (подставить под DNA) |
+### Details by type (effects - only if they are in DNA):
+| Type | Add (substitute under DNA) |
 |-----|---------|
-| `symbol` / `sprite` | polished cartoon 2.5D: тема/формы/материалы/палитра из DNA, единый finish для набора |
-| `wild` (gambling) | премиальный акцентный символ; эффект (свечение/блеск/нет) — из DNA |
-| `scatter` (gambling) | особый символ-триггер, визуально выделен средствами DNA |
-| `ui` кнопка | форма из shape language DNA; эффект (glow/тень/плоско) из DNA, no text |
-| `background` | мир и **яркость** из DNA (не «всегда тёмное казино»), не отвлекает от игрового поля |
+| `symbol` / `sprite` | polished cartoon 2.5D: theme/shapes/materials/palette from DNA, single finish for the set |
+| `wild` (gambling) | premium accent symbol; effect (glow/shine/no) - from DNA |
+| `scatter` (gambling) | a special trigger symbol, visually highlighted using DNA |
+| `ui` button | shape from shape language DNA; effect (glow/shadow/flat) from DNA, no text |
+| `background` | peace and **brightness** from DNA (not “always dark casino”), does not distract from the playing field |
 
-> **Важно для прозрачного фона:** legacy Imagen/Gemini не всегда генерирует RGBA.
-> Если alpha не получилась, вырежи фон через `tools/cutout.py` на Шаге 5.
+> **Important for transparent backgrounds:** legacy Imagen/Gemini does not always generate RGBA.
+> If alpha doesn't work, cut out the background using `tools/cutout.py` in Step 5.
 
 ---
 
-## Шаг 4: Генерация через gemini-2.5-flash-image
+## Step 4: Generating via gemini-2.5-flash-image
 
-**Формат API:** `generateContent` с `responseModalities: ["IMAGE"]`
-**Ответ:** `candidates[0].content.parts[n].inlineData.data`
-**Разрешение:** 1024×1024
+**API Format:** `generateContent` with `responseModalities: ["IMAGE"]`
+**Answer:** `candidates[0].content.parts[n].inlineData.data`
+**Resolution:** 1024×1024
 
 ```bash
-API_KEY="[ключ]"
-ASSET_NAME="[название]"
-PROMPT="[промпт из Шага 3]"
+API_KEY="[key]"
+ASSET_NAME="[name]"
+PROMPT="[prompt from Step 3]"
 OUTPUT_DIR="assets/images/pngs"
 mkdir -p "${OUTPUT_DIR}"
 
-# ВАЖНО: URL и -d на ОДНОЙ строке каждый, без переносов внутри
+# IMPORTANT: URL and -d on ONE line each, no hyphens inside
 curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${API_KEY}" -H "Content-Type: application/json" -d "{\"contents\":[{\"parts\":[{\"text\":\"${PROMPT}\"}]}],\"generationConfig\":{\"responseModalities\":[\"IMAGE\"]}}" -o "/tmp/gemini_resp_${ASSET_NAME}.json"
 
-# Проверка + декодирование (python3 stdlib, без pip)
+# Validation + decoding (python3 stdlib, no pip)
 python3 - <<PYEOF
 import json, base64
 
@@ -490,12 +490,12 @@ out_dir = "${OUTPUT_DIR}"
 with open(f"/tmp/gemini_resp_{name}.json") as f:
     data = json.load(f)
 
-# Ошибка API
+# API error
 if "error" in data:
-    print(f"✗ Ошибка API: {data['error'].get('message', data['error'])}")
+    print(f"✗ API error: {data['error'].get('message', data['error'])}")
     exit(1)
 
-# Найти inlineData
+# Find inlineData
 for candidate in data.get("candidates", []):
     for part in candidate.get("content", {}).get("parts", []):
         if "inlineData" in part:
@@ -506,54 +506,54 @@ for candidate in data.get("candidates", []):
             print(f"✓ {out_path} ({len(img_bytes) // 1024} KB)")
             exit(0)
 
-print(f"✗ Нет inlineData в ответе. Ключи: {list(data.keys())}")
+print(f"✗ No inlineData in response. Keys: {list(data.keys())}")
 PYEOF
 ```
 
 ---
 
-## Шаг 5: Удаление фона для простых ассетов
+## Step 5: Removing backgrounds for simple assets
 
-Не спрашивать отдельный сервис. Применять только к простым ассетам (`symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`). Для `background` / полноэкранной иллюстрации пропустить.
+Don't ask for a separate service. Apply only to simple assets (`symbol`, `sprite`, `icon`, `wild`, `scatter`, `tile`, `item`). For `background` / full-screen illustration, skip.
 
 ```bash
 python3 tools/cutout.py "${OUTPUT_DIR}/${ASSET_NAME}.png" --type sprite
 ```
 
-Ненулевой код возврата = проверить исходник и ключ, затем перевырезать/нормализовать локально.
-Если исходник действительно непригоден, использовать один разрешённый recovery-вызов GPT
-Images 2.0 с плоским ключевым фоном; не переключаться на fallback из-за ошибки cutout.
+Non-zero return code = check source and key, then recut/normalize locally.
+If the source is truly unusable, use one enabled GPT recovery call
+Images 2.0 with flat key background; do not switch to fallback due to a cutout error.
 
 ---
 
-## Генерация: СТРОГО ОДИН АССЕТ ЗА РАЗ
+## Generation: STRICTLY ONE ASSET AT A TIME
 
-### КРИТИЧЕСКОЕ ПРАВИЛО ДЛЯ АГЕНТА
+### CRITICAL RULE FOR AGENT
 
-**ЗАПРЕЩЕНО:**
-- Запускать несколько Bash calls подряд без ожидания
-- Делать следующий API запрос до того как предыдущий bash полностью завершился
-- Использовать фоновые процессы (`&`) или параллельные вызовы
+**FORBIDDEN:**
+- Run multiple Bash calls in a row without waiting
+- Make the next API request before the previous bash has completed completely
+- Use background processes (`&`) or parallel calls
 
-**ОБЯЗАТЕЛЬНО:**
-- Один Bash tool call = один ассет
-- Для Gemini: `sleep 65` после каждого (rate limit 10 RPM)
-- Для Pollinations: `sleep 3` после каждого (быстрее)
-- Для Codex GPT Images 2.0 / GPT Images fallback: один вызов image generation = один ассет
-- Следующий Bash tool call только ПОСЛЕ того как предыдущий вернул результат
+**NECESSARILY:**
+- One Bash tool call = one asset
+- For Gemini: `sleep 65` after each (rate limit 10 RPM)
+- For Pollinations: `sleep 3` after each (faster)
+- For Codex GPT Images 2.0 / GPT Images fallback: one image generation call = one asset
+- The next Bash tool call only AFTER the previous one has returned a result
 
 ---
 
-### Legacy шаблон одного ассета — Gemini (копировать и менять ASSET_NAME + PROMPT):
+### Legacy template for one asset - Gemini (copy and change ASSET_NAME + PROMPT):
 
 ```bash
-API_KEY="[ключ]"
+API_KEY="[key]"
 ASSET_NAME="cherry"
 PROMPT="Red glossy cherries fruit, game sprite icon, white background, vibrant colors, cartoon style, 1024x1024"
 OUTPUT_DIR="assets/images/pngs"
 mkdir -p "${OUTPUT_DIR}"
 
-echo "━━━ Генерирую: ${ASSET_NAME} ━━━"
+echo "━━━ Generating: ${ASSET_NAME} ━━━"
 
 curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${API_KEY}" -H "Content-Type: application/json" -d "{\"contents\":[{\"parts\":[{\"text\":\"${PROMPT}\"}]}],\"generationConfig\":{\"responseModalities\":[\"IMAGE\"]}}" -o "/tmp/g_${ASSET_NAME}.json"
 
@@ -574,47 +574,47 @@ for c in data.get("candidates", []):
             open(path, "wb").write(img)
             print(f"✓ {path} ({len(img)//1024} KB)")
             sys.exit(0)
-print(f"✗ Нет inlineData. Ключи: {list(data.keys())}")
+print(f"✗ No inlineData. Keys: {list(data.keys())}")
 sys.exit(1)
 PYEOF
 
 if [ $? -eq 0 ]; then
-  echo "⏳ Ждём 65 сек (rate limit)..."
+  echo "⏳ Wait 65 seconds (rate limit)..."
   sleep 65
-  echo "Готово. Можно генерировать следующий."
+  echo "Done. You can generate the next one."
 else
-  echo "✗ Ошибка. Полный ответ:"
+  echo "✗ Error. Full answer:"
   cat "/tmp/g_${ASSET_NAME}.json"
-  echo "НЕ ПРОДОЛЖАТЬ — сообщить пользователю об ошибке."
+  echo "DO NOT CONTINUE - inform the user of an error."
 fi
 ```
 
 ---
 
-### Последовательность для 6 символов (агент делает 6 отдельных Bash calls):
+### Sequence for 6 characters (the agent makes 6 separate Bash calls):
 
-**Call 1:** cherry → ждёт завершения → сообщает "✓ cherry готов (1/6)"
-**Call 2:** bar → ждёт завершения → "✓ bar готов (2/6)"
-**Call 3:** seven → ждёт завершения → "✓ seven готов (3/6)"
-**Call 4:** diamond → ждёт завершения → "✓ diamond готов (4/6)"
-**Call 5:** wild → ждёт завершения → "✓ wild готов (5/6)"
-**Call 6:** scatter → "✓ scatter готов (6/6)"
+**Call 1:** cherry → waiting for completion → reports "✓ cherry ready (1/6)"
+**Call 2:** bar → waiting for completion → "✓ bar ready (2/6)"
+**Call 3:** seven → waiting for completion → "✓ seven ready (3/6)"
+**Call 4:** diamond → waiting for completion → "✓ diamond ready (4/6)"
+**Call 5:** wild → waiting for completion → "✓ wild ready (5/6)"
+**Call 6:** scatter → "✓ scatter ready (6/6)"
 
-При ошибке — остановиться, показать ответ, спросить пользователя.
-
----
-
-## --from-concept: из rtp-config.json автоматически
-
-1. Читаем `design/balance/rtp-config.json` → список `symbols[].name`
-2. Читаем `design/gdd/game-concept.md` → тема и цвета
-3. Строим `ASSETS=()` динамически и запускаем batch-цикл выше
+If there is an error, stop, show the answer, ask the user.
 
 ---
 
-## После генерации
+## --from-concept: from rtp-config.json automatically
 
-Добавить в `pubspec.yaml` если папка новая:
+1. Read `design/balance/rtp-config.json` → list `symbols[].name`
+2. Read `design/gdd/game-concept.md` → theme and colors
+3. We build `ASSETS=()` dynamically and run the batch cycle above
+
+---
+
+## After generation
+
+Add to `pubspec.yaml` if the folder is new:
 ```yaml
 flutter:
   assets:
@@ -623,27 +623,27 @@ flutter:
 
 ---
 
-## Диагностика ошибок
+## Error diagnosis
 
 ### Pollinations.ai
 
-| Симптом | Причина | Решение |
+| Symptom | Reason | Solution |
 |---------|---------|---------|
-| HTTP 401 | Отсутствует или неверный API ключ | Проверить ключ на https://enter.pollinations.ai |
-| HTTP 402 | Недостаточно pollen баланса | Пополнить баланс или переключиться на бесплатную модель (flux, zimage) |
-| HTTP 403 | Нет прав (permission denied) | Проверить тип ключа (pk_ vs sk_) и разрешения |
-| Пустой файл | Сервер не вернул изображение | Попробовать другую модель или упростить промпт |
-| Долгий ответ | Модель gptimage медленнее | Переключиться на flux или zimage для скорости |
+| HTTP 401 | Missing or invalid API key | Check key for https://enter.pollinations.ai |
+| HTTP 402 | Not enough pollen balance | Top up your balance or switch to a free model (flux, zimage) |
+| HTTP 403 | No permissions (permission denied) | Check key type (pk_ vs sk_) and permissions |
+| Empty file | The server did not return the image | Try a different model or simplify the prompt |
+| Long answer | The gptimage model is slower | Switch to flux or zimage for speed |
 
 ### Google Gemini
 
-| Симптом | Причина | Решение |
+| Symptom | Reason | Solution |
 |---------|---------|---------|
-| HTTP 403 | Неверный ключ или Gemini API не активирован | AI Studio → API Keys → убедиться что Gemini API включён |
-| HTTP 404 `model not found` | Неверное имя модели | Попробовать `gemini-2.5-flash-preview-image-generation` |
-| HTTP 400 `responseModalities` | Модель не поддерживает IMAGE | Добавить `"TEXT"` к списку: `["IMAGE","TEXT"]` |
-| HTTP 429 | Превышен лимит 10 RPM | Увеличить sleep до 65+ сек |
-| `inlineData` не найден | Gemini вернул только текст | Изменить промпт: начать с "Create an image of..." |
-| PNG файл пустой | Ошибка base64 | Показать пользователю полный JSON из `/tmp/g_*.json` |
+| HTTP 403 | Invalid key or Gemini API not activated | AI Studio → API Keys → make sure Gemini API is enabled |
+| HTTP 404 `model not found` | Invalid model name | Try `gemini-2.5-flash-preview-image-generation` |
+| HTTP 400 `responseModalities` | Model does not support IMAGE | Add `"TEXT"` to the list: `["IMAGE","TEXT"]` |
+| HTTP 429 | 10 RPM limit exceeded | Increase sleep to 65+ sec |
+| `inlineData` not found | Gemini returned only text | Change prompt: start with "Create an image of..." |
+| PNG file empty | base64 error | Show user full JSON from `/tmp/g_*.json` |
 
-**Правило:** При ЛЮБОЙ ошибке — показывать пользователю полный ответ API. Никогда не скрывать.
+**Rule:** For ANY error, show the user the full API response. Never hide.

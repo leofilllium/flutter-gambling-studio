@@ -307,7 +307,7 @@ async function main() {
 
   // 3. game screen — prefer a labeled Play/Start button, else thumb-zone tap
   const nodes = await readSemantics();
-  const play = findByLabel(nodes, /играть|играй|старт|start|play|begin|новая игра|спин|spin/i);
+  const play = findByLabel(nodes, /play|start|begin|spin|new game|continue|tap to play/i);
   if (play) { log(`🎯 found action by label: "${play.label}"`); await tap(play.x, play.y, play.label); }
   else { log('🎯 no labeled Play — tapping thumb zone'); await tap(VW / 2, VH * 0.82); }
   await sleep(2500);
@@ -315,7 +315,7 @@ async function main() {
 
   // 4. main action (spin/play/tap) — labeled if possible, else thumb zone again
   const nodes2 = await readSemantics();
-  const act = findByLabel(nodes2, /спин|spin|крутить|играть|play|tap|бросить|throw|launch|пуск|go|ход|move/i);
+  const act = findByLabel(nodes2, /spin|play|tap|roll|throw|drop|launch|deal|draw|pull|bet|go|move|open/i);
   if (act) { log(`🎯 action button: "${act.label}"`); await tap(act.x, act.y, act.label); }
   else { await tap(VW / 2, VH * 0.82); }
   await sleep(1500);
@@ -362,12 +362,12 @@ async function main() {
   if (!QUICK && SOAK === 0) {
     // Best-effort sweep of secondary screens, by label when available.
     const extras = [
-      [/настройк|settings|опции/i, '06-settings'],
-      [/помощь|help|как играть|правила|paytable|таблица/i, '07-help'],
-      [/профил|profile|статист|stats|лидер|leaderboard|рекорд/i, '08-stats'],
+      [/settings|options|preferences/i, '06-settings'],
+      [/help|how to play|rules|paytable|odds|info/i, '07-help'],
+      [/profile|stats|statistics|leaderboard|records|scores/i, '08-stats'],
     ];
     for (const [re, name] of extras) {
-      const back = findByLabel(await readSemantics(), /назад|back|закрыт|close|меню|menu|домой|home/i);
+      const back = findByLabel(await readSemantics(), /back|close|menu|home|exit|return/i);
       if (back) { await tap(back.x, back.y, back.label); await sleep(1200); }
       const item = findByLabel(await readSemantics(), re);
       if (item) { await tap(item.x, item.y, item.label); await sleep(1500); await screenshot(name); }

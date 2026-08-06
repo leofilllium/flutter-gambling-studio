@@ -1,27 +1,27 @@
 ---
 name: playtest
-description: "Глубокая ИГРОВАЯ верификация (не просто 'экраны открываются'): реально играет в игру через headless Chrome CDP — N игровых действий, проверка что счёт/баланс МЕНЯЮТСЯ, win-путь достижим, game-over обрабатывается, прогрессия работает, поле анимировано (vision-сравнение кадров), нет исключений и утечек. Выдаёт PLAYTEST REPORT с verdict и приоритизированными фиксами. Вызывается из /autocreate-finalize (Фаза 10.6) или вручную."
+description: "Deep GAMEPLAY verification (not just 'the screens open'): actually plays the game through headless Chrome CDP — N gameplay actions, checking that the score/balance CHANGE, that the win path is reachable, that game-over is handled, that progression works, that the board is animated (vision-based frame comparison), and that there are no exceptions or leaks. Produces a PLAYTEST REPORT with a verdict and prioritised fixes. Called from /autocreate-finalize (Phase 10.6) or run manually."
 argument-hint: "[--rounds N] [--no-fix]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
 
-# Playtest — «В это вообще играбельно?»
+# Playtest — "is this actually playable?"
 
-`/emulator-test` проверяет, что экраны открываются и не падают. `/playtest` проверяет,
-что **ИГРА ИГРАЕТСЯ**: действия дают результат, числа меняются, победы празднуются,
-поражения обрабатываются, поле живое. Это последний фильтр между «компилируется» и
-«профессиональная игра» (см. `.claude/docs/quality-bar.md`).
+`/emulator-test` checks that the screens open and do not crash. `/playtest` checks that
+**THE GAME PLAYS**: actions produce results, numbers change, wins are celebrated, losses are
+handled, the board is alive. It is the last filter between "it compiles" and "a professional
+game" (see `.claude/docs/quality-bar.md`).
 
-**Предусловия**: `dart analyze lib/` 0 errors; `node` ≥21 и Chrome/Chromium доступны
-(иначе — честный SKIPPED, как в `/emulator-test`).
+**Preconditions**: `dart analyze lib/` with 0 errors; `node` ≥21 and Chrome/Chromium available
+(otherwise report an honest SKIPPED, as `/emulator-test` does).
 
 ---
 
-## Фаза 1 — Запуск игры (headless web) [~2 мин]
+## Phase 1 — launching the game (headless web) [~2 min]
 
-Тот же путь, что в `/autocreate-finalize` Фаза 10.5 (web-server + ожидание URL с ранним
-выходом при ошибке сборки):
+The same path as `/autocreate-finalize` Phase 10.5 (a web server plus waiting for the URL, with
+an early exit on a build error):
 
 ```bash
 mkdir -p .claude/runtime-logs
@@ -40,68 +40,68 @@ done
 TS=$(date +%Y%m%d-%H%M%S); PT_DIR="production/playtest/$TS"; mkdir -p "$PT_DIR"
 ```
 
-## Фаза 2 — Игровая сессия (CDP) [~4 мин]
+## Phase 2 — the play session (CDP) [~4 min]
 
-Два прохода `tools/web_verify.mjs`:
+Two passes of `tools/web_verify.mjs`:
 
 ```bash
-# 2.1 Тур по экранам + базовые скрины (manifest.json: steps/semanticLabels/consoleErrors)
+# 2.1 A tour of the screens + baseline shots (manifest.json: steps/semanticLabels/consoleErrors)
 timeout 220 node tools/web_verify.mjs --url "$WEB_URL" --out "$PT_DIR" --budget 180 \
   2>&1 | tee "$PT_DIR/web_verify.log"
 
-# 2.2 Игровая нагрузка: N повторов основного действия (default 60; --rounds задаёт)
+# 2.2 Gameplay load: N repeats of the main action (default 60; --rounds sets it)
 timeout 240 node tools/web_verify.mjs --url "$WEB_URL" --out "$PT_DIR" --soak "${ROUNDS:-60}" \
   2>&1 | tee -a "$PT_DIR/web_verify.log"
 ```
 
-После — остановить сервер: `kill "$(cat .claude/runtime-logs/flutter.pid)" 2>/dev/null`.
+Afterwards, stop the server: `kill "$(cat .claude/runtime-logs/flutter.pid)" 2>/dev/null`.
 
-## Фаза 3 — Игровые проверки (P1–P10)
+## Phase 3 — the gameplay checks (P1–P10)
 
-Источники: скриншоты (`Read` vision), `manifest.json` (`semanticLabels`, `consoleErrors`,
-`soak.heapUsed*`, `soak.suspectLeak`), `.claude/runtime-logs/flutter-run.log`.
+Sources: the screenshots (`Read` vision), `manifest.json` (`semanticLabels`, `consoleErrors`,
+`soak.heapUsed*`, `soak.suspectLeak`), and `.claude/runtime-logs/flutter-run.log`.
 
-| # | Проверка | Как верифицировать | Severity при FAIL |
-|---|----------|--------------------|-------------------|
-| P1 | **Действие даёт результат** | Сравнить кадры до/после действия (vision): поле изменилось, не идентичные пиксели | CRITICAL |
-| P2 | **Числа меняются** | Счёт/баланс на скриншоте ПОСЛЕ серии действий ≠ значению ДО (vision-чтение цифр HUD) | CRITICAL |
-| P3 | **Win-путь достижим** | За N раундов хотя бы раз виден win-фидбек (оверлей/частицы/рост числа) | HIGH |
-| P4 | **Проигрыш обрабатывается** | Game-over / insufficient-funds появляется и из него есть выход (рестарт/меню) | HIGH |
-| P5 | **Поле живое** | Два кадра idle-состояния с интервалом различаются (idle-анимация) — vision | HIGH |
-| P6 | **Прогрессия работает** | Level/Mode Select открывается, выбор уровня запускает игру с иным конфигом | HIGH |
-| P7 | **Пауза/возврат** | Выход в меню и обратно не ломает состояние (баланс сохранён, нет красного экрана) | HIGH |
-| P8 | **0 исключений за сессию** | `consoleErrors` пуст; нет EXCEPTION CAUGHT в flutter-run.log | CRITICAL |
-| P9 | **Нет утечки** | `soak.suspectLeak == false`, heap не растёт монотонно | MEDIUM |
-| P10 | **Стартовый опыт** | От запуска до первого игрового действия ≤ 3 тапов (splash→menu→play) | MEDIUM |
+| # | Check | How to verify it | Severity on FAIL |
+|---|-------|------------------|------------------|
+| P1 | **An action produces a result** | Compare the frames before/after the action (vision): the field changed, the pixels are not identical | CRITICAL |
+| P2 | **The numbers change** | The score/balance in the screenshot AFTER a series of actions ≠ the value BEFORE (vision-reading the HUD digits) | CRITICAL |
+| P3 | **The win path is reachable** | Over N rounds, win feedback is visible at least once (overlay/particles/a rising number) | HIGH |
+| P4 | **A loss is handled** | Game-over / insufficient-funds appears and there is a way out of it (restart/menu) | HIGH |
+| P5 | **The board is alive** | Two frames of the idle state, taken apart, differ (idle animation) — vision | HIGH |
+| P6 | **Progression works** | Level/Mode Select opens, and choosing a level starts the game with a different config | HIGH |
+| P7 | **Pause/return** | Going to the menu and back does not break the state (the balance is preserved, no red screen) | HIGH |
+| P8 | **0 exceptions during the session** | `consoleErrors` is empty; no EXCEPTION CAUGHT in flutter-run.log | CRITICAL |
+| P9 | **No leak** | `soak.suspectLeak == false`, the heap does not grow monotonically | MEDIUM |
+| P10 | **The starting experience** | From launch to the first game action is ≤ 3 taps (splash→menu→play) | MEDIUM |
 
-> Для P1/P2/P5: vision-сравнение — главный инструмент. Снимки в `$PT_DIR` нумерованы по
-> шагам тура; soak добавляет кадры до/после серии. Если кадров для сравнения не хватает —
-> прогнать 2.2 повторно с меньшим N и снять скрин до/после вручную через web_verify.
+> For P1/P2/P5, vision comparison is the main instrument. The shots in `$PT_DIR` are numbered by
+> tour step; the soak adds frames before and after the series. If there are not enough frames to
+> compare, run 2.2 again with a smaller N and take the before/after shots manually through
+> web_verify.
 
-## Фаза 4 — Отчёт и автофиксы [~3 мин]
+## Phase 4 — the report and automatic fixes [~3 min]
 
-Записать `$PT_DIR/PLAYTEST-REPORT.md`:
+Write `$PT_DIR/PLAYTEST-REPORT.md`:
 
 ```markdown
-# Playtest Report — [игра], [дата]
+# Playtest Report — [game], [date]
 ## Verdict: PLAYABLE / PLAYABLE-WITH-ISSUES / NOT-PLAYABLE / SKIPPED
-| # | Проверка | Результат | Доказательство |
-|---|----------|-----------|----------------|
-| P1 | Действие даёт результат | PASS | 04→05.png: поле изменилось |
+| # | Check | Result | Evidence |
+|---|-------|--------|----------|
+| P1 | An action produces a result | PASS | 04→05.png: the field changed |
 ...
-## Приоритизированные фиксы
+## Prioritised fixes
 1. [CRITICAL] ...
 ```
 
-- **NOT-PLAYABLE** = любой CRITICAL (P1/P2/P8). Без `--no-fix` — автофикс-цикл до 2
-  итераций по таблице разрешённых фиксов из `/autocreate-finalize` 10.5.3 (только
-  точечные правки: wiring ValueNotifier, недобавленный компонент в World, route,
-  asset path; НЕ баланс, НЕ конфиги, НЕ переписывание экранов). После фикса —
-  повторить Фазы 1–3.
-- **PLAYABLE-WITH-ISSUES** = HIGH остались — перечислить в отчёте, не чинить молча.
+- **NOT-PLAYABLE** = any CRITICAL (P1/P2/P8). Without `--no-fix`, run an auto-fix loop of up to
+  2 iterations against the table of permitted fixes in `/autocreate-finalize` 10.5.3 (targeted
+  edits only: ValueNotifier wiring, a component not added to the World, a route, an asset path;
+  NOT balance, NOT configs, NOT rewriting screens). After a fix, repeat phases 1–3.
+- **PLAYABLE-WITH-ISSUES** = HIGH items remain — list them in the report; do not fix them silently.
 
-## Критерии выхода
+## Exit criteria
 
-- `$PT_DIR/PLAYTEST-REPORT.md` с verdict и таблицей P1–P10
-- 0 CRITICAL (или 2 итерации фиксов исчерпаны — verdict честно NOT-PLAYABLE)
-- Сервер и headless Chrome остановлены (нет осиротевших процессов)
+- `$PT_DIR/PLAYTEST-REPORT.md` with a verdict and the P1–P10 table
+- 0 CRITICAL (or the 2 fix iterations are exhausted — the verdict is honestly NOT-PLAYABLE)
+- The server and headless Chrome are stopped (no orphaned processes)

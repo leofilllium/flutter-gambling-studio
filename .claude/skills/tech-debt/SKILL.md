@@ -1,90 +1,90 @@
 ---
 name: tech-debt
-description: "Сканирует и ведет реестр технического долга, формирует план его погашения."
-argument-hint: "[сканировать|добавить|показать|план]"
+description: "Scans for and maintains a register of technical debt, and builds a plan to pay it down."
+argument-hint: "[scan|add|show|plan]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
 
-# /tech-debt [область]
+# /tech-debt [area]
 
-Запуск: пользователь вызывает `/tech-debt [сканировать|добавить|показать|план]`
+Invocation: the user runs `/tech-debt [scan|add|show|plan]`
 
-## Цель
+## Goal
 
-Отслеживает, категоризирует и приоритизирует технический долг в гемблинг игре.
-Сканирует код на индикаторы долга, ведёт реестр, рекомендует порядок выплаты.
+Tracks, categorises and prioritises the technical debt in a gambling game.
+Scans the code for debt indicators, maintains the register, and recommends a paydown order.
 
-## Категории технического долга
+## Technical debt categories
 
-| Категория | Символ | Примеры |
-|-----------|--------|---------|
-| CRITICAL (gambling) | 🚨 | math.Random(), захардкоженные RTP |
-| Architecture | 🏗️ | неправильное Flame API, нарушение архитектуры |
-| Performance | ⚡ | аллокации в update(), нет SpriteBatch |
-| Testing | 🧪 | нет тестов для критической логики |
-| Documentation | 📝 | нет GDD, нет комментариев |
-| Code Quality | 🔧 | TODO без тикетов, magic numbers |
+| Category | Symbol | Examples |
+|----------|--------|----------|
+| CRITICAL (gambling) | 🚨 | math.Random(), hardcoded RTP |
+| Architecture | 🏗️ | the wrong Flame API, architectural violations |
+| Performance | ⚡ | allocations in update(), no SpriteBatch |
+| Testing | 🧪 | no tests for critical logic |
+| Documentation | 📝 | no GDD, no comments |
+| Code quality | 🔧 | TODOs with no ticket, magic numbers |
 
-## Команды
+## Commands
 
-### /tech-debt сканировать
+### /tech-debt scan
 
-Агент `lead-programmer` сканирует весь `lib/`:
+The `lead-programmer` agent scans all of `lib/`:
 
 ```bash
-# TODO без тикетов
+# TODOs with no ticket
 grep -rn "TODO\|FIXME\|HACK\|XXX" lib/ --include="*.dart"
 
-# Magic numbers (вне конфига)
+# Magic numbers (outside the config)
 grep -rn "[^a-zA-Z][0-9]\{2,\}[^0-9]" lib/ --include="*.dart" | grep -v "slot_config\|_test"
 
 # print() statements
 grep -rn "^\s*print(" lib/ --include="*.dart" | grep -v "_test"
 
-# Устаревшее Flame API
+# Deprecated Flame API
 grep -rn "isPaused\s*=\|HasCollisionDetection" lib/game/ --include="*.dart"
 
-# Нет тестов для критических файлов
+# Missing tests for critical files
 for f in lib/systems/*.dart lib/game/slot_config.dart; do
   test_f="test/$(basename ${f%.dart}_test.dart)"
-  [ ! -f "$test_f" ] && echo "❌ Нет теста: $f"
+  [ ! -f "$test_f" ] && echo "❌ No test: $f"
 done
 ```
 
-Результат — список находок с файлами и строками.
+The result is a list of findings with files and line numbers.
 
-### /tech-debt добавить
+### /tech-debt add
 
-Добавить запись в реестр долга `docs/tech-debt-register.md`:
+Add an entry to the debt register at `docs/tech-debt-register.md`:
 ```
-/tech-debt добавить "Описание долга"
+/tech-debt add "Description of the debt"
 ```
 
-### /tech-debt показать
+### /tech-debt show
 
-Показать текущий реестр `docs/tech-debt-register.md` с группировкой по приоритету.
+Show the current `docs/tech-debt-register.md`, grouped by priority.
 
-### /tech-debt план
+### /tech-debt plan
 
-Создать план выплаты долга — с какого начать и почему.
+Create a paydown plan — what to start with and why.
 
-## Реестр долга
+## The debt register
 
-Реестр хранится в `docs/tech-debt-register.md`:
+The register lives in `docs/tech-debt-register.md`:
 
 ```markdown
-# Tech Debt Register — [дата]
+# Tech Debt Register — [date]
 
 ## 🚨 CRITICAL (gambling integrity)
-| ID | Файл | Описание | Стоимость | Риск |
-|----|------|----------|-----------|------|
-| TD-001 | lib/game/old_component.dart:45 | math.Random() вместо Random.secure() | 30мин | КРИТИЧНЫЙ |
+| ID | File | Description | Cost | Risk |
+|----|------|-------------|------|------|
+| TD-001 | lib/game/old_component.dart:45 | math.Random() instead of Random.secure() | 30min | CRITICAL |
 
 ## 🏗️ Architecture
-| ID | Файл | Описание | Стоимость | Риск |
-|----|------|----------|-----------|------|
-| TD-002 | lib/game/game.dart | HasCollisionDetection на FlameGame | 2ч | HIGH |
+| ID | File | Description | Cost | Risk |
+|----|------|-------------|------|------|
+| TD-002 | lib/game/game.dart | HasCollisionDetection on FlameGame | 2h | HIGH |
 
 ## ⚡ Performance
 ...
@@ -92,26 +92,26 @@ done
 ## 🧪 Testing
 ...
 
-## Итог
-- Critical: N (выплатить НЕМЕДЛЕННО)
-- High: N (следующий спринт)
-- Medium: N (следующие 2 спринта)
+## Summary
+- Critical: N (pay down IMMEDIATELY)
+- High: N (next sprint)
+- Medium: N (the next 2 sprints)
 - Low: N (backlog)
 ```
 
-## Правила приоритизации
+## Prioritisation rules
 
-1. **CRITICAL gambling** — всегда выплачивать первыми, они влияют на целостность игры
-2. **Architecture** — выплачивать до добавления новых фич
-3. **Performance** — выплачивать при замедлении игры ниже порогов
-4. **Testing** — выплачивать перед релизом
-5. **Documentation** — выплачивать при передаче задачи другому агенту
-6. **Code Quality** — выплачивать в порядке "попутно"
+1. **CRITICAL gambling** — always paid down first; they affect the integrity of the game
+2. **Architecture** — paid down before new features are added
+3. **Performance** — paid down when the game slows below its thresholds
+4. **Testing** — paid down before a release
+5. **Documentation** — paid down when a task is handed to another agent
+6. **Code quality** — paid down opportunistically, along the way
 
-## Аргументы
+## Arguments
 
-- `сканировать` — автосканирование кода (по умолчанию)
-- `показать` — показать текущий реестр
-- `добавить "описание"` — добавить запись вручную
-- `план` — создать план выплаты
-- `--critical-only` — только критические проблемы целостности (RNG, матмодель, compliance)
+- `scan` — automatic code scan (the default)
+- `show` — show the current register
+- `add "description"` — add an entry by hand
+- `plan` — build a paydown plan
+- `--critical-only` — only the critical integrity problems (RNG, math model, compliance)
