@@ -557,8 +557,7 @@ manifesto literally.
 - background_menu.png — 9:16 background of the main menu; peace, depth and brightness from DNA
 - background_game.png — 9:16 background of the game screen; quiet center area, does not argue with the field
 
-### Audio (assets/audio/)
-- assets/audio/bgm/bgm_main.wav — background music
+### Audio (assets/audio/) — sound effects only, no background music
 - assets/audio/sfx/sfx_action.wav - main action (spin/tap/move)
 - assets/audio/sfx/sfx_coin.wav — currency accrual / counter
 - assets/audio/sfx/sfx_error.wav - failure / error / insufficient resources

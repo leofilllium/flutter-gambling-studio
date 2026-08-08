@@ -30,7 +30,7 @@ Session 1 must produce:
 - A Flutter project created for web, Android, and iOS.
 - `design/structure.md` and `design/art-direction.md`.
 - A budgeted, validated asset set and `design/asset-manifest.md`.
-- Nine real WAV files created by `tools/synth_sfx.py`.
+- Eight real sound-effect WAV files created by `tools/synth_sfx.py` (no background music).
 - `design/asset-review.md` with an asset-cohesion verdict.
 - Category-appropriate JSON content and economy data under `assets/data/` and `design/balance/`.
 - `production/session-state/autocreate-handoff-1.md`, followed by Session 2.
@@ -81,7 +81,6 @@ flutter:
     - assets/images/ui/
     - assets/images/backgrounds/
     - assets/audio/sfx/
-    - assets/audio/bgm/
     - assets/data/
 ```
 
@@ -118,13 +117,21 @@ Outside Codex, the SVG fallback must use valid `<svg>` documents with a `viewBox
 Derive the mood from the concept and synthesize playable 16-bit/44.1 kHz WAV files:
 
 ```bash
-python3 tools/synth_sfx.py --from-concept \
-  --sfx-dir assets/audio/sfx --bgm-dir assets/audio/bgm
+python3 tools/synth_sfx.py --from-concept --sfx-dir assets/audio/sfx
 
-ls -1 assets/audio/sfx/*.wav assets/audio/bgm/*.wav 2>/dev/null | wc -l
+ls -1 assets/audio/sfx/*.wav 2>/dev/null | wc -l
 ```
 
-Required names: `sfx_button`, `sfx_navigate`, `sfx_action`, `sfx_coin`, `sfx_error`, `sfx_win_small`, `sfx_win_big`, `sfx_win_mega`, and `bgm_main`.
+Required names: `sfx_button`, `sfx_navigate`, `sfx_action`, `sfx_coin`, `sfx_error`, `sfx_win_small`, `sfx_win_big`, `sfx_win_mega`. Expect **8** files.
+
+**Sound effects only — do not synthesize background music.** The generator can
+render a BGM bed behind `--with-bgm`, but the result is weak next to the rest of
+the game, so a game ships with SFX and silence unless the user explicitly asks
+for music. Do not add `assets/audio/bgm/` to the pubspec `assets:` list: an asset
+directory that does not exist is a hard `flutter build` failure. Ship the settings
+screen's music toggle anyway — it costs nothing and means adding music later is a
+content change, not a UI change. Silence here is the intended result: never report
+it as a missing asset, a gap, or a TODO.
 
 ## Phase 3.6 — asset cohesion review
 

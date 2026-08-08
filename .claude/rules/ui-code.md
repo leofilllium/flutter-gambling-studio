@@ -513,7 +513,7 @@ GestureDetector(
 - 3 tiers:
   - Small: < 5x the bet — a toast at the bottom, AnimatedCounter, confetti
   - Big: 5–20x the bet — half-screen, burst particles, fanfare
-  - Mega: > 20x the bet — fullscreen, explosion, camera shake, epic music
+  - Mega: > 20x the bet — fullscreen, explosion, camera shake, an epic win stinger (`sfx_win_mega`)
 - The balance updates with an AnimatedCounter (never a jump)
 - The overlay does NOT block the back action
 

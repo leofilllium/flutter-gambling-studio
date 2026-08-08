@@ -414,7 +414,8 @@ Print to the user (or, when invoked as a sub-agent, return it to the parent sess
    [Gambling: age gate + 18+ disclaimer + responsible play]
 
 🔊 Audio (Phase 3.5):
-   ✅ 9 real .wav files synthesised (mood: [mood]) — SFX + BGM, not placeholders
+   ✅ 8 real .wav sound effects synthesised (mood: [mood]) — not placeholders
+   ℹ️ No background music by design (SFX-only); not a gap, do not list it as one
 
 🧪 Tests (Session 2):
    ✅ Unit: [N] passed | Integration: [N] passed | Edge: [N] passed

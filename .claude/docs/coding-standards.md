@@ -258,6 +258,9 @@ class AudioService {
   AudioPlayer? _bgmPlayer;
   AudioPlayer? _spinPlayer;
 
+  /// Opt-in: games ship SFX-only by default, so this is a no-op unless a BGM
+  /// asset was generated. Keep the method and the Settings toggle regardless —
+  /// see .claude/agents/sound-designer.md → "Music is opt-in".
   Future<void> startBgm() async {
     await _bgmPlayer?.stop();
     _bgmPlayer = await FlameAudio.loopLongAudio('bgm_main.ogg', volume: 0.7);

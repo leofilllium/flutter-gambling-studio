@@ -16,15 +16,24 @@ Outputs:
   assets/audio/sfx/sfx_win_small.wav     — small win
   assets/audio/sfx/sfx_win_big.wav       — big win
   assets/audio/sfx/sfx_win_mega.wav      — mega win
+
+Opt-in only, via --with-bgm:
   assets/audio/bgm/bgm_main.wav          — looping background music bed
+
+BGM is off by default. Short effects are what additive synthesis is good at:
+a coin tick or a reel stop is a 200 ms envelope problem and lands well. A
+background loop is a composition problem, and the arpeggio-over-four-chords
+bed this file can render reads as filler next to the rest of the game — so a
+game ships with rich SFX and silence unless someone explicitly asks for music.
 
 The "mood" axis (from the game's Design DNA → Emotional Core) selects scale,
 tempo and timbre so two games never sound identical.
 
 Usage:
-  python3 tools/synth_sfx.py                       # defaults (mood=bright)
+  python3 tools/synth_sfx.py                       # 8 SFX, no music (mood=bright)
   python3 tools/synth_sfx.py --mood dark --seed 7
   python3 tools/synth_sfx.py --from-concept        # infer mood from concept
+  python3 tools/synth_sfx.py --with-bgm            # also render bgm_main.wav
   python3 tools/synth_sfx.py --list                # list events only
 """
 
@@ -53,8 +62,11 @@ MOODS = {
 
 EVENTS = [
     "sfx_button", "sfx_navigate", "sfx_action", "sfx_coin", "sfx_error",
-    "sfx_win_small", "sfx_win_big", "sfx_win_mega", "bgm_main",
+    "sfx_win_small", "sfx_win_big", "sfx_win_mega",
 ]
+
+# Rendered only when --with-bgm is passed; see the module docstring.
+BGM_EVENTS = ["bgm_main"]
 
 
 def midi_to_freq(note: float) -> float:
@@ -278,11 +290,15 @@ def main():
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--sfx-dir", default="assets/audio/sfx")
     ap.add_argument("--bgm-dir", default="assets/audio/bgm")
+    ap.add_argument("--with-bgm", action="store_true",
+                    help="also render the looping background music bed (off by default)")
     ap.add_argument("--list", action="store_true", help="print events and exit")
     args = ap.parse_args()
 
+    events = EVENTS + (BGM_EVENTS if args.with_bgm else [])
+
     if args.list:
-        for e in EVENTS:
+        for e in events:
             print(e)
         return
 
@@ -291,14 +307,15 @@ def main():
     rng = random.Random(args.seed if args.seed is not None else hash(mood) & 0xFFFF)
 
     made = []
-    for name in EVENTS:
+    for name in events:
         buf = render_event(name, m, rng)
         out_dir = args.bgm_dir if name.startswith("bgm") else args.sfx_dir
         path = os.path.join(out_dir, f"{name}.wav")
         write_wav(path, buf)
         made.append(path)
 
-    print(f"✅ synth_sfx: mood={mood}, {len(made)} files")
+    music = "with bgm" if args.with_bgm else "sfx only (no music)"
+    print(f"✅ synth_sfx: mood={mood}, {len(made)} files, {music}")
     for p in made:
         size = os.path.getsize(p)
         print(f"   {p}  ({size // 1024} KB)")

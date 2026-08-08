@@ -65,8 +65,10 @@ At any moment SOMETHING is moving on the game screen (subtly, without distractin
 ## 5. Audio integrity
 
 - Every significant event has a sound (tap/action/result/transition/error).
-- Levels are mixed: BGM quieter than SFX (BGM ~0.5–0.7, SFX ~0.9); nothing shouts.
-- Sound respects Settings and system focus (minimising pauses the BGM).
+- **SFX only by default — background music is opt-in.** A game with no BGM clears this section;
+  do not raise it as a gap. See `.claude/agents/sound-designer.md` → "Music is opt-in".
+- Levels are mixed so nothing shouts (SFX ~0.9). When a game does have BGM, it sits under the
+  effects (~0.5–0.7) and respects Settings and system focus (minimising pauses it).
 - Silence where it works: a pause before a mega result sharpens the release.
 
 ## 6. Performance as a feature
