@@ -25,12 +25,14 @@ Session 1 (autocreate)  →[handoff-1]→  Session 2 (THIS skill)  →[autocreat
 2. ✅ Validates Session 1's artifacts (pubspec, structure, `assets/data/*.json`, `assets/audio/*`)
 3. ✅ Reads `design/asset-format.md` to determine the asset format (PNG vs SVG) and passes it to
    the agents (Agent B: `Image.asset()` for PNG, `SvgPicture` for SVG; Agent A: file extensions)
-4. ✅ Runs **Phases 4 → 10** as described in `.claude/skills/autocreate/SKILL.md`
+4. ✅ Reads `.claude/docs/gameplay-screen-contract.md` and passes its full-viewport composition,
+   stable keys, control sizing, and viewport matrix to Agent B, QA, integration, and UI audit
+5. ✅ Runs **Phases 4 → 10** as described in `.claude/skills/autocreate/SKILL.md`
    (those phases are the canonical specification; this skill drives their execution)
-5. ✅ **Delegates the heavy phases to sub-agents** (see the map below) — the orchestrator does
+6. ✅ **Delegates the heavy phases to sub-agents** (see the map below) — the orchestrator does
    NOT read all of `lib/` itself, it works from command output (`dart analyze`/`flutter test`)
    and the agents' summaries
-6. ✅ At the end (Phase 10.7) writes `autocreate-handoff.md` and **spawns Session 3** through
+7. ✅ At the end (Phase 10.7) writes `autocreate-handoff.md` and **spawns Session 3** through
    the Agent tool
 
 **Forbidden:**
@@ -158,14 +160,16 @@ delegation map above. Each phase's exit criteria come from autocreate's Quality 
 | 6. Build | `dart analyze lib/` 0 errors | 10 |
 | 6.5. Feel Pass | the field is alive (F1–F5), analyze + test clean | 2 |
 | 7. Tests | `flutter test` all green (including test/services/) | 5 |
-| 8. UI Audit | 100+ checks (including compliance/content, category J) | 3 |
+| 8. UI Audit | 100+ checks, including the blocking full-viewport gameplay gate at 360×800, 390×844, 430×932 and 768×1024 | 3 |
 | 9. Balance | RTP/difficulty in range across the WHOLE curve | 3 |
 | 10. Crash Prevention | 20/20 + (gambling) age gate/disclaimer; analyze + test clean | 3 |
 
 **THE ABSOLUTE MINIMUM before Phase 10.7:** `dart analyze lib/` 0 errors, `flutter test` green,
 15+ screens, working navigation, the core mechanic + content (N levels/modes) + the meta systems
 in place, (gambling) the compliance flags wired up, and every player-facing string in English
-(unless the user explicitly asked for another language).
+(unless the user explicitly asked for another language). The live field, essential HUD, stake/risk
+controls and primary action must be visible together without page scrolling; a thumbnail field or
+nested game window blocks the handoff even when analyzer and tests are green.
 
 ---
 

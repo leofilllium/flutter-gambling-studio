@@ -30,6 +30,8 @@ visual problems.
 2c. Read `.claude/docs/quality-bar.md` → professional level thresholds
     (§1 first 30 sec: TTP ≤ 3 taps; §2 response ≤ 100 ms; §3 scaled feedback;
     §7 completeness; §8 visual integrity) - the audit measures BY THEM, not “by eye”
+2d. Read `.claude/docs/gameplay-screen-contract.md` → full-viewport field, integrated controls,
+    stable measurement keys, no core-loop scrolling, and the four-size verification matrix
 3. `glob lib/screens/**/*.dart` - find all screens
 4. `glob lib/widgets/**/*.dart` - find all widgets
 5. `glob lib/theme/**/*.dart` - find theme and animations
@@ -76,6 +78,11 @@ visual problems.
 | B8 | **Image without dimensions** | `Image.asset(` / `SvgPicture.asset(` without `width:`, `height:` or `fit:` | The image may stretch or shrink unpredictably | Add `width`, `height`, `fit: BoxFit.contain` |
 | B9 | **Stack without Positioned** | `Stack` with children without `Positioned` or `Align` - elements superimposed on each other | Elements in corner on top of each other | Add `Positioned` or `Align` |
 | B10 | **Cutting content on small screens** | Content height > 600px without scroll | On iPhone SE/small phones - overflow | Wrap in `SingleChildScrollView` or use `LayoutBuilder` to adapt |
+| B11 | **Gameplay field is too small** | Measure `Key('gameplaySurface')` at 360×800, 390×844, 430×932 and 768×1024; compare with the contract | The mechanic reads as a thumbnail and loses focus | Recompose with `Expanded`/`Stack`/`AspectRatio`; field ≥55% usable portrait area and normally ≥88% width |
+| B12 | **Nested mini-game window** | Inspect game-idle and active screenshots for a phone/browser/card-like frame or large dead margins around the field | A game appears embedded inside another generic app page | Remove outer framing/padding; keep only a tight mechanic-driven rim and integrate the backdrop |
+| B13 | **Core loop requires scrolling** | Find a vertical `Scrollable` ancestor of `gameplaySurface` or `primaryAction`; verify first viewport | Field or action/control deck falls below the fold | Recompose the fixed viewport; move rules/history/secondary content to a sheet or screen |
+| B14 | **Disconnected control block** | Compare field and control deck alignment, materials, shape language, spacing and depth | Controls look like an unrelated card below the game | Attach as overlay/edge rail/compact command deck using the field's grid and DNA |
+| B15 | **Poor control proportions** | Measure tap targets and labels at 1.0×/1.3× text scale; compare enabled/disabled states | Buttons are cramped, uneven, clipped, or ambiguous | Enforce ≥48×48 targets, a primary action ≥56 logical pixels high, shared baselines/heights and responsive label fitting |
 
 ### Category C: NAVIGATION AND STATUS (High - the application is not working properly)
 
@@ -164,7 +171,7 @@ visual problems.
 | G4 | Interactive elements have visual feedback | `grep 'onTapDown\|AnimatedScale\|ScaleTransition'` | Add feedback to all GestureDetector |
 | G5 | Win overlay scales to win size | Read win_overlay - is there small/big/mega | Add switch by multiplier |
 | G6 | Text to background contrast >= 4.5:1 | Check colors in theme | Adjust |
-| G7 | Game screen: main action dominates (60%+) | Read layout | Adjust proportions |
+| G7 | Game screen: mechanic dominates and primary action leads the controls | Measure the field and inspect hierarchy against `gameplay-screen-contract.md` | Expand/integrate the field; keep the main action visually strongest within the compact control layer |
 | G8 | Empty states are stylized | `grep 'empty\|EmptyState\|no data'` | Add a placeholder with text and illustration |
 | G9 | Loading state is stylized as a game | `grep 'Loading\|loading'` in screens | Replace generic → thematic |
 | G10 | **Transferability test** | Does it look out of place to mentally transfer the UI to another game? | If the UI is generic (suitable for any game) - strengthen the thematic connection |
@@ -306,8 +313,10 @@ void dispose() {
 }
 ```
 
-**Stage 2 - Layout errors (B1-B10):**
-Fix all layout problems. Special attention: SafeArea, overflow, responsive.
+**Stage 2 - Layout errors (B1-B15):**
+Fix all layout problems. Special attention: SafeArea, overflow, responsive constraints, the
+full-viewport gameplay composition, and control proportions. Do not “fix” B11–B15 by wrapping the
+whole game screen in a scroll view.
 
 **Stage 3 - Navigation and Status (C1-C10):**
 Check all routes, all persistence, all overlay lifecycle.
@@ -372,8 +381,9 @@ If tests fail → fix (up to 3 attempts). If the test is correct, fix the code, 
    Total: [X]/10
 
 📐 B: Layout errors (High):
-   [✅|❌] B1-B10: [short status]
-   Total: [X]/10
+   [✅|❌] B1-B10: [responsive/safe layout status]
+   [✅|❌] B11-B15: [field dominance, no nested window/scroll, integrated usable controls]
+   Total: [X]/15
 
 🧭 C: Navigation and Status (High):
    [✅|❌] C1-C10: [short status]

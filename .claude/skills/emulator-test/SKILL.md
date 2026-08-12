@@ -420,12 +420,20 @@ And visually check using the checklist:
 | V10 | **Low Contrast** | The text blends into the background, unreadable | MEDIUM | ui-programmer (Design DNA palette) |
 | V11 | **All graphics are default Material** | Blue AppBar, white buttons, generic look | MEDIUM | ui-programmer (no custom theme) |
 | V12 | **Balance/account not displayed** | HUD is empty or shows NaN/null | HIGH | mechanics-programmer (ValueNotifier not connected) |
+| V13 | **Gameplay field is a thumbnail** | Live field occupies <55% of usable portrait area or is conspicuously narrow without a documented mechanic reason | HIGH | ui-programmer (full-viewport recomposition) |
+| V14 | **Nested game window** | Field looks like a phone/browser/card inside the actual game screen, with large dead margins or a second unrelated panel | HIGH | ui-programmer (remove outer frame and integrate field/HUD/controls) |
+| V15 | **Core loop below the fold** | Player must vertically scroll to see the primary action, stake/risk control, or essential result | HIGH | ui-programmer (fixed-viewport core composition) |
+| V16 | **Poorly adjusted controls** | Buttons are cramped, uneven, clipped, undersized, ambiguously disabled, or visually disconnected from gameplay | HIGH | ui-programmer (responsive control deck and state pass) |
+
+For every game-idle and active screenshot, also apply
+`.claude/docs/gameplay-screen-contract.md`. V13–V16 are release blockers, not subjective polish.
 
 ### Create an entry for each screenshot
 
 ```markdown
 ### 03-game-idle.png
-- Expected: main game screen with reels, HUD on top, SPIN button on bottom
+- Expected: full-viewport integrated game screen with a dominant field, compact HUD and a visible,
+  properly sized primary action; no nested window and no core-loop scrolling
 - Observed: [what is actually visible]
 - Issues:
   - V4 - The reel area is empty (black rectangle 800x600 in the center)
@@ -526,6 +534,9 @@ Sort by severity: CRITICAL → HIGH → MEDIUM.
    - V2/V3 (black/white screen): check main.dart → runApp, app.dart → routes, SafeArea
    - V5/V7/V8/V9 (layout): add Expanded, overflow: ellipsis, FittedBox
    - V10/V11 (design): apply palette from Design DNA, replace Material defaults
+   - V13/V14/V15/V16 (gameplay composition): apply `gameplay-screen-contract.md`; expand and
+     integrate the field, remove nested framing/core scrolling, and rebuild the responsive control
+     deck. If this needs a whole-screen recomposition, route it through `/ui-audit --fix`.
 
    **mechanics-programmer**:
    - V4 (blank game screen): check [name]_world.dart - onLoad adds components,
@@ -553,9 +564,9 @@ Sort by severity: CRITICAL → HIGH → MEDIUM.
 
 ### Phase 5 Exit Criteria
 
-**Success**: 0 CRITICAL, ≤2 HIGH, MEDIUM are acceptable.
-**Partial success**: CRITICAL eliminated, HIGH remained - report to the user.
-**Failure**: CRITICAL remained after 3 iterations - detailed report + manual escalation.
+**Success**: 0 CRITICAL and 0 HIGH; MEDIUM are acceptable with a CONCERNS note.
+**Partial success**: CRITICAL/HIGH eliminated but MEDIUM remained - report CONCERNS.
+**Failure**: any CRITICAL/HIGH remained after 3 iterations - detailed report + manual escalation.
 
 ---
 

@@ -28,7 +28,14 @@ The archetype changes the composition but does NOT break the baseline UX:
 - The main action sits in the thumb zone (the bottom 60% of the screen on mobile).
 - Tap targets ≥ 48×48 on every interactive element.
 - SafeArea on every screen except the fullscreen GameScreen.
-- The play field remains the main focus of the game screen (≈60% of the area).
+- The GameScreen owns the viewport; safe-area padding protects chrome without framing the whole
+  game inside a second window.
+- The play field remains the main focus of the game screen (≥55% of the usable portrait area and
+  normally ≥88% of its width; see `gameplay-screen-contract.md`).
+- The field, essential HUD, stake/risk controls, and primary action are visible without page
+  scrolling.
+- No archetype permits a thumbnail play field, a phone/window inside the game, or a large generic
+  information card that competes with the mechanic.
 - Visual hierarchy: the main action is the most prominent element.
 - Back navigation works from every screen.
 
@@ -81,7 +88,8 @@ A vertical panel along one side holds the controls and HUD; the field takes the 
 The screen is explicitly split into two zones with different surfaces.
 
 - **Main menu:** the upper zone is art/preview, the lower zone (a different surface) is the mode menu.
-- **Game screen:** the top ≈60% is the play field, the bottom ≈40% is an information panel on its own surface (rules/history/controls + the main action).
+- **Game screen:** the top ≈65–75% is the play field, the compact bottom zone carries only core
+  information, controls, and the main action. Rules/history expand as an overlay or separate screen.
 - **Action button:** in the info panel, as the accent.
 - **Overlays:** expand within the lower panel, or over both zones for major events.
 - **Transitions:** the zones can animate separately (cross-fade on top, slide below).
@@ -91,7 +99,9 @@ The screen is explicitly split into two zones with different surfaces.
 Content lives on rounded cards or sheets that replace one another.
 
 - **Main menu:** a horizontal carousel of mode cards; swipe to choose a mode, tap to start.
-- **Game screen:** the play field on the main card; a thin HUD "pill" on top; controls on a floating sheet below.
+- **Game screen:** a full-viewport field with one structural sheet edge or layered surface; a thin
+  HUD pill and compact controls may float above it. The field must not become a small rounded card
+  surrounded by page padding—the "card" metaphor describes transitions and depth, not a nested app.
 - **Action button:** on the lower sheet, or as the accent on the card itself.
 - **Overlays:** new cards ride over the stack; modals are a rising sheet.
 - **Transitions:** cards slide and overlap (shared axis), with depth from layered shadows.

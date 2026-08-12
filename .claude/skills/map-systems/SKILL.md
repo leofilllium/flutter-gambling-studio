@@ -37,9 +37,12 @@ category and the mathematical model, and generate `design/gdd/systems-map.md`.
 - `AmbientParticles` (a living field — the screen is never static)
 
 ## 3. Flutter UI
-- `HudWidget` (balance/bet/multiplier through a ValueNotifier)
+- `GameScreen` (full-viewport integrated composition from
+  `.claude/docs/gameplay-screen-contract.md`; no nested window or core-loop scrolling)
+- `HudWidget` (compact balance/bet/multiplier through a ValueNotifier)
 - `BetPanel` (bet selection, locked during a round)
-- `ActionButton` (a 300 ms debounce + a disabled state + a press animation)
+- `ActionButton` (a 300 ms debounce + disabled/pressed states + ≥48 wide/56 high primary target)
+- Stable layout keys: `gameplaySurface`, `primaryAction`, and `controlDeck` for geometry tests
 - `MainMenuScreen`, `PaytableScreen`, every MVP screen
 
 ## 4. Compliance (the mandatory layer)

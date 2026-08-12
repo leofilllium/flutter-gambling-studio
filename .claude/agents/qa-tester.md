@@ -78,6 +78,16 @@ test('uses Random.secure() — not math.Random()', () {
 - States (idle → active → stopped) change correctly
 - For gambling — the reel stops on the specified symbol
 
+#### 7. Gameplay layout tests
+`test/screens/game_screen_layout_test.dart`
+
+- Follow `.claude/docs/gameplay-screen-contract.md` and use the required stable keys.
+- Pump 360×800, 390×844, 430×932, and 768×1024.
+- Assert field dominance, primary-action visibility/size, no vertical `Scrollable` ancestor for
+  the core loop, no exception/overflow, and label fit at 1.3× text scale.
+- Do not approve composition from widget tests alone; idle and active screenshots still need the
+  runtime vision gate.
+
 ### Edge cases
 
 Make sure the code is protected against:
@@ -121,6 +131,7 @@ test('a description in the third person, present tense', () {
 | game_logic / evaluator | 90% |
 | game_state.dart | 85% |
 | HUD widgets | 70% |
+| GameScreen viewport matrix | 100% of required sizes |
 | Animations (components) | 60% |
 
 ### Delegation

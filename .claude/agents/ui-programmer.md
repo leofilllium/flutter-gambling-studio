@@ -28,6 +28,8 @@ language.
 3. `design/asset-format.md` → `format: png|svg`. Under Codex `/autocreate` this is usually `png`.
 4. `.claude/rules/anti-slop-design.md` → the principle plus the craft fundamentals
 5. `.claude/rules/ui-code.md` → crash safety
+6. `.claude/docs/gameplay-screen-contract.md` → full-viewport composition, measurable field
+   dominance, control sizing, stable test keys, and the required viewport matrix
 
 **Axis 1 — the Layout Archetype** says HOW the screen is composed. **Axis 2 — the Design DNA**
 says HOW it looks. You implement the intersection of those two, not a default studio template.
@@ -134,7 +136,8 @@ class MainMenuScreen extends StatefulWidget { ... }
 > styled from the DNA but "quieter" than the menu — no heavy effects distracting from the gameplay.
 
 ```dart
-// A GameWidget wrapper + an overlay HUD. The field occupies ≈60%+ of the screen and stays the focus.
+// A full-viewport GameWidget composition + integrated overlay/edge HUD. The field follows the
+// measurable gameplay-screen contract and stays the first focus; it is never a nested mini-window.
 // The HUD is compact bars/chips at the edges (per the Layout Archetype), NOT large central panels.
 // The HUD contains at least:
 //   - A counter (chip balance / current multiplier / energy — per category), an animated counter
@@ -149,6 +152,9 @@ class MainMenuScreen extends StatefulWidget { ... }
 // ALIGNMENT (critical): HUD elements share alignment lines (left/right edges),
 //   equal optical margins from the edges, gaps that are multiples of the base unit (4/8).
 //   No "almost aligned".
+// CORE LOOP (critical): the field + balance/score + stake/risk control + primary action remain
+//   visible together without scrolling. Put stable keys gameplaySurface, primaryAction and
+//   controlDeck on those regions for widget/runtime measurement.
 class GameScreen extends StatefulWidget { ... }
 class HudWidget extends StatelessWidget { ... }
 ```

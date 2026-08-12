@@ -402,7 +402,8 @@ If the game is about space, blue is LOGICAL. Color is only prohibited if it is R
 
 ### Section 3.5: Layout & Composition Direction (MANDATORY)
 
-**Select Layout Archetype** from `.claude/docs/layout-archetypes.md` (L1–L6) - it defines
+**Select Layout Archetype** from `.claude/docs/layout-archetypes.md` (L1–L6) and apply
+`.claude/docs/gameplay-screen-contract.md`. The archetype defines
 COMPOSITION of screens regardless of Design DNA (which determines the look). **Vary the archetype
 from the last game** - this is the main lever against “all screens are the same”.
 
@@ -412,8 +413,8 @@ from the last game** - this is the main lever against “all screens are the sam
 | L2 | Bottom Command Deck | Edge-to-edge top, tight bottom console |
 | L3 | Floating Corners | Full-bleed field, floating chips in the corners, floating button |
 | L4 | Side Rail | Side Vertical Control Rail/HUD |
-| L5 | Split Panel | Two explicit zones: ≈60% field / ≈40% info panel |
-| L6 | Card/Sheet Stack | Content on rounded cards/sheets |
+| L5 | Split Panel | Dominant ≈65–75% field / compact core-control zone |
+| L6 | Card/Sheet Stack | Full-viewport field with structural layered sheets; never a nested mini-game card |
 
 ```markdown
 ## Layout & Composition Direction
@@ -424,6 +425,8 @@ from the last game** - this is the main lever against “all screens are the sam
 ### Applying to key screens
 - Main Menu: [as assembled by archetype + dressed in DNA]
 - Game Screen + HUD: [where is the HUD, where is the main action, like a field]
+- Full-viewport proof: [how field reaches ≥55% usable portrait area and normally ≥88% width at
+  390×844 and 430×932; how core field/HUD/stake/action stay visible without scrolling]
 - Overlays: [toast position, modal entry style]
 - Transitions: [a family of transitions from an archetype, colored by the game's metaphor]
 ```
@@ -454,6 +457,8 @@ from the last game** - this is the main lever against “all screens are the sam
 ### Screen 3: Game Screen + HUD
 - Playing field: [reels/table/mine grid/multiplier curve/banner/board/pegs field]
 - HUD elements: account/balance (animated counter), controls, action button
+- Viewport composition: [dominant integrated field; compact control attachment; no nested window,
+  large competing info card, or page-scrolling core loop]
 - Overlays: Win/Score (3 levels), Game Over, level passed
 
 ### Screen 4: Paytable
@@ -673,6 +678,8 @@ manifesto literally.
 - [ ] 2 fonts from DNA + typographic hierarchy (type scale 4–6 sizes)
 - [ ] Basic indent step (4/8); button shape from shape language (rounded rectangle is OK if it fits)
 - [ ] Layout Archetype selected and applied (composition NOT default “HUD on top + button on bottom”)
+- [ ] Gameplay screen contract satisfied: dominant full-viewport field, integrated controls,
+      core loop visible without scrolling, and usable button proportions at all four target sizes
 - [ ] Transitions between screens are thematic (related to the game world)
 - [ ] All 12+ screens are described with full content
 - [ ] Micro-interactions on each interactive element

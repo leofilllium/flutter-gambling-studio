@@ -153,7 +153,7 @@ Idea → Concept → Math model → Design → Gate → Code → UI audit → Ru
 | `/release-checklist` | Final GO/NO-GO checklist before release, including compliance (release-manager agent) |
 | `/release-engineering` | Ship engineering: app icons (adaptive + iOS) + native splash + versioning + **signed AAB** + iOS scaffold + store metadata (with the mandatory compliance fields) + CI |
 | `/release-package` | Release packaging: screenshots of every screen + release APK/AAB + `flutter clean` + a `.zip` in `project_zip/` |
-| `/store-screenshots` | The store showcase for a gambling game: a concept triptych built around the key moment of a round (a panorama with NO text, sliced into panels) + round frames inside a phone frame + feature graphic + app icon and emblem (generated AND applied to the project). Two sets: **1320×2868** for App Store Connect (iPhone 6.9″) and **1080×1920** 9:16 for Google Play. Compliance gate on both copy and art → a `.zip` in `project_zip/` |
+| `/store-screenshots` | A casino-grade store showcase: mechanic-first tension/reveal/celebration composition in the current game's Design DNA, never a generic neon reskin. Includes a text-free concept panorama sliced into panels + real round frames inside a secondary phone frame + feature graphic + applied app icon and emblem. Two sets: **1320×2868** for App Store Connect (iPhone 6.9″) and **1080×1920** 9:16 for Google Play. Compliance and gameplay-layout gates → a `.zip` in `project_zip/` |
 
 ### Diagnostics and debt
 
@@ -258,6 +258,15 @@ The pattern: **Question → Options → Decision → Draft → Approval**
 @.claude/rules/anti-slop-design.md
 
 @.claude/docs/layout-archetypes.md
+
+### Gameplay-screen composition
+
+The live game must own the viewport. The mechanic is a dominant, integrated surface—not a small
+window floating above a generic scrolling card. Core play, essential HUD, stake/risk controls,
+and the primary action remain visible together without page scrolling. The implementation and
+runtime gates use the measurable contract below.
+
+@.claude/docs/gameplay-screen-contract.md
 
 ## Professional quality bar
 

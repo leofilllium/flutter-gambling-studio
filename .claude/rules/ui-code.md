@@ -285,6 +285,21 @@ Image.asset('assets/images/ui/button.png', width: 120, height: 48, fit: BoxFit.c
 SvgPicture.asset('assets/images/sprites/cherry.svg', width: 64, height: 64)
 ```
 
+### 3.6 Full-viewport gameplay composition
+
+Read and implement `.claude/docs/gameplay-screen-contract.md` for every `GameScreen`.
+
+- Put the live field under `Key('gameplaySurface')`, the primary action under
+  `Key('primaryAction')`, and the core control group under `Key('controlDeck')` when present.
+- Compose the field, HUD, and controls as one full-viewport screen. Do not embed the field in a
+  small decorative window above a separate generic information card.
+- Keep the field, essential counters, stake/risk controls, and primary action visible without
+  vertical page scrolling.
+- Verify the idle and active states at 360×800, 390×844, 430×932, and 768×1024.
+
+**Rule**: shrinking the field, adding a `SingleChildScrollView` around the whole game screen, or
+moving core controls below the fold is not an acceptable overflow fix. Recompose the layout.
+
 ---
 
 ## 4. NAVIGATION

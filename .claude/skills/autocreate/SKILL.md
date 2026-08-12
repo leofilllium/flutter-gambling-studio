@@ -86,7 +86,7 @@ flutter:
 
 Do not hardcode studio-default fonts. Select display and body fonts from the game's Design DNA and use `google_fonts`.
 
-Read `.claude/docs/directory-structure.md`, choose one V1–V5 structure, create the directories, and write the exact path map to `design/structure.md`. Read `.claude/docs/layout-archetypes.md`, choose L1–L6 from the concept, and write screen-specific composition rules to `design/art-direction.md`.
+Read `.claude/docs/directory-structure.md`, choose one V1–V5 structure, create the directories, and write the exact path map to `design/structure.md`. Read `.claude/docs/layout-archetypes.md` and `.claude/docs/gameplay-screen-contract.md`, choose L1–L6 from the concept, and write screen-specific composition rules to `design/art-direction.md`. The art-direction file must specify how the live field fills the viewport, where the integrated HUD/control deck sits, and how the 55% area / normal 88% width thresholds are met at 390×844 and 430×932. It must not plan a nested mini-game or page-scrolling core loop.
 
 ## Phase 3 — asset generation and validation
 
@@ -162,7 +162,7 @@ Write `production/session-state/autocreate-handoff-1.md` with:
 - Links to the concept, production plan, structure, art direction, asset format/prompts/manifest/review, balance configs, and content data.
 - Counts and paths for generated/derived assets, WAV files, levels/stages/banners/boards, economy entries, and modes.
 - A checklist confirming that Session 1 is complete and that gameplay implementation has not started.
-- Session 2's required exit criteria: `dart analyze` with zero errors, green tests, complete content wiring, passed UI/compliance audit, verified balance, and 20/20 crash-prevention checks.
+- Session 2's required exit criteria: `dart analyze` with zero errors, green tests, complete content wiring, passed UI/compliance audit, a passed full-viewport gameplay-screen gate at the required sizes, verified balance, and 20/20 crash-prevention checks.
 
 Then start a clean-context agent with this instruction:
 
@@ -184,7 +184,7 @@ The full pipeline succeeds only when:
 - The complete game is playable in English and all screens, buttons, navigation, data, modes, progression, economy, audio, animation, and edge states work.
 - `dart analyze` reports zero errors and `flutter test` is green.
 - The declared M1–M6 model passes its verifier over the complete content curve.
-- Runtime verification and playtest produce at least five screenshots plus `REPORT.md`, with no exceptions or severe layout defects.
+- Runtime verification and playtest produce at least five screenshots plus `REPORT.md`, with no exceptions or severe layout defects. Idle and active gameplay captures must pass `.claude/docs/gameplay-screen-contract.md`: dominant integrated field, core controls visible without scrolling, and usable buttons.
 - `production/session-state/active.md` contains the current runtime verdict.
 - Icons, splash, version, store metadata, and CI preparation are complete.
 

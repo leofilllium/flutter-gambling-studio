@@ -40,8 +40,10 @@ project to `dart analyze` 0 errors + `flutter test` green. In this session:
 1. ✅ Reads `production/session-state/autocreate-handoff.md` **as its first action**
 2. ✅ Validates that Session 2's artifacts exist (`pubspec.yaml`, `lib/main.dart`,
    `dart analyze` still 0 errors)
-3. ✅ Runs Phases 10.5 → 11 → 11.5 → 12 in that order
-4. ✅ Returns the final report to the parent session (or prints it for the user)
+3. ✅ Reads `.claude/docs/gameplay-screen-contract.md` before runtime capture and treats every
+   V13–V16 defect as a HIGH release blocker
+4. ✅ Runs Phases 10.5 → 11 → 11.5 → 12 in that order
+5. ✅ Returns the final report to the parent session (or prints it for the user)
 
 **Forbidden:**
 - ❌ Changing `lib/game/game_config.dart`, `design/balance/*.json` or `assets/data/*.json` —
@@ -188,7 +190,9 @@ kill "$(cat .claude/runtime-logs/flutter.pid 2>/dev/null)" 2>/dev/null || true
 ```
 
 Then:
-- **Visual analysis** of each `$SHOT_DIR/*.png` through Read (vision) against the V1–V12 checklist.
+- **Visual analysis** of each `$SHOT_DIR/*.png` through Read (vision) against the V1–V16 checklist
+  and `.claude/docs/gameplay-screen-contract.md`. Inspect idle and active gameplay at 390×844 and
+  add a 430×932 capture when the tour does not already include one.
 - **Error parsing**: `jq '.consoleErrors' "$SHOT_DIR/manifest.json"`, `$SHOT_DIR/webconsole.log`,
   and `.claude/runtime-logs/flutter-run.log` (EXCEPTION CAUGHT, RenderFlex overflowed, Unable to load asset).
 
@@ -243,7 +247,7 @@ leak) is permitted.
 ### 10.5.3 — the auto-fix loop (up to 3 iterations)
 
 Consolidate the problems, mark their severity (CRITICAL/HIGH/MEDIUM) and assign agents:
-- V2/V3/V5/V7/V8/V9/V10/V11 → **ui-programmer**
+- V2/V3/V5/V7/V8/V9/V10/V11/V13/V14/V15/V16 → **ui-programmer**
 - V4/V12 → **mechanics-programmer**
 - VFX not visible → **juice-artist**
 - Logcat asset errors → check `lib/assets.dart` against the real files
@@ -259,6 +263,7 @@ Consolidate the problems, mark their severity (CRITICAL/HIGH/MEDIUM) and assign 
 | Yellow overflow stripes | A ListView with no Expanded | Wrap it in Expanded |
 | A red screen exception | A null check/type error from the stack trace | Fix it at the file:line from the log |
 | "Unable to load asset" | A path mismatch in `lib/assets.dart` | Fix the path, or create the file |
+| Slight field/control constraint miss | An avoidable wrapper, padding, or incorrect flex | Make a targeted constraint edit and re-capture both idle and active states |
 
 **Forbidden "auto-fixes":**
 - Changing `game_config.dart` (the balance is frozen)
@@ -266,12 +271,17 @@ Consolidate the problems, mark their severity (CRITICAL/HIGH/MEDIUM) and assign 
 - Rewriting whole screens — targeted edits only
 - Changing the GDD
 
+If V13–V16 require structural recomposition rather than a targeted constraint edit, do not hide
+or downgrade the defect. Mark finalization FAIL and route it back to `/ui-audit --fix` or
+`/autocreate-implement --resume`; Session 2 owns whole-screen composition.
+
 ### 10.5.4 — Phase 10.5's exit criterion
 
 **The web path (the default):**
-- **Success**: 0 CRITICAL visual problems + 0 FATAL exceptions in the console
-- **Partial success**: the CRITICALs are cleared, MEDIUMs remain — go on to Phase 11
-- **Failure**: after 3 iterations CRITICALs remain — save
+- **Success**: 0 CRITICAL + 0 HIGH visual problems, 0 FATAL exceptions, and the gameplay-screen
+  contract passes in idle and active states
+- **Partial success**: CRITICAL/HIGH are cleared but MEDIUMs remain — go on to Phase 11 with CONCERNS
+- **Failure**: after 3 iterations any CRITICAL/HIGH remains — save
   `production/runtime-screenshots/<ts>/REPORT.md`, report with the verdict FAIL;
   Phase 11 runs anyway (active.md is updated with the FAIL verdict)
 
@@ -332,7 +342,10 @@ Task: Production-ready
 <!-- /STATUS -->
 
 ## Status
-The game is fully implemented and verified. To get the APK and the archive, run /release-package.
+[If runtime/playtest/layout pass: The game is fully implemented and verified. To get the APK and
+the archive, run /release-package.]
+[If any CRITICAL/HIGH or NOT-PLAYABLE remains: RELEASE BLOCKED. Return to /ui-audit --fix or
+/autocreate-implement --resume; do not run /release-package yet.]
 
 ## Runtime verification
 - Verdict: [PASS / CONCERNS / FAIL / SKIPPED]
@@ -385,7 +398,10 @@ flutter pub get >/dev/null 2>&1 || true
 
 ## Phase 12 — the final report
 
-Print to the user (or, when invoked as a sub-agent, return it to the parent session):
+Print to the user (or, when invoked as a sub-agent, return it to the parent session). Use
+`AUTOCREATE COMPLETE — PRODUCTION READY` only when runtime has 0 CRITICAL/HIGH issues, the
+gameplay-screen contract passes, and playtest is not NOT-PLAYABLE. Otherwise use
+`AUTOCREATE BLOCKED — UI/GAMEPLAY REWORK REQUIRED` and put the blocking rerun command first.
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -422,6 +438,7 @@ Print to the user (or, when invoked as a sub-agent, return it to the parent sess
 
 🌐 Runtime verification (Chrome, Phase 10.5):
    [PASS / CONCERNS / FAIL / SKIPPED] — [N] CRITICAL, [N] HIGH issues
+   Gameplay composition: [PASS / FAIL / UNVERIFIED] — full-viewport field + integrated controls
    Screenshots: production/runtime-screenshots/<ts>/
    Report: production/runtime-screenshots/<ts>/REPORT.md
 
@@ -471,7 +488,7 @@ Print to the user (or, when invoked as a sub-agent, return it to the parent sess
 | Phase | Exit criterion | Max iterations |
 |-------|----------------|----------------|
 | 0. Preflight | The handoff exists + `dart analyze` 0 errors | 1 (fail-fast) |
-| 10.5. Runtime Chrome / Android compile | Web: 0 CRITICAL visual + 0 FATAL in flutter-run.log (+ soak: no leak). Android (`--platform android`): `flutter build apk --debug` exit 0 | 3 (Chrome is always available) / 2 (Android compile) |
+| 10.5. Runtime Chrome / Android compile | Web: 0 CRITICAL/HIGH visual, gameplay-screen contract PASS, 0 FATAL in flutter-run.log (+ soak: no leak). Android (`--platform android`): `flutter build apk --debug` exit 0 | 3 (Chrome is always available) / 2 (Android compile) |
 | 10.6. Playtest | PLAYTEST-REPORT.md, verdict ≠ NOT-PLAYABLE (P1–P10) | 2 |
 | 11. Session state | `active.md` updated | 1 |
 | 11.5. Release-eng prep | Icons/splash generated, `store/` created (AAB best-effort) | 1 |
@@ -480,6 +497,9 @@ Print to the user (or, when invoked as a sub-agent, return it to the parent sess
 **THE ABSOLUTE MINIMUM to finish Session 3:**
 - `production/session-state/active.md` is updated
 - The final report is printed, with the runtime verification verdict
+
+This minimum permits an honest blocked report; it does not permit a production-ready claim. Any
+remaining V13–V16/HIGH defect or a failed gameplay-screen contract keeps the project blocked.
 
 ---
 

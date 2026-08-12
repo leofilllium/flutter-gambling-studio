@@ -91,6 +91,9 @@ At any moment SOMETHING is moving on the game screen (subtly, without distractin
 
 - Every asset looks like the work of one artist (checked by /asset-review, criteria AR1–AR10).
 - The UI is not transferable to another game unchanged (the test from anti-slop-design.md).
+- The gameplay screen owns the viewport: the mechanic is dominant and integrated with its HUD and
+  controls, never a thumbnail/window above a generic scrolling card. Core play does not require
+  page scrolling; see `gameplay-screen-contract.md`.
 - Sprites are readable at in-game size (64 px), not only in a 1024 px preview.
 - The app icon and splash come from the same visual world as the game.
 

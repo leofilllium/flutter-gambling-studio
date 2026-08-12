@@ -35,6 +35,11 @@ The following items are mandatory for **all six categories**:
 - [ ] **Anti-slop UI**: does it pass the `.claude/rules/anti-slop-design.md` audit?
   No CircularProgressIndicator, no ThemeData.dark() without customisation,
   at least 2 fonts, custom screen transitions?
+- [ ] **Full-viewport gameplay**: do idle and active captures pass
+  `.claude/docs/gameplay-screen-contract.md`—dominant integrated field, no nested mini-window,
+  no core-loop scrolling, and field/HUD/controls reading as one composition?
+- [ ] **Control usability**: do the primary and secondary controls meet tap-size, label-fit,
+  alignment, responsive-sizing, and distinct enabled/disabled-state requirements?
 - [ ] **At least 10 screens**: is every required MVP screen implemented?
 - [ ] **Language**: is every player-facing string in English (or in the language the user
   explicitly requested), with no untranslated leftovers or placeholders?

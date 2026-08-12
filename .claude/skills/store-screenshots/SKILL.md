@@ -1,6 +1,6 @@
 ---
 name: store-screenshots
-description: "Build a complete App Store and Google Play storefront kit for a gambling game: a text-free concept panorama sliced into panels, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Art direction follows the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
+description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama sliced into panels, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
 argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -43,6 +43,27 @@ The storefront must sell the round mechanic, not generic casino atmosphere. Read
 | C6 Coin Pusher/Plinko | Physical trajectory, field depth, targets, and accumulated potential |
 
 Never apply the same neon-purple-and-gold casino look to every game. Theme, palette, materials, lighting, typography, and mood come from the current game's Design DNA. If the panorama could be moved to another studio game unchanged, it fails.
+
+### Casino-style storefront grammar — mandatory
+
+Every set must read immediately as a premium gambling-game storefront, even when the Design DNA
+is cozy, playful, retro, papery, or minimal. “Casino-style” describes the marketing composition,
+not a mandatory black/neon/gold skin:
+
+- Lead with the decisive wager/reveal/drop/collect moment and make the real mechanic unmistakable.
+- Use one dominant outcome object or mechanic, strong foreground/midground/background depth,
+  directional light, controlled particles, motion/anticipation, and a clear reward focal point.
+- Make virtual chips, multipliers, cards, reels, capsules, balls, modifiers, or collection rewards
+  feel tactile and premium in the current Design DNA. Never imply real-money value.
+- Use short, bold, mechanic-specific captions on gameplay showcase frames. The text-free panorama
+  remains cinematic and contains no generated lettering.
+- Prefer exciting active, tension, reveal, and celebration states over flat menu documentation.
+  At least half of the real-gameplay frames must show the core round in motion or resolving.
+- Keep the device frame secondary to the gameplay. The real screen inside it must remain large and
+  readable; decorative background may support it but cannot overpower it.
+
+A generic casino lobby, random luxury props, or a neon-and-gold reskin without the game's mechanic
+fails just as surely as a flat utility-app screenshot.
 
 ## Arguments and defaults
 
@@ -104,6 +125,12 @@ Capture at least a menu, active round, peak-tension state, win/reward state, and
 
 Reject empty, duplicated, error, overflow, loading-only, wrong-aspect, or non-gameplay frames. Parse the Flutter log for exceptions before continuing.
 
+Before selecting any gameplay frame, apply `.claude/docs/gameplay-screen-contract.md`. Reject and
+stop for UI correction when the live field is a thumbnail/nested window, the core loop requires
+scrolling, a large information card competes with the mechanic, or buttons are cramped, uneven,
+clipped, off-screen, or disconnected. Store composition must never crop, enlarge, or cover a weak
+gameplay layout to make it look acceptable.
+
 ## Phase 2 — generate brand art
 
 Use image generation for three sources:
@@ -136,12 +163,17 @@ Vision-check the stitched preview:
 - No seam cuts the hero's face, central mechanic, reward, or decisive action.
 - No letters, fake glyphs, captions, UI, or panel borders appear.
 - The mechanic and category are recognizable without generic casino cues.
+- The panorama uses casino-grade tension, depth, tactility, and reward focus while remaining
+  unmistakably specific to this game's Design DNA.
 
 The preview is a verification artifact and must not be listed for store upload.
 
 ## Phase 5 — compose gameplay showcase frames
 
-Select `COUNT-P` real frames that tell one coherent story: enter the game, play a live round, reach tension, win/reveal, and progress. Write short English captions that are specific to the actual mechanic and avoid payout language.
+Select `COUNT-P` real frames that tell one coherent casino-round story: enter the game, commit the
+virtual stake/risk, reach tension, resolve/reveal, celebrate, and progress. At least half must show
+active core gameplay or its immediate result. Write short English captions that are specific to
+the actual mechanic and avoid payout language.
 
 Run `store_compose.py showcase` once for the main set and once for the Play set using the same ordered frame/caption list. Use the chosen font pair and Design DNA palette. Captions must remain within safe areas, retain at least 4.5:1 contrast, and render every glyph correctly.
 
@@ -212,6 +244,10 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 
 - Preflight tools and fonts are available.
 - At least one valid phone-aspect raw frame exists; the final selection includes active play and a win/reward state.
+- Every selected gameplay frame passes the full-viewport gameplay-screen contract; no thumbnail
+  field, nested window, core-loop scrolling, disconnected controls, or poor button proportions.
+- The ordered set passes the casino-style storefront grammar: mechanic-first tension, depth,
+  tactility, outcome focus, and active/reveal/celebration coverage.
 - Panorama, icon, and emblem share one visual world and pass vision review.
 - Launcher icons are applied unless `--no-apply` was requested.
 - Concept panels are text-free and stitch correctly in both sets.
@@ -226,6 +262,9 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - Committing, publishing, uploading, or deleting existing project artifacts.
 - Drawing fake gameplay, fake values, generated lettering, device frames, or panel separators into model-generated art.
 - Generic casino art direction unrelated to the current category and Design DNA.
+- Flat utility-app screenshots with no casino-round tension, outcome focus, or premium depth.
+- Hiding a weak gameplay layout with aggressive cropping, oversized device chrome, captions,
+  concept art, or decorative effects.
 - Any real-money promise, currency symbol, banknote, cash/payout language, or financial implication.
 - Reusing the 6.9-inch files as the Play set or scaling them instead of recomposing.
 - Hiding generation, compliance, verification, or packaging failures.
