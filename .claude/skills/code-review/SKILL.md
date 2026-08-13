@@ -43,6 +43,12 @@ The `lead-programmer` agent checks:
 - [ ] No business logic in `screens/` (UI only)
 - [ ] No `BuildContext` in Flame components
 
+**Phone target:**
+- [ ] `main.dart` locks `DeviceOrientation.portraitUp` before `runApp`
+- [ ] Android is portrait; iOS is portrait and iPhone-only
+- [ ] No tablet/iPad, desktop, wide-screen, landscape, hover-only, or keyboard-only layout branch
+- [ ] A wide Web host retains the centered phone canvas capped at 430 logical pixels
+
 **Dart patterns:**
 - [ ] No `dynamic` outside JSON boundaries
 - [ ] No `print()` in production code
@@ -90,6 +96,7 @@ The `qa-tester` agent checks:
 - [ ] Test: a double click does not start two spins
 - [ ] Test: GameState returns to Idle after a spin
 - [ ] Test: the balance is correct after N spins
+- [ ] `game_screen_layout_test.dart` covers 360×640, 360×800, 390×844 and 430×932
 
 **Test quality:**
 - [ ] `Random.secure()` or a seed-based mock is used, not `Random()`

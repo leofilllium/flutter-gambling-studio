@@ -16,6 +16,10 @@ game" (see `.claude/docs/quality-bar.md`).
 **Preconditions**: `dart analyze lib/` with 0 errors; `node` ≥21 and Chrome/Chromium available
 (otherwise report an honest SKIPPED, as `/emulator-test` does).
 
+Read `.claude/docs/mobile-phone-contract.md` and run the game as a portrait phone experience.
+Chrome is a verification harness, not a desktop target; a tablet/desktop/landscape branch or a
+wide-host reflow is a HIGH failure.
+
 ---
 
 ## Phase 1 — launching the game (headless web) [~2 min]

@@ -129,8 +129,8 @@ group('State leakage — nothing leaks between spins', () {
 ### 5. Gameplay-screen geometry (mandatory widget test)
 
 Every `GameScreen` must expose `Key('gameplaySurface')` and `Key('primaryAction')` as required by
-`.claude/docs/gameplay-screen-contract.md`. Pump the real screen at 360×800, 390×844, 430×932,
-and 768×1024 and verify:
+`.claude/docs/mobile-phone-contract.md` and `.claude/docs/gameplay-screen-contract.md`. Pump the
+real screen at 360×640, 360×800, 390×844, and 430×932 and verify:
 
 - `tester.takeException()` stays null and no overflow is logged;
 - both keys are present, on-screen, and not under a vertical `Scrollable`;
@@ -139,6 +139,9 @@ and 768×1024 and verify:
 - the primary action has a tap target at least 48 logical pixels wide and 56 high, and is visible in
   the first viewport;
 - 1.3× text scale does not clip the primary or stake/risk labels.
+- no tablet/desktop/landscape layout branch is selected at any required phone size.
+- at a 1024×768 Web host, `Key('phoneViewport')` exists, stays centered, and is no wider than
+  430 logical pixels; product UI does not appear outside it.
 
 Name the file `test/screens/game_screen_layout_test.dart`. Geometry tests complement rather than
 replace the mandatory idle/active screenshot vision pass.

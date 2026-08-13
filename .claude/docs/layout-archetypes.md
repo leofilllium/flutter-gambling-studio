@@ -19,6 +19,10 @@ In `/autocreate` the layout archetype is chosen pseudo-randomly (like the struct
 recorded in `design/art-direction.md`. `ui-programmer` reads it and composes the screens
 accordingly.
 
+Every archetype is a **portrait-phone composition** under
+`.claude/docs/mobile-phone-contract.md`. None may introduce an iPad/tablet, desktop, landscape,
+or wide-Web variant.
+
 ---
 
 ## Invariants (upheld in EVERY archetype)
@@ -72,16 +76,22 @@ No bars. Small floating widgets in the corners, the field full-bleed.
 - **Transitions:** scale/fade from the point of origin.
 - ⚠️ Contrast between the floating elements and the field is mandatory (a backing plate, an outline or a shadow) — otherwise it is unreadable.
 
-## L4 — Side Rail
+## L4 — Thumb Rail
 
-A vertical panel along one side holds the controls and HUD; the field takes the rest. Good for wide screens and web.
+A slim, overlay-style rail groups secondary actions inside the lower thumb zone while the field
+continues behind it. This creates an asymmetric phone composition without consuming the width as
+a desktop sidebar would.
 
-- **Main menu:** title and subtitle aligned to one edge, a rail of menu items on the other side.
-- **Game screen:** a narrow vertical rail at one edge (HUD + main action + quick buttons), the play field takes the remaining width.
-- **Action button:** at the top or centre of the rail, visually larger than the rail's other buttons.
+- **Main menu:** full-bleed centerpiece, with a short vertical action rail anchored to the lower
+  thumb edge; title and supporting copy use the opposite upper area.
+- **Game screen:** the field remains full-width; a compact lower-edge rail overlays a non-critical
+  margin and holds quick controls. Essential counters stay in small top-edge chips.
+- **Action button:** attached to the bottom of the rail, visually larger than its other buttons
+  and clear of the system gesture inset.
 - **Overlays:** slide out from the rail side; modals are centred over the field.
 - **Transitions:** horizontal slide, with the rail staying stable.
-- ⚠️ On a narrow portrait screen the rail must not eat the play field — make it compact or collapsible.
+- ⚠️ The rail must never reduce the play field below the contract's 88% normal-width threshold;
+  it overlays a safe zone or collapses to icons on compact-height phones.
 
 ## L5 — Split Panel (two zones)
 

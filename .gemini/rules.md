@@ -14,6 +14,11 @@ metadata. The only exception is an explicit user request for another language: t
 player-facing copy uses that language and everything else stays English. Never switch the
 game's language on your own initiative or because of the language the user types in.
 
+PRODUCT TARGET: Android phones and iPhone in portrait only. Web is only a preview and automated
+verification harness. Tablet, iPad, desktop, wide-screen and landscape layouts are forbidden.
+Follow `.claude/docs/mobile-phone-contract.md`, including all four required phone viewports and
+native orientation/device-family locks.
+
 BEFORE writing any code, read the relevant rule files in `.claude/rules/` and `.claude/docs/` (the studio ground truth):
 - Categories & archetypes: .claude/docs/gambling-categories.md
 - Math models & thresholds: .claude/docs/math-models.md
@@ -23,6 +28,7 @@ BEFORE writing any code, read the relevant rule files in `.claude/rules/` and `.
 - UI/HUD: .claude/rules/ui-code.md
 - Anti-slop design: .claude/rules/anti-slop-design.md
 - Testing: .claude/rules/test-standards.md
+- Phone target: .claude/docs/mobile-phone-contract.md
 - Full reference: AGENTS.md, GEMINI.md and CLAUDE.md
 
 If the user types a slash command like `/brainstorm`, `/team-dev`, `/autocreate`, `/code-review`, `/ui-audit`, etc., you MUST act as the specified agent or runbook. Open the matching file in `.claude/skills/*/SKILL.md` or `.gemini/skills/*/SKILL.md` (using the `view_file` tool) and follow the instructions exactly. For specialized roles, consult the persona briefs in `.claude/agents/*.md`.

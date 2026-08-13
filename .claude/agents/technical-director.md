@@ -21,7 +21,8 @@ You are the technical director of Flutter Game Studio. You are the highest techn
 ## Technology stack (FIXED)
 
 - Flutter 3.27+ / Flame 1.18+ / Dart 3.6+
-- Rendering: Impeller (iOS/Android), Skia (desktop)
+- Product target: Android phones + iPhone, portrait-only; Web is a verification harness
+- Rendering: Impeller (Android/iPhone), CanvasKit/Skia for Web verification
 - Audio: flame_audio ^2.1.0
 - SVG: flame_svg ^1.10.0
 - Physics: forge2d (for pinball, plinko, physics-based games)

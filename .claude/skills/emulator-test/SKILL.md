@@ -13,9 +13,12 @@ only at startup: empty game screen (black rectangle instead of reels), RenderFle
 overflow (yellow-black stripes), Flutter "red screen of death" (raw exception),
 layout curve at a specific resolution, `setState() called after dispose`, missing asset, etc.
 
-**This is an insurance skill**: launches the game in **Chrome** (default, without an emulator),
+**This is an insurance skill**: launches the phone game in **Chrome** (default, without an emulator),
 navigates through all screens, takes screenshots, **visually analyzes them through vision**
 and **parses flutter-run.log** for exceptions. Found - automatically repairs.
+
+Chrome is only a portrait-phone preview harness. Read `.claude/docs/mobile-phone-contract.md`;
+never treat the browser as a desktop/tablet target or approve a wide reflow.
 
 **Platforms by priority:**
 1. **Chrome/Web (default)** - headless `flutter run -d web-server` + headless Chrome via CDP
@@ -205,11 +208,11 @@ correct and repeat. Maximum 3 iterations. If it fails, finish with a report.
 screen animation, and capture a screenshot. Chrome/Web is the default. Android uses ADB
 input events; iOS uses `xcrun simctl io booted screenshot`.
 
-### Chrome / Web screenshots (PLATFORM=web) - headless CDP, one call
+### Chrome / Web screenshots (PLATFORM=web) - headless CDP phone matrix
 
 `flutter screenshot` **does not support web** (only `device`/`skia` for native devices),
-and `xdotool`/`osascript` are unavailable/unreliable headless. Therefore, the entire tour of the screens performs
-**one** script `tools/web_verify.mjs`: it picks up headless Chrome itself, shoots footage via CDP,
+and `xdotool`/`osascript` are unavailable/unreliable headless. Therefore, the canonical tour and
+three compact geometry tours use `tools/web_verify.mjs`: it picks up headless Chrome itself, shoots footage via CDP,
 taps on the canvas (on the semantic mark, otherwise on the thumb-zone), writes console/exceptions and
 always completes within `--budget` and cannot hang the pipeline.
 
@@ -220,13 +223,24 @@ mkdir -p "$SHOT_DIR"
 
 # --budget — internal script deadline; external `timeout` - insurance from above.
 # --quick - only splash→menu→game→action (for /autocreate).
+# Canonical phone tour. In full mode this is the all-screen capture.
 timeout 220 node tools/web_verify.mjs \
-  --url "$WEB_URL" --out "$SHOT_DIR" --budget 180 ${QUICK_FLAG:-} \
+  --url "$WEB_URL" --out "$SHOT_DIR" --size 390x844 --budget 180 ${QUICK_FLAG:-} \
   2>&1 | tee "$SHOT_DIR/web_verify.log"
+
+# Required portrait-phone geometry matrix. These are quick gameplay tours.
+for PHONE_SIZE in 360x640 360x800 430x932; do
+  PHONE_DIR="$SHOT_DIR/$PHONE_SIZE"
+  mkdir -p "$PHONE_DIR"
+  timeout 140 node tools/web_verify.mjs \
+    --url "$WEB_URL" --out "$PHONE_DIR" --size "$PHONE_SIZE" --budget 120 --quick \
+    2>&1 | tee "$PHONE_DIR/web_verify.log"
+done
 ```
 
-The script places in `$SHOT_DIR`: `01-splash.png … 05-game-after-action.png` (+ additional screens without
-`--quick`), `webconsole.log` (console+browser exceptions) and `manifest.json`
+The canonical script places in `$SHOT_DIR`: `01-splash.png … 05-game-after-action.png` (+ additional screens without
+`--quick`), `webconsole.log` (console+browser exceptions) and `manifest.json`. The other required
+phone sizes use subdirectories named after the viewport, with the same quick-tour files
 (`{ steps, semanticLabels, consoleErrors, shots }`).
 
 **Navigation:** the script first tries to find the action button by `aria-label`
@@ -424,9 +438,12 @@ And visually check using the checklist:
 | V14 | **Nested game window** | Field looks like a phone/browser/card inside the actual game screen, with large dead margins or a second unrelated panel | HIGH | ui-programmer (remove outer frame and integrate field/HUD/controls) |
 | V15 | **Core loop below the fold** | Player must vertically scroll to see the primary action, stake/risk control, or essential result | HIGH | ui-programmer (fixed-viewport core composition) |
 | V16 | **Poorly adjusted controls** | Buttons are cramped, uneven, clipped, undersized, ambiguously disabled, or visually disconnected from gameplay | HIGH | ui-programmer (responsive control deck and state pass) |
+| V17 | **Non-phone layout or targeting** | A tablet/desktop/landscape branch appears, wide Web stretches/reflows the game, or portrait/iPhone-only configuration is missing | HIGH | ui-programmer + release-engineering (enforce mobile-phone contract) |
 
 For every game-idle and active screenshot, also apply
-`.claude/docs/gameplay-screen-contract.md`. V13–V16 are release blockers, not subjective polish.
+`.claude/docs/mobile-phone-contract.md` and `.claude/docs/gameplay-screen-contract.md`.
+V13–V17 are release blockers, not subjective polish. Run the screenshot tour across 360×640,
+360×800, 390×844 and 430×932; do not add a tablet viewport.
 
 ### Create an entry for each screenshot
 

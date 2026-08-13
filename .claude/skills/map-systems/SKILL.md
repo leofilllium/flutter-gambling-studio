@@ -38,7 +38,8 @@ category and the mathematical model, and generate `design/gdd/systems-map.md`.
 
 ## 3. Flutter UI
 - `GameScreen` (full-viewport integrated composition from
-  `.claude/docs/gameplay-screen-contract.md`; no nested window or core-loop scrolling)
+  `.claude/docs/mobile-phone-contract.md` and `.claude/docs/gameplay-screen-contract.md`; phone
+  portrait only, no nested window or core-loop scrolling)
 - `HudWidget` (compact balance/bet/multiplier through a ValueNotifier)
 - `BetPanel` (bet selection, locked during a round)
 - `ActionButton` (a 300 ms debounce + disabled/pressed states + ≥48 wide/56 high primary target)

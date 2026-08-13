@@ -176,6 +176,10 @@ MaterialApp(
 
 ## 3. LAYOUT SAFETY (high — a violation means a visual bug)
 
+All layout work follows `.claude/docs/mobile-phone-contract.md`: portrait phones are the only
+product canvas, and responsiveness means adapting within 320–430 logical pixels of width. Web is
+a phone-preview harness, not permission to invent a desktop/tablet layout.
+
 ### 3.1 SafeArea on EVERY root screen
 
 ```dart
@@ -218,10 +222,10 @@ Flexible(child: Text(longPlayerName, overflow: TextOverflow.ellipsis))
 **Rule**: every `Text` with dynamic content (not a hardcoded string) MUST have `overflow:`
 plus `maxLines:`, or sit inside a `FittedBox`, or inside a `Flexible`/`Expanded`.
 
-### 3.3 Responsive design — no fixed pixels for layout
+### 3.3 Phone-range responsive design — no fixed pixels for layout
 
 ```dart
-// ❌ Overflow on a small screen, empty space on a large one
+// ❌ Overflow on a compact phone, empty space on a tall phone
 Container(width: 400, height: 600, child: ...)
 
 // ✅ Adaptive layout
@@ -249,6 +253,10 @@ Container(width: size.width * 0.9, height: size.height * 0.7)
 
 Everything else goes through `MediaQuery`, `LayoutBuilder`, `Expanded`, `Flexible` or
 `FractionallySizedBox`.
+
+Do not add `shortestSide >= 600`, tablet, iPad, desktop, wide-screen, hover, or multi-column
+branches. When a Web host is wider than a phone, retain the phone composition in an unframed
+centered canvas capped at 430 logical pixels; do not stretch or reflow the product UI.
 
 ### 3.4 SingleChildScrollView + Column (the correct pattern)
 
@@ -295,7 +303,7 @@ Read and implement `.claude/docs/gameplay-screen-contract.md` for every `GameScr
   small decorative window above a separate generic information card.
 - Keep the field, essential counters, stake/risk controls, and primary action visible without
   vertical page scrolling.
-- Verify the idle and active states at 360×800, 390×844, 430×932, and 768×1024.
+- Verify the idle and active states at 360×640, 360×800, 390×844, and 430×932.
 
 **Rule**: shrinking the field, adding a `SingleChildScrollView` around the whole game screen, or
 moving core controls below the fold is not an acceptable overflow fix. Recompose the layout.
@@ -567,7 +575,17 @@ Future<int> getHighScore() async {
 
 ---
 
-## 9. FORBIDDEN PATTERNS
+## 9. PHONE ORIENTATION AND TARGETING
+
+- `main.dart` locks `DeviceOrientation.portraitUp` before `runApp`, as shown in
+  `.claude/docs/mobile-phone-contract.md`.
+- Android's launcher activity declares `android:screenOrientation="portrait"`.
+- iOS supports portrait only and targets iPhone device family only.
+- Web remains a phone-sized preview/testing surface; it is not a desktop release target.
+
+---
+
+## 10. FORBIDDEN PATTERNS
 
 1. **`setState()`** for updating game state — use `ValueNotifier` only
 2. **`setState` without a `mounted` check** in an async context — a guaranteed crash
@@ -585,3 +603,5 @@ Future<int> getHighScore() async {
 14. **`print()` in production** — use `debugPrint` or `Logger`
 15. **Player-facing strings in a language other than English**, unless the user explicitly
     asked for a different language — see CLAUDE.md → Language
+16. **Tablet/iPad/desktop or landscape layout branches** — the product is phone portrait only
+17. **Wide Web reflow** — preserve the capped phone canvas instead of stretching or adding columns

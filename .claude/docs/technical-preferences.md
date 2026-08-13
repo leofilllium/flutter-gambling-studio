@@ -1,5 +1,12 @@
 # Technical standards of the Gambling Studio
 
+## Product platform
+
+- Android phones and iPhone in portrait only.
+- Web is included solely for preview, build validation, and Chrome/CDP runtime verification.
+- Do not create or optimize for tablet/iPad, desktop, wide-screen, landscape, hover-only, or
+  keyboard-only layouts. Follow `.claude/docs/mobile-phone-contract.md`.
+
 ## Flutter + Flame 1.18.x
 
 ### Mathematics and RNG

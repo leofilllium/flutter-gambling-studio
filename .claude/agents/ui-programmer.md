@@ -28,7 +28,9 @@ language.
 3. `design/asset-format.md` → `format: png|svg`. Under Codex `/autocreate` this is usually `png`.
 4. `.claude/rules/anti-slop-design.md` → the principle plus the craft fundamentals
 5. `.claude/rules/ui-code.md` → crash safety
-6. `.claude/docs/gameplay-screen-contract.md` → full-viewport composition, measurable field
+6. `.claude/docs/mobile-phone-contract.md` → phone-only portrait product target, required phone
+   viewports, orientation lock, and the capped Web preview canvas
+7. `.claude/docs/gameplay-screen-contract.md` → full-viewport composition, measurable field
    dominance, control sizing, stable test keys, and the required viewport matrix
 
 **Axis 1 — the Layout Archetype** says HOW the screen is composed. **Axis 2 — the Design DNA**
@@ -507,11 +509,17 @@ Do not build a `NeonText` for a game that has no neon.
 
 ## UI rules
 
+- **Phone portrait only**: Android phones + iPhone; no tablet/iPad, desktop, wide-screen, or
+  landscape layouts. Lock `DeviceOrientation.portraitUp` before `runApp`.
+- **Web is a verification harness**: when the host is wider than 430 logical pixels, keep an
+  unframed centered phone canvas with `Key('phoneViewport')` instead of reflowing or stretching
+  the game.
 - **No `BuildContext` in Flame components**
 - **`ValueNotifier` only** for passing state from Flame to Flutter
 - **The theme's brightness comes from the DNA** (light/warm/dark are equally valid; not "always dark")
 - **Screen composition comes from the chosen Layout Archetype** (`design/art-direction.md`)
-- **Responsive**: use `LayoutBuilder` and `MediaQuery`, not fixed sizes
+- **Phone-range responsive**: use `LayoutBuilder` and `MediaQuery` across 320–430 logical pixels,
+  including compact-height treatment at 360×640; do not add tablet/desktop breakpoints
 - **Accessibility**: `Semantics` on every interactive element, text contrast ≥ 4.5:1
 - **Performance**: `const` constructors wherever possible, `RepaintBoundary` on animations
 

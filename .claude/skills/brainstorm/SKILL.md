@@ -12,6 +12,9 @@ allowed-tools: Read, Glob, Grep, Write
 > with a tumble cascade, category C1, archetype C).
 >
 > The canonical reference for categories and archetypes: `.claude/docs/gambling-categories.md`.
+> Every concept is for Android phones and iPhone in portrait only. Read
+> `.claude/docs/mobile-phone-contract.md`; do not offer tablet/iPad, desktop, wide-screen, or
+> landscape variants.
 
 When this skill is invoked:
 
@@ -96,8 +99,10 @@ When this skill is invoked:
      (see `.claude/rules/anti-slop-design.md`). Brightness is light/dark per the theme, not
      "always dark".
    - **Layout Archetype** (L1–L6, see `.claude/docs/layout-archetypes.md`): how are the screens
-     composed (top HUD / bottom console / floating corners / side rail / split / cards)?
+     composed (top HUD / bottom console / floating corners / thumb rail / split / cards)?
      Vary both the style and the composition, so the game does not resemble the previous ones.
+   - **Phone proof**: how the composition adapts across 360×640, 360×800, 390×844 and 430×932
+     while keeping the primary action in thumb reach and the core loop above the fold.
 
    **Phase 6: the compliance profile**
    - The full profile (age gate + disclaimer + responsible play + 18+) — the default.
@@ -118,6 +123,7 @@ When this skill is invoked:
 4. **Writing the document**: create `design/gdd/game-concept.md` from the
    `.claude/docs/templates/gambling-concept.md` template — starting with the **Classification**
    block (category, archetype, model, target metric, config, compliance profile).
+   Record the phone-only portrait target in the Classification and Layout sections.
 
 5. **Next steps**:
    - "Use `/design-system [system]` to design the mechanic in detail"

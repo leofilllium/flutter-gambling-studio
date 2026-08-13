@@ -21,6 +21,8 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 - Manually by the user, for any finished project: `/release-package`
 
 **Important**: this skill does NOT change the source code. It only builds, screenshots and packs.
+Read `.claude/docs/mobile-phone-contract.md` during preflight. Package only the portrait-phone
+product; tablet/iPad, desktop, landscape, or missing native portrait configuration is a blocker.
 
 ---
 
@@ -153,9 +155,11 @@ kill $(cat .claude/runtime-logs/flutter-release.pid) 2>/dev/null || true
 ### 1.4. A quick visual audit (mandatory release gate)
 
 Read the first 5 screenshots and every gameplay-state screenshot through Read (vision). Check the
-V1–V16 problems from `emulator-test` plus `.claude/docs/gameplay-screen-contract.md`. If any
+V1–V17 problems from `emulator-test` plus `.claude/docs/mobile-phone-contract.md` and
+`.claude/docs/gameplay-screen-contract.md`. If any
 CRITICAL/HIGH issue remains—including a thumbnail/nested play field, core-loop scrolling, or poor
-button proportions—stop before building/archiving and route the project back to `/ui-audit --fix`
+button proportions, non-phone layout, or missing portrait/iPhone-only targeting—stop before
+building/archiving and route the project back to `/ui-audit --fix`
 or `/autocreate-implement --resume`. This skill does not change source code and must not package a
 known-broken gameplay composition.
 
@@ -473,7 +477,7 @@ RELEASE_INFO.md), so the user at least has the sources and the screenshots.
 | Phase | Exit criterion | Max iterations |
 |-------|----------------|----------------|
 | 0. Preflight | pubspec.yaml exists | 1 (otherwise abort) |
-| 1. Screenshots | At least 5 valid PNGs and 0 CRITICAL/HIGH V1–V16/gameplay-contract defects | 2 (SKIPPED if there is no device) |
+| 1. Screenshots | At least 5 valid PNGs and 0 CRITICAL/HIGH V1–V17/mobile-phone/gameplay-contract defects | 2 (SKIPPED if there is no device) |
 | 2. APK build | `app-release.apk` exists | 2 (non-fatal) |
 | 3. Metadata | RELEASE_INFO.md created | 1 |
 | 4. Clean | `flutter clean` with no errors | 1 |

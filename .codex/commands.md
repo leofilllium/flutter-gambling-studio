@@ -4,6 +4,9 @@ When the user types a slash command (`$name` or `/name`), Codex must treat it as
 matching runbook in `.claude/skills/`. For how the Claude mechanics (Agent tool, Skill tool,
 hooks, vision, image generation) are adapted, see `AGENTS.md` → "Execution Model".
 
+All commands inherit `.claude/docs/mobile-phone-contract.md`: games ship for Android phones and
+iPhone in portrait only; Web is a preview/verification harness, not a desktop product target.
+
 ## The game production pipeline
 
 | Command | Skill file | Purpose |

@@ -1,8 +1,12 @@
-# Gameplay Screen Contract — Full-Viewport, Integrated, Mobile-First
+# Gameplay Screen Contract — Full-Viewport, Integrated, Phone Portrait
 
 This contract prevents a working mechanic from being presented as a small demo embedded inside
 a generic app page. It applies to every C1–C6 `GameScreen`, regardless of Design DNA or Layout
 Archetype.
+
+The product canvas is defined by `.claude/docs/mobile-phone-contract.md`: Android phones and
+iPhone in portrait only. Tablet, iPad, desktop, wide-screen and landscape gameplay variants are
+not part of this contract.
 
 ## Required composition
 
@@ -11,7 +15,7 @@ Archetype.
    must not shrink the whole game into a second framed window.
 2. **The mechanic is the dominant surface.** At the portrait verification sizes, the visible
    play field should occupy at least 55% of the usable viewport and normally at least 88% of its
-   width. A narrow-mechanic or portrait side-rail exception is allowed only when
+   width. A narrow-mechanic or portrait thumb-rail exception is allowed only when
    `design/art-direction.md` records why it improves play; the field must still be the first focal
    point and use all remaining space.
 3. **No nested mini-game.** Do not place the live field inside a phone-like window, browser-like
@@ -51,10 +55,10 @@ Check at minimum:
 
 | Viewport | Purpose |
 |---|---|
-| 360×800 | compact Android portrait |
+| 360×640 | short/compact Android phone |
+| 360×800 | tall compact Android phone |
 | 390×844 | standard capture/runtime target |
-| 430×932 | large Android/iPhone portrait |
-| 768×1024 | tablet / expanded layout |
+| 430×932 | large phone portrait |
 
 For each size, verify:
 
@@ -68,6 +72,10 @@ For each size, verify:
 Capture the idle and active game states at 390×844 and 430×932. A visual audit is mandatory;
 clean analyzer output and widget tests alone cannot approve composition.
 
+Opening the Web build in a wide browser must keep this same phone composition in a centered
+canvas capped at 430 logical pixels. A desktop/tablet reflow or stretched play field is a
+blocking failure, not an additional responsive mode.
+
 ## Blocking failures
 
 Treat any of these as a HIGH layout defect and a release blocker:
@@ -78,6 +86,7 @@ Treat any of these as a HIGH layout defect and a release blocker:
 - a large instruction/progression card competes with or is larger than the field;
 - core buttons are cramped, uneven, clipped, off-screen, or visually disconnected;
 - the store showcase needs cropping or concept art to hide weak gameplay composition.
+- the app contains a tablet/desktop/landscape gameplay branch or lacks the portrait lock.
 
 Implementation must recompose the screen before handoff. Finalization must fail and route the
 screen back through `/ui-audit --fix` or `/autocreate-implement --resume`; it must not downgrade

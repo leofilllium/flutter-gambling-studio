@@ -81,10 +81,14 @@ test('uses Random.secure() — not math.Random()', () {
 #### 7. Gameplay layout tests
 `test/screens/game_screen_layout_test.dart`
 
-- Follow `.claude/docs/gameplay-screen-contract.md` and use the required stable keys.
-- Pump 360×800, 390×844, 430×932, and 768×1024.
+- Follow `.claude/docs/mobile-phone-contract.md` and
+  `.claude/docs/gameplay-screen-contract.md`, and use the required stable keys.
+- Pump 360×640, 360×800, 390×844, and 430×932.
 - Assert field dominance, primary-action visibility/size, no vertical `Scrollable` ancestor for
   the core loop, no exception/overflow, and label fit at 1.3× text scale.
+- Verify the app requests portrait-up and contains no tablet/desktop/landscape layout branch.
+- Pump a 1024×768 Web host and verify `Key('phoneViewport')` remains centered at ≤430 logical
+  pixels, with no product UI outside the canvas.
 - Do not approve composition from widget tests alone; idle and active screenshots still need the
   runtime vision gate.
 

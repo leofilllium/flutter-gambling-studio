@@ -89,6 +89,8 @@ At any moment SOMETHING is moving on the game screen (subtly, without distractin
 
 ## 8. Visual integrity
 
+- The game is composed only for portrait phones and passes 360×640, 360×800, 390×844 and
+  430×932. Tablet/iPad, desktop, wide-screen and landscape product layouts do not exist.
 - Every asset looks like the work of one artist (checked by /asset-review, criteria AR1–AR10).
 - The UI is not transferable to another game unchanged (the test from anti-slop-design.md).
 - The gameplay screen owns the viewport: the mechanic is dominant and integrated with its HUD and
@@ -107,6 +109,7 @@ These duplicate the studio's critical rules; here they act as a final checklist:
 - A double click or spam on the main button does not break the state.
 - Every player-facing string is in English (unless the user explicitly asked otherwise) and
   free of untranslated placeholders.
+- `main.dart`, Android, and iOS all enforce portrait; the Xcode target is iPhone-only.
 
 ---
 

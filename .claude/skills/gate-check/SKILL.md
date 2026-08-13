@@ -42,11 +42,13 @@ Checks that the concept is ready to move into design:
       M4 rates + hard pity | M5 win-rate + thresholds | M6 bucket multipliers)
 - [ ] The compliance profile is chosen and justified (full, or relaxed C5)
 - [ ] The game's language is recorded (English by default)
+- [ ] The product target is recorded as Android phones + iPhone, portrait-only, following
+      `.claude/docs/mobile-phone-contract.md`
 
 **The gate:**
 - PASS: every item is done
 - CONCERNS: 1–2 items are missing but not critical
-- FAIL: the concept is undocumented, or the RTP is undefined
+- FAIL: the concept is undocumented, the RTP is undefined, or it plans a non-phone/non-portrait target
 
 ### gate-check design → code
 Checks that the design is ready to hand to the programmer:
@@ -61,6 +63,8 @@ Checks that the design is ready to hand to the programmer:
 - [ ] The GDD status: `Status: Approved`
 - [ ] `game-mathematician` has signed off on the mathematics
 - [ ] `design/balance/rtp-config.json` → `simulation.last_run_rtp` is within 95–97%
+- [ ] `design/art-direction.md` proves the portrait-phone composition at 360×640, 360×800,
+      390×844 and 430×932, with no tablet/desktop/landscape variant
 
 ### gate-check code → qa
 Checks that the code is ready for QA:
@@ -79,6 +83,8 @@ Checks that the code is ready for QA:
 - [ ] `CameraComponent(world: world)` — the new API
 
 **Baseline code requirements:**
+- [ ] Flutter, Android and iOS enforce portrait-up; Xcode targets iPhone only
+- [ ] No tablet/iPad, desktop, wide-screen, or landscape layout branch exists
 - [ ] `dart analyze` — 0 errors
 - [ ] `flutter test` — every test green
 - [ ] No `print()` in production code
@@ -101,6 +107,8 @@ Checks readiness for release:
 - [ ] 100 spins with no state leakage
 
 **UX and visuals:**
+- [ ] The UI and gameplay pass 360×640, 360×800, 390×844 and 430×932
+- [ ] Wide Web hosts retain the centered phone canvas instead of reflowing as desktop/tablet
 - [ ] The win overlay displays correctly
 - [ ] Reel animations are under 3 seconds
 - [ ] Particles never exceed 200 at once

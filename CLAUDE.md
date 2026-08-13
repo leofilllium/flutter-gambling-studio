@@ -32,8 +32,9 @@ rendering, flat vector clipart and emoji/sticker styling are not allowed.
 
 - **Engine**: Flutter 3.27+ / Flame 1.18+
 - **Language**: Dart 3.6+ (null-safe, sealed classes, pattern matching)
-- **Specialisation**: gambling mini-games (mobile-first)
-- **Rendering**: Flutter Impeller (iOS/Android), Skia (desktop)
+- **Specialisation**: gambling mini-games for phones (portrait-only)
+- **Product platforms**: Android phones + iPhone; Web is a preview/test harness only
+- **Rendering**: Flutter Impeller (Android/iPhone), CanvasKit/Skia for the Web verification harness
 - **Mathematics**: `tools/simulate_math.py` — the verifier for all six models
 
 > **You are the creative director and producer.** The agents implement your idea.
@@ -267,6 +268,14 @@ and the primary action remain visible together without page scrolling. The imple
 runtime gates use the measurable contract below.
 
 @.claude/docs/gameplay-screen-contract.md
+
+### Phone-only product target
+
+Every screen is designed for a portrait phone canvas, verified at 360×640, 360×800, 390×844 and
+430×932. There are no tablet/iPad, desktop, wide-screen, or landscape product layouts. Web is a
+centered phone preview and automated verification harness, not a desktop edition.
+
+@.claude/docs/mobile-phone-contract.md
 
 ## Professional quality bar
 

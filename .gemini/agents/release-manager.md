@@ -35,9 +35,13 @@ The following items are mandatory for **all six categories**:
 - [ ] **At least 10 screens**: is every required MVP screen implemented?
 - [ ] **Language**: is every player-facing string in English (or in the language the user
   explicitly requested), with no untranslated leftovers or placeholders?
+- [ ] **Phone-only target**: does the portrait UI pass 360×640, 360×800, 390×844 and 430×932,
+  with no tablet/iPad, desktop, wide-screen, or landscape branch?
 
 #### 3. Platform
 
+- [ ] **Portrait/iPhone target**: do Flutter, Android and iOS enforce portrait-up, and does Xcode
+  use `TARGETED_DEVICE_FAMILY = 1` with no iPad orientations?
 - [ ] **No errors**: does `flutter analyze` pass without a single error?
 - [ ] **No warnings**: are there no critical warnings (only TODOs are allowed)?
 - [ ] **Tests green**: are all `flutter test` tests green?

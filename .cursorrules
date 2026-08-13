@@ -15,6 +15,10 @@ metadata. The only exception is an explicit user request for another language: t
 player-facing copy uses that language and everything else stays English. Never switch the
 game's language on your own initiative or because of the language the user types in.
 
+PRODUCT TARGET: Android phones and iPhone in portrait only. Web is only a preview and automated
+verification harness. Tablet, iPad, desktop, wide-screen and landscape layouts are forbidden.
+Follow `.claude/docs/mobile-phone-contract.md`.
+
 BEFORE writing any code, read the relevant rule files:
 - Categories & archetypes: .claude/docs/gambling-categories.md
 - Math models & thresholds: .claude/docs/math-models.md
@@ -24,6 +28,7 @@ BEFORE writing any code, read the relevant rule files:
 - UI/HUD: .claude/rules/ui-code.md
 - Anti-slop design: .claude/rules/anti-slop-design.md
 - Testing: .claude/rules/test-standards.md
+- Phone target: .claude/docs/mobile-phone-contract.md
 - Full reference: agents.md and CLAUDE.md
 
 CRITICAL RULES (ALL SIX CATEGORIES — unconditional):

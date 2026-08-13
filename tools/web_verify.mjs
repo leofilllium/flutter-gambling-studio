@@ -64,8 +64,15 @@ if (!URL || !OUT) {
   console.error('usage: web_verify.mjs --url <url> --out <dir> [--budget s] [--size WxH] [--dpr N] [--quick] [--soak N] [--chrome path]');
   process.exit(3);
 }
-if (!Number.isFinite(VW) || !Number.isFinite(VH) || VW < 64 || VH < 64) {
+if (!Number.isFinite(VW) || !Number.isFinite(VH) || VW < 320 || VH < 320) {
   console.error(`bad --size "${SIZE}"; expected WIDTHxHEIGHT, e.g. 390x844`);
+  process.exit(3);
+}
+if (VW > 430 || VH <= VW) {
+  console.error(
+    `unsupported viewport "${SIZE}"; Flutter Gambling Studio verifies portrait phones only ` +
+    '(logical width 320–430, with height greater than width)',
+  );
   process.exit(3);
 }
 mkdirSync(OUT, { recursive: true });

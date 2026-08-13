@@ -16,6 +16,35 @@ if [ -f "pubspec.yaml" ]; then
     GAPS+=("❌ lib/main.dart is missing")
   fi
 
+  # Phone-only product target — Flutter + native declarations must all be portrait, iPhone-only.
+  if [ -f "lib/main.dart" ]; then
+    if ! grep -q "SystemChrome.setPreferredOrientations" lib/main.dart || \
+       ! grep -q "DeviceOrientation.portraitUp" lib/main.dart; then
+      GAPS+=("❌ Phone contract: lib/main.dart does not lock DeviceOrientation.portraitUp")
+    fi
+    if ! grep -R -q "phoneViewport" lib 2>/dev/null; then
+      GAPS+=("❌ Phone contract: Key('phoneViewport') is missing — wide Web may reflow as desktop/tablet")
+    fi
+  fi
+  if [ -f "android/app/src/main/AndroidManifest.xml" ] && \
+     ! grep -q 'android:screenOrientation="portrait"' android/app/src/main/AndroidManifest.xml; then
+    GAPS+=("❌ Phone contract: Android launcher activity is not locked to portrait")
+  fi
+  if [ -f "ios/Runner/Info.plist" ]; then
+    if ! grep -q "UIInterfaceOrientationPortrait" ios/Runner/Info.plist; then
+      GAPS+=("❌ Phone contract: iOS portrait orientation is missing")
+    fi
+    if grep -qE "UIInterfaceOrientationLandscape|UISupportedInterfaceOrientations~ipad" ios/Runner/Info.plist; then
+      GAPS+=("❌ Phone contract: iOS still declares landscape or iPad orientations")
+    fi
+  fi
+  if [ -f "ios/Runner.xcodeproj/project.pbxproj" ]; then
+    if ! grep -qE 'TARGETED_DEVICE_FAMILY = "?1"?;' ios/Runner.xcodeproj/project.pbxproj || \
+       grep -qE 'TARGETED_DEVICE_FAMILY = .*2' ios/Runner.xcodeproj/project.pbxproj; then
+      GAPS+=("❌ Phone contract: Xcode target must use TARGETED_DEVICE_FAMILY = 1 in every configuration")
+    fi
+  fi
+
   if [ ! -d "lib/game" ]; then
     WARNINGS+=("⚠️  lib/game/ has not been created — run /autocreate or /brainstorm")
   fi

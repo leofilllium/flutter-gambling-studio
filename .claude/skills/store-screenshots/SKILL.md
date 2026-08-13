@@ -82,7 +82,8 @@ fails just as surely as a flat utility-app screenshot.
 | `--no-wire-logo` | off | Do not add the emblem to the main menu |
 | `--name` | pubspec name | Archive base name |
 
-For landscape games, swap width and height and use `--panels 0`.
+Landscape sets are forbidden. This studio ships phone-portrait games only; keep the App Store
+and Google Play outputs in their documented portrait sizes.
 
 ## Phase 0 — preflight and store brief
 

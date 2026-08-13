@@ -22,12 +22,16 @@ The pipeline is split into three context sessions:
 
 Every session must hand control to the next one with the Agent tool. If Agent is unavailable, write the handoff and continue in the same session by reading the next skill. Do not copy full history into a phase agent; give it only the handoff path, skill path, and exit criterion.
 
-The primary runtime target is Chrome/Web. Android and iOS are secondary. This pipeline prepares release metadata and native branding but does not build an AAB/APK or upload keystore. `/release-package` and the full `/release-engineering` run are explicit user actions.
+The product target is Android phones and iPhone in portrait only. Chrome/Web is the primary
+runtime **verification harness**, not a desktop product target. This pipeline prepares release
+metadata and native branding but does not build an AAB/APK or upload keystore.
+`/release-package` and the full `/release-engineering` run are explicit user actions.
 
 Session 1 must produce:
 
 - `design/gdd/game-concept.md` with classification, production plan, Design DNA, layout direction, screen map, data flow, complete loop, and edge cases.
-- A Flutter project created for web, Android, and iOS.
+- A Flutter project created for Web verification plus Android phones and iPhone, with the
+  phone-only portrait target recorded in design artifacts.
 - `design/structure.md` and `design/art-direction.md`.
 - A budgeted, validated asset set and `design/asset-manifest.md`.
 - Eight real sound-effect WAV files created by `tools/synth_sfx.py` (no background music).
@@ -56,12 +60,15 @@ The concept must include:
 - A complete production plan with content volume, 2–3 modes, progression, virtual economy, achievements/daily loop, service abstractions, telemetry, and compliance.
 - Context-derived Design DNA and layout archetype L1–L6.
 - At least 12 connected screens, their data flow, the complete game loop, and all failure/edge states.
+- A phone-only portrait declaration following `.claude/docs/mobile-phone-contract.md`; no
+  tablet/iPad, desktop, wide-screen, or landscape layout plan.
 
 If `--idea-only` is supplied, stop only after writing and reporting the concept.
 
 ## Phase 2 — Flutter project bootstrap
 
-Web must be included and treated as the primary platform.
+Web must be included as the preview/verification harness. Android phones and iPhone are the
+shipping product targets; no desktop platform is created.
 
 ```bash
 flutter create . --project-name game_app --platforms web,android,ios --org com.gamestudio
@@ -71,6 +78,12 @@ if [[ ! -f web/index.html ]]; then
   exit 1
 fi
 ```
+
+Immediately apply the native half of `.claude/docs/mobile-phone-contract.md` to the scaffold:
+Android launcher portrait, iOS portrait-only orientations with no iPad block, and
+`TARGETED_DEVICE_FAMILY = 1` in every Xcode build configuration. Session 2's UI pass must add the
+Flutter `SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])` lock before
+`runApp` and retain a centered unframed canvas capped at 430 logical pixels on wide Web hosts.
 
 Use Flutter 3.27+, Dart 3.6+, Flame 1.18.x, `flame_audio`, `flame_svg`, `google_fonts`, and `shared_preferences`. Register these directories in `pubspec.yaml`:
 
@@ -86,7 +99,7 @@ flutter:
 
 Do not hardcode studio-default fonts. Select display and body fonts from the game's Design DNA and use `google_fonts`.
 
-Read `.claude/docs/directory-structure.md`, choose one V1–V5 structure, create the directories, and write the exact path map to `design/structure.md`. Read `.claude/docs/layout-archetypes.md` and `.claude/docs/gameplay-screen-contract.md`, choose L1–L6 from the concept, and write screen-specific composition rules to `design/art-direction.md`. The art-direction file must specify how the live field fills the viewport, where the integrated HUD/control deck sits, and how the 55% area / normal 88% width thresholds are met at 390×844 and 430×932. It must not plan a nested mini-game or page-scrolling core loop.
+Read `.claude/docs/directory-structure.md`, choose one V1–V5 structure, create the directories, and write the exact path map to `design/structure.md`. Read `.claude/docs/mobile-phone-contract.md`, `.claude/docs/layout-archetypes.md` and `.claude/docs/gameplay-screen-contract.md`, choose L1–L6 from the concept, and write screen-specific composition rules to `design/art-direction.md`. The art-direction file must specify a portrait-phone composition at 360×640, 360×800, 390×844 and 430×932; how the live field fills the viewport; where the integrated HUD/control deck sits; and how the 55% area / normal 88% width thresholds are met. It must not plan a nested mini-game, page-scrolling core loop, or tablet/desktop/landscape variant.
 
 ## Phase 3 — asset generation and validation
 
@@ -163,6 +176,8 @@ Write `production/session-state/autocreate-handoff-1.md` with:
 - Counts and paths for generated/derived assets, WAV files, levels/stages/banners/boards, economy entries, and modes.
 - A checklist confirming that Session 1 is complete and that gameplay implementation has not started.
 - Session 2's required exit criteria: `dart analyze` with zero errors, green tests, complete content wiring, passed UI/compliance audit, a passed full-viewport gameplay-screen gate at the required sizes, verified balance, and 20/20 crash-prevention checks.
+- A phone-contract checklist: native portrait/iPhone-only scaffold applied; Session 2 must verify
+  the Flutter portrait lock and all four phone viewports with no non-phone layout branches.
 
 Then start a clean-context agent with this instruction:
 
@@ -184,7 +199,7 @@ The full pipeline succeeds only when:
 - The complete game is playable in English and all screens, buttons, navigation, data, modes, progression, economy, audio, animation, and edge states work.
 - `dart analyze` reports zero errors and `flutter test` is green.
 - The declared M1–M6 model passes its verifier over the complete content curve.
-- Runtime verification and playtest produce at least five screenshots plus `REPORT.md`, with no exceptions or severe layout defects. Idle and active gameplay captures must pass `.claude/docs/gameplay-screen-contract.md`: dominant integrated field, core controls visible without scrolling, and usable buttons.
+- Runtime verification and playtest produce at least five screenshots plus `REPORT.md`, with no exceptions or severe layout defects. The 360×640, 360×800, 390×844 and 430×932 phone matrix must pass `.claude/docs/mobile-phone-contract.md`; idle and active gameplay captures must pass `.claude/docs/gameplay-screen-contract.md`: dominant integrated field, core controls visible without scrolling, and usable buttons.
 - `production/session-state/active.md` contains the current runtime verdict.
 - Icons, splash, version, store metadata, and CI preparation are complete.
 

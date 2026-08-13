@@ -9,6 +9,7 @@
 - **Model config**: `design/balance/[file].json`
 - **Compliance profile**: [full (age gate + disclaimer + 18+) | relaxed C5 — with justification]
 - **Game language**: English (default) | [another language, only if the user explicitly asked]
+- **Product target**: Android phones + iPhone, portrait-only; Web preview/test harness
 
 ## 1. Elevator pitch
 What is the main emotion this game delivers? Where is its hook?
@@ -50,9 +51,11 @@ What does the player see on a "big win"?
 - **Depth strategy**: [glass / card / paper / flat — whatever fits]
 
 ## 7. Layout & composition direction
-> See `.claude/docs/layout-archetypes.md` (L1–L6).
+> See `.claude/docs/mobile-phone-contract.md` and `.claude/docs/layout-archetypes.md` (L1–L6).
 - **Layout archetype**: [L1–L6] — [why it fits]
 - How it applies to the main menu / game screen + HUD / overlays / transitions.
+- **Phone matrix proof**: [360×640 / 360×800 / 390×844 / 430×932; thumb reach; no core scroll]
+- **Non-targets**: no tablet/iPad, desktop, wide-screen, or landscape layout.
 
 ## 8. Screen map (at least 12+, composed per the chosen layout archetype)
 - Splash, main menu, game + HUD, paytable/rules, settings, help, win overlays (3 tiers),

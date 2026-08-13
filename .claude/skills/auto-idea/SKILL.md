@@ -15,10 +15,12 @@ Don't ask the user questions! Create `design/gdd/game-concept.md` completely aut
 > Canonical reference: `.claude/docs/gambling-categories.md`.
 >
 > **ANTI-SLOP**: Read `.claude/rules/anti-slop-design.md` (principle + Craft Fundamentals)
-> and `.claude/docs/layout-archetypes.md` before generation.
+> `.claude/docs/mobile-phone-contract.md`, and `.claude/docs/layout-archetypes.md` before generation.
 > The concept MUST include a unique visual identity (Design DNA) and the selected Layout
 > Archetype. “Gambling” ≠ “dark neon and gold”: bingo can be warm and papery,
 > gashapon can be pastel, while a roguelike can use strict typography. Vary both style and composition.
+> Every concept targets Android phones and iPhone in portrait only; Web is only a preview/test
+> harness. Never create tablet/iPad, desktop, wide-screen, or landscape variants.
 
 ## Catalog of Archetypes (A–AF)
 
@@ -209,6 +211,7 @@ The archetype sets the MECHANICS. To make two games of the same archetype look a
 - **Target Metric**: ["RTP 96.0% ±1%" | "hard pity 70, SSR 1.2%" | “run win-rate 32%” | …]
 - **Model config**: design/balance/[file].json
 - **Compliance profile**: [full | reduced C5 - justification]
+- **Product target**: Android phones + iPhone, portrait-only; Web preview/test harness
 ```
 
 ### Section 1: Overview
@@ -403,7 +406,8 @@ If the game is about space, blue is LOGICAL. Color is only prohibited if it is R
 ### Section 3.5: Layout & Composition Direction (MANDATORY)
 
 **Select Layout Archetype** from `.claude/docs/layout-archetypes.md` (L1–L6) and apply
-`.claude/docs/gameplay-screen-contract.md`. The archetype defines
+`.claude/docs/mobile-phone-contract.md` plus `.claude/docs/gameplay-screen-contract.md`. The
+archetype defines
 COMPOSITION of screens regardless of Design DNA (which determines the look). **Vary the archetype
 from the last game** - this is the main lever against “all screens are the same”.
 
@@ -412,7 +416,7 @@ from the last game** - this is the main lever against “all screens are the sam
 | L1 | Classic Stack | Top HUD bar, field in the center, controls+action below |
 | L2 | Bottom Command Deck | Edge-to-edge top, tight bottom console |
 | L3 | Floating Corners | Full-bleed field, floating chips in the corners, floating button |
-| L4 | Side Rail | Side Vertical Control Rail/HUD |
+| L4 | Thumb Rail | Compact lower-edge rail over a full-width phone field |
 | L5 | Split Panel | Dominant ≈65–75% field / compact core-control zone |
 | L6 | Card/Sheet Stack | Full-viewport field with structural layered sheets; never a nested mini-game card |
 
@@ -425,8 +429,9 @@ from the last game** - this is the main lever against “all screens are the sam
 ### Applying to key screens
 - Main Menu: [as assembled by archetype + dressed in DNA]
 - Game Screen + HUD: [where is the HUD, where is the main action, like a field]
-- Full-viewport proof: [how field reaches ≥55% usable portrait area and normally ≥88% width at
-  390×844 and 430×932; how core field/HUD/stake/action stay visible without scrolling]
+- Phone-only proof: [how the portrait composition passes 360×640, 360×800, 390×844 and 430×932;
+  how the field reaches ≥55% usable area and normally ≥88% width; how core
+  field/HUD/stake/action stay visible without scrolling; no tablet/desktop/landscape variant]
 - Overlays: [toast position, modal entry style]
 - Transitions: [a family of transitions from an archetype, colored by the game's metaphor]
 ```
