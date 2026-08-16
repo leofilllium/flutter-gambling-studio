@@ -2,10 +2,12 @@
 
 ## Product platform
 
-- Android phones and iPhone in portrait only.
-- Web is included solely for preview, build validation, and Chrome/CDP runtime verification.
-- Do not create or optimize for tablet/iPad, desktop, wide-screen, landscape, hover-only, or
-  keyboard-only layouts. Follow `.claude/docs/mobile-phone-contract.md`.
+- Design for touch-first phone UI/UX first, then adapt to the full available viewport on Android,
+  iOS/iPadOS, and Web.
+- Web is a supported runtime target and the primary Chrome/CDP verification environment.
+- Essential interaction must never depend on hover or a keyboard. Expanded tablet/desktop
+  layouts preserve the mobile hierarchy while using the additional space intentionally. Follow
+  `.claude/docs/mobile-first-contract.md`.
 
 ## Flutter + Flame 1.18.x
 

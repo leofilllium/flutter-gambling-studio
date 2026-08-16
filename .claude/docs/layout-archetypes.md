@@ -19,9 +19,10 @@ In `/autocreate` the layout archetype is chosen pseudo-randomly (like the struct
 recorded in `design/art-direction.md`. `ui-programmer` reads it and composes the screens
 accordingly.
 
-Every archetype is a **portrait-phone composition** under
-`.claude/docs/mobile-phone-contract.md`. None may introduce an iPad/tablet, desktop, landscape,
-or wide-Web variant.
+Every archetype is designed **mobile-first** under `.claude/docs/mobile-first-contract.md`.
+Its phone composition defines the hierarchy and touch ergonomics; medium and expanded layouts
+may reflow that same composition to use the full viewport without turning into a generic desktop
+dashboard.
 
 ---
 
@@ -29,12 +30,13 @@ or wide-Web variant.
 
 The archetype changes the composition but does NOT break the baseline UX:
 
-- The main action sits in the thumb zone (the bottom 60% of the screen on mobile).
+- The main action sits in the thumb zone (the bottom 60% of the screen on mobile) and remains
+  immediately discoverable on expanded layouts.
 - Tap targets ≥ 48×48 on every interactive element.
 - SafeArea on every screen except the fullscreen GameScreen.
 - The GameScreen owns the viewport; safe-area padding protects chrome without framing the whole
   game inside a second window.
-- The play field remains the main focus of the game screen (≥55% of the usable portrait area and
+- The play field remains the main focus of the game screen (≥55% of the usable phone area and
   normally ≥88% of its width; see `gameplay-screen-contract.md`).
 - The field, essential HUD, stake/risk controls, and primary action are visible without page
   scrolling.
@@ -76,22 +78,23 @@ No bars. Small floating widgets in the corners, the field full-bleed.
 - **Transitions:** scale/fade from the point of origin.
 - ⚠️ Contrast between the floating elements and the field is mandatory (a backing plate, an outline or a shadow) — otherwise it is unreadable.
 
-## L4 — Thumb Rail
+## L4 — Adaptive Action Rail
 
-A slim, overlay-style rail groups secondary actions inside the lower thumb zone while the field
-continues behind it. This creates an asymmetric phone composition without consuming the width as
-a desktop sidebar would.
+A slim rail groups secondary actions while the field continues behind or beside it. It starts as
+a lower-thumb overlay on phones and may become a side rail when the viewport has enough width.
 
-- **Main menu:** full-bleed centerpiece, with a short vertical action rail anchored to the lower
-  thumb edge; title and supporting copy use the opposite upper area.
-- **Game screen:** the field remains full-width; a compact lower-edge rail overlays a non-critical
-  margin and holds quick controls. Essential counters stay in small top-edge chips.
+- **Main menu:** full-bleed centerpiece, with a short action rail anchored to the lower thumb edge
+  on phones; at expanded widths it may move beside the centerpiece.
+- **Game screen:** the field remains dominant; a compact lower-edge rail overlays a non-critical
+  margin on phones and may occupy a narrow side zone on medium/expanded layouts. Essential
+  counters stay close to the field.
 - **Action button:** attached to the bottom of the rail, visually larger than its other buttons
   and clear of the system gesture inset.
 - **Overlays:** slide out from the rail side; modals are centred over the field.
 - **Transitions:** horizontal slide, with the rail staying stable.
-- ⚠️ The rail must never reduce the play field below the contract's 88% normal-width threshold;
-  it overlays a safe zone or collapses to icons on compact-height phones.
+- ⚠️ On phones the rail must never reduce the play field below the contract's 88% normal-width
+  threshold; it overlays a safe zone or collapses to icons on compact-height phones. On expanded
+  layouts, any side rail must leave the mechanic visually dominant.
 
 ## L5 — Split Panel (two zones)
 

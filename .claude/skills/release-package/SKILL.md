@@ -21,8 +21,9 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 - Manually by the user, for any finished project: `/release-package`
 
 **Important**: this skill does NOT change the source code. It only builds, screenshots and packs.
-Read `.claude/docs/mobile-phone-contract.md` during preflight. Package only the portrait-phone
-product; tablet/iPad, desktop, landscape, or missing native portrait configuration is a blocker.
+Read `.claude/docs/mobile-first-contract.md` during preflight. Package only after both the phone
+baseline and expanded full-viewport layouts pass; a capped phone wrapper, fake device frame,
+broken reflow, or undocumented native orientation/device-family restriction is a blocker.
 
 ---
 
@@ -155,10 +156,10 @@ kill $(cat .claude/runtime-logs/flutter-release.pid) 2>/dev/null || true
 ### 1.4. A quick visual audit (mandatory release gate)
 
 Read the first 5 screenshots and every gameplay-state screenshot through Read (vision). Check the
-V1–V17 problems from `emulator-test` plus `.claude/docs/mobile-phone-contract.md` and
+V1–V17 problems from `emulator-test` plus `.claude/docs/mobile-first-contract.md` and
 `.claude/docs/gameplay-screen-contract.md`. If any
 CRITICAL/HIGH issue remains—including a thumbnail/nested play field, core-loop scrolling, or poor
-button proportions, non-phone layout, or missing portrait/iPhone-only targeting—stop before
+button proportions, capped phone layout, broken expanded reflow, or undocumented targeting—stop before
 building/archiving and route the project back to `/ui-audit --fix`
 or `/autocreate-implement --resume`. This skill does not change source code and must not package a
 known-broken gameplay composition.

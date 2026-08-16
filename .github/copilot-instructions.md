@@ -9,9 +9,9 @@ game's language on your own initiative or because of the language the user types
 This is a **gambling-only** mini-game studio using Flutter 3.27+ and Flame 1.18+.
 Puzzles, runners, shooters and clickers are out of scope.
 
-Every game targets Android phones and iPhone in portrait only. Web exists solely for preview and
-automated verification. Do not create tablet/iPad, desktop, wide-screen, or landscape layouts;
-follow `.claude/docs/mobile-phone-contract.md`.
+Every game is mobile-first. Build its touch-first phone UI/UX first, then make the same app fill
+and adapt to landscape, tablet, desktop, and Web viewports. Never use a fixed-width phone canvas
+or fake device frame; follow `.claude/docs/mobile-first-contract.md`.
 
 Six gambling categories (no other genres):
   C1 Social Casino        — slots, video poker, blackjack, roulette, bingo      → model M1 (RTP 95-97%)
@@ -46,7 +46,8 @@ No real-currency symbols next to a virtual balance. See `.claude/rules/responsib
 
 ## UI Rules (Anti-Slop)
 
-- Portrait phone canvas only; required gates: 360×640, 360×800, 390×844, 430×932
+- Mobile-first baseline at 360×640, 360×800, 390×844, and 430×932; responsive expanded gates at
+  844×390, 768×1024, 1024×768, and 1440×900
 - No bare `ThemeData.dark()` — custom themes only
 - No `CircularProgressIndicator` — themed loaders only
 - No default `MaterialPageRoute` — custom transitions

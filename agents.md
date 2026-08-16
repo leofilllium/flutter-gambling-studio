@@ -4,11 +4,10 @@
 
 This is a **gambling-only** game studio: every concept must fall into one of six categories (C1 social casino, C2 casino originals, C3 spin-to-progress hybrids, C4 gacha/loot-box, C5 casino roguelike, C6 coin pusher/plinko) and declare a verifiable math model (M1-M6). Puzzles, runners, shooters and clickers are out of scope.
 
-Every generated game is **phone-only and portrait-only**. Android phones and iPhone are the
-product targets; tablet, iPad, desktop, wide-screen and landscape layouts are out of scope.
-`web` exists only for preview and Chrome/CDP verification. Follow
-`.claude/docs/mobile-phone-contract.md`, including its 360×640, 360×800, 390×844 and 430×932
-viewport gates and native orientation/device-family requirements.
+Every generated game is **mobile-first**, with touch-first phone UI/UX as its canonical design
+baseline. It must also fill and adapt to tablet, landscape, desktop, and Web viewports without a
+fixed-width phone canvas or fake device frame. Follow `.claude/docs/mobile-first-contract.md`,
+including both its phone-baseline and expanded-viewport verification gates.
 
 All generated game art must use polished cartoon 2.5D casual-game illustration with bold
 silhouettes, rounded/exaggerated forms, saturated theme-aware color, smooth modeled
@@ -26,7 +25,7 @@ current game's Design DNA. Never use cropping or device chrome to hide a weak ga
 
 All agent responses must be in English, and every artifact the pipeline writes — design documents, concepts, reports, session state and commit messages — must be in English as well. Dart/Flutter code, file paths, class names and CLI commands are English by definition.
 
-The generated game ships in English too: every player-facing string (menus, buttons, HUD, rules/paytable, win messages, empty states, age gate, disclaimer, responsible-play block) plus store metadata and screenshot captions. The only exception is an explicit user request for a different language — then the player-facing copy uses that language, the choice is recorded in `design/gdd/game-concept.md`, and everything else (identifiers, file names, comments, design docs, reports) stays English. Do not switch the game's language on your own initiative and do not infer it from the language the user is typing in. Before writing code, read `CLAUDE.md`, `.claude/docs/gambling-categories.md`, `.claude/docs/math-models.md`, `.claude/rules/responsible-gaming.md`, `.claude/rules/game-code.md`, `.claude/rules/engine-code.md`, `.claude/rules/ui-code.md`, `.claude/rules/anti-slop-design.md`, `.claude/docs/mobile-phone-contract.md`, `.claude/docs/gameplay-screen-contract.md`, `.claude/rules/test-standards.md`, `.claude/rules/data-files.md`, `.claude/rules/design-docs.md`, `.claude/docs/technical-preferences.md`, `.claude/docs/coding-standards.md`, `.claude/docs/directory-structure.md`, and `.claude/docs/coordination-rules.md`.
+The generated game ships in English too: every player-facing string (menus, buttons, HUD, rules/paytable, win messages, empty states, age gate, disclaimer, responsible-play block) plus store metadata and screenshot captions. The only exception is an explicit user request for a different language — then the player-facing copy uses that language, the choice is recorded in `design/gdd/game-concept.md`, and everything else (identifiers, file names, comments, design docs, reports) stays English. Do not switch the game's language on your own initiative and do not infer it from the language the user is typing in. Before writing code, read `CLAUDE.md`, `.claude/docs/gambling-categories.md`, `.claude/docs/math-models.md`, `.claude/rules/responsible-gaming.md`, `.claude/rules/game-code.md`, `.claude/rules/engine-code.md`, `.claude/rules/ui-code.md`, `.claude/rules/anti-slop-design.md`, `.claude/docs/mobile-first-contract.md`, `.claude/docs/gameplay-screen-contract.md`, `.claude/rules/test-standards.md`, `.claude/rules/data-files.md`, `.claude/rules/design-docs.md`, `.claude/docs/technical-preferences.md`, `.claude/docs/coding-standards.md`, `.claude/docs/directory-structure.md`, and `.claude/docs/coordination-rules.md`.
 
 Treat slash commands as manual runbooks. When a user types `/brainstorm`, `/autocreate`, `/team-dev`, `/code-review`, `/ui-audit`, `/emulator-test`, `/balance-check`, `/release-package`, `/release-checklist`, or another studio command, open the matching file in `.claude/skills/*/SKILL.md` and follow it. For specialized roles, use the persona briefs in `.claude/agents/*.md`. If needed, run helper checks with `bash tools/codex-hooks.sh <hook-name>`.
 

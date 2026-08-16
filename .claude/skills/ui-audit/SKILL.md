@@ -31,9 +31,9 @@ visual problems.
     (§1 first 30 sec: TTP ≤ 3 taps; §2 response ≤ 100 ms; §3 scaled feedback;
     §7 completeness; §8 visual integrity) - the audit measures BY THEM, not “by eye”
 2d. Read `.claude/docs/gameplay-screen-contract.md` → full-viewport field, integrated controls,
-    stable measurement keys, no core-loop scrolling, and the four-size verification matrix
-2e. Read `.claude/docs/mobile-phone-contract.md` → portrait-only phone target, no tablet/desktop
-    reflow, capped Web preview canvas, Flutter/native orientation and iPhone-only release target
+    stable measurement keys, no core-loop scrolling, and the full verification matrix
+2e. Read `.claude/docs/mobile-first-contract.md` → touch-first phone baseline, intentional
+    landscape/tablet/desktop/Web reflow, full-host canvas, and platform targeting guidance
 3. `glob lib/screens/**/*.dart` - find all screens
 4. `glob lib/widgets/**/*.dart` - find all widgets
 5. `glob lib/theme/**/*.dart` - find theme and animations
@@ -85,7 +85,7 @@ visual problems.
 | B13 | **Core loop requires scrolling** | Find a vertical `Scrollable` ancestor of `gameplaySurface` or `primaryAction`; verify first viewport | Field or action/control deck falls below the fold | Recompose the fixed viewport; move rules/history/secondary content to a sheet or screen |
 | B14 | **Disconnected control block** | Compare field and control deck alignment, materials, shape language, spacing and depth | Controls look like an unrelated card below the game | Attach as overlay/edge rail/compact command deck using the field's grid and DNA |
 | B15 | **Poor control proportions** | Measure tap targets and labels at 1.0×/1.3× text scale; compare enabled/disabled states | Buttons are cramped, uneven, clipped, or ambiguous | Enforce ≥48×48 targets, a primary action ≥56 logical pixels high, shared baselines/heights and responsive label fitting |
-| B16 | **Non-phone layout or targeting** | Inspect layout branches, `main.dart`, Android manifest, iOS plist/project and `Key('phoneViewport')` at a 1024×768 Web host | Tablet/iPad/desktop/landscape UI exists, portrait is not locked, or wide Web stretches/reflows the game | Remove non-phone branches; enforce the mobile-phone contract and cap the unframed Web canvas at 430 |
+| B16 | **Broken mobile-first responsiveness or targeting** | Inspect phone + expanded screenshots, layout branches, `main.dart`, Android manifest, and iOS plist/project | Phone hierarchy breaks; expanded hosts show a capped phone strip, fake frame, dead margins, blind scaling, pointer-only controls, or an undocumented native restriction | Enforce the mobile-first contract; use the full host canvas and intentional responsive reflow |
 
 ### Category C: NAVIGATION AND STATUS (High - the application is not working properly)
 
@@ -317,9 +317,9 @@ void dispose() {
 ```
 
 **Stage 2 - Layout errors (B1-B16):**
-Fix all layout problems. Special attention: SafeArea, overflow, phone-range responsive constraints,
-the full-viewport gameplay composition, portrait targeting, and control proportions. Do not “fix” B11–B16 by wrapping the
-whole game screen in a scroll view.
+Fix all layout problems. Special attention: SafeArea, overflow, mobile-first responsive
+constraints, full-viewport gameplay composition, platform targeting, and control proportions.
+Do not “fix” B11–B16 by wrapping the whole game screen in a scroll view.
 
 **Stage 3 - Navigation and Status (C1-C10):**
 Check all routes, all persistence, all overlay lifecycle.
@@ -386,7 +386,7 @@ If tests fail → fix (up to 3 attempts). If the test is correct, fix the code, 
 📐 B: Layout errors (High):
    [✅|❌] B1-B10: [responsive/safe layout status]
    [✅|❌] B11-B15: [field dominance, no nested window/scroll, integrated usable controls]
-   [✅|❌] B16: [phone-only portrait target and native/Web configuration]
+   [✅|❌] B16: [mobile-first full-viewport responsiveness and platform configuration]
    Total: [X]/16
 
 🧭 C: Navigation and Status (High):

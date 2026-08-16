@@ -40,7 +40,7 @@ project to `dart analyze` 0 errors + `flutter test` green. In this session:
 1. ✅ Reads `production/session-state/autocreate-handoff.md` **as its first action**
 2. ✅ Validates that Session 2's artifacts exist (`pubspec.yaml`, `lib/main.dart`,
    `dart analyze` still 0 errors)
-3. ✅ Reads `.claude/docs/mobile-phone-contract.md` and
+3. ✅ Reads `.claude/docs/mobile-first-contract.md` and
    `.claude/docs/gameplay-screen-contract.md` before runtime capture and treats every V13–V17
    defect as a HIGH release blocker
 4. ✅ Runs Phases 10.5 → 11 → 11.5 → 12 in that order
@@ -177,15 +177,15 @@ done
 TS=$(date +%Y%m%d-%H%M%S); SHOT_DIR="production/runtime-screenshots/$TS"; mkdir -p "$SHOT_DIR"
 
 if [ -n "$WEB_URL" ]; then
-  # 3) Canonical phone tour plus the complete compact/large phone geometry matrix.
+  # 3) Canonical phone tour plus the complete mobile-first responsive matrix.
   timeout 220 node tools/web_verify.mjs --url "$WEB_URL" --out "$SHOT_DIR" \
     --size 390x844 --budget 180 --quick \
     2>&1 | tee "$SHOT_DIR/web_verify.log"
-  for PHONE_SIZE in 360x640 360x800 430x932; do
-    PHONE_DIR="$SHOT_DIR/$PHONE_SIZE"; mkdir -p "$PHONE_DIR"
-    timeout 140 node tools/web_verify.mjs --url "$WEB_URL" --out "$PHONE_DIR" \
-      --size "$PHONE_SIZE" --budget 120 --quick \
-      2>&1 | tee "$PHONE_DIR/web_verify.log"
+  for VIEWPORT_SIZE in 360x640 360x800 430x932 844x390 768x1024 1024x768 1440x900; do
+    VIEWPORT_DIR="$SHOT_DIR/$VIEWPORT_SIZE"; mkdir -p "$VIEWPORT_DIR"
+    timeout 140 node tools/web_verify.mjs --url "$WEB_URL" --out "$VIEWPORT_DIR" \
+      --size "$VIEWPORT_SIZE" --budget 120 --quick \
+      2>&1 | tee "$VIEWPORT_DIR/web_verify.log"
   done
 else
   echo "❌ the web server did not come up — the build is broken. Log: .claude/runtime-logs/flutter-run.log" \
@@ -198,9 +198,10 @@ kill "$(cat .claude/runtime-logs/flutter.pid 2>/dev/null)" 2>/dev/null || true
 
 Then:
 - **Visual analysis** of each `$SHOT_DIR/*.png` through Read (vision) against the V1–V17 checklist,
-  `.claude/docs/mobile-phone-contract.md`, and `.claude/docs/gameplay-screen-contract.md`.
-  Inspect the required phone matrix at 360×640, 360×800, 390×844 and 430×932, with idle and active
-  gameplay at 390×844 and 430×932. Do not capture or approve a tablet/desktop layout.
+  `.claude/docs/mobile-first-contract.md`, and `.claude/docs/gameplay-screen-contract.md`.
+  Inspect the required phone matrix at 360×640, 360×800, 390×844 and 430×932 and the expanded
+  matrix at 844×390, 768×1024, 1024×768 and 1440×900, with idle and active gameplay at 390×844
+  and 1440×900. Confirm the product fills each viewport without a framed phone canvas.
 - **Error parsing**: inspect every `manifest.json` and `webconsole.log` under `$SHOT_DIR`,
   and `.claude/runtime-logs/flutter-run.log` (EXCEPTION CAUGHT, RenderFlex overflowed, Unable to load asset).
 

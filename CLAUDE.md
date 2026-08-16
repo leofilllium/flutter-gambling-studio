@@ -32,9 +32,9 @@ rendering, flat vector clipart and emoji/sticker styling are not allowed.
 
 - **Engine**: Flutter 3.27+ / Flame 1.18+
 - **Language**: Dart 3.6+ (null-safe, sealed classes, pattern matching)
-- **Specialisation**: gambling mini-games for phones (portrait-only)
-- **Product platforms**: Android phones + iPhone; Web is a preview/test harness only
-- **Rendering**: Flutter Impeller (Android/iPhone), CanvasKit/Skia for the Web verification harness
+- **Specialisation**: mobile-first gambling mini-games with responsive full-viewport layouts
+- **Product platforms**: Android, iOS/iPadOS, and Web; phone UI/UX is the design baseline
+- **Rendering**: Flutter Impeller (Android/iOS), CanvasKit/Skia for Web
 - **Mathematics**: `tools/simulate_math.py` — the verifier for all six models
 
 > **You are the creative director and producer.** The agents implement your idea.
@@ -269,13 +269,13 @@ runtime gates use the measurable contract below.
 
 @.claude/docs/gameplay-screen-contract.md
 
-### Phone-only product target
+### Mobile-first, full-viewport product target
 
-Every screen is designed for a portrait phone canvas, verified at 360×640, 360×800, 390×844 and
-430×932. There are no tablet/iPad, desktop, wide-screen, or landscape product layouts. Web is a
-centered phone preview and automated verification harness, not a desktop edition.
+Every screen starts from a touch-first phone composition, verified across the required phone
+matrix. The same game must then fill and adapt to landscape, tablet, desktop, and Web viewports;
+never place it in a capped phone canvas or artificial device frame.
 
-@.claude/docs/mobile-phone-contract.md
+@.claude/docs/mobile-first-contract.md
 
 ## Professional quality bar
 

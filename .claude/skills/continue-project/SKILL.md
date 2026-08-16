@@ -15,8 +15,9 @@ Automatically restores the development context and points you at the right stage
 1. Read `design/gdd/game-concept.md` (if it exists).
 2. Read `pubspec.yaml` (if it exists).
 3. Read `production/session-state/active.md` (if it exists).
-4. Read `.claude/docs/mobile-phone-contract.md`; if code exists, check the Flutter/native portrait
-   locks, iPhone-only target, phone viewport tests, and absence of non-phone layout branches.
+4. Read `.claude/docs/mobile-first-contract.md`; if code exists, check the phone + expanded
+   viewport tests, full-host responsive behavior, touch-first interaction, and absence of a global
+   phone-width cap or undocumented orientation/device-family restriction.
 5. Determine the project's stage:
    - **Nothing yet**: suggest `/start` or `/brainstorm`
    - **Only a GDD**: suggest `/design-system rtp-weights` or `/generate-asset symbols`

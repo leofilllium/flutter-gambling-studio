@@ -98,8 +98,8 @@ This allows you to use the same agents/skills/workflows as in Claude Code, but w
 |-----------|-----------|
 | **Engine** | Flutter 3.27+ / Flame 1.18+ |
 | **Language** | Dart 3.6+ (null-safe, sealed classes, pattern matching) |
-| **Product target** | Android phones + iPhone, portrait-only |
-| **Rendering** | Impeller (Android/iPhone); Web/CanvasKit only for preview and automated verification |
+| **Product target** | Mobile-first Android/iOS and responsive full-viewport Web |
+| **Rendering** | Impeller (Android/iOS); CanvasKit/Skia on Web |
 | **Audio** | flame_audio ^2.1.0 |
 | **SVG** | flame_svg ^1.10.0 |
 | **Physics** | forge2d (pinball, plinko, physics games) |

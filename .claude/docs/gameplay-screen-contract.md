@@ -1,23 +1,24 @@
-# Gameplay Screen Contract — Full-Viewport, Integrated, Phone Portrait
+# Gameplay Screen Contract — Full-Viewport, Integrated, Mobile-First
 
 This contract prevents a working mechanic from being presented as a small demo embedded inside
 a generic app page. It applies to every C1–C6 `GameScreen`, regardless of Design DNA or Layout
 Archetype.
 
-The product canvas is defined by `.claude/docs/mobile-phone-contract.md`: Android phones and
-iPhone in portrait only. Tablet, iPad, desktop, wide-screen and landscape gameplay variants are
-not part of this contract.
+The product canvas is defined by `.claude/docs/mobile-first-contract.md`: phone UI/UX is the
+canonical starting point, and the same game must fill and adapt to landscape, tablet, desktop,
+and Web viewports without becoming a framed phone preview.
 
 ## Required composition
 
 1. **The gameplay screen owns the viewport.** Use an edge-to-edge game backdrop and compose the
    play field, HUD, and controls as one screen. Safe-area insets protect interactive chrome; they
    must not shrink the whole game into a second framed window.
-2. **The mechanic is the dominant surface.** At the portrait verification sizes, the visible
+2. **The mechanic is the dominant surface.** At the phone verification sizes, the visible
    play field should occupy at least 55% of the usable viewport and normally at least 88% of its
    width. A narrow-mechanic or portrait thumb-rail exception is allowed only when
    `design/art-direction.md` records why it improves play; the field must still be the first focal
-   point and use all remaining space.
+   point and use all remaining space. At expanded sizes, grow or recompose the mechanic and its
+   supporting zones so the full viewport feels intentional rather than padded around a phone UI.
 3. **No nested mini-game.** Do not place the live field inside a phone-like window, browser-like
    frame, isolated card, tall decorative bezel, or large padded container floating above an
    unrelated information card. A thematic rim, cabinet, table edge, or board boundary is fine
@@ -59,6 +60,10 @@ Check at minimum:
 | 360×800 | tall compact Android phone |
 | 390×844 | standard capture/runtime target |
 | 430×932 | large phone portrait |
+| 844×390 | phone landscape / short wide viewport |
+| 768×1024 | tablet portrait |
+| 1024×768 | tablet or compact desktop landscape |
+| 1440×900 | desktop/Web fullscreen |
 
 For each size, verify:
 
@@ -69,12 +74,13 @@ For each size, verify:
 - control labels fit, tap targets meet the minimum, and enabled/disabled states are clear;
 - the field, HUD, and controls read as one game-specific composition.
 
-Capture the idle and active game states at 390×844 and 430×932. A visual audit is mandatory;
-clean analyzer output and widget tests alone cannot approve composition.
+Capture the idle and active game states at 390×844 and 1440×900, plus any breakpoint where the
+composition changes materially. A visual audit is mandatory; clean analyzer output and widget
+tests alone cannot approve composition.
 
-Opening the Web build in a wide browser must keep this same phone composition in a centered
-canvas capped at 430 logical pixels. A desktop/tablet reflow or stretched play field is a
-blocking failure, not an additional responsive mode.
+Opening the Web build in a wide browser must use the full browser viewport. Reflow controls,
+supporting information, and the field deliberately; do not center a phone-width product canvas,
+draw a device frame, or blindly stretch every element.
 
 ## Blocking failures
 
@@ -86,7 +92,8 @@ Treat any of these as a HIGH layout defect and a release blocker:
 - a large instruction/progression card competes with or is larger than the field;
 - core buttons are cramped, uneven, clipped, off-screen, or visually disconnected;
 - the store showcase needs cropping or concept art to hide weak gameplay composition.
-- the app contains a tablet/desktop/landscape gameplay branch or lacks the portrait lock.
+- an expanded viewport shows a centered phone strip, unexplained dead margins, or oversized
+  controls instead of an intentional responsive composition.
 
 Implementation must recompose the screen before handoff. Finalization must fail and route the
 screen back through `/ui-audit --fix` or `/autocreate-implement --resume`; it must not downgrade

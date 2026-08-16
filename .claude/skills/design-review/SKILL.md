@@ -57,11 +57,11 @@ The `game-designer` agent checks each GDD:
 **Language:**
 - [ ] The document is written in English, like everything else the studio produces
 
-**Phone product target:**
-- [ ] The concept/design follows `.claude/docs/mobile-phone-contract.md`: Android phones +
-      iPhone, portrait-only, with no tablet/iPad, desktop, wide-screen, or landscape variant
-- [ ] The layout proves 360×640, 360×800, 390×844 and 430×932, including thumb reach and no
-      scrolling in the gameplay core
+**Mobile-first product target:**
+- [ ] The concept/design follows `.claude/docs/mobile-first-contract.md`: touch-first phone
+      baseline plus intentional full-viewport landscape, tablet, desktop, and Web reflow
+- [ ] The layout proves the phone and expanded matrices, including thumb reach, full-host use, and
+      no scrolling in the gameplay core
 
 ### Step 3: game-mathematician — the mathematical check
 

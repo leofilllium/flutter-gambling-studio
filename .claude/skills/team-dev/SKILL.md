@@ -43,8 +43,8 @@ Runs the agents in the right order to implement a complex feature.
 6. If the feature adds a random award in exchange for currency, bring in `ui-programmer`
    to update the odds disclosure screen (`.claude/rules/responsible-gaming.md` §2.4).
 
-   Every UI pass must follow `.claude/docs/mobile-phone-contract.md`: phone portrait only, all
-   four required phone viewports, and no tablet/desktop/landscape branch.
+   Every UI pass must follow `.claude/docs/mobile-first-contract.md`: touch-first phone baseline,
+   all required phone and expanded viewports, and no fixed-width phone wrapper or fake device frame.
 
 7. All player-facing copy the feature introduces is written in English (unless the user
    explicitly asked for the game in another language).

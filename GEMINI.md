@@ -8,9 +8,9 @@
 > For Codex: `AGENTS.md` and `.codex/`
 > For Cursor: `.cursorrules`
 
-Every generated game targets Android phones and iPhone in portrait only. Web is a preview/CDP
-verification harness, not a desktop edition; tablet, iPad, desktop, wide-screen and landscape
-layouts are forbidden. See `.claude/docs/mobile-phone-contract.md`.
+Every generated game is designed mobile-first: touch-first phone UI/UX is the baseline, while
+landscape, tablet, desktop, and Web use the full available viewport responsively. Do not add a
+fixed-width phone canvas or fake device frame. See `.claude/docs/mobile-first-contract.md`.
 
 ## Installation and integration (Gemini CLI)
 
@@ -55,7 +55,7 @@ When writing code, the Gemini bot follows the standards described in:
 - `.claude/rules/game-code.md`
 - `.claude/rules/engine-code.md`
 - `.claude/rules/ui-code.md`
-- `.claude/docs/mobile-phone-contract.md`
+- `.claude/docs/mobile-first-contract.md`
 
 Always pay attention to the `Random.secure()` and "stateless outcomes" requirements, and
 avoid magic numbers outside `game_config.dart`.

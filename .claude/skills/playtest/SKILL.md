@@ -16,9 +16,9 @@ game" (see `.claude/docs/quality-bar.md`).
 **Preconditions**: `dart analyze lib/` with 0 errors; `node` ≥21 and Chrome/Chromium available
 (otherwise report an honest SKIPPED, as `/emulator-test` does).
 
-Read `.claude/docs/mobile-phone-contract.md` and run the game as a portrait phone experience.
-Chrome is a verification harness, not a desktop target; a tablet/desktop/landscape branch or a
-wide-host reflow is a HIGH failure.
+Read `.claude/docs/mobile-first-contract.md` and run the game first at the canonical phone size,
+then at an expanded Web viewport. Chrome must use the full host canvas; a centered phone strip,
+fake device frame, dead margins, or pointer-only essential interaction is a HIGH failure.
 
 ---
 
@@ -46,7 +46,7 @@ TS=$(date +%Y%m%d-%H%M%S); PT_DIR="production/playtest/$TS"; mkdir -p "$PT_DIR"
 
 ## Phase 2 — the play session (CDP) [~4 min]
 
-Two passes of `tools/web_verify.mjs`:
+Three passes of `tools/web_verify.mjs`:
 
 ```bash
 # 2.1 A tour of the screens + baseline shots (manifest.json: steps/semanticLabels/consoleErrors)
@@ -56,6 +56,12 @@ timeout 220 node tools/web_verify.mjs --url "$WEB_URL" --out "$PT_DIR" --budget 
 # 2.2 Gameplay load: N repeats of the main action (default 60; --rounds sets it)
 timeout 240 node tools/web_verify.mjs --url "$WEB_URL" --out "$PT_DIR" --soak "${ROUNDS:-60}" \
   2>&1 | tee -a "$PT_DIR/web_verify.log"
+
+# 2.3 Expanded Web gameplay: prove the same core loop fills and works at desktop size
+mkdir -p "$PT_DIR/1440x900"
+timeout 180 node tools/web_verify.mjs --url "$WEB_URL" --out "$PT_DIR/1440x900" \
+  --size 1440x900 --budget 150 --quick \
+  2>&1 | tee "$PT_DIR/1440x900/web_verify.log"
 ```
 
 Afterwards, stop the server: `kill "$(cat .claude/runtime-logs/flutter.pid)" 2>/dev/null`.

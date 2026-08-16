@@ -176,9 +176,9 @@ MaterialApp(
 
 ## 3. LAYOUT SAFETY (high — a violation means a visual bug)
 
-All layout work follows `.claude/docs/mobile-phone-contract.md`: portrait phones are the only
-product canvas, and responsiveness means adapting within 320–430 logical pixels of width. Web is
-a phone-preview harness, not permission to invent a desktop/tablet layout.
+All layout work follows `.claude/docs/mobile-first-contract.md`: touch-first phone UI/UX is the
+canonical baseline, and the app must fill and adapt to landscape, tablet, desktop, and Web
+viewports without a global phone-width cap or fake device frame.
 
 ### 3.1 SafeArea on EVERY root screen
 
@@ -222,10 +222,10 @@ Flexible(child: Text(longPlayerName, overflow: TextOverflow.ellipsis))
 **Rule**: every `Text` with dynamic content (not a hardcoded string) MUST have `overflow:`
 plus `maxLines:`, or sit inside a `FittedBox`, or inside a `Flexible`/`Expanded`.
 
-### 3.3 Phone-range responsive design — no fixed pixels for layout
+### 3.3 Mobile-first responsive design — no fixed pixels for layout
 
 ```dart
-// ❌ Overflow on a compact phone, empty space on a tall phone
+// ❌ Overflow on a compact phone, unused space on an expanded viewport
 Container(width: 400, height: 600, child: ...)
 
 // ✅ Adaptive layout
@@ -254,9 +254,11 @@ Container(width: size.width * 0.9, height: size.height * 0.7)
 Everything else goes through `MediaQuery`, `LayoutBuilder`, `Expanded`, `Flexible` or
 `FractionallySizedBox`.
 
-Do not add `shortestSide >= 600`, tablet, iPad, desktop, wide-screen, hover, or multi-column
-branches. When a Web host is wider than a phone, retain the phone composition in an unframed
-centered canvas capped at 430 logical pixels; do not stretch or reflow the product UI.
+Use content-driven breakpoints to recompose medium and expanded layouts. Keep the compact phone
+layout as the baseline, preserve touch/click access to every essential action, and use additional
+space for a larger mechanic, balanced supporting zones, or an adaptive rail. Do not globally cap
+the app to 430 logical pixels, add a fake phone bezel, depend on hover, or merely enlarge every
+control on desktop.
 
 ### 3.4 SingleChildScrollView + Column (the correct pattern)
 
@@ -303,7 +305,8 @@ Read and implement `.claude/docs/gameplay-screen-contract.md` for every `GameScr
   small decorative window above a separate generic information card.
 - Keep the field, essential counters, stake/risk controls, and primary action visible without
   vertical page scrolling.
-- Verify the idle and active states at 360×640, 360×800, 390×844, and 430×932.
+- Verify the phone baseline at 360×640, 360×800, 390×844, and 430×932, plus expanded behavior at
+  844×390, 768×1024, 1024×768, and 1440×900.
 
 **Rule**: shrinking the field, adding a `SingleChildScrollView` around the whole game screen, or
 moving core controls below the fold is not an acceptable overflow fix. Recompose the layout.
@@ -575,13 +578,14 @@ Future<int> getHighScore() async {
 
 ---
 
-## 9. PHONE ORIENTATION AND TARGETING
+## 9. MOBILE-FIRST TARGETING
 
-- `main.dart` locks `DeviceOrientation.portraitUp` before `runApp`, as shown in
-  `.claude/docs/mobile-phone-contract.md`.
-- Android's launcher activity declares `android:screenOrientation="portrait"`.
-- iOS supports portrait only and targets iPhone device family only.
-- Web remains a phone-sized preview/testing surface; it is not a desktop release target.
+- Follow `.claude/docs/mobile-first-contract.md`: phone UI/UX is the canonical design baseline.
+- Do not globally lock portrait or limit iOS to iPhone unless an explicit mechanic-specific ADR
+  requires it.
+- Android, iOS/iPadOS, and Web layouts use the full available viewport.
+- Expanded layouts retain touch/click access and the mobile hierarchy; hover and keyboard may
+  enhance interaction but never become essential.
 
 ---
 
@@ -603,5 +607,6 @@ Future<int> getHighScore() async {
 14. **`print()` in production** — use `debugPrint` or `Logger`
 15. **Player-facing strings in a language other than English**, unless the user explicitly
     asked for a different language — see CLAUDE.md → Language
-16. **Tablet/iPad/desktop or landscape layout branches** — the product is phone portrait only
-17. **Wide Web reflow** — preserve the capped phone canvas instead of stretching or adding columns
+16. **A global phone-width cap or fake device frame** — the app must fill its host viewport
+17. **Unintentional expanded layout** — no centered phone strip, vast dead margins, blind scaling,
+    or desktop-only essential interaction

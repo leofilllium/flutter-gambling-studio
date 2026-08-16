@@ -82,8 +82,9 @@ fails just as surely as a flat utility-app screenshot.
 | `--no-wire-logo` | off | Do not add the emblem to the main menu |
 | `--name` | pubspec name | Archive base name |
 
-Landscape sets are forbidden. This studio ships phone-portrait games only; keep the App Store
-and Google Play outputs in their documented portrait sizes.
+This storefront kit remains portrait-phone-first, so keep its App Store and Google Play outputs
+in the documented portrait sizes. That marketing format does not constrain the runtime app:
+tablet, landscape, desktop, and Web must still use their full viewport responsively.
 
 ## Phase 0 — preflight and store brief
 
