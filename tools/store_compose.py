@@ -7,15 +7,24 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
 
   triptych  N vertical panels sliced out of ONE wide key-art panorama, so the
             first N store screenshots read as a single continuous picture when
-            the store shows them side by side. This is a *conceptual* poster of
-            the game world, not a screen of the app — and it carries NO TEXT:
-            lettering across a panel boundary is cut by the store's gutters,
-            and a lockup inside one panel breaks the single-picture illusion.
+            the store shows them side by side. The cut leaves a seam allowance
+            (`--gutter`, ~100px by default) that is thrown away, because the
+            store puts its own gap between screenshots: without it a coin or a
+            face crossing a boundary is visibly displaced on the listing page.
+            `--sprite` inlays the game's real objects into the art, so the
+            panels never advertise a world the app does not contain. This is a
+            *conceptual* poster of the game world, not a screen of the app —
+            and it carries NO TEXT: lettering across a panel boundary is cut by
+            the store's gutters, and a lockup inside one panel breaks the
+            single-picture illusion.
   showcase  a real in-game frame placed inside a drawn phone (bezel, notch,
             home indicator, glass glare, drop shadow) over a themed background,
             with the caption typography that sells the frame.
   banner    Google Play feature graphic (1024x500) — key art + optional device
             mockup + title lockup, laid out inside Play's safe area.
+  backdrop  the same key art exported as the GAME's background (menu / gameplay
+            / splash treatments), which is what stops the listing and the app
+            from looking like two different products.
   icon      launcher/store icon set derived from generated art: 1024 master,
             1024 adaptive foreground (subject inside Android's 66% safe zone),
             512 store icon.
@@ -33,6 +42,12 @@ fractional-alpha shadows and display typography are exactly the steps that
 silently degrade when written as one-off `convert` incantations. Here they are
 deterministic, testable and identical across every game.
 
+Every generated-art path is colour graded on the way out (`--pop`): a listing is
+reviewed as a strip of thumbnails beside nine competitors, and ungraded model
+output reads washed out there. Real gameplay frames are never graded — a store
+screenshot must show what the app renders, so a dull frame is fixed by giving
+the game the key art as its background, not in post.
+
 Typography is treated as display type, not UI labels: the face is chosen by
 mood (or taken from the game's own assets/fonts via --font-dir), letter spacing
 is tuned per mood, and text is rendered through an alpha mask so the fill can
@@ -43,7 +58,12 @@ Requires: Pillow + numpy (both already required by tools/cutout.py).
 Examples:
   python3 tools/store_compose.py fonts --font-dir assets/fonts
   python3 tools/store_compose.py triptych --src keyart.png --out store/ \\
-      --panels 3 --size 1320x2868
+      --panels 3 --size 1320x2868 --gutter 100 \\
+      --sprite assets/images/sprites/eagle.png \\
+      --sprite assets/images/sprites/lightning.png@panel=2,w=0.24 \\
+      --sprite assets/images/sprites/shield.png --sprite-glow-color "#F0B34A"
+  python3 tools/store_compose.py backdrop --src keyart.png \\
+      --out-dir assets/images/backgrounds --variants menu,game --offset -0.6
   python3 tools/store_compose.py showcase --shot raw/02-menu.png --bg keyart.png \\
       --out store/store-04.png --size 1320x2868 --caption "Every Spin Counts" \\
       --type-mood epic --caption-color "#FFF6DC" --caption-color2 "#F0B34A"
@@ -936,6 +956,301 @@ def treat_background(bg: Image.Image, treatment: str) -> Image.Image:
     return out
 
 
+# ───────────────────────────── grade ────────────────────────────────────────
+#
+# A listing is judged as a strip of ~150px thumbnails standing next to nine
+# competitors, and raw image-model output almost always arrives a stop flat and
+# a shade desaturated for that context. Reviewers read it as "washed out" and
+# ask for the same two things every time: more saturation, more light. So the
+# grade is part of composition here, not an optional post-step — every art path
+# applies one by default and `--pop off` opts out.
+#
+# The saturation lift is *vibrance*, not a flat multiply: the boost is weighted
+# by how unsaturated a pixel already is, so a sky or a gold rim gains while an
+# already-screaming neon does not clip into a flat patch. Brightness is a gamma
+# lift, which moves midtones and mathematically cannot blow a highlight out.
+# Contrast is a smoothstep blend, which cannot crush a shadow to black. The
+# bloom — a screen-blended blur of the highlights — is what actually reads as
+# "brighter" once the image is thumbnail-sized.
+
+LUMA = np.asarray([0.2126, 0.7152, 0.0722], dtype=np.float32)
+
+POP_PRESETS: dict[str, tuple[float, float, float, float]] = {
+    # name:  vibrance, lift, contrast, bloom
+    "off":   (0.00, 0.00, 0.00, 0.00),
+    "soft":  (0.14, 0.03, 0.06, 0.10),
+    "vivid": (0.30, 0.07, 0.12, 0.22),
+    "max":   (0.48, 0.12, 0.18, 0.36),
+}
+DEFAULT_POP = "vivid"
+
+
+def pop_grade(img: Image.Image, preset: str = DEFAULT_POP, *,
+              vibrance: float | None = None, lift: float | None = None,
+              contrast: float | None = None, bloom: float | None = None) -> Image.Image:
+    """Saturate and brighten generated art so it survives thumbnail review."""
+    if preset not in POP_PRESETS:
+        die(f"--pop {preset}: choose one of {', '.join(POP_PRESETS)}")
+    p_vib, p_lift, p_con, p_bloom = POP_PRESETS[preset]
+    vib = p_vib if vibrance is None else vibrance
+    lft = p_lift if lift is None else lift
+    con = p_con if contrast is None else contrast
+    blm = p_bloom if bloom is None else bloom
+    if max(abs(vib), abs(lft), abs(con), abs(blm)) < 1e-4:
+        return img
+
+    src = img.convert("RGBA")
+    arr = np.asarray(src, dtype=np.float32) / 255.0
+    rgb, alpha = arr[..., :3].copy(), arr[..., 3:]
+
+    if con:
+        rgb = rgb * (1.0 - con) + (rgb * rgb * (3.0 - 2.0 * rgb)) * con
+    if lft:
+        rgb = np.power(np.clip(rgb, 0.0, 1.0), 1.0 / (1.0 + 2.0 * lft))
+    if vib:
+        luma = (rgb * LUMA).sum(axis=-1, keepdims=True)
+        sat = rgb.max(axis=-1, keepdims=True) - rgb.min(axis=-1, keepdims=True)
+        rgb = np.clip(luma + (rgb - luma) * (1.0 + vib * (1.0 - sat)), 0.0, 1.0)
+    if blm:
+        knee = 0.72
+        luma = (rgb * LUMA).sum(axis=-1, keepdims=True)
+        highlights = np.clip((luma - knee) / (1.0 - knee), 0.0, 1.0)
+        halo = Image.fromarray(
+            (np.clip(rgb * highlights, 0.0, 1.0) * 255 + 0.5).astype(np.uint8), "RGB")
+        halo = halo.filter(ImageFilter.GaussianBlur(
+            max(2.0, min(img.width, img.height) * 0.012)))
+        h = np.asarray(halo, dtype=np.float32) / 255.0
+        rgb = 1.0 - (1.0 - rgb) * (1.0 - np.clip(h * blm, 0.0, 1.0))
+
+    out = np.concatenate([np.clip(rgb, 0.0, 1.0), alpha], axis=-1)
+    return Image.fromarray((out * 255 + 0.5).astype(np.uint8), "RGBA")
+
+
+def desaturate(img: Image.Image, amount: float) -> Image.Image:
+    """Pull colour toward luma — used to push a backdrop behind live UI."""
+    a = max(0.0, min(1.0, amount))
+    if a <= 0:
+        return img
+    arr = np.asarray(img.convert("RGBA"), dtype=np.float32)
+    rgb, alpha = arr[..., :3], arr[..., 3:]
+    luma = (rgb * LUMA).sum(axis=-1, keepdims=True)
+    mixed = np.concatenate([rgb + (luma - rgb) * a, alpha], axis=-1)
+    return Image.fromarray(np.clip(mixed, 0, 255).astype(np.uint8), "RGBA")
+
+
+def vignette(img: Image.Image, strength: float) -> Image.Image:
+    """Darken the corners so the centre of a backdrop keeps the eye."""
+    s = max(0.0, min(1.0, strength))
+    if s <= 0:
+        return img
+    w, h = img.size
+    nx = (np.linspace(0.0, 1.0, w, dtype=np.float32) * 2.0 - 1.0)[None, :]
+    ny = (np.linspace(0.0, 1.0, h, dtype=np.float32) * 2.0 - 1.0)[:, None]
+    r = np.sqrt(nx * nx + ny * ny) / math.sqrt(2.0)
+    falloff = np.clip((r - 0.45) / 0.55, 0.0, 1.0) ** 1.6
+    layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    layer.putalpha(Image.fromarray((falloff * s * 255).astype(np.uint8), "L"))
+    return Image.alpha_composite(img.convert("RGBA"), layer)
+
+
+def calm(img: Image.Image, strength: float) -> Image.Image:
+    """Push a backdrop back so the live field, HUD and buttons stay readable.
+
+    The same picture, still recognisably the store's key art — just no longer
+    competing with the reels drawn on top of it.
+    """
+    s = max(0.0, min(1.0, strength))
+    if s <= 0:
+        return img
+    out = img.filter(ImageFilter.GaussianBlur(max(1.0, img.width * 0.016 * s)))
+    out = desaturate(out, 0.35 * s)
+    veil = Image.new("RGBA", out.size, (0, 0, 0, int(0.55 * s * 255)))
+    return Image.alpha_composite(out.convert("RGBA"), veil)
+
+
+# ──────────────────────── seams, gutters and props ──────────────────────────
+#
+# Stores do not show the first N screenshots edge to edge: the carousel puts a
+# gap between every pair. Slicing a panorama into butt-joined panels therefore
+# does NOT reconstruct the picture on the listing page — every object crossing a
+# boundary is displaced by the width of that gap, which is exactly why a coin or
+# a face straddling a seam comes back from review looking broken.
+#
+# The fix is a seam allowance: compose the panorama WIDER than N panels and
+# throw away a strip at each cut. The store's gutter then stands in for the
+# discarded strip and the panels read as one continuous picture again.
+
+GUTTER_REF_W = 1320   # the App Store 6.9" panel the default was measured on
+GUTTER_REF_PX = 100   # the allowance publishers ask for at that panel width
+DEFAULT_GUTTER = "auto"
+
+
+def parse_gutter(spec: str, panel_w: int) -> int:
+    """`auto` | pixels (`100`) | a fraction of the panel (`7.5%`) → pixels."""
+    text = str(spec).strip().lower()
+    if text in ("", "auto"):
+        return round(panel_w * GUTTER_REF_PX / GUTTER_REF_W)
+    try:
+        px = (round(panel_w * float(text[:-1]) / 100.0) if text.endswith("%")
+              else int(round(float(text))))
+    except ValueError:
+        die(f"--gutter {spec}: expected auto, pixels (100) or a percentage (7.5%)")
+    if px < 0:
+        die(f"--gutter {spec}: a seam allowance cannot be negative")
+    if px > panel_w * 0.25:
+        die(f"--gutter {px}px is more than a quarter of a {panel_w}px panel — "
+            "that is not a seam allowance, that is a missing slice")
+    return px
+
+
+def panel_span(index: int, panel_w: int, gutter: int) -> tuple[int, int]:
+    """Left/right x of panel `index` inside the gutter-aware panorama."""
+    left = index * (panel_w + gutter)
+    return left, left + panel_w
+
+
+def seam_report(pano: Image.Image, panels: int, panel_w: int, gutter: int) -> None:
+    """Measure how busy the picture is exactly where the store will cut it.
+
+    A vision pass can miss a seam running through a hand or a coin; column edge
+    energy cannot. Ratios near 1.0 mean the cuts land on calm background.
+    """
+    small_h = 320
+    scale = small_h / pano.height
+    small_w = max(16, round(pano.width * scale))
+    grey = np.asarray(pano.convert("L").resize((small_w, small_h), RES), dtype=np.float32)
+    dx = np.zeros_like(grey)
+    dx[:, 1:] = np.abs(np.diff(grey, axis=1))
+    dy = np.zeros_like(grey)
+    dy[1:, :] = np.abs(np.diff(grey, axis=0))
+    column = (dx + dy).mean(axis=0)
+    reference = float(column.mean()) or 1.0
+    probe = max(1, round(panel_w * 0.02 * scale))
+
+    hot: list[tuple[int, float]] = []
+    for i in range(1, panels):
+        x0 = i * panel_w + (i - 1) * gutter
+        a, b = int(round(x0 * scale)), int(round((x0 + gutter) * scale))
+        if b - a < 2:  # butt-joint: probe a thin band across the cut instead
+            mid = (a + b) // 2
+            a, b = max(0, mid - probe), min(small_w, mid + probe)
+        strip = column[a:b]
+        ratio = float(strip.mean()) / reference if strip.size else 0.0
+        info(f"seam {i}→{i + 1}: detail {ratio:.2f}× the picture's average")
+        if ratio > 1.35:
+            hot.append((i, ratio))
+    for i, ratio in hot:
+        warn(f"seam {i}→{i + 1} runs through the busiest part of the picture "
+             f"({ratio:.2f}× average) — a subject is being cut there. Slide the crop "
+             f"(--zoom 1.15 --offset ±0.3), widen --gutter, or regenerate the art with "
+             f"calm space {i}/{panels} of the way across.")
+
+
+# Where auto-placed props land inside their panel. Cycled, so three props read
+# as a composed scene instead of a row of stickers at one height.
+_AUTO_X = (0.30, 0.70, 0.50, 0.38, 0.66)
+_AUTO_Y = (0.66, 0.58, 0.73, 0.62, 0.69)
+_AUTO_W = 0.22
+_SPRITE_KEYS = ("x", "y", "w", "rot", "glow", "shadow", "opacity", "panel")
+
+
+def parse_sprite_spec(spec: str) -> dict:
+    """`path[@x=0.3,y=0.6,w=0.22,rot=-8,glow=0.3,shadow=0.5,opacity=1,panel=2]`."""
+    path, _, tail = str(spec).partition("@")
+    path = path.strip()
+    if not path:
+        die("--sprite needs a PNG path")
+    out: dict = {"path": path}
+    for chunk in (c.strip() for c in tail.split(",") if c.strip()):
+        key, sep, value = chunk.partition("=")
+        key = key.strip().lower()
+        if not sep or key not in _SPRITE_KEYS:
+            die(f"--sprite {spec}: unusable placement key {chunk!r} — use "
+                f"{'/'.join(_SPRITE_KEYS)} (e.g. eagle.png@x=0.3,y=0.6,w=0.22)")
+        try:
+            out[key] = float(value)
+        except ValueError:
+            die(f"--sprite {spec}: {key}={value!r} is not a number")
+    return out
+
+
+def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
+                  panel_h: int, gutter: int, glow_color: str = "#FFFFFF") -> list[str]:
+    """Composite the game's OWN objects into the concept art.
+
+    Stores reject listings whose first panels advertise a world the app does not
+    contain. Describing the game's symbols to an image model produces something
+    similar; pasting the shipped sprite produces the same object. This does the
+    second — and keeps every prop clear of the seam allowance, so a store gutter
+    can never bisect one.
+    """
+    placed: list[str] = []
+    for i, raw in enumerate(specs or []):
+        spec = parse_sprite_spec(raw)
+        art = load_image(spec["path"], "game object")
+        if art.getchannel("A").getextrema()[0] == 255:
+            warn(f"{spec['path']} has no transparency — run "
+                 f"`python3 tools/cutout.py {spec['path']} --type sprite` first, or the "
+                 "key art will show the sprite's background box")
+        art = contain(art, max(8, round(panel_w * float(spec.get("w", _AUTO_W)))),
+                      round(panel_h * 0.55))
+        rotation = float(spec.get("rot", 0.0))
+        if rotation:
+            art = art.rotate(rotation, resample=Image.BICUBIC, expand=True)
+        opacity = max(0.0, min(1.0, float(spec.get("opacity", 1.0))))
+        if opacity < 1.0:
+            art.putalpha(art.getchannel("A").point(lambda v: int(v * opacity)))
+
+        if "x" in spec:
+            cx = round(float(spec["x"]) * pano.width)
+            panel = max(0, min(panels - 1, int(cx // (panel_w + gutter))))
+        else:
+            panel = (int(spec["panel"]) - 1 if "panel" in spec else i % panels)
+            panel = max(0, min(panels - 1, panel))
+            cx = round(panel_span(panel, panel_w, gutter)[0]
+                       + _AUTO_X[i % len(_AUTO_X)] * panel_w)
+        cy = round(float(spec["y"]) * pano.height if "y" in spec
+                   else _AUTO_Y[i % len(_AUTO_Y)] * pano.height)
+
+        left, right = panel_span(panel, panel_w, gutter)
+        margin = round(panel_w * 0.04)
+        if art.width > panel_w - 2 * margin:
+            warn(f"{Path(spec['path']).name} is {art.width}px wide — wider than one "
+                 f"{panel_w}px panel's safe band; scaling it down to fit")
+            art = contain(art, panel_w - 2 * margin, round(panel_h * 0.55))
+        half = art.width // 2
+        lo, hi = left + half + margin, right - half - margin
+        if not lo <= cx <= hi:
+            moved = min(hi, max(lo, cx))
+            warn(f"{Path(spec['path']).name} at x={cx}px overlapped a panel seam — "
+                 f"moved to x={moved}px so the store's gutter cannot cut it in half")
+            cx = moved
+
+        glow = max(0.0, float(spec.get("glow", 0.28)))
+        if glow:
+            radius = max(2.0, art.width * 0.22)
+            bleed = int(radius * 2)
+            padded = Image.new("RGBA", (art.width + 2 * bleed, art.height + 2 * bleed),
+                               (0, 0, 0, 0))
+            padded.alpha_composite(art, (bleed, bleed))
+            mask = padded.getchannel("A").filter(ImageFilter.GaussianBlur(radius))
+            mask = mask.point(lambda v: int(min(255, v * glow * 1.6)))
+            halo = Image.new("RGBA", padded.size, hex_rgba(glow_color)[:3] + (0,))
+            halo.putalpha(mask)
+            paste_clipped(pano, halo, cx - padded.width // 2, cy - padded.height // 2)
+
+        shadow = max(0.0, min(1.0, float(spec.get("shadow", 0.5))))
+        node, pad = ((art, 0) if shadow <= 0 else
+                     drop_shadow(art, blur=max(4, round(art.width * 0.06)),
+                                 dy=round(art.width * 0.03), opacity=shadow))
+        paste_clipped(pano, node, cx - art.width // 2 - pad, cy - art.height // 2 - pad)
+        placed.append(f"{Path(spec['path']).name} → panel {panel + 1} "
+                      f"@ {cx},{cy} ({art.width}px)")
+    for line in placed:
+        info(f"inlay  {line}")
+    return placed
+
+
 # ───────────────────────────── subcommands ──────────────────────────────────
 
 def cmd_triptych(args) -> None:
@@ -957,9 +1272,15 @@ def cmd_triptych(args) -> None:
             "uninterrupted illustration.\n   Put the words on the game frames "
             "(`showcase --caption`) and the feature graphic (`banner --title/--tagline`).")
 
+    gutter = parse_gutter(args.gutter, w)
     src = load_image(args.src, "key art")
 
-    pano_w, pano_h = w * n, h
+    # The panorama is composed WIDER than the panels it produces: the extra
+    # `gutter` strip at every cut is discarded so the store's own gap between
+    # screenshots stands in for it. Without that allowance the panels are
+    # butt-joined and every object crossing a seam is displaced on the listing
+    # page by the width of the carousel gutter.
+    pano_w, pano_h = w * n + gutter * (n - 1), h
     want, got = pano_w / pano_h, src.width / src.height
     if abs(want - got) / want > 0.35:
         warn(f"key art aspect {got:.2f} is far from the {n}-panel panorama {want:.2f} — "
@@ -969,31 +1290,56 @@ def cmd_triptych(args) -> None:
              f"({pano_w / src.width:.1f}× upscale) — generate it as wide as the model allows")
 
     pano = cover(src, pano_w, pano_h, bias_x=args.offset, zoom=args.zoom)
+    pano = pop_grade(pano, args.pop, vibrance=args.vibrance, lift=args.lift,
+                     contrast=args.contrast, bloom=args.bloom)
+    inlay_sprites(pano, getattr(args, "sprite", []), n, w, h, gutter,
+                  glow_color=args.sprite_glow_color)
+    seam_report(pano, n, w, gutter)
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     total = 0
     for i in range(n):
-        panel = pano.crop((i * w, 0, (i + 1) * w, h))
+        left, right = panel_span(i, w, gutter)
+        panel = pano.crop((left, 0, right, h))
         path = out_dir / f"{args.prefix}{i + 1:02d}.png"
         total += save_png(panel, path)
         ok(f"{path.name}  {w}×{h}")
 
-    # Stitched preview with seam guides — cheap vision check that nothing
-    # important (a face, the title) got cut by a panel boundary.
-    preview = pano.resize((1800, max(1, round(1800 * pano_h / pano_w))), RES)
-    guide = ImageDraw.Draw(preview)
-    for i in range(1, n):
-        x = round(preview.width * i / n)
-        guide.line([(x, 0), (x, preview.height)], fill=(255, 0, 128, 255), width=3)
+    # Stitched preview — a cheap vision check that nothing important (a face,
+    # the hero, a coin) is cut by a panel boundary. The gutters are painted in
+    # so the preview shows what the STORE shows, gaps and all, rather than a
+    # continuous picture the listing page will never display.
+    preview = pano.copy()
+    if gutter:
+        gap = Image.new("RGBA", (gutter, pano_h), (14, 14, 18, 255))
+        for i in range(1, n):
+            preview.paste(gap, (i * w + (i - 1) * gutter, 0))
+    else:
+        guide = ImageDraw.Draw(preview)
+        for i in range(1, n):
+            guide.line([(i * w, 0), (i * w, pano_h)], fill=(255, 0, 128, 255), width=3)
+    preview = preview.resize((1800, max(1, round(1800 * pano_h / pano_w))), RES)
     save_png(preview, out_dir / "_panorama-preview.png")
-    ok(f"_panorama-preview.png  stitched {n}-panel check (seams marked)")
-    info(f"panorama {pano_w}×{pano_h}, {total // 1024} KB across {n} panels")
+    ok(f"_panorama-preview.png  stitched {n}-panel check "
+       + (f"(store gutters shown at {gutter}px)" if gutter else "(seams marked)"))
+    info(f"panorama {pano_w}×{pano_h}, {total // 1024} KB across {n} panels "
+         f"+ {n - 1}×{gutter}px seam allowance")
+    if not gutter:
+        warn("--gutter 0: panels are butt-joined, so anything crossing a seam will look "
+             "displaced once the store puts its own gap between the screenshots")
 
 
 def cmd_showcase(args) -> None:
     w, h = parse_size(args.size)
-    canvas = treat_background(cover(load_image(args.bg, "background"), w, h), args.bg_treatment)
+    # Grade the ART, then push it back. The real game frame is never graded:
+    # both stores require a screenshot to represent what the app actually
+    # renders, so a dull gameplay frame is fixed in the game (see the
+    # `backdrop` subcommand), never in post.
+    backdrop = pop_grade(cover(load_image(args.bg, "background"), w, h), args.pop,
+                         vibrance=args.vibrance, lift=args.lift,
+                         contrast=args.contrast, bloom=args.bloom)
+    canvas = treat_background(backdrop, args.bg_treatment)
 
     caption = (args.caption or "").strip()
     type_plan = TypePlan(args, display_text=caption)
@@ -1062,7 +1408,9 @@ def cmd_showcase(args) -> None:
 
 def cmd_banner(args) -> None:
     w, h = parse_size(args.size)
-    canvas = cover(load_image(args.keyart, "key art"), w, h)
+    canvas = pop_grade(cover(load_image(args.keyart, "key art"), w, h), args.pop,
+                       vibrance=args.vibrance, lift=args.lift,
+                       contrast=args.contrast, bloom=args.bloom)
 
     if args.shot:
         # Build at working resolution, then fit by HEIGHT — a banner device sized
@@ -1118,6 +1466,63 @@ def cmd_banner(args) -> None:
 
     size = save_png(canvas, Path(args.out))
     ok(f"{Path(args.out).name}  {w}×{h}  {size // 1024} KB (feature graphic)")
+
+
+BACKDROP_VARIANTS = {
+    "menu": "full-strength key art behind the main menu / lobby",
+    "game": "the same picture calmed so the live field, HUD and buttons win the eye",
+    "splash": "key art with a heavier vignette, for the native splash screen",
+}
+
+
+def cmd_backdrop(args) -> None:
+    """Turn the store key art into the app's OWN background.
+
+    This is the fix for the most expensive storefront rejection: the first
+    panels advertise a world (a god, a machine, a vault) that never appears once
+    the app opens, so the listing reads as art bought for a different product.
+    Exporting a portrait crop of the very same panorama as the game's background
+    makes the two halves of the listing the same picture — and it costs one
+    crop instead of one more art commission.
+
+    Two treatments, because a background has two jobs: the menu wants the art at
+    full strength, the gameplay screen wants it recognisable but behind the
+    mechanic.
+    """
+    w, h = parse_size(args.size)
+    variants = [v.strip().lower() for v in args.variants.split(",") if v.strip()]
+    unknown = [v for v in variants if v not in BACKDROP_VARIANTS]
+    if unknown:
+        die(f"--variants {', '.join(unknown)}: choose from "
+            f"{', '.join(BACKDROP_VARIANTS)}")
+    if not variants:
+        die("--variants is empty")
+
+    src_art = load_image(args.src, "key art")
+    if src_art.width > src_art.height * 1.2:
+        info(f"key art is {src_art.width}×{src_art.height} — cropping the portrait "
+             f"region at --offset {args.offset:+.2f}; that is which slice of the "
+             "panorama the player will actually live inside")
+
+    base = cover(src_art, w, h, bias_x=args.offset, zoom=args.zoom)
+    base = pop_grade(base, args.pop, vibrance=args.vibrance, lift=args.lift,
+                     contrast=args.contrast, bloom=args.bloom)
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name in variants:
+        img = base.copy()
+        if name == "game":
+            img = calm(img, args.calm)
+        img = vignette(img, args.vignette + (0.22 if name == "splash" else 0.0))
+        path = out_dir / f"{args.prefix}_{name}.png"
+        size = save_png(img, path)
+        ok(f"{path.name}  {w}×{h}  {size // 1024} KB — {BACKDROP_VARIANTS[name]}")
+        if size > 1_400_000:
+            warn(f"{path.name} is {size // 1024} KB — a phone background this heavy "
+                 "costs load time; re-run with --size 1080x1920")
+    info("register the files in pubspec.yaml and point the menu/gameplay screens at "
+         "them, or the storefront and the app still show different worlds")
 
 
 def cmd_icon(args) -> None:
@@ -1284,6 +1689,25 @@ def add_text_args(p: argparse.ArgumentParser) -> None:
                    help="0..1 darkening behind text (default 0.72)")
 
 
+def add_pop_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--pop", choices=tuple(POP_PRESETS), default=DEFAULT_POP,
+                   help="colour grade for GENERATED art: a listing is judged as a "
+                        "strip of thumbnails and raw model output reads flat there, "
+                        f"so a grade is applied by default ({DEFAULT_POP}). Use "
+                        "`off` only when the art was already graded upstream.")
+    p.add_argument("--vibrance", type=float, default=None, metavar="F",
+                   help="override the preset's saturation lift (weighted toward the "
+                        "dull pixels, so vivid areas do not clip)")
+    p.add_argument("--lift", type=float, default=None, metavar="F",
+                   help="override the preset's midtone brightness (gamma; highlights "
+                        "cannot blow out)")
+    p.add_argument("--contrast", type=float, default=None, metavar="F",
+                   help="override the preset's contrast")
+    p.add_argument("--bloom", type=float, default=None, metavar="F",
+                   help="override the preset's highlight glow — this is what reads as "
+                        "'brighter' at thumbnail size")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         prog="store_compose.py",
@@ -1305,6 +1729,22 @@ def main() -> None:
     t.add_argument("--offset", type=float, default=0.0,
                    help="-1..1 horizontal crop bias; slides a face off a panel seam "
                         "without regenerating the art (needs --zoom > 1)")
+    t.add_argument("--gutter", default=DEFAULT_GUTTER, metavar="PX|N%|auto",
+                   help="seam allowance discarded at every cut so the store's own gap "
+                        "between screenshots stands in for it, instead of displacing "
+                        f"whatever crosses the seam (default auto = {GUTTER_REF_PX}px "
+                        f"at {GUTTER_REF_W}px panels, scaled to --size; 0 = butt-joint)")
+    t.add_argument("--sprite", action="append", default=[], metavar="PNG[@k=v,...]",
+                   help="composite a REAL game object (a transparent PNG out of "
+                        "assets/images/) into the concept art, so the panels advertise "
+                        "objects the app actually contains. Repeatable. Keys: x,y "
+                        "(0..1 of the panorama), w (fraction of one panel), panel "
+                        "(1-based), rot, glow, shadow, opacity. Omit x and props are "
+                        "auto-placed one per panel, always clear of the seams.")
+    t.add_argument("--sprite-glow-color", default="#FFFFFF", metavar="HEX",
+                   help="halo colour behind inlaid props — pass the game's accent so "
+                        "they sit in the art instead of on top of it")
+    add_pop_args(t)
     # Retired: the panorama is pure image. Still parsed so a stale caller gets a
     # sentence explaining where the words go, not `unrecognized arguments`.
     for dead in ("--title", "--tagline", "--logo", "--title-pos"):
@@ -1329,6 +1769,7 @@ def main() -> None:
                    help="contain = whole phone visible (default, crops nothing); "
                         "bleed = phone fills the canvas, bottom runs off the edge")
     s.add_argument("--bg-treatment", choices=("soft", "blur", "dim", "none"), default="soft")
+    add_pop_args(s)
     add_text_args(s)
     s.set_defaults(func=cmd_showcase)
 
@@ -1340,8 +1781,34 @@ def main() -> None:
     b.add_argument("--frame", choices=("ios", "android", "none"), default="ios")
     b.add_argument("--title", default="")
     b.add_argument("--tagline", default="")
+    add_pop_args(b)
     add_text_args(b)
     b.set_defaults(func=cmd_banner)
+
+    d = sub.add_parser("backdrop",
+                       help="export the key art as the GAME's own background so the "
+                            "listing and the app show one world")
+    d.add_argument("--src", required=True, help="the same key art the panels are cut from")
+    d.add_argument("--out-dir", required=True, metavar="DIR",
+                   help="normally assets/images/backgrounds")
+    d.add_argument("--prefix", default="bg_keyart")
+    d.add_argument("--size", default="1080x1920",
+                   help=f"WxH or a preset ({', '.join(SIZE_PRESETS)}). This is an "
+                        "in-app asset, so keep it phone-sized (default 1080x1920)")
+    d.add_argument("--variants", default="menu,game",
+                   help=f"comma-separated: {', '.join(BACKDROP_VARIANTS)} (default menu,game)")
+    d.add_argument("--calm", type=float, default=0.45, metavar="F",
+                   help="0..1 — how far the `game` variant is pushed behind the live "
+                        "field (blur + dim + desaturation). Default 0.45")
+    d.add_argument("--vignette", type=float, default=0.18, metavar="F",
+                   help="0..1 corner darkening (default 0.18)")
+    d.add_argument("--zoom", type=float, default=1.0,
+                   help="oversample factor (>1) creating slack for --offset")
+    d.add_argument("--offset", type=float, default=0.0,
+                   help="-1..1 horizontal crop bias — which slice of a wide panorama "
+                        "becomes the app's background")
+    add_pop_args(d)
+    d.set_defaults(func=cmd_backdrop)
 
     i = sub.add_parser("icon", help="launcher + store icon set")
     i.add_argument("--src", required=True, help="square icon artwork (full-bleed)")
