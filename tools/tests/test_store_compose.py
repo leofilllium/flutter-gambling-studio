@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import tempfile
 import unittest
 from pathlib import Path
 
 try:
     import numpy as np
-    from PIL import Image
+    from PIL import Image, ImageDraw
 except ImportError:  # pragma: no cover - host without the imaging stack
     raise unittest.SkipTest("Pillow and numpy are not installed in this host environment")
 
@@ -53,8 +54,15 @@ class SpriteSpecTests(unittest.TestCase):
         self.assertEqual(store_compose.parse_sprite_spec("a/eagle.png"),
                          {"path": "a/eagle.png"})
 
+    def test_role_flags_are_parsed_without_a_value(self) -> None:
+        self.assertEqual(store_compose.parse_sprite_spec("a/eagle.png@hero"),
+                         {"path": "a/eagle.png", "role": "hero"})
+        spec = store_compose.parse_sprite_spec("a/gem.png@prop,w=0.3,bleed=0.06")
+        self.assertEqual(spec["role"], "prop")
+        self.assertAlmostEqual(spec["bleed"], 0.06)
+
     def test_unknown_or_non_numeric_keys_are_refused(self) -> None:
-        for bad in ("a.png@z=4", "a.png@x=left", "@x=0.5"):
+        for bad in ("a.png@z=4", "a.png@x=left", "@x=0.5", "a.png@villain"):
             with self.subTest(bad=bad), self.assertRaises(SystemExit):
                 store_compose.parse_sprite_spec(bad)
 
@@ -128,6 +136,146 @@ class SeamReportTests(unittest.TestCase):
 
         self.assertTrue(any("seam 1→2" in m for m in messages), messages)
         self.assertFalse(any("seam 2→3" in m for m in messages), messages)
+
+
+class InlayTests(unittest.TestCase):
+    """The designer's two notes: hero on the first screen, objects built in.
+
+    Both were defaults problems, not caller problems — a bare `--sprite a.png`
+    used to land a fifth-of-a-panel sticker wherever the cycle put it. These
+    pin the defaults that fixed that.
+    """
+
+    PANEL_W, PANEL_H, GUTTER, PANELS = 300, 640, 30, 3
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dir = Path(self._tmp.name)
+        self.quiet_warnings: list[str] = []
+        for name, replacement in (("info", lambda *_: None), ("ok", lambda *_: None),
+                                  ("warn", self.quiet_warnings.append)):
+            original = getattr(store_compose, name)
+            setattr(store_compose, name, replacement)
+            self.addCleanup(setattr, store_compose, name, original)
+
+    def _sprite(self, name: str, size: tuple[int, int]) -> str:
+        img = Image.new("RGBA", size, (0, 0, 0, 0))
+        ImageDraw.Draw(img).ellipse([0, 0, size[0] - 1, size[1] - 1],
+                                    fill=(220, 40, 60, 255))
+        path = self.dir / name
+        img.save(path)
+        return str(path)
+
+    def _pano(self) -> Image.Image:
+        w = self.PANEL_W * self.PANELS + self.GUTTER * (self.PANELS - 1)
+        return Image.new("RGBA", (w, self.PANEL_H), (30, 90, 140, 255))
+
+    def _inlay(self, *specs: str) -> list[str]:
+        return store_compose.inlay_sprites(
+            self._pano(), list(specs), self.PANELS, self.PANEL_W, self.PANEL_H,
+            self.GUTTER)
+
+    def test_the_first_object_leads_on_panel_one_as_the_hero(self) -> None:
+        # Screenshot 1 is the only one the store shows at full size, so an
+        # unannotated set must still put the protagonist there.
+        lines = self._inlay(self._sprite("hero.png", (200, 320)),
+                            self._sprite("gem.png", (160, 160)))
+        hero = next(line for line in lines if line.startswith("hero"))
+        self.assertIn("hero.png", hero)
+        self.assertIn("panel 1", hero)
+        self.assertTrue(all("panel 1" not in line for line in lines
+                            if not line.startswith("hero")), lines)
+
+    def test_an_explicit_role_flag_beats_the_first_object_rule(self) -> None:
+        lines = self._inlay(self._sprite("gem.png", (160, 160)),
+                            self._sprite("hero.png", (200, 320)) + "@hero")
+        hero = next(line for line in lines if line.startswith("hero"))
+        self.assertIn("hero.png", hero)
+        self.assertIn("panel 1", hero)
+
+    def test_objects_are_big_enough_to_read_in_a_thumbnail_strip(self) -> None:
+        # "far too small" was the note. The hero owns most of its panel and no
+        # supporting object drops back to sticker size.
+        lines = self._inlay(self._sprite("hero.png", (200, 320)),
+                            self._sprite("gem.png", (160, 160)),
+                            self._sprite("coin.png", (160, 160)))
+        widths = {line.split()[1]: int(line.split("(")[1].split("px")[0])
+                  for line in lines}
+        self.assertGreaterEqual(widths["hero.png"], self.PANEL_W * 0.5)
+        for name in ("gem.png", "coin.png"):
+            self.assertGreaterEqual(widths[name], self.PANEL_W * 0.25, name)
+
+    def test_objects_stand_on_the_ground_instead_of_floating_mid_panel(self) -> None:
+        line = self._inlay(self._sprite("hero.png", (200, 320)))[0]
+        cy = int(line.split("@")[1].split(",")[1].split()[0])
+        self.assertGreater(cy, self.PANEL_H * 0.5)
+
+    def test_a_crowd_of_objects_is_called_out(self) -> None:
+        self._inlay(*(self._sprite(f"o{i}.png", (160, 160))
+                      for i in range(store_compose.CROWDED + 1)))
+        self.assertTrue(any("sprite sheet" in m for m in self.quiet_warnings),
+                        self.quiet_warnings)
+
+    def test_placing_everything_off_panel_one_is_called_out(self) -> None:
+        self._inlay(self._sprite("gem.png", (160, 160)) + "@panel=2",
+                    self._sprite("coin.png", (160, 160)) + "@panel=3")
+        self.assertTrue(any("panel 1" in m for m in self.quiet_warnings),
+                        self.quiet_warnings)
+
+    def test_an_object_never_straddles_a_seam(self) -> None:
+        lines = self._inlay(self._sprite("hero.png", (200, 320)) + "@x=0.33")
+        cx = int(lines[0].split("@")[1].split(",")[0])
+        width = int(lines[0].split("(")[1].split("px")[0])
+        left, right = store_compose.panel_span(0, self.PANEL_W, self.GUTTER)
+        self.assertGreaterEqual(cx - width // 2, left)
+        self.assertLessEqual(cx + width // 2, right)
+
+
+class SeatingTests(unittest.TestCase):
+    """"Not worked into the design" — pasted on, not lit by the scene."""
+
+    def _art(self) -> Image.Image:
+        img = Image.new("RGBA", (120, 120), (0, 0, 0, 0))
+        ImageDraw.Draw(img).ellipse([10, 10, 109, 109], fill=(200, 40, 40, 255))
+        return img
+
+    def test_the_object_picks_up_the_light_it_is_standing_in(self) -> None:
+        art = self._art()
+        plate = Image.new("RGBA", art.size, (40, 120, 240, 255))
+        seated = store_compose.seat_in_scene(art, plate, 0.5)
+        before = np.asarray(art, dtype=np.float32)
+        after = np.asarray(seated, dtype=np.float32)
+        opaque = before[..., 3] > 250
+        self.assertGreater(after[..., 2][opaque].mean(), before[..., 2][opaque].mean())
+        # The cutout keeps its own shape: light integration must not eat alpha.
+        np.testing.assert_array_equal(after[..., 3], before[..., 3])
+
+    def test_the_rim_takes_more_of_the_scene_than_the_core(self) -> None:
+        art = self._art()
+        plate = Image.new("RGBA", art.size, (40, 120, 240, 255))
+        after = np.asarray(store_compose.seat_in_scene(art, plate, 0.6),
+                           dtype=np.float32)
+        before = np.asarray(art, dtype=np.float32)
+        shift = np.abs(after[..., :3] - before[..., :3]).sum(axis=-1)
+        core = shift[52:68, 52:68].mean()          # centre of the disc
+        rim = shift[58:62, 12:16].mean()           # just inside its left edge
+        self.assertGreater(rim, core)
+
+    def test_zero_light_is_a_no_op_so_the_flat_paste_stays_reachable(self) -> None:
+        art = self._art()
+        plate = Image.new("RGBA", art.size, (40, 120, 240, 255))
+        np.testing.assert_array_equal(
+            np.asarray(store_compose.seat_in_scene(art, plate, 0.0)), np.asarray(art))
+
+    def test_a_contact_shadow_darkens_the_ground_at_the_foot(self) -> None:
+        pano = Image.new("RGBA", (200, 200), (180, 180, 180, 255))
+        before = np.asarray(pano.convert("RGB"), dtype=np.float32).mean()
+        store_compose.contact_shadow(pano, 100, 140, 80, 0.7)
+        arr = np.asarray(pano.convert("RGB"), dtype=np.float32)
+        self.assertLess(arr.mean(), before)
+        # Darkest at the contact point, not spread over the whole panel.
+        self.assertLess(arr[140, 100].mean(), arr[40, 100].mean() - 20)
 
 
 if __name__ == "__main__":

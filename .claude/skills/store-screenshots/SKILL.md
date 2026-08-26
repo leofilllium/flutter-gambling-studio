@@ -1,7 +1,7 @@
 ---
 name: store-screenshots
-description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama sliced into panels with a seam allowance, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. The key art and the app share one world in both directions — the panorama carries the game's real objects and the game wears the panorama as its background. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
-argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 100] [--pop vivid|soft|max|off] [--props a.png,b.png] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
+description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama sliced into panels with a seam allowance, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 leads with the protagonist at full size and the game's real objects are built into the artwork at foreground scale, not pasted on it. The key art and the app share one world in both directions — the panorama carries the game's real objects and the game wears the panorama as its background. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
+argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 100] [--pop vivid|soft|max|off] [--hero hero.png] [--props a.png,b.png] [--sprite-light 0.35] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
@@ -12,7 +12,7 @@ Create everything needed to present the game in App Store Connect and Google Pla
 
 | Deliverable | Source |
 |---|---|
-| Panels 1…P: one wide, text-free concept illustration carrying the game's real objects, sliced into adjacent panels | GPT Images 2.0 → `store_compose.py triptych --sprite --gutter` |
+| Panels 1…P: one wide, text-free concept illustration led by the hero on panel 1 and carrying the game's real objects at foreground scale, sliced into adjacent panels | GPT Images 2.0 → `store_compose.py triptych --sprite --gutter` |
 | The same key art wired into the app as its own background | `store_compose.py backdrop` → `assets/images/backgrounds/` |
 | Panels P+1…N: real gameplay frames in a device mockup with marketing captions | `web_verify.mjs` → `store_compose.py showcase` |
 | Google Play feature graphic, 1024×500 | `store_compose.py banner` |
@@ -53,8 +53,39 @@ halves show different products.
 
 **The shared object list.** In Phase 0, choose 3–5 named objects that must appear on both sides of
 the listing — the hero plus the two or three symbols the round is actually played with. Record them
-in `STORE_BRIEF.md`. Phase 9 verifies every one of them by eye in at least one concept panel *and*
-at least one gameplay frame. A missing entry is a blocker.
+in `STORE_BRIEF.md`. Entry 1 is always the hero. Phase 9 verifies every one of them by eye in at
+least one concept panel *and* at least one gameplay frame. A missing entry is a blocker.
+
+## Lead with the hero, build the objects in — the composition contract
+
+Continuity gets the right objects into the picture. This gets them in at the right size and in the
+right place, which is the other note the publisher's designer sends listings back for: *put the
+protagonist on the first screen, always, so it hits the eye immediately — and the game's objects
+are not worked into the design at all and are far too small; build them into the artwork itself.*
+Three rules, all defaults rather than options:
+
+**1. The protagonist owns panel 1.** Screenshot 1 is the only one the store shows at full size;
+everything after it is a thumbnail in a strip. Whatever stops the scroll has to be there and has to
+be big, and it is the hero — not a logo, not an establishing shot, not whichever slice of the
+panorama happens to be prettiest. `triptych` enforces it: the first `--sprite` is treated as the
+hero, lands on panel 1 at ≈0.58× the panel width, and stands with its feet past the bottom edge.
+
+**2. Objects are built into the design, not laid on top of it.** A game symbol shrunk to a fifth of
+a panel and dropped onto the background reads as a sticker — which is worse than no inlay at all,
+because it also makes the whole picture look assembled. Real objects belong in the foreground at a
+third of a panel or more, standing on the scene's ground plane, casting a contact shadow, tinted by
+the light they are standing in, with the nearest ones cropped by the frame edge. The compositor does
+the seating — foot anchoring, contact shadow, edge light-wrap and colour cast (`--sprite-light`) —
+but it can only seat an object into a scene that has somewhere to stand, so Phase 1 has to draw one.
+
+**3. Stop at five.** The reference the designer sent as a *good* example came with its own
+correction: slightly too many objects. A hero plus two or three symbols reads at thumbnail size; a
+pile does not. `triptych` warns past five.
+
+The target is one finished picture — hero large at one end, the mechanic across the middle, the
+game's real objects carried through the foreground — not a background with props arranged on it.
+Ask the model for it that way in Phase 1, then composite the real files into the composition it has
+already drawn (Phase 2).
 
 ## Category-specific art direction
 
@@ -117,7 +148,9 @@ the same: *make it richer and brighter*. So:
 | `--size` | `1320x2868` | Main set; also supports `iphone-6.9`, `iphone-6.9-alt`, `iphone-6.5`, and `play` |
 | `--gutter` | `auto` (≈100 px at 1320-wide panels) | Seam allowance discarded between panels; `0` butt-joins them |
 | `--pop` | `vivid` | Colour grade applied to generated art (`off`, `soft`, `vivid`, `max`) |
-| `--props` | auto | Comma-separated game PNGs inlaid into the panorama; the default comes from the shared object list |
+| `--hero` | first shared object | The protagonist PNG that leads panel 1; if omitted, entry 1 of the shared object list |
+| `--props` | auto | Comma-separated game PNGs inlaid into the panorama, capped at four alongside the hero; the default comes from the shared object list |
+| `--sprite-light` | `0.35` | How hard inlaid objects are pulled into the scene's light (colour cast + edge light-wrap). `0` pastes them flat |
 | `--no-backdrop` | off | Do not wire the key art into the game as its background |
 | `--no-play-set` | off | Skip the separate 9:16 Play set |
 | `--lang` | `en` | Caption/title language; change only on explicit request |
@@ -164,9 +197,14 @@ ls assets/images/sprites/ assets/images/ui/ assets/images/backgrounds/ 2>/dev/nu
 
 Pick 3–5 objects that carry this game's identity — the hero/character plus the two or three symbols
 the round is actually played with (the eagle, the bolt, the shield; the capsule, the rarity gem;
-the ball, the peg field). Record in `STORE_BRIEF.md`, for each one: its name, its PNG path, where
-it will appear in the concept art, and which gameplay screen shows it. That table is what Phase 9
-audits.
+the ball, the peg field). **List the hero first and mark it as the hero**: it is the object that
+leads panel 1, and every downstream phase reads that ordering. Record in `STORE_BRIEF.md`, for each
+one: its name, its PNG path, its role (hero or symbol), where it will appear in the concept art, and
+which gameplay screen shows it. That table is what Phase 9 audits.
+
+If the game has no character, the hero slot goes to the single object the round is *about* — the
+machine, the wheel, the case, the tower. Panel 1 still has to lead with something and it still has
+to be the thing the player is there for.
 
 Choose copy that describes play and collection, not payment or financial gain. Use the exact English disclaimer from `ComplianceCopy.disclaimer` in listing metadata.
 
@@ -177,13 +215,22 @@ Run the compositor's font probe and select a display/body pair that covers every
 Use image generation for three sources:
 
 1. **Concept panorama:** one continuous text-free scene wide enough for P panels **plus the seam
-   allowance** — ask for the widest the model will produce. Compose the category mechanic, peak
-   moment, hero, and virtual reward across the full width. Describe the shared-object list
-   explicitly, in the game's own materials and palette, so the drawn world already looks like the
-   game before anything is composited on top. Keep important objects away from the panel seams — at
-   3 panels they sit at 1/3 and 2/3 of the width. Ask for the vivid end of the palette: saturated
-   colour, luminous key and rim light, deep contrast, glowing highlights. Explicitly request no
-   text, logo, letters, numbers, UI, device frame, or panel dividers.
+   allowance** — ask for the widest the model will produce. Ask for a *finished illustration*, not a
+   backdrop: this is the picture the whole kit is cut from, and Phase 2 only reinforces a
+   composition it already has.
+   - **The hero goes in the leftmost 1/P of the width** — the slice that becomes panel 1 — drawn
+     large enough to fill roughly two thirds of the frame height, facing into the scene, lit as the
+     brightest subject in the picture. Everything else is composed around it.
+   - The category mechanic and the peak moment run across the middle; the virtual reward resolves
+     toward the far end.
+   - Describe the shared-object list explicitly, in the game's own materials and palette, and ask
+     for those objects **large in the foreground, standing on a readable ground plane**, some of
+     them cropped by the bottom edge — a scene with somewhere for Phase 2 to seat the real files.
+     Say how many; more than five and the picture turns into a heap.
+   - Keep important objects away from the panel seams — at 3 panels they sit at 1/3 and 2/3 of the
+     width. Ask for the vivid end of the palette: saturated colour, luminous key and rim light, deep
+     contrast, glowing highlights. Explicitly request no text, logo, letters, numbers, UI, device
+     frame, or panel dividers.
 2. **Icon art:** one bold central mechanic/hero silhouette, readable at 48 px, no text, no thin border, and no transparent holes.
 3. **Game emblem:** a distinctive symbol/crest derived from the mechanic and world, with no letters or words, generated on a flat removable background.
 
@@ -193,32 +240,48 @@ If the image tool accepts reference images, pass the actual sprite files from th
 list. If it does not, do not treat the description as sufficient — Phase 2 composites the real
 files instead.
 
-## Phase 2 — inlay the game's real objects into the key art
+## Phase 2 — seat the game's real objects into the key art
 
 Composite the shipped PNGs from the shared object list into the panorama, so the panels advertise
-objects the app demonstrably contains:
+objects the app demonstrably contains — hero first:
 
 ```bash
 python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" --out "$OUT_DIR" \
   --panels 3 --size 1320x2868 --gutter auto --pop vivid \
-  --sprite assets/images/sprites/sprite_eagle.png \
-  --sprite assets/images/sprites/sprite_bolt.png@panel=2,w=0.24,rot=-8 \
+  --save-pano "$ART_DIR/keyart-integrated.png" \
+  --sprite assets/images/sprites/sprite_eagle.png@hero \
+  --sprite assets/images/sprites/sprite_bolt.png@panel=2,rot=-8 \
   --sprite assets/images/sprites/sprite_shield.png \
   --sprite-glow-color "#F0B34A"
 ```
 
+- **The first `--sprite` is the hero** unless another carries `@hero`. It takes panel 1 at ≈0.58×
+  the panel width with its feet past the bottom edge, so the store's one full-size screenshot opens
+  on the protagonist. Pass the hero first and the default is already right.
 - Sprites must be transparent PNGs. The compositor warns when one is opaque — run
   `python3 tools/cutout.py <file> --type sprite` first, or the panel shows a background box.
-- Omit `x` and props are auto-placed one per panel, always clear of the seam allowance. Use
-  `x`/`y`/`w`/`rot`/`panel` when the panorama's composition wants a specific spot.
-- Pass the game's accent colour as `--sprite-glow-color` so the props sit *in* the light of the
-  scene rather than on top of it. Scale each one to the depth plane it occupies; a symbol pasted at
-  full opacity, unlit, at a size that ignores perspective reads as a sticker and is worse than no
-  inlay at all.
-- Two or three well-placed props beat five. The panorama is still a picture, not a sprite sheet.
+- Omit `x` and objects are auto-placed at graded depths — roughly a third of a panel wide, fanning
+  out from panel 2, anchored by the foot to the picture's ground plane, the nearest ones running off
+  the bottom edge, always clear of the seam allowance. Use `x`/`y`/`w`/`rot`/`panel`/`bleed` when
+  the panorama's composition wants a specific spot; `w` below `0.25` is sticker territory.
+- Every object is seated, not pasted: a contact shadow at its foot, a colour cast pulled from the
+  art it covers, and an edge light-wrap that spills the surrounding scene over its rim. Tune with
+  `--sprite-light` (default `0.35`) and per-object `contact=`/`light=`; `--sprite-light 0` restores
+  the flat paste, which is exactly what reads as a sticker.
+- Pass the game's accent colour as `--sprite-glow-color` so the objects sit *in* the light of the
+  scene rather than on top of it.
+- A hero plus two or three symbols beats five. The panorama is still a picture, not a sprite sheet,
+  and the compositor warns past five.
+- Foreground scale needs source pixels. The compositor warns when a sprite has to be upscaled more
+  than 2×; when it does, export the asset larger or have Phase 1 draw that object into the panorama
+  rather than shipping a soft hero on the one screenshot the store shows at full size.
+- `--save-pano` writes the graded panorama with the objects already in it. Phases 3 and 7 read that
+  file, so the app's background and the feature graphic show the same integrated picture the panels
+  do instead of the bare model output.
 
-If a prop cannot be made to sit in the scene convincingly, regenerate the panorama with that object
-described into the composition instead — but the object still has to be there.
+If an object cannot be made to sit in the scene convincingly, regenerate the panorama with that
+object described into the composition instead — but the object still has to be there, and still at
+foreground size.
 
 ## Phase 3 — apply the storefront to the game
 
@@ -238,11 +301,13 @@ Verify generated Android mipmaps, adaptive icon resources, iOS AppIcon entries, 
 **Key-art backdrop.** Unless `--no-backdrop`, export the same panorama as the game's own background and wire it in:
 
 ```bash
-python3 tools/store_compose.py backdrop --src "$ART_DIR/keyart.png" \
+python3 tools/store_compose.py backdrop --src "$ART_DIR/keyart-integrated.png" \
   --out-dir assets/images/backgrounds --prefix bg_keyart \
   --variants menu,game --size 1080x1920 --offset -0.55 --pop vivid --calm 0.45
 ```
 
+- Use the panorama Phase 2 saved with `--save-pano`, not the raw generation: the app's own
+  background should carry the same hero and the same seated objects the panels do.
 - Choose `--offset` (with `--zoom` for slack) so the crop contains the **hero and the mechanic**,
   not empty sky. That slice is the world the player will live inside; make it the same slice the
   first panel sells.
@@ -286,7 +351,7 @@ the game and re-capture. Do not proceed and compensate in composition.
 
 ## Phase 5 — compose the concept panels
 
-Slice the same panorama separately for the App Store and Play dimensions with `store_compose.py triptych`. Produce numbered `store-01.png` through `store-0P.png` plus `_panorama-preview.png` for inspection.
+Slice the same panorama separately for the App Store and Play dimensions with `store_compose.py triptych`, passing the **same `--sprite` list in the same order** so both sets lead with the same hero on panel 1 and carry the same objects. Produce numbered `store-01.png` through `store-0P.png` plus `_panorama-preview.png` for inspection.
 
 **Slice with a seam allowance.** The store does not show the first panels edge to edge — the
 carousel puts a gap between every pair. Butt-joined panels therefore do *not* reconstruct the
@@ -306,11 +371,18 @@ Vision-check the stitched preview — it paints the store's gutters in, so it sh
 page shows, gaps and all:
 
 - Adjacent panels form one continuous image in upload order **across the painted gaps**.
+- **Panel 1 opens on the protagonist**, large enough to be the first thing the eye lands on and
+  recognizable as a character rather than a decorative shape. If the hero is absent, small, or
+  upstaged on panel 1, that panel is wrong no matter how good the rest of the strip is.
+- Every inlaid object reads as part of the picture: standing on something, shadowed at the contact
+  point, lit by the scene, at foreground scale. Anything that looks stuck on gets re-seated
+  (`--sprite-light`, `contact=`, a larger `w`) or removed.
 - No seam cuts the hero's face, central mechanic, reward, decisive action, or an inlaid game object.
 - No letters, fake glyphs, captions, UI, or panel borders appear.
 - The mechanic and category are recognizable without generic casino cues.
 - At least one object from the shared list is unmistakably present, and it is the same object the
   gameplay frames show.
+- The panels are not crowded: a hero and two or three symbols, not a heap.
 - The panorama uses casino-grade tension, depth, tactility, and reward focus while remaining
   unmistakably specific to this game's Design DNA.
 - Colour is rich and the image is bright enough to hold up at thumbnail size.
@@ -324,13 +396,14 @@ virtual stake/risk, reach tension, resolve/reveal, celebrate, and progress. At l
 active core gameplay or its immediate result. Write short English captions that are specific to
 the actual mechanic and avoid payout language.
 
-Use the key art — the same panorama, or the slice adjacent to the last concept panel — as the `--bg`
-behind the device, so the visual language does not change at the boundary between the two halves of
-the listing:
+Use the key art — the integrated panorama from `--save-pano`, or the slice adjacent to the last
+concept panel — as the `--bg` behind the device, so the visual language does not change at the
+boundary between the two halves of the listing, and the game's objects keep appearing behind the
+phone:
 
 ```bash
 python3 tools/store_compose.py showcase --shot "$RAW_DIR/03-spin.png" \
-  --bg "$ART_DIR/keyart.png" --out "$OUT_DIR/store-04.png" --size 1320x2868 \
+  --bg "$ART_DIR/keyart-integrated.png" --out "$OUT_DIR/store-04.png" --size 1320x2868 \
   --caption "Every Spin Counts" --type-mood epic --pop vivid \
   --caption-color "#FFF6DC" --caption-color2 "#F0B34A"
 ```
@@ -343,7 +416,13 @@ Vision-check every composed file for clipping, misspellings, empty glyph boxes, 
 
 ## Phase 7 — feature graphic
 
-Create `feature-graphic-1024x500.png` with `store_compose.py banner`. Use the panorama or a real gameplay frame as the image layer. Render the English game title and tagline with the compositor; never ask the image model to draw them.
+Create `feature-graphic-1024x500.png` with `store_compose.py banner`. Use the **integrated**
+panorama (`$ART_DIR/keyart-integrated.png`) as the image layer, so the graphic carries the hero and
+the seated objects rather than the bare generation. A centre crop of a 3-panel panorama misses panel
+1 entirely, so slide it with `--offset` (`--zoom` for slack) until the hero is in frame *and* clear
+of the furniture: the title lockup and its scrim own the left half, and `--shot` puts the device in
+the right third. Drop `--shot` if the hero needs that room. Render the English game title and
+tagline with the compositor; never ask the image model to draw them.
 
 The feature graphic is for Google Play and may also be included in the press kit.
 
@@ -385,6 +464,9 @@ either inlay the object into the panorama (Phase 2) or surface it in the game an
 (Phases 3–4). Confirm in the same pass that the panels and the gameplay frames share one palette,
 one light direction, and one material language, and that neither set looks flat next to the other.
 
+Record the hero row separately, with the fraction of panel 1 it occupies and the compositor's own
+`inlay hero …` line. Below half the panel width, or absent from panel 1, is a blocker.
+
 ## Phase 10 — store information
 
 Write `$STORE_DIR/STORE_INFO.md` in English with:
@@ -392,6 +474,8 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
 - Build timestamp, category, archetype, title, tagline, and dimensions.
 - An inventory of both screenshot sets, feature graphic, icons, emblem, and verification-only preview.
 - Ordered caption mapping.
+- The hero object, its size on panel 1 as a fraction of the panel, and the supporting objects with
+  the panels they were seated into.
 - The seam allowance used, in pixels, for each set.
 - Exactly what branding was applied to the project — icon, emblem, and every background file the
   key art was wired into, with the screens that now use them.
@@ -414,18 +498,24 @@ Verify the archive contains numbered PNGs in both `store/` and `store-play/` unl
 
 ## Phase 12 — final report
 
-Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range and seam allowance, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
+Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range and seam allowance, the hero on panel 1 and the objects seated into the art, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
 
 ## Quality gates
 
 - Preflight tools and fonts are available.
-- The shared object list exists in `STORE_BRIEF.md` with 3–5 entries and real asset paths.
+- The shared object list exists in `STORE_BRIEF.md` with 3–5 entries, real asset paths, and the
+  hero first.
 - At least one valid phone-aspect raw frame exists; the final selection includes active play and a win/reward state.
 - Gameplay frames were captured **after** branding and the backdrop were applied.
 - Every selected gameplay frame passes the full-viewport gameplay-screen contract; no thumbnail
   field, nested window, core-loop scrolling, disconnected controls, or poor button proportions.
 - The ordered set passes the casino-style storefront grammar: mechanic-first tension, depth,
   tactility, outcome focus, and active/reveal/celebration coverage.
+- Panel 1 leads with the hero at no less than half the panel width, and the compositor reported it
+  as `inlay hero … → panel 1`.
+- Every inlaid object is at least a quarter of a panel wide and reads as seated in the scene —
+  grounded, shadowed at the contact point, lit by the same light — not pasted onto it.
+- No more than five objects are inlaid, and the compositor's crowding warning is unresolved nowhere.
 - Panorama, icon, and emblem share one visual world and pass vision review.
 - Launcher icons are applied unless `--no-apply` was requested.
 - The key art is wired into the game as its background unless `--no-backdrop` was requested, and
@@ -453,7 +543,11 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   sitting on a seam because the preview "looks fine" as a continuous image.
 - Colour-grading, relighting, or retouching a real gameplay frame instead of fixing the game.
 - Drawing fake gameplay, fake values, generated lettering, device frames, or panel separators into model-generated art.
-- Compositing a game object into the key art unlit, unscaled, and unshadowed so it reads as a sticker.
+- Compositing a game object into the key art unlit, unscaled, and unshadowed so it reads as a
+  sticker, or at a size that makes it decoration rather than part of the composition.
+- Opening the listing on anything other than the protagonist: a logo panel, an empty establishing
+  shot, or a first panel where the hero is small, cropped out, or upstaged.
+- Piling more than five objects into the panorama because they are all "real".
 - Generic casino art direction unrelated to the current category and Design DNA.
 - Flat utility-app screenshots with no casino-round tension, outcome focus, or premium depth.
 - Hiding a weak gameplay layout with aggressive cropping, oversized device chrome, captions,

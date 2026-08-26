@@ -11,8 +11,9 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             (`--gutter`, ~100px by default) that is thrown away, because the
             store puts its own gap between screenshots: without it a coin or a
             face crossing a boundary is visibly displaced on the listing page.
-            `--sprite` inlays the game's real objects into the art, so the
-            panels never advertise a world the app does not contain. This is a
+            `--sprite` inlays the game's real objects into the art — hero on
+            panel 1, large, seated in the scene's own light — so the panels
+            never advertise a world the app does not contain. This is a
             *conceptual* poster of the game world, not a screen of the app —
             and it carries NO TEXT: lettering across a panel boundary is cut by
             the store's gutters, and a lockup inside one panel breaks the
@@ -58,17 +59,19 @@ Requires: Pillow + numpy (both already required by tools/cutout.py).
 Examples:
   python3 tools/store_compose.py fonts --font-dir assets/fonts
   python3 tools/store_compose.py triptych --src keyart.png --out store/ \\
-      --panels 3 --size 1320x2868 --gutter 100 \\
-      --sprite assets/images/sprites/eagle.png \\
-      --sprite assets/images/sprites/lightning.png@panel=2,w=0.24 \\
+      --panels 3 --size 1320x2868 --gutter 100 --save-pano art/keyart-integrated.png \\
+      --sprite assets/images/sprites/eagle.png@hero \\
+      --sprite assets/images/sprites/lightning.png@panel=2 \\
       --sprite assets/images/sprites/shield.png --sprite-glow-color "#F0B34A"
-  python3 tools/store_compose.py backdrop --src keyart.png \\
+  python3 tools/store_compose.py backdrop --src art/keyart-integrated.png \\
       --out-dir assets/images/backgrounds --variants menu,game --offset -0.6
-  python3 tools/store_compose.py showcase --shot raw/02-menu.png --bg keyart.png \\
+  python3 tools/store_compose.py showcase --shot raw/02-menu.png \\
+      --bg art/keyart-integrated.png \\
       --out store/store-04.png --size 1320x2868 --caption "Every Spin Counts" \\
       --type-mood epic --caption-color "#FFF6DC" --caption-color2 "#F0B34A"
   python3 tools/store_compose.py showcase ... --size play   # 9:16 set for Play
-  python3 tools/store_compose.py banner --keyart keyart.png --shot raw/02-menu.png \\
+  python3 tools/store_compose.py banner --keyart art/keyart-integrated.png \\
+      --shot raw/02-menu.png --offset -0.6 \\
       --out store/feature-graphic-1024x500.png --title "Zeus Slots" \\
       --tagline "Match. Chain. Ascend." --type-mood epic --title-color2 "#F0B34A"
   python3 tools/store_compose.py icon --src icon_art.png --fg-src emblem.png \\
@@ -1146,16 +1149,39 @@ def seam_report(pano: Image.Image, panels: int, panel_w: int, gutter: int) -> No
              f"calm space {i}/{panels} of the way across.")
 
 
-# Where auto-placed props land inside their panel. Cycled, so three props read
-# as a composed scene instead of a row of stickers at one height.
-_AUTO_X = (0.30, 0.70, 0.50, 0.38, 0.66)
-_AUTO_Y = (0.66, 0.58, 0.73, 0.62, 0.69)
-_AUTO_W = 0.22
-_SPRITE_KEYS = ("x", "y", "w", "rot", "glow", "shadow", "opacity", "panel")
+# How auto-placed game objects are sized, where they land, and how they are
+# seated INTO the picture rather than onto it.
+#
+# The publisher's designer sent the first kit back with two notes: the acting
+# character was not on the first screen, and the game's own objects were "not
+# worked into the design at all, and far too small" — pasted on rather than built
+# in. Their own reference leads with the character filling most of the leftmost
+# panel and carries the symbols large in the foreground, lit by the same scene.
+#
+# So: the first object is the HERO and it takes panel 1, props are about a third
+# of a panel wide instead of a fifth, everything is anchored by its FOOT so it
+# stands on the picture's ground plane (the nearest ones deliberately running
+# off the bottom edge, the way a real foreground element does), and every object
+# is seated with a contact shadow, an edge light-wrap and a colour cast sampled
+# from the art underneath it.
+
+HERO_W, HERO_H = 0.58, 0.66       # the hero, as fractions of ONE panel
+HERO_X, HERO_FOOT = 0.46, 1.04    # foot past the frame: the hero stands in front
+PROP_H = 0.42                     # height cap for a supporting object
+# Cycled, so props read as a composed scene at three depths instead of a row of
+# stickers at one height and one size.
+_PROP_W = (0.36, 0.29, 0.33, 0.26, 0.30)
+_PROP_X = (0.34, 0.66, 0.50, 0.30, 0.70)
+_PROP_FOOT = (1.02, 0.88, 0.97, 0.84, 1.00)
+CROWDED = 5                       # past this the same designer says it is a heap
+DEFAULT_SPRITE_LIGHT = 0.35       # how hard an object is pulled into the scene
+_SPRITE_KEYS = ("x", "y", "w", "rot", "glow", "shadow", "opacity", "panel",
+                "bleed", "contact", "light")
+_SPRITE_FLAGS = ("hero", "prop")
 
 
 def parse_sprite_spec(spec: str) -> dict:
-    """`path[@x=0.3,y=0.6,w=0.22,rot=-8,glow=0.3,shadow=0.5,opacity=1,panel=2]`."""
+    """`path[@hero|prop,x=0.3,y=0.6,w=0.34,rot=-8,bleed=0.05,contact=0.6,...]`."""
     path, _, tail = str(spec).partition("@")
     path = path.strip()
     if not path:
@@ -1164,9 +1190,14 @@ def parse_sprite_spec(spec: str) -> dict:
     for chunk in (c.strip() for c in tail.split(",") if c.strip()):
         key, sep, value = chunk.partition("=")
         key = key.strip().lower()
+        if not sep and key in _SPRITE_FLAGS:
+            out["role"] = key
+            continue
         if not sep or key not in _SPRITE_KEYS:
-            die(f"--sprite {spec}: unusable placement key {chunk!r} — use "
-                f"{'/'.join(_SPRITE_KEYS)} (e.g. eagle.png@x=0.3,y=0.6,w=0.22)")
+            die(f"--sprite {spec}: unusable placement key {chunk!r} — use the "
+                f"{'/'.join(_SPRITE_FLAGS)} role flag or "
+                f"{'/'.join(_SPRITE_KEYS)}=N (e.g. eagle.png@hero or "
+                f"gem.png@x=0.3,y=0.6,w=0.34)")
         try:
             out[key] = float(value)
         except ValueError:
@@ -1174,26 +1205,130 @@ def parse_sprite_spec(spec: str) -> dict:
     return out
 
 
+def plate_patch(base: Image.Image, x0: int, y0: int, w: int, h: int) -> Image.Image:
+    """The art under a sprite's box, edge-extended where the box leaves the canvas.
+
+    An object that bleeds past the bottom of the frame still needs something to
+    sample its light from, and PIL's out-of-bounds crop fill is black — which
+    would smear a dark band into exactly the foreground object the panel leads
+    with.
+    """
+    bx0, by0 = max(0, x0), max(0, y0)
+    bx1, by1 = min(base.width, x0 + w), min(base.height, y0 + h)
+    if bx1 <= bx0 or by1 <= by0:
+        return Image.new("RGBA", (max(1, w), max(1, h)), (0, 0, 0, 255))
+    crop = np.asarray(base.crop((bx0, by0, bx1, by1)).convert("RGBA"))
+    pad = ((by0 - y0, (y0 + h) - by1), (bx0 - x0, (x0 + w) - bx1), (0, 0))
+    return Image.fromarray(np.pad(crop, pad, mode="edge"), "RGBA")
+
+
+def seat_in_scene(art: Image.Image, plate: Image.Image, light: float) -> Image.Image:
+    """Make a cutout share the plate's light instead of sitting on top of it.
+
+    Two compositing passes, both cheap and both the difference between "inlaid"
+    and "sticker": a colour cast that pulls the object toward the light it is
+    standing in, and a light-wrap that spills the surrounding art over the
+    object's own rim, the way a lit edge actually behaves.
+    """
+    amount = max(0.0, min(1.0, light))
+    if amount <= 0:
+        return art
+    arr = np.asarray(art, dtype=np.float32) / 255.0
+    rgb, alpha = arr[..., :3], arr[..., 3:4]
+    covered = float(alpha.sum())
+    if covered < 1.0:
+        return art
+
+    plate_rgb = np.asarray(plate.convert("RGBA"), dtype=np.float32)[..., :3] / 255.0
+    # Mean of the art the object actually covers — its local light, not the
+    # panorama's global average, so an object in a gold pool warms and one in a
+    # blue shadow cools.
+    mean = (plate_rgb * alpha).sum(axis=(0, 1)) / covered
+    tint = 0.34 * amount
+    rgb = rgb + (mean[None, None, :] - rgb) * tint
+    art = Image.fromarray(
+        (np.clip(np.concatenate([rgb, alpha], axis=-1), 0.0, 1.0) * 255 + 0.5)
+        .astype(np.uint8), "RGBA")
+
+    radius = max(2.0, art.width * 0.07)
+    blurred = np.asarray(art.getchannel("A").filter(
+        ImageFilter.GaussianBlur(radius)), dtype=np.float32) / 255.0
+    # Inside-edge band: opaque here, but close enough to an edge that the blur
+    # has already fallen off. Zero deep inside the object and zero outside it.
+    band = np.clip(alpha[..., 0] * (1.0 - blurred), 0.0, 1.0) ** 0.85
+    wrap = plate.convert("RGBA").filter(ImageFilter.GaussianBlur(radius * 1.6))
+    wrap.putalpha(Image.fromarray(
+        (band * 0.85 * amount * 255 + 0.5).astype(np.uint8), "L"))
+    return Image.alpha_composite(art, wrap)
+
+
+def contact_shadow(pano: Image.Image, cx: int, foot_y: int, width: int,
+                   strength: float) -> None:
+    """Ground the object where it meets the floor of the scene.
+
+    An offset drop shadow says "this is a layer above the picture"; a squashed,
+    darkest-at-the-contact-point ellipse says "this is standing there".
+    """
+    s = max(0.0, min(1.0, strength))
+    if s <= 0 or width <= 0:
+        return
+    sw, sh = max(8, round(width * 1.02)), max(4, round(width * 0.19))
+    blur = max(2.0, sw * 0.075)
+    pad = int(blur * 3)
+    mask = Image.new("L", (sw + 2 * pad, sh + 2 * pad), 0)
+    ImageDraw.Draw(mask).ellipse([pad, pad, pad + sw - 1, pad + sh - 1], fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(blur))
+    mask = mask.point(lambda v: int(v * s * 0.82))
+    layer = Image.new("RGBA", mask.size, (0, 0, 0, 0))
+    layer.putalpha(mask)
+    paste_clipped(pano, layer, cx - layer.width // 2, foot_y - layer.height // 2)
+
+
 def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
-                  panel_h: int, gutter: int, glow_color: str = "#FFFFFF") -> list[str]:
+                  panel_h: int, gutter: int, glow_color: str = "#FFFFFF",
+                  light: float = DEFAULT_SPRITE_LIGHT) -> list[str]:
     """Composite the game's OWN objects into the concept art.
 
     Stores reject listings whose first panels advertise a world the app does not
     contain. Describing the game's symbols to an image model produces something
     similar; pasting the shipped sprite produces the same object. This does the
-    second — and keeps every prop clear of the seam allowance, so a store gutter
-    can never bisect one.
+    second — leading with the hero on panel 1, at a size that survives the
+    thumbnail strip, seated in the scene's own light, and always clear of the
+    seam allowance so a store gutter can never bisect one.
     """
-    placed: list[str] = []
-    for i, raw in enumerate(specs or []):
-        spec = parse_sprite_spec(raw)
+    parsed = [parse_sprite_spec(raw) for raw in (specs or [])]
+    if not parsed:
+        return []
+    if len(parsed) > CROWDED:
+        warn(f"{len(parsed)} objects inlaid — the panorama is a picture, not a sprite "
+             f"sheet. A hero plus two or three symbols reads better at thumbnail "
+             f"size than a pile; keep it to {CROWDED}.")
+    if not any(spec.get("role") for spec in parsed):
+        # The store shows screenshot 1 at full size and the rest as thumbnails,
+        # so the protagonist leads unless the caller says otherwise.
+        parsed[0]["role"] = "hero"
+
+    placements: list[dict] = []
+    prop_i = 0
+    for spec in parsed:
+        hero = spec.get("role") == "hero"
         art = load_image(spec["path"], "game object")
         if art.getchannel("A").getextrema()[0] == 255:
             warn(f"{spec['path']} has no transparency — run "
                  f"`python3 tools/cutout.py {spec['path']} --type sprite` first, or the "
                  "key art will show the sprite's background box")
-        art = contain(art, max(8, round(panel_w * float(spec.get("w", _AUTO_W)))),
-                      round(panel_h * 0.55))
+        w_frac = float(spec.get("w", HERO_W if hero else _PROP_W[prop_i % len(_PROP_W)]))
+        source_w = art.width
+        art = contain(art, max(8, round(panel_w * w_frac)),
+                      round(panel_h * (HERO_H if hero else PROP_H)))
+        if art.width > source_w * 2:
+            # Foreground scale is the whole point now, so a small in-game sprite
+            # gets blown up much harder than it used to. Say so before it lands
+            # soft on the one screenshot the store shows at full size.
+            warn(f"{Path(spec['path']).name} is only {source_w}px wide and is being "
+                 f"upscaled {art.width / source_w:.1f}× to {art.width}px — export the "
+                 "asset larger, or draw this object into the panorama in Phase 1 "
+                 "instead of compositing it")
         rotation = float(spec.get("rot", 0.0))
         if rotation:
             art = art.rotate(rotation, resample=Image.BICUBIC, expand=True)
@@ -1205,19 +1340,37 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             cx = round(float(spec["x"]) * pano.width)
             panel = max(0, min(panels - 1, int(cx // (panel_w + gutter))))
         else:
-            panel = (int(spec["panel"]) - 1 if "panel" in spec else i % panels)
+            if "panel" in spec:
+                panel = int(spec["panel"]) - 1
+            elif hero:
+                panel = 0
+            else:
+                # Props fan out from panel 2 so they do not crowd the hero.
+                panel = (prop_i + 1) % panels
             panel = max(0, min(panels - 1, panel))
-            cx = round(panel_span(panel, panel_w, gutter)[0]
-                       + _AUTO_X[i % len(_AUTO_X)] * panel_w)
-        cy = round(float(spec["y"]) * pano.height if "y" in spec
-                   else _AUTO_Y[i % len(_AUTO_Y)] * pano.height)
+            frac = HERO_X if hero else _PROP_X[prop_i % len(_PROP_X)]
+            cx = round(panel_span(panel, panel_w, gutter)[0] + frac * panel_w)
+
+        # Objects are anchored by the foot, not the centre: that is what makes
+        # them stand on the scene's ground plane instead of floating in it.
+        if "y" in spec:
+            cy = round(float(spec["y"]) * pano.height)
+        else:
+            foot = (pano.height + float(spec["bleed"]) * art.height
+                    if "bleed" in spec
+                    else pano.height * (HERO_FOOT if hero
+                                        else _PROP_FOOT[prop_i % len(_PROP_FOOT)]))
+            cy = round(foot - art.height / 2)
+        if not hero:
+            prop_i += 1
 
         left, right = panel_span(panel, panel_w, gutter)
         margin = round(panel_w * 0.04)
         if art.width > panel_w - 2 * margin:
             warn(f"{Path(spec['path']).name} is {art.width}px wide — wider than one "
                  f"{panel_w}px panel's safe band; scaling it down to fit")
-            art = contain(art, panel_w - 2 * margin, round(panel_h * 0.55))
+            art = contain(art, panel_w - 2 * margin,
+                          round(panel_h * (HERO_H if hero else PROP_H)))
         half = art.width // 2
         lo, hi = left + half + margin, right - half - margin
         if not lo <= cx <= hi:
@@ -1226,26 +1379,54 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                  f"moved to x={moved}px so the store's gutter cannot cut it in half")
             cx = moved
 
-        glow = max(0.0, float(spec.get("glow", 0.28)))
-        if glow:
+        placements.append({
+            "art": art, "cx": cx, "cy": cy, "panel": panel, "hero": hero,
+            "name": Path(spec["path"]).name,
+            "glow": max(0.0, float(spec.get("glow", 0.28))),
+            "shadow": max(0.0, min(1.0, float(spec.get("shadow", 0.42)))),
+            "contact": max(0.0, min(1.0, float(spec.get("contact", 0.62)))),
+            "light": max(0.0, min(1.0, float(spec.get("light", light)))),
+        })
+
+    if not any(p["panel"] == 0 for p in placements):
+        warn("no game object landed on panel 1 — that is the screenshot the store "
+             "shows at full size, so the protagonist belongs there")
+
+    placed: list[str] = []
+    # Farthest first: the smaller an object is the deeper it sits, so painting in
+    # ascending size order lets the foreground overlap the midground the way a
+    # drawn scene does, instead of whichever order the caller typed.
+    for p in sorted(placements, key=lambda p: p["art"].width):
+        art, cx, cy = p["art"], p["cx"], p["cy"]
+        x0, y0 = cx - art.width // 2, cy - art.height // 2
+        art = seat_in_scene(art, plate_patch(pano, x0, y0, art.width, art.height),
+                            p["light"])
+
+        if p["glow"]:
             radius = max(2.0, art.width * 0.22)
             bleed = int(radius * 2)
             padded = Image.new("RGBA", (art.width + 2 * bleed, art.height + 2 * bleed),
                                (0, 0, 0, 0))
             padded.alpha_composite(art, (bleed, bleed))
             mask = padded.getchannel("A").filter(ImageFilter.GaussianBlur(radius))
-            mask = mask.point(lambda v: int(min(255, v * glow * 1.6)))
+            mask = mask.point(lambda v: int(min(255, v * p["glow"] * 1.6)))
             halo = Image.new("RGBA", padded.size, hex_rgba(glow_color)[:3] + (0,))
             halo.putalpha(mask)
             paste_clipped(pano, halo, cx - padded.width // 2, cy - padded.height // 2)
 
-        shadow = max(0.0, min(1.0, float(spec.get("shadow", 0.5))))
-        node, pad = ((art, 0) if shadow <= 0 else
-                     drop_shadow(art, blur=max(4, round(art.width * 0.06)),
-                                 dy=round(art.width * 0.03), opacity=shadow))
+        foot = cy + art.height // 2
+        if foot < pano.height:
+            # An object cropped by the bottom edge has no visible floor to
+            # shadow; one standing inside the frame does, and needs it.
+            contact_shadow(pano, cx, foot, art.width, p["contact"])
+
+        node, pad = ((art, 0) if p["shadow"] <= 0 else
+                     drop_shadow(art, blur=max(4, round(art.width * 0.05)),
+                                 dy=round(art.width * 0.02), opacity=p["shadow"]))
         paste_clipped(pano, node, cx - art.width // 2 - pad, cy - art.height // 2 - pad)
-        placed.append(f"{Path(spec['path']).name} → panel {panel + 1} "
-                      f"@ {cx},{cy} ({art.width}px)")
+        placed.append(f"{'hero  ' if p['hero'] else 'prop  '}{p['name']} → panel "
+                      f"{p['panel'] + 1} @ {cx},{cy} ({art.width}px, "
+                      f"{art.width / panel_w:.0%} of the panel)")
     for line in placed:
         info(f"inlay  {line}")
     return placed
@@ -1293,7 +1474,7 @@ def cmd_triptych(args) -> None:
     pano = pop_grade(pano, args.pop, vibrance=args.vibrance, lift=args.lift,
                      contrast=args.contrast, bloom=args.bloom)
     inlay_sprites(pano, getattr(args, "sprite", []), n, w, h, gutter,
-                  glow_color=args.sprite_glow_color)
+                  glow_color=args.sprite_glow_color, light=args.sprite_light)
     seam_report(pano, n, w, gutter)
 
     out_dir = Path(args.out)
@@ -1305,6 +1486,19 @@ def cmd_triptych(args) -> None:
         path = out_dir / f"{args.prefix}{i + 1:02d}.png"
         total += save_png(panel, path)
         ok(f"{path.name}  {w}×{h}")
+
+    # The integrated panorama — graded, with the game's real objects seated into
+    # it — is the picture the whole kit should share. Save it so the feature
+    # graphic and the in-app backdrop are cut from the same art the panels are,
+    # instead of from the bare model output that has none of the objects in it.
+    if args.save_pano:
+        pano_path = Path(args.save_pano)
+        if pano_path.parent.resolve() == out_dir.resolve():
+            warn(f"--save-pano writes into {out_dir} — `check` would count the panorama "
+                 "as an upload asset. Keep it beside the art (art/keyart-integrated.png).")
+        save_png(pano, Path(args.save_pano))
+        ok(f"{Path(args.save_pano).name}  {pano_w}×{pano_h}  integrated panorama "
+           "(feed this to `banner --keyart` and `backdrop --src`)")
 
     # Stitched preview — a cheap vision check that nothing important (a face,
     # the hero, a coin) is cut by a panel boundary. The gutters are painted in
@@ -1408,8 +1602,12 @@ def cmd_showcase(args) -> None:
 
 def cmd_banner(args) -> None:
     w, h = parse_size(args.size)
-    canvas = pop_grade(cover(load_image(args.keyart, "key art"), w, h), args.pop,
-                       vibrance=args.vibrance, lift=args.lift,
+    # A 3-panel panorama cover-cropped to 1024×500 keeps only its middle — which
+    # is exactly where the hero is not, now that panel 1 leads with it. --offset
+    # slides the crop back onto the protagonist.
+    canvas = pop_grade(cover(load_image(args.keyart, "key art"), w, h,
+                             bias_x=args.offset, zoom=args.zoom),
+                       args.pop, vibrance=args.vibrance, lift=args.lift,
                        contrast=args.contrast, bloom=args.bloom)
 
     if args.shot:
@@ -1737,13 +1935,27 @@ def main() -> None:
     t.add_argument("--sprite", action="append", default=[], metavar="PNG[@k=v,...]",
                    help="composite a REAL game object (a transparent PNG out of "
                         "assets/images/) into the concept art, so the panels advertise "
-                        "objects the app actually contains. Repeatable. Keys: x,y "
-                        "(0..1 of the panorama), w (fraction of one panel), panel "
-                        "(1-based), rot, glow, shadow, opacity. Omit x and props are "
-                        "auto-placed one per panel, always clear of the seams.")
+                        "objects the app actually contains. Repeatable, and the FIRST "
+                        "one is the hero unless a role flag says otherwise: it takes "
+                        f"panel 1 at ~{HERO_W:.2f}× the panel width, because that is "
+                        "the screenshot the store shows at full size. Flags: hero, prop. "
+                        "Keys: x,y (0..1 of the panorama), w (fraction of one panel), "
+                        "panel (1-based), rot, bleed (how far the foot runs past the "
+                        "bottom edge), glow, shadow, contact, light, opacity. Omit x "
+                        "and objects are auto-placed at graded depths, standing on the "
+                        "ground plane and always clear of the seams.")
     t.add_argument("--sprite-glow-color", default="#FFFFFF", metavar="HEX",
-                   help="halo colour behind inlaid props — pass the game's accent so "
+                   help="halo colour behind inlaid objects — pass the game's accent so "
                         "they sit in the art instead of on top of it")
+    t.add_argument("--sprite-light", type=float, default=DEFAULT_SPRITE_LIGHT,
+                   metavar="F",
+                   help="0..1 — how hard each object is pulled into the scene's own "
+                        "light (colour cast from the art it covers + an edge "
+                        f"light-wrap). Default {DEFAULT_SPRITE_LIGHT}; 0 pastes the "
+                        "sprite flat, which is what reads as a sticker.")
+    t.add_argument("--save-pano", metavar="PNG",
+                   help="also write the full graded panorama WITH the objects inlaid, "
+                        "so `banner` and `backdrop` can reuse the same integrated art")
     add_pop_args(t)
     # Retired: the panorama is pure image. Still parsed so a stale caller gets a
     # sentence explaining where the words go, not `unrecognized arguments`.
@@ -1779,6 +1991,13 @@ def main() -> None:
     b.add_argument("--size", default="1024x500")
     b.add_argument("--shot", help="optional in-game frame for the device mockup")
     b.add_argument("--frame", choices=("ios", "android", "none"), default="ios")
+    b.add_argument("--zoom", type=float, default=1.0,
+                   help="oversample factor (>1) creating slack for --offset")
+    b.add_argument("--offset", type=float, default=0.0,
+                   help="-1..1 horizontal crop bias — which slice of a wide panorama "
+                        "becomes the banner. The centre crop of a 3-panel panorama "
+                        "misses the hero on panel 1 entirely; slide it until the hero "
+                        "is in frame and clear of the title column and the device")
     b.add_argument("--title", default="")
     b.add_argument("--tagline", default="")
     add_pop_args(b)
