@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import tempfile
 import unittest
@@ -230,6 +231,171 @@ class InlayTests(unittest.TestCase):
         left, right = store_compose.panel_span(0, self.PANEL_W, self.GUTTER)
         self.assertGreaterEqual(cx - width // 2, left)
         self.assertLessEqual(cx + width // 2, right)
+
+
+class BoardRoleTests(unittest.TestCase):
+    """The mechanic in the key art must be the mechanic in the app.
+
+    A model-drawn reel grid came back from review beside gameplay frames whose
+    board looked nothing like it. `boardplate` builds the field out of the real
+    files and the `board` role seats it; these pin the defaults that make that
+    the short path.
+    """
+
+    PANEL_W, PANEL_H, GUTTER, PANELS = 300, 640, 30, 3
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dir = Path(self._tmp.name)
+        self.quiet_warnings: list[str] = []
+        for name, replacement in (("info", lambda *_: None), ("ok", lambda *_: None),
+                                  ("warn", self.quiet_warnings.append)):
+            original = getattr(store_compose, name)
+            setattr(store_compose, name, replacement)
+            self.addCleanup(setattr, store_compose, name, original)
+
+    def _png(self, name: str, size: tuple[int, int]) -> str:
+        img = Image.new("RGBA", size, (0, 0, 0, 0))
+        ImageDraw.Draw(img).ellipse([0, 0, size[0] - 1, size[1] - 1],
+                                    fill=(220, 40, 60, 255))
+        path = self.dir / name
+        img.save(path)
+        return str(path)
+
+    def _inlay(self, *specs: str) -> list[str]:
+        w = self.PANEL_W * self.PANELS + self.GUTTER * (self.PANELS - 1)
+        pano = Image.new("RGBA", (w, self.PANEL_H), (30, 90, 140, 255))
+        return store_compose.inlay_sprites(pano, list(specs), self.PANELS,
+                                           self.PANEL_W, self.PANEL_H, self.GUTTER)
+
+    def _boardplate(self, **kwargs) -> Image.Image:
+        out = self.dir / kwargs.pop("out", "board.png")
+        args = argparse.Namespace(
+            out=str(out), from_shot=None, rect=None, symbol=[], grid="3x3",
+            frame=None, panel="", tile="", border="", border_width=0.045,
+            cell=64, gap=0.06, pad=0.09, tile_radius=0.16, symbol_pad=0.12,
+            radius=0.05, sheen=0.0, tilt=0.0)
+        for key, value in kwargs.items():
+            setattr(args, key, value)
+        store_compose.cmd_boardplate(args)
+        with Image.open(out) as plate:
+            return plate.convert("RGBA")
+
+    def test_the_field_takes_the_middle_panel_at_foreground_size(self) -> None:
+        # Not the hero's panel, not the last one the carousel crops first, and
+        # big enough that a reviewer can see which game it is.
+        line = self._inlay(self._png("hero.png", (200, 320)),
+                           self._png("board.png", (600, 600)) + "@board")[-1]
+        self.assertTrue(line.startswith("board"), line)
+        self.assertIn("panel 2", line)
+        width = int(line.split("(")[1].split("px")[0])
+        self.assertGreaterEqual(width, self.PANEL_W * 0.6)
+
+    def test_the_field_stands_inside_the_frame_instead_of_bleeding_off_it(self) -> None:
+        # A board cropped by the bottom edge stops reading as a board.
+        line = next(l for l in self._inlay(self._png("b.png", (600, 600)) + "@board")
+                    if l.startswith("board"))
+        cy = int(line.split("@")[1].split(",")[1].split()[0])
+        height = 600 * int(line.split("(")[1].split("px")[0]) // 600
+        self.assertLess(cy + height // 2, self.PANEL_H)
+
+    def test_a_board_does_not_consume_a_prop_slot(self) -> None:
+        # The board is the mechanic, not one of the two or three symbols, so it
+        # must not push a prop off its depth in the fan-out.
+        with_board = self._inlay(self._png("hero.png", (200, 320)),
+                                 self._png("board.png", (600, 600)) + "@board",
+                                 self._png("gem.png", (160, 160)))
+        without = self._inlay(self._png("hero.png", (200, 320)),
+                              self._png("gem.png", (160, 160)))
+        gem = next(l for l in with_board if "gem.png" in l)
+        plain = next(l for l in without if "gem.png" in l)
+        self.assertEqual(gem.split("@")[1], plain.split("@")[1])
+
+    def test_a_plate_is_built_from_the_real_symbol_files(self) -> None:
+        red, green = (220, 40, 60), (40, 200, 90)
+        for name, colour in (("s0.png", red), ("s1.png", green)):
+            img = Image.new("RGBA", (128, 128), colour + (255,))
+            img.save(self.dir / name)
+        plate = self._boardplate(symbol=[str(self.dir / "s0.png"),
+                                         str(self.dir / "s1.png")],
+                                 grid="3x3", tile="#1E2A6B")
+        arr = np.asarray(plate.convert("RGBA"))
+        opaque = arr[arr[..., 3] > 250][:, :3]
+        # Both shipped symbols survive into the plate untouched: this is the
+        # whole point — the same objects, not similar ones.
+        for colour in (red, green):
+            self.assertTrue((np.abs(opaque.astype(int) - colour).sum(axis=1) < 12).any(),
+                            f"{colour} is missing from the plate")
+
+    def test_a_plate_lifted_from_a_frame_keeps_the_captured_pixels(self) -> None:
+        shot = Image.new("RGBA", (400, 800), (10, 14, 40, 255))
+        ImageDraw.Draw(shot).rectangle([100, 200, 299, 599], fill=(30, 44, 120, 255))
+        shot.save(self.dir / "shot.png")
+        plate = self._boardplate(out="lift.png", from_shot=str(self.dir / "shot.png"),
+                                 rect="0.25,0.25,0.5,0.5", radius=0.0)
+        self.assertEqual(plate.size, (200, 400))
+        self.assertEqual(plate.convert("RGBA").getpixel((100, 200))[:3], (30, 44, 120))
+
+    def test_tagging_the_board_does_not_cost_the_set_its_hero(self) -> None:
+        # `@board` is a role flag, so an explicit-role check that is not
+        # hero-specific would silently demote the protagonist to a prop and
+        # leave panel 1 to whatever the fan-out put there.
+        lines = self._inlay(self._png("hero.png", (200, 320)),
+                            self._png("board.png", (600, 600)) + "@board")
+        hero = next(line for line in lines if line.startswith("hero"))
+        self.assertIn("hero.png", hero)
+        self.assertIn("panel 1", hero)
+
+    def test_a_neutral_plate_is_called_out(self) -> None:
+        # Generic colours would advertise a field the app does not have.
+        self._boardplate(out="neutral.png", symbol=[self._png("s.png", (64, 64))])
+        self.assertTrue(any("does not have" in m for m in self.quiet_warnings),
+                        self.quiet_warnings)
+
+
+class OcclusionTests(unittest.TestCase):
+    """"Not just insert a player" — the slide has to contain it.
+
+    Light and a contact shadow make a cutout lit by the picture. Only the
+    scene's own foreground closing back over its feet makes it stand inside
+    the picture rather than on it.
+    """
+
+    def _pano(self) -> Image.Image:
+        pano = Image.new("RGBA", (200, 200), (20, 40, 120, 255))
+        # A foreground floor across the bottom third, the way Phase 1 is asked
+        # to draw one.
+        ImageDraw.Draw(pano).rectangle([0, 140, 199, 199], fill=(220, 150, 40, 255))
+        return pano
+
+    def test_the_foreground_comes_back_over_the_object(self) -> None:
+        pano = self._pano()
+        front = store_compose.scene_front(pano, 40, 20, 120, 180, 0.2)
+        self.assertIsNotNone(front)
+        layer, x, y = front
+        self.assertEqual((x, y), (40, 164))
+        rgb = np.asarray(layer.convert("RGB"), dtype=np.float32)
+        # It is the floor that is lifted, not the sky.
+        self.assertGreater(rgb[..., 0].mean(), rgb[..., 2].mean())
+
+    def test_it_fades_in_so_there_is_no_cut_line(self) -> None:
+        layer, _, _ = store_compose.scene_front(self._pano(), 40, 20, 120, 180, 0.2)
+        alpha = np.asarray(layer.getchannel("A"), dtype=np.float32)
+        self.assertLess(alpha[0].mean(), 8)
+        self.assertGreater(alpha[-1].mean(), 240)
+
+    def test_art_off_the_canvas_is_never_smeared_back(self) -> None:
+        # The hero's feet run past the bottom edge on purpose. Edge-extended
+        # rows would paint a band of the last visible pixel row over its shins.
+        pano = self._pano()
+        layer, _, y = store_compose.scene_front(pano, 40, 100, 120, 140, 0.3)
+        self.assertLessEqual(y + layer.height, pano.height)
+
+    def test_a_request_with_nothing_to_hide_behind_is_refused(self) -> None:
+        pano = self._pano()
+        self.assertIsNone(store_compose.scene_front(pano, 40, 205, 120, 100, 0.3))
+        self.assertIsNone(store_compose.scene_front(pano, 40, 20, 120, 180, 0.0))
 
 
 class SeatingTests(unittest.TestCase):

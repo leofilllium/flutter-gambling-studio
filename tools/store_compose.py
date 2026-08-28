@@ -1164,20 +1164,34 @@ def seam_report(pano: Image.Image, panels: int, panel_w: int, gutter: int) -> No
 # off the bottom edge, the way a real foreground element does), and every object
 # is seated with a contact shadow, an edge light-wrap and a colour cast sampled
 # from the art underneath it.
+#
+# The next round of notes went one step further: "not just insert a player —
+# the slide itself has to contain the player, as its context". A cutout that is
+# lit correctly but sits in front of *everything* still reads as a layer. So the
+# hero is also OCCLUDED: after it is pasted, the scene's own foreground band is
+# composited back over its feet, which is the one cue that says the picture was
+# drawn around it. Phase 1 draws the berth, this closes the scene over it.
 
 HERO_W, HERO_H = 0.58, 0.66       # the hero, as fractions of ONE panel
 HERO_X, HERO_FOOT = 0.46, 1.04    # foot past the frame: the hero stands in front
+HERO_OCCLUDE = 0.14               # of its height, taken back by the foreground
 PROP_H = 0.42                     # height cap for a supporting object
 # Cycled, so props read as a composed scene at three depths instead of a row of
 # stickers at one height and one size.
 _PROP_W = (0.36, 0.29, 0.33, 0.26, 0.30)
 _PROP_X = (0.34, 0.66, 0.50, 0.30, 0.70)
 _PROP_FOOT = (1.02, 0.88, 0.97, 0.84, 1.00)
+# The play field built out of the game's REAL symbols (`boardplate`). It is the
+# picture's mechanic, so it takes the middle panel at nearly full width and
+# stands inside the frame instead of bleeding off the bottom like a foreground
+# prop — a board cropped by the edge stops reading as a board.
+BOARD_W, BOARD_H = 0.72, 0.52
+BOARD_X, BOARD_FOOT = 0.50, 0.88
 CROWDED = 5                       # past this the same designer says it is a heap
 DEFAULT_SPRITE_LIGHT = 0.35       # how hard an object is pulled into the scene
 _SPRITE_KEYS = ("x", "y", "w", "rot", "glow", "shadow", "opacity", "panel",
-                "bleed", "contact", "light")
-_SPRITE_FLAGS = ("hero", "prop")
+                "bleed", "contact", "light", "occlude")
+_SPRITE_FLAGS = ("hero", "prop", "board")
 
 
 def parse_sprite_spec(spec: str) -> dict:
@@ -1262,6 +1276,42 @@ def seat_in_scene(art: Image.Image, plate: Image.Image, light: float) -> Image.I
     return Image.alpha_composite(art, wrap)
 
 
+def scene_front(pano: Image.Image, x0: int, y0: int, w: int, h: int,
+                amount: float):
+    """Lift the scene's foreground so it can be closed back over an object's feet.
+
+    Call this *before* the object is pasted and composite the result after:
+    light and a contact shadow make a cutout *lit by* the picture; only
+    occlusion makes it *inside* the picture.
+
+    It takes the strip of art the object's lowest band covers — the floor, the
+    rail, the chips, whatever the panorama drew there — and returns it with a
+    soft vertical ramp, so the object ends up standing behind the foreground
+    instead of in front of the whole illustration.
+
+    Only art that is actually on the canvas is reused: a foot that runs past the
+    bottom edge has no floor to hide behind, and edge-extended rows would smear
+    a band of the last visible pixel row across the hero's shins.
+    """
+    strength = max(0.0, min(1.0, amount))
+    band = int(round(h * strength))
+    if band < 2:
+        return None
+    bottom = min(pano.height, y0 + h)
+    top = max(0, bottom - band, y0)
+    bx0, bx1 = max(0, x0), min(pano.width, x0 + w)
+    if bottom - top < 2 or bx1 - bx0 < 2:
+        return None
+    front = pano.crop((bx0, top, bx1, bottom)).convert("RGBA")
+    # 0 at the top of the band, opaque at the bottom: the foreground rises over
+    # the object the way a floor edge does, with no visible cut line.
+    ramp = np.linspace(0.0, 1.0, front.height, dtype=np.float32) ** 1.6
+    alpha = np.asarray(front.getchannel("A"), dtype=np.float32) / 255.0
+    front.putalpha(Image.fromarray(
+        (np.clip(alpha * ramp[:, None], 0.0, 1.0) * 255 + 0.5).astype(np.uint8), "L"))
+    return front, bx0, top
+
+
 def contact_shadow(pano: Image.Image, cx: int, foot_y: int, width: int,
                    strength: float) -> None:
     """Ground the object where it meets the floor of the scene.
@@ -1303,24 +1353,31 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         warn(f"{len(parsed)} objects inlaid — the panorama is a picture, not a sprite "
              f"sheet. A hero plus two or three symbols reads better at thumbnail "
              f"size than a pile; keep it to {CROWDED}.")
-    if not any(spec.get("role") for spec in parsed):
+    if not any(spec.get("role") == "hero" for spec in parsed):
         # The store shows screenshot 1 at full size and the rest as thumbnails,
-        # so the protagonist leads unless the caller says otherwise.
-        parsed[0]["role"] = "hero"
+        # so the protagonist leads unless the caller names one itself. Tagging
+        # some *other* object — a board, a prop — must not quietly cost the set
+        # its hero: only an explicit `@hero` does.
+        lead = next((spec for spec in parsed if spec.get("role") != "board"), None)
+        if lead is not None:
+            lead["role"] = "hero"
 
     placements: list[dict] = []
     prop_i = 0
     for spec in parsed:
-        hero = spec.get("role") == "hero"
+        role = spec.get("role")
+        hero, board = role == "hero", role == "board"
         art = load_image(spec["path"], "game object")
         if art.getchannel("A").getextrema()[0] == 255:
             warn(f"{spec['path']} has no transparency — run "
                  f"`python3 tools/cutout.py {spec['path']} --type sprite` first, or the "
                  "key art will show the sprite's background box")
-        w_frac = float(spec.get("w", HERO_W if hero else _PROP_W[prop_i % len(_PROP_W)]))
+        default_w = (HERO_W if hero else BOARD_W if board
+                     else _PROP_W[prop_i % len(_PROP_W)])
+        max_h = HERO_H if hero else BOARD_H if board else PROP_H
+        w_frac = float(spec.get("w", default_w))
         source_w = art.width
-        art = contain(art, max(8, round(panel_w * w_frac)),
-                      round(panel_h * (HERO_H if hero else PROP_H)))
+        art = contain(art, max(8, round(panel_w * w_frac)), round(panel_h * max_h))
         if art.width > source_w * 2:
             # Foreground scale is the whole point now, so a small in-game sprite
             # gets blown up much harder than it used to. Say so before it lands
@@ -1344,11 +1401,17 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                 panel = int(spec["panel"]) - 1
             elif hero:
                 panel = 0
+            elif board:
+                # The mechanic sits in the middle of the strip: away from the
+                # hero's panel, and never on the last one, which the store
+                # crops first on a narrow carousel.
+                panel = panels // 2
             else:
                 # Props fan out from panel 2 so they do not crowd the hero.
                 panel = (prop_i + 1) % panels
             panel = max(0, min(panels - 1, panel))
-            frac = HERO_X if hero else _PROP_X[prop_i % len(_PROP_X)]
+            frac = (HERO_X if hero else BOARD_X if board
+                    else _PROP_X[prop_i % len(_PROP_X)])
             cx = round(panel_span(panel, panel_w, gutter)[0] + frac * panel_w)
 
         # Objects are anchored by the foot, not the centre: that is what makes
@@ -1358,10 +1421,10 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         else:
             foot = (pano.height + float(spec["bleed"]) * art.height
                     if "bleed" in spec
-                    else pano.height * (HERO_FOOT if hero
+                    else pano.height * (HERO_FOOT if hero else BOARD_FOOT if board
                                         else _PROP_FOOT[prop_i % len(_PROP_FOOT)]))
             cy = round(foot - art.height / 2)
-        if not hero:
+        if not hero and not board:
             prop_i += 1
 
         left, right = panel_span(panel, panel_w, gutter)
@@ -1369,8 +1432,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         if art.width > panel_w - 2 * margin:
             warn(f"{Path(spec['path']).name} is {art.width}px wide — wider than one "
                  f"{panel_w}px panel's safe band; scaling it down to fit")
-            art = contain(art, panel_w - 2 * margin,
-                          round(panel_h * (HERO_H if hero else PROP_H)))
+            art = contain(art, panel_w - 2 * margin, round(panel_h * max_h))
         half = art.width // 2
         lo, hi = left + half + margin, right - half - margin
         if not lo <= cx <= hi:
@@ -1381,11 +1443,16 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
 
         placements.append({
             "art": art, "cx": cx, "cy": cy, "panel": panel, "hero": hero,
-            "name": Path(spec["path"]).name,
-            "glow": max(0.0, float(spec.get("glow", 0.28))),
+            "board": board, "name": Path(spec["path"]).name,
+            "glow": max(0.0, float(spec.get("glow", 0.22 if board else 0.28))),
             "shadow": max(0.0, min(1.0, float(spec.get("shadow", 0.42)))),
             "contact": max(0.0, min(1.0, float(spec.get("contact", 0.62)))),
             "light": max(0.0, min(1.0, float(spec.get("light", light)))),
+            # Only the hero is occluded by default. It is the one object the
+            # panorama is composed around, and the one the designer reads as
+            # "inserted" the moment it floats in front of the whole scene.
+            "occlude": max(0.0, min(0.5, float(
+                spec.get("occlude", HERO_OCCLUDE if hero else 0.0)))),
         })
 
     if not any(p["panel"] == 0 for p in placements):
@@ -1420,13 +1487,29 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             # shadow; one standing inside the frame does, and needs it.
             contact_shadow(pano, cx, foot, art.width, p["contact"])
 
+        # Lifted BEFORE the paste, composited AFTER it: the object ends up
+        # standing behind the scene's foreground instead of on top of the
+        # whole illustration, which is the difference between a picture drawn
+        # around the character and a character dropped onto a picture.
+        front = scene_front(pano, x0, y0, art.width, art.height, p["occlude"])
+
         node, pad = ((art, 0) if p["shadow"] <= 0 else
                      drop_shadow(art, blur=max(4, round(art.width * 0.05)),
                                  dy=round(art.width * 0.02), opacity=p["shadow"]))
         paste_clipped(pano, node, cx - art.width // 2 - pad, cy - art.height // 2 - pad)
-        placed.append(f"{'hero  ' if p['hero'] else 'prop  '}{p['name']} → panel "
+        if front is not None:
+            layer, fx, fy = front
+            paste_clipped(pano, layer, fx, fy)
+        if p["occlude"] > 0 and front is None:
+            warn(f"{p['name']} asked to be occluded but there is no scene under its "
+                 "lowest band to close over it — it will read as a layer in front of "
+                 "the picture. Move it up (y=/bleed=) or draw a foreground into the "
+                 "panorama at that spot")
+        role = "hero  " if p["hero"] else "board " if p["board"] else "prop  "
+        seating = " + occluded by the foreground" if front is not None else ""
+        placed.append(f"{role}{p['name']} → panel "
                       f"{p['panel'] + 1} @ {cx},{cy} ({art.width}px, "
-                      f"{art.width / panel_w:.0%} of the panel)")
+                      f"{art.width / panel_w:.0%} of the panel){seating}")
     for line in placed:
         info(f"inlay  {line}")
     return placed
@@ -1522,6 +1605,157 @@ def cmd_triptych(args) -> None:
     if not gutter:
         warn("--gutter 0: panels are butt-joined, so anything crossing a seam will look "
              "displaced once the store puts its own gap between the screenshots")
+
+
+def parse_rect(spec: str, w: int, h: int) -> tuple[int, int, int, int]:
+    """`x,y,w,h` — fractions of the frame when <= 1, pixels otherwise."""
+    parts = [c.strip() for c in str(spec).split(",")]
+    if len(parts) != 4:
+        die(f"--rect {spec!r}: expected x,y,w,h")
+    try:
+        nums = [float(v) for v in parts]
+    except ValueError:
+        die(f"--rect {spec!r}: every value must be a number")
+    box = [round(n * s) if 0 <= n <= 1 else round(n)
+           for n, s in zip(nums, (w, h, w, h))]
+    x, y, bw, bh = box
+    if bw < 8 or bh < 8:
+        die(f"--rect {spec!r} selects {bw}×{bh}px — too small to be a play field")
+    if not (0 <= x < w and 0 <= y < h):
+        die(f"--rect {spec!r} starts outside the {w}×{h} frame")
+    return x, y, min(bw, w - x), min(bh, h - y)
+
+
+def cmd_boardplate(args) -> None:
+    """Build the play field out of the game's REAL assets, as a cutout.
+
+    This exists because of one specific rejection: a concept panel showed a
+    reel grid the image model had invented — its own tiles, its own frames, its
+    own symbol art — beside gameplay frames whose board looked nothing like it.
+    The designer's note was that the two have to be the same, and a text prompt
+    cannot produce "the same". Only the real files can.
+
+    Two ways in, both exact:
+      --from-shot  lift the field straight out of a captured gameplay frame
+      --symbol     lay the shipped symbol PNGs into the real grid
+    The result is a transparent PNG for `triptych --sprite plate.png@board`, so
+    the mechanic in the key art is the mechanic in the app.
+    """
+    out = Path(args.out)
+    radius_f = max(0.0, min(0.5, args.radius))
+
+    if args.from_shot:
+        if args.symbol:
+            die("--from-shot and --symbol are two different ways to build the same "
+                "plate — pass one of them")
+        if not args.rect:
+            die("--from-shot needs --rect x,y,w,h (fractions of the frame, or pixels) "
+                "naming the play field inside it")
+        shot = load_image(args.from_shot, "gameplay frame")
+        x, y, w, h = parse_rect(args.rect, shot.width, shot.height)
+        plate = shot.crop((x, y, x + w, y + h)).convert("RGBA")
+        info(f"lifted {w}×{h}px of {Path(args.from_shot).name} — the field in the key "
+             "art is now literally the field the app renders")
+    else:
+        if not args.symbol:
+            die("boardplate needs either --from-shot + --rect, or one --symbol per "
+                "distinct game symbol")
+        try:
+            cols, rows = (int(v) for v in
+                          str(args.grid).lower().replace("×", "x").split("x"))
+        except ValueError:
+            die(f"--grid {args.grid!r}: expected COLSxROWS (e.g. 3x3, 5x3)")
+        if not (1 <= cols <= 8 and 1 <= rows <= 8):
+            die(f"--grid {args.grid}: out of range (1..8 in each direction)")
+        cell = max(32, args.cell)
+        gap = round(cell * max(0.0, args.gap))
+        pad = round(cell * max(0.0, args.pad))
+        w = cols * cell + (cols - 1) * gap + 2 * pad
+        h = rows * cell + (rows - 1) * gap + 2 * pad
+
+        panel_c = opt_rgba(args.panel)
+        tile_c = opt_rgba(args.tile)
+        border_c = opt_rgba(args.border)
+        if not args.frame and not (panel_c or tile_c or border_c):
+            warn("no --frame and no --panel/--tile/--border: the plate is being built "
+                 "in neutral colours. Sample the game's own board — or pass the real "
+                 "board asset as --frame — or the key art advertises a field the app "
+                 "does not have")
+
+        plate = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        if args.frame:
+            back = cover(load_image(args.frame, "board frame"), w, h)
+            plate.alpha_composite(back.convert("RGBA"))
+        elif panel_c:
+            body = Image.new("RGBA", (w, h), panel_c)
+            body.putalpha(rr_mask((w, h), round(min(w, h) * radius_f)))
+            plate.alpha_composite(body)
+        if border_c:
+            stroke = max(2, round(cell * max(0.0, args.border_width)))
+            ring = Image.new("RGBA", (w, h), border_c)
+            edge = rr_mask((w, h), round(min(w, h) * radius_f))
+            inner = Image.new("L", (w, h), 0)
+            inner.paste(rr_mask((w - 2 * stroke, h - 2 * stroke),
+                                round(min(w, h) * radius_f) - stroke),
+                        (stroke, stroke))
+            ring.putalpha(Image.fromarray(
+                np.clip(np.asarray(edge, dtype=np.int16)
+                        - np.asarray(inner, dtype=np.int16), 0, 255).astype(np.uint8), "L"))
+            plate.alpha_composite(ring)
+
+        tile_r = round(cell * max(0.0, min(0.5, args.tile_radius)))
+        inset = round(cell * max(0.0, min(0.4, args.symbol_pad)))
+        symbols = [load_image(path, "game symbol") for path in args.symbol]
+        for path, sym in zip(args.symbol, symbols):
+            if sym.getchannel("A").getextrema()[0] == 255:
+                warn(f"{path} has no transparency — run "
+                     f"`python3 tools/cutout.py {path} --type sprite` first, or the "
+                     "plate shows the symbol's background box")
+        for r in range(rows):
+            for c in range(cols):
+                cx = pad + c * (cell + gap)
+                cy = pad + r * (cell + gap)
+                if tile_c:
+                    tile = Image.new("RGBA", (cell, cell), tile_c)
+                    tile.putalpha(rr_mask((cell, cell), tile_r))
+                    plate.alpha_composite(tile, (cx, cy))
+                # Staggered so a short symbol list does not produce identical
+                # columns — a real board is never a repeating stripe.
+                sym = symbols[(r * (cols + 1) + c) % len(symbols)]
+                fit = contain(sym, cell - 2 * inset, cell - 2 * inset)
+                plate.alpha_composite(
+                    fit, (cx + (cell - fit.width) // 2, cy + (cell - fit.height) // 2))
+        info(f"built a {cols}×{rows} field from {len(symbols)} real symbol "
+             f"{'file' if len(symbols) == 1 else 'files'}")
+
+    if radius_f > 0:
+        corner = rr_mask(plate.size, round(min(plate.size) * radius_f))
+        plate.putalpha(Image.fromarray(
+            (np.asarray(plate.getchannel("A"), dtype=np.float32)
+             * (np.asarray(corner, dtype=np.float32) / 255.0)).astype(np.uint8), "L"))
+
+    sheen = max(0.0, min(1.0, args.sheen))
+    if sheen:
+        # The glass a real board is read through. Masked by the plate's own
+        # alpha so it never spills past the field's edge.
+        glass = gradient(plate.size, [(0.0, (255, 255, 255, round(74 * sheen))),
+                                      (0.45, (255, 255, 255, round(18 * sheen))),
+                                      (0.46, (255, 255, 255, 0)),
+                                      (1.0, (255, 255, 255, 0))])
+        glass.putalpha(Image.fromarray(
+            (np.asarray(glass.getchannel("A"), dtype=np.float32)
+             * (np.asarray(plate.getchannel("A"), dtype=np.float32) / 255.0)
+             ).astype(np.uint8), "L"))
+        plate.alpha_composite(glass)
+
+    if args.tilt:
+        plate = plate.rotate(args.tilt, resample=Image.BICUBIC, expand=True)
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    size = save_png(plate, out, keep_alpha=True)
+    ok(f"{out.name}  {plate.width}×{plate.height}  {size // 1024} KB  board plate")
+    info(f"seat it with: triptych --sprite {out} @board  (real symbols, real layout — "
+         "the model never draws the field)")
 
 
 def cmd_showcase(args) -> None:
@@ -1938,10 +2172,14 @@ def main() -> None:
                         "objects the app actually contains. Repeatable, and the FIRST "
                         "one is the hero unless a role flag says otherwise: it takes "
                         f"panel 1 at ~{HERO_W:.2f}× the panel width, because that is "
-                        "the screenshot the store shows at full size. Flags: hero, prop. "
+                        "the screenshot the store shows at full size. Flags: hero, "
+                        "prop, board (a `boardplate` play field — the middle panel at "
+                        f"~{BOARD_W:.2f}× the panel width, standing inside the frame). "
                         "Keys: x,y (0..1 of the panorama), w (fraction of one panel), "
                         "panel (1-based), rot, bleed (how far the foot runs past the "
-                        "bottom edge), glow, shadow, contact, light, opacity. Omit x "
+                        "bottom edge), glow, shadow, contact, light, occlude (how much "
+                        "of the object's height the scene's foreground closes back over "
+                        f"— {HERO_OCCLUDE} for the hero, 0 otherwise), opacity. Omit x "
                         "and objects are auto-placed at graded depths, standing on the "
                         "ground plane and always clear of the seams.")
     t.add_argument("--sprite-glow-color", default="#FFFFFF", metavar="HEX",
@@ -1963,6 +2201,50 @@ def main() -> None:
         t.add_argument(dead, default="", help=argparse.SUPPRESS)
     t.add_argument("--title-panel", type=int, default=0, help=argparse.SUPPRESS)
     t.set_defaults(func=cmd_triptych)
+
+    bp = sub.add_parser(
+        "boardplate",
+        help="the game's REAL play field as a transparent cutout, for `triptych --sprite`")
+    bp.add_argument("--out", required=True, metavar="PNG")
+    bp.add_argument("--from-shot", metavar="PNG",
+                    help="lift the field out of a captured gameplay frame — the most "
+                         "exact match there is, and the right choice on any run that "
+                         "already has frames. Needs --rect")
+    bp.add_argument("--rect", metavar="X,Y,W,H",
+                    help="the play field inside --from-shot: fractions of the frame "
+                         "when <= 1, pixels otherwise")
+    bp.add_argument("--symbol", action="append", default=[], metavar="PNG",
+                    help="a real symbol PNG out of assets/images/. Repeatable, in "
+                         "reading order; a short list is staggered across the grid")
+    bp.add_argument("--grid", default="3x3", metavar="COLSxROWS",
+                    help="the game's own field shape (default 3x3)")
+    bp.add_argument("--frame", metavar="PNG",
+                    help="the game's real board/panel asset, used as the plate's "
+                         "background instead of drawn colours")
+    bp.add_argument("--panel", default="", metavar="HEX",
+                    help="board background colour — sample it from the game's board")
+    bp.add_argument("--tile", default="", metavar="HEX", help="per-cell tile colour")
+    bp.add_argument("--border", default="", metavar="HEX", help="board edge colour")
+    bp.add_argument("--border-width", type=float, default=0.045, metavar="F",
+                    help="border thickness as a fraction of one cell")
+    bp.add_argument("--cell", type=int, default=320, metavar="PX",
+                    help="one cell's size; the plate is scaled down into the panorama, "
+                         "so generate it larger than it will be shown")
+    bp.add_argument("--gap", type=float, default=0.06, metavar="F",
+                    help="gap between cells, as a fraction of one cell")
+    bp.add_argument("--pad", type=float, default=0.09, metavar="F",
+                    help="board padding around the cells, as a fraction of one cell")
+    bp.add_argument("--tile-radius", type=float, default=0.16, metavar="F")
+    bp.add_argument("--symbol-pad", type=float, default=0.12, metavar="F",
+                    help="breathing room between a symbol and its cell edge")
+    bp.add_argument("--radius", type=float, default=0.05, metavar="F",
+                    help="the plate's own corner radius, as a fraction of its short side")
+    bp.add_argument("--sheen", type=float, default=0.35, metavar="F",
+                    help="0..1 glass highlight across the field; 0 for none")
+    bp.add_argument("--tilt", type=float, default=0.0, metavar="DEG",
+                    help="rotate the finished plate, so it sits in the scene's "
+                         "perspective instead of square to the frame")
+    bp.set_defaults(func=cmd_boardplate)
 
     s = sub.add_parser("showcase", help="real game frame in a phone on a themed background")
     s.add_argument("--shot", required=True)
