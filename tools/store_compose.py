@@ -1522,6 +1522,8 @@ def cmd_triptych(args) -> None:
     n = args.panels
     if not 2 <= n <= 5:
         die(f"--panels {n} out of range (2..5)")
+    if args.pano_only and not args.save_pano:
+        die("--pano-only writes nothing without --save-pano PNG")
 
     # The concept panorama is deliberately TEXT-FREE. Typography set across a
     # panel boundary is cut by the store's gutters, and a lockup inside one
@@ -1563,7 +1565,7 @@ def cmd_triptych(args) -> None:
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     total = 0
-    for i in range(n):
+    for i in range(0 if args.pano_only else n):
         left, right = panel_span(i, w, gutter)
         panel = pano.crop((left, 0, right, h))
         path = out_dir / f"{args.prefix}{i + 1:02d}.png"
@@ -1580,13 +1582,22 @@ def cmd_triptych(args) -> None:
             warn(f"--save-pano writes into {out_dir} — `check` would count the panorama "
                  "as an upload asset. Keep it beside the art (art/keyart-integrated.png).")
         save_png(pano, Path(args.save_pano))
-        ok(f"{Path(args.save_pano).name}  {pano_w}×{pano_h}  integrated panorama "
-           "(feed this to `banner --keyart` and `backdrop --src`)")
+        ok(f"{Path(args.save_pano).name}  {pano_w}×{pano_h}  "
+           + ("layout draft (reference image for `gpt_image.py edit` — not an "
+              "upload asset, and not what `backdrop`/`banner` should read)"
+              if args.pano_only else
+              "integrated panorama (feed this to `banner --keyart` and `backdrop --src`)"))
 
     # Stitched preview — a cheap vision check that nothing important (a face,
     # the hero, a coin) is cut by a panel boundary. The gutters are painted in
     # so the preview shows what the STORE shows, gaps and all, rather than a
     # continuous picture the listing page will never display.
+    if args.pano_only:
+        info("--pano-only: layout draft written, no panels. Hand it to "
+             "`gpt_image.py edit` with the objects' own files, then slice the "
+             "picture that comes back.")
+        return
+
     preview = pano.copy()
     if gutter:
         gap = Image.new("RGBA", (gutter, pano_h), (14, 14, 18, 255))
@@ -1605,6 +1616,94 @@ def cmd_triptych(args) -> None:
     if not gutter:
         warn("--gutter 0: panels are butt-joined, so anything crossing a seam will look "
              "displaced once the store puts its own gap between the screenshots")
+
+
+def _perspective_coeffs(dst, src) -> tuple:
+    """Coefficients for Image.transform(PERSPECTIVE), mapping dst → src."""
+    rows, rhs = [], []
+    for (xd, yd), (xs, ys) in zip(dst, src):
+        rows.append([xd, yd, 1, 0, 0, 0, -xs * xd, -xs * yd])
+        rhs.append(xs)
+        rows.append([0, 0, 0, xd, yd, 1, -ys * xd, -ys * yd])
+        rhs.append(ys)
+    solved = np.linalg.solve(np.asarray(rows, dtype=np.float64),
+                             np.asarray(rhs, dtype=np.float64))
+    return tuple(solved)
+
+
+def _slab_quads(w: int, h: int, yaw: float, pitch: float, depth: float,
+                focal: float = 2.6):
+    """Project a w×h slab of `depth` under `yaw`/`pitch` → (front, back) corners.
+
+    A board photographed square-on is a decal no matter how well it is lit. Two
+    rotations and a real perspective divide give it a near edge and a far edge,
+    which is what makes the eye read it as an object standing in the scene.
+    """
+    ry, rx = math.radians(yaw), math.radians(pitch)
+    cy, sy = math.cos(ry), math.sin(ry)
+    cx, sx = math.cos(rx), math.sin(rx)
+    f = focal * max(w, h)
+    corners = ((-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2))
+    faces = []
+    for z0 in (0.0, -depth * min(w, h)):
+        face = []
+        for x, y in corners:
+            z = z0
+            x, z = x * cy + z * sy, -x * sy + z * cy
+            y, z = y * cx - z * sx, y * sx + z * cx
+            scale = f / max(f * 0.2, f - z)
+            face.append((x * scale, y * scale))
+        faces.append(face)
+    return faces
+
+
+def to_perspective(img: Image.Image, yaw: float, pitch: float, depth: float,
+                   shade: float = 0.22) -> Image.Image:
+    """Stand a flat plate up in 3D: perspective, a slab edge, and a light falloff."""
+    if not (yaw or pitch or depth):
+        return img
+    w, h = img.size
+    front, back = _slab_quads(w, h, yaw, pitch, depth)
+    pts = front + (back if depth else front)
+    pad = max(2, round(max(w, h) * 0.01))
+    min_x, min_y = min(x for x, _ in pts) - pad, min(y for _, y in pts) - pad
+    max_x, max_y = max(x for x, _ in pts) + pad, max(y for _, y in pts) + pad
+    size = (max(8, math.ceil(max_x - min_x)), max(8, math.ceil(max_y - min_y)))
+    shift = lambda quad: [(x - min_x, y - min_y) for x, y in quad]
+    front, back = shift(front), shift(back)
+
+    canvas = Image.new("RGBA", size, (0, 0, 0, 0))
+    if depth:
+        arr = np.asarray(img.convert("RGBA"), dtype=np.float32)
+        opaque = arr[..., 3] > 200
+        base = (arr[..., :3][opaque].mean(axis=0) if opaque.any()
+                else np.asarray([90.0, 90.0, 110.0]))
+        # Top, sides, bottom fall away from the scene's top-left key light by
+        # different amounts — one flat grey slab edge reads as cardboard.
+        for i, dim in enumerate((0.62, 0.44, 0.28, 0.44)):
+            poly = [front[i], front[(i + 1) % 4], back[(i + 1) % 4], back[i]]
+            face = Image.new("RGBA", size, (0, 0, 0, 0))
+            ImageDraw.Draw(face).polygon(
+                poly, fill=tuple(int(c * dim) for c in base) + (255,))
+            canvas.alpha_composite(face)
+
+    warped = img.convert("RGBA").transform(
+        size, Image.PERSPECTIVE,
+        _perspective_coeffs(front, ((0, 0), (w, 0), (w, h), (0, h))),
+        resample=Image.BICUBIC)
+    if shade and yaw:
+        # The receding half of the face sits further from the key light.
+        ramp = gradient(size, [(0.0, (255, 255, 255, 255)),
+                               (1.0, (255, 255, 255, round(255 * (1 - shade))))],
+                        horizontal=True)
+        if yaw < 0:
+            ramp = ramp.transpose(Image.FLIP_LEFT_RIGHT)
+        lit = np.asarray(warped, dtype=np.float32)
+        lit[..., :3] *= (np.asarray(ramp.getchannel("A"),
+                                    dtype=np.float32)[..., None] / 255.0)
+        warped = Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8), "RGBA")
+    canvas.alpha_composite(warped)
+    return canvas
 
 
 def parse_rect(spec: str, w: int, h: int) -> tuple[int, int, int, int]:
@@ -1748,8 +1847,13 @@ def cmd_boardplate(args) -> None:
              ).astype(np.uint8), "L"))
         plate.alpha_composite(glass)
 
+    plate = to_perspective(plate, args.yaw, args.pitch, max(0.0, args.depth))
     if args.tilt:
         plate = plate.rotate(args.tilt, resample=Image.BICUBIC, expand=True)
+    if not (args.yaw or args.pitch or args.depth):
+        warn("--yaw/--pitch/--depth are all 0: the plate is square to the camera and "
+             "flat, which is what reads as pasted on. Give it the perspective of the "
+             "stage it will stand on")
 
     out.parent.mkdir(parents=True, exist_ok=True)
     size = save_png(plate, out, keep_alpha=True)
@@ -2194,6 +2298,10 @@ def main() -> None:
     t.add_argument("--save-pano", metavar="PNG",
                    help="also write the full graded panorama WITH the objects inlaid, "
                         "so `banner` and `backdrop` can reuse the same integrated art")
+    t.add_argument("--pano-only", action="store_true",
+                   help="write only --save-pano: no panels, no preview. This is the "
+                        "layout DRAFT pass, whose output is a reference image for "
+                        "`gpt_image.py edit`, not an upload asset")
     add_pop_args(t)
     # Retired: the panorama is pure image. Still parsed so a stale caller gets a
     # sentence explaining where the words go, not `unrecognized arguments`.
@@ -2241,9 +2349,18 @@ def main() -> None:
                     help="the plate's own corner radius, as a fraction of its short side")
     bp.add_argument("--sheen", type=float, default=0.35, metavar="F",
                     help="0..1 glass highlight across the field; 0 for none")
+    bp.add_argument("--yaw", type=float, default=-14.0, metavar="DEG",
+                    help="turn the board around its vertical axis, so it has a near "
+                         "edge and a far edge instead of facing the camera flat")
+    bp.add_argument("--pitch", type=float, default=6.0, metavar="DEG",
+                    help="tip the board away from the camera, so it stands on the "
+                         "scene's ground plane rather than floating parallel to it")
+    bp.add_argument("--depth", type=float, default=0.05, metavar="F",
+                    help="slab thickness as a fraction of the board's short side; the "
+                         "visible edge is what makes it an object and not a decal")
     bp.add_argument("--tilt", type=float, default=0.0, metavar="DEG",
-                    help="rotate the finished plate, so it sits in the scene's "
-                         "perspective instead of square to the frame")
+                    help="roll the finished plate in the picture plane, after the "
+                         "perspective, to match the stage it is standing on")
     bp.set_defaults(func=cmd_boardplate)
 
     s = sub.add_parser("showcase", help="real game frame in a phone on a themed background")

@@ -275,7 +275,7 @@ class BoardRoleTests(unittest.TestCase):
             out=str(out), from_shot=None, rect=None, symbol=[], grid="3x3",
             frame=None, panel="", tile="", border="", border_width=0.045,
             cell=64, gap=0.06, pad=0.09, tile_radius=0.16, symbol_pad=0.12,
-            radius=0.05, sheen=0.0, tilt=0.0)
+            radius=0.05, sheen=0.0, yaw=0.0, pitch=0.0, depth=0.0, tilt=0.0)
         for key, value in kwargs.items():
             setattr(args, key, value)
         store_compose.cmd_boardplate(args)
@@ -352,6 +352,55 @@ class BoardRoleTests(unittest.TestCase):
         self._boardplate(out="neutral.png", symbol=[self._png("s.png", (64, 64))])
         self.assertTrue(any("does not have" in m for m in self.quiet_warnings),
                         self.quiet_warnings)
+
+
+class PerspectiveTests(unittest.TestCase):
+    """"Not just inserted — it should look 3d."
+
+    A plate square to the camera is a decal however well it is lit, so the
+    board is turned, tipped and given a slab edge before it ever reaches the
+    draft the finished picture is rendered from.
+    """
+
+    def _plate(self) -> Image.Image:
+        img = Image.new("RGBA", (200, 200), (60, 90, 200, 255))
+        ImageDraw.Draw(img).rectangle([40, 40, 159, 159], fill=(240, 200, 80, 255))
+        return img
+
+    def test_turning_the_board_gives_it_a_near_edge_and_a_far_edge(self) -> None:
+        # Negative yaw swings the right side toward the viewer, so that edge is
+        # taller on the canvas than the receding left one — and the sign flips
+        # with the yaw.
+        for yaw, nearer in ((-20, "right"), (20, "left")):
+            out = store_compose.to_perspective(self._plate(), yaw=yaw, pitch=0,
+                                               depth=0.0)
+            columns = (np.asarray(out.getchannel("A")) > 8).sum(axis=0)
+            left, right = columns[:12].max(), columns[-12:].max()
+            near, far = ((right, left) if nearer == "right" else (left, right))
+            self.assertGreater(near, far, f"yaw={yaw}")
+
+    def test_depth_adds_a_slab_edge_outside_the_face(self) -> None:
+        flat = store_compose.to_perspective(self._plate(), yaw=-20, pitch=6, depth=0.0)
+        slab = store_compose.to_perspective(self._plate(), yaw=-20, pitch=6, depth=0.12)
+        self.assertGreater((np.asarray(slab.getchannel("A")) > 8).sum(),
+                           (np.asarray(flat.getchannel("A")) > 8).sum())
+
+    def test_the_receding_half_is_darker_than_the_near_half(self) -> None:
+        # Light falloff has to agree with the geometry, or the board reads as a
+        # flat rectangle someone skewed.
+        out = store_compose.to_perspective(self._plate(), yaw=-20, pitch=0, depth=0.0)
+        arr = np.asarray(out.convert("RGBA"), dtype=np.float32)
+        lit = arr[..., 3] > 250
+        mid = out.width // 2
+        far = arr[..., :3][:, :mid][lit[:, :mid]].mean()
+        near = arr[..., :3][:, mid:][lit[:, mid:]].mean()
+        self.assertGreater(near, far)
+
+    def test_a_square_on_plate_is_left_untouched(self) -> None:
+        plate = self._plate()
+        np.testing.assert_array_equal(
+            np.asarray(store_compose.to_perspective(plate, 0, 0, 0)),
+            np.asarray(plate))
 
 
 class OcclusionTests(unittest.TestCase):

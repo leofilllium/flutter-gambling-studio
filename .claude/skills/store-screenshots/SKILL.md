@@ -12,8 +12,9 @@ Create everything needed to present the game in App Store Connect and Google Pla
 
 | Deliverable | Source |
 |---|---|
-| Panels 1…P: one wide, text-free concept illustration composed around the hero on panel 1 and carrying the game's real objects at foreground scale, sliced into adjacent panels | GPT Images 2.0 → `store_compose.py triptych --sprite --gutter` |
-| The game's play field as a cutout, built from the shipped symbol PNGs or lifted out of a real frame, seated into the middle of the key art | `store_compose.py boardplate` → `triptych --sprite plate.png@board` |
+| Panels 1…P: one wide, text-free concept illustration composed around the hero on panel 1 and carrying the game's real objects at foreground scale, sliced into adjacent panels | GPT Images 2.0 → `store_compose.py triptych --gutter` |
+| The layout draft the finished picture is rendered from — real hero, real field, real props placed where they belong | `store_compose.py boardplate` + `triptych --pano-only` |
+| One integrated illustration: the draft's composition and the game's own objects, rendered as a single three-dimensional scene | `gpt_image.py edit --image draft --image <each object> --fidelity high` |
 | The same key art wired into the app as its own background | `store_compose.py backdrop` → `assets/images/backgrounds/` |
 | Panels P+1…N: real gameplay frames in a device mockup with marketing captions | `web_verify.mjs` → `store_compose.py showcase` |
 | Google Play feature graphic, 1024×500 | `store_compose.py banner` |
@@ -43,11 +44,13 @@ Continuity runs in **both** directions, and both are mandatory:
 | Direction | Requirement | How it is enforced |
 |---|---|---|
 | Key art → app | The concept panels' world, hero, palette, materials, and light must be visible on the game's own screens | `store_compose.py backdrop` exports the panorama as the game's menu and gameplay background, and Phase 3 wires it in **before** a single frame is captured |
-| App → key art (objects) | The concept panels must contain the game's **real** objects — the exact symbols, tokens, characters, and props the player touches | `store_compose.py triptych --sprite` composites the shipped PNGs from `assets/images/` into the panorama |
-| App → key art (the field) | Where the art shows the game being *played* — a grid, reels, a board, a track, a peg field — it must be the game's own field, with the game's own symbols in it | `store_compose.py boardplate` builds the field out of the shipped files (or lifts it from a captured frame) and `triptych --sprite plate@board` seats it |
+| App → key art (objects) | The concept panels must contain the game's **real** objects — the exact symbols, tokens, characters, and props the player touches | the shipped PNGs from `assets/images/` are placed in the draft (`triptych --sprite`) and passed as reference images to the render (`gpt_image.py edit --fidelity high`) |
+| App → key art (the field) | Where the art shows the game being *played* — a grid, reels, a board, a track, a peg field — it must be the game's own field, with the game's own symbols in it | `store_compose.py boardplate` builds the field out of the shipped files (or lifts it from a captured frame), stands it up in perspective, and it goes into the draft and the render as a reference |
 
-Describing a symbol to an image model produces something *similar*. Compositing the shipped sprite
-produces the *same object*. Use the second for the objects that must match.
+Describing a symbol to an image model produces something *similar*. **Handing it the file** produces
+the same object — that is what the reference-image render in Phase 2b is for, and why it always runs
+at `--fidelity high`. Compositing the sprite also produces the same object, but flat; it is the
+draft and the fallback, not the deliverable.
 
 **This applies hardest to the play field, and it is the newest returned listing.** A concept panel
 arrived showing a full-bleed 3×3 grid: neon-framed cells, a crown, a helmet, a lyre — all of it
@@ -75,8 +78,16 @@ least one concept panel *and* at least one gameplay frame. A missing entry is a 
 Continuity gets the right objects into the picture. This gets them in at the right size and in the
 right place, which is what the publisher's designer sends listings back for: *put the protagonist
 on the first screen, always, so it hits the eye immediately — and the game's objects are not worked
-into the design at all and are far too small; build them into the artwork itself.* Four rules, all
+into the design at all and are far too small; build them into the artwork itself.* Five rules, all
 defaults rather than options:
+
+**0. The result is one picture, not an assembly.** This is the note that outranks the rest: *don't
+just insert them into the slide — use them as strong context and make one complete image, so it
+looks natural and three-dimensional, not inserted.* A composite can only ever put the right objects
+in the right places; it cannot give them volume, a shared perspective, shadows falling across each
+other, or air between the near and the far. So the composite is a **draft**, and the deliverable is
+rendered from it with the real asset files as reference images (Phase 2). Every rule below describes
+what that draft has to establish and what the render has to preserve.
 
 **1. The protagonist owns panel 1.** Screenshot 1 is the only one the store shows at full size;
 everything after it is a thumbnail in a strip. Whatever stops the scroll has to be there and has to
@@ -108,9 +119,10 @@ correction: slightly too many objects. A hero plus two or three symbols reads at
 pile does not. `triptych` warns past five, and the board plate counts as one of them.
 
 The target is one finished picture — the hero standing in a place the art built for it at one end,
-the game's own field across the middle, the real objects carried through the foreground — not a
-background with props arranged on it. Ask the model for it that way in Phase 1, then composite the
-real files into the composition it has already drawn (Phase 2).
+the game's own field across the middle as a solid object, the real objects carried through the
+foreground with weight and shadow — not a background with props arranged on it. Ask the model for
+the world that way in Phase 1, place the real files into it as a draft, then render the picture from
+that draft with the files themselves as references (Phase 2).
 
 ## Category-specific art direction
 
@@ -177,7 +189,8 @@ the same: *make it richer and brighter*. So:
 | `--pop` | `vivid` | Colour grade applied to generated art (`off`, `soft`, `vivid`, `max`) |
 | `--hero` | first shared object | The protagonist PNG that leads panel 1; if omitted, entry 1 of the shared object list |
 | `--props` | auto | Comma-separated game PNGs inlaid into the panorama, capped at four alongside the hero; the default comes from the shared object list |
-| `--board` | `auto` | Build the game's play field from its real files (`boardplate`) and seat it into the middle of the key art. `off` for a game with no readable field |
+| `--board` | `auto` | Build the game's play field from its real files (`boardplate`), stand it up in perspective, and place it in the middle of the key art. `off` for a game with no readable field |
+| `--integrate` | `on` | Render the finished panorama from the draft with the real assets as reference images (`gpt_image.py edit`). `off` ships the flat composite and records it as un-integrated |
 | `--sprite-light` | `0.35` | How hard inlaid objects are pulled into the scene's light (colour cast + edge light-wrap). `0` pastes them flat |
 | `--occlude` | `0.14` | How much of the hero's height the scene's foreground closes back over, so it stands *in* the picture. `0` leaves it in front of everything |
 | `--no-backdrop` | off | Do not wire the key art into the game as its background |
@@ -261,9 +274,11 @@ Run the compositor's font probe and select a display/body pair that covers every
 Use image generation for three sources:
 
 1. **Concept panorama:** one continuous text-free scene wide enough for P panels **plus the seam
-   allowance** — ask for the widest the model will produce. Ask for a *finished illustration*, not a
-   backdrop: this is the picture the whole kit is cut from, and Phase 2 only reinforces a
-   composition it already has.
+   allowance** — ask for the widest the model will produce. Ask for a *finished illustration*, not
+   a backdrop: this is the world the whole kit is cut from. Phase 2 places the game's real objects
+   into it and renders the result as one picture, so what matters most here is that the scene has
+   depth, a light direction, a ground plane and somewhere for those objects to stand — a flat
+   backdrop gives the render nothing to integrate them into.
    - **The leftmost 1/P of the width is the hero berth** — the slice that becomes panel 1. Ask for
      a place built for a character to stand: a stage, ledge, throne, balcony, doorway or pool of
      light, roughly two thirds of the frame height, with the scene's perspective converging on it,
@@ -301,48 +316,33 @@ If the image tool accepts reference images, pass the actual sprite files from th
 list. If it does not, do not treat the description as sufficient — Phase 2 composites the real
 files instead.
 
-## Phase 2 — build the field, then seat the game's real objects into the key art
+## Phase 2 — draft the layout, then render one finished picture from it
 
-**First, the field.** Unless `--board off`, assemble the game's play surface out of its own files
-so the art shows the board the app renders rather than one a model imagined:
+The output of this phase is **one illustration**, not an assembly. Compositing the real files onto
+the art gets the objects right and the picture wrong: a cutout is flat, it faces the camera when
+nothing else in the scene does, its edges are too clean, and a designer reads it as inserted in the
+first second. The objects still have to be the game's own — that part is not negotiable — so the
+real files are used as the **reference the finished picture is rendered from**, not as stickers laid
+on top of it.
+
+Three steps: assemble a draft, render the picture from it, then prove the objects survived.
+
+### Phase 2a — the layout draft
+
+Build the field as a real object in space, then compose the draft that says where everything goes:
 
 ```bash
 python3 tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
-  --grid 3x3 --cell 360 --tilt -5 \
+  --grid 3x3 --cell 360 --yaw -16 --pitch 7 --depth 0.06 --sheen 0.3 \
   --symbol assets/images/sprites/sprite_cloud.png \
   --symbol assets/images/sprites/sprite_sun.png \
   --symbol assets/images/sprites/sprite_eagle.png \
   --symbol assets/images/sprites/sprite_lyre.png \
-  --panel "#141B3C" --tile "#1E2A6B" --border "#F0B34A" --sheen 0.35
-```
+  --panel "#141B3C" --tile "#1E2A6B" --border "#F0B34A"
 
-- `--grid`, the symbol list and the colours all come from the Phase 0 field record. Sample the
-  colours off the running game — a plate in invented colours re-creates the original defect one
-  layer down. If the game ships a real board/panel asset, pass it as `--frame` and let it be the
-  background instead of `--panel`/`--border`.
-- **On any run that already has gameplay frames, prefer lifting the field out of one** — it is the
-  same pixels, not a reconstruction:
-
-  ```bash
-  python3 tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
-    --from-shot "$RAW_DIR/03-spin.png" --rect 0.06,0.22,0.88,0.44 --radius 0.04
-  ```
-
-  A first run reaches Phase 2 before Phase 4 has captured anything, so it builds from the symbol
-  files; a re-run, or a run on an existing project, should lift. Either way, drop `--sprite-light`
-  for that plate (`light=0.15`) so the real field keeps its own colour.
-- The plate is generated large (`--cell 360` on a 3×3 gives ≈1200 px) because it is scaled *down*
-  into the panorama. A soft, upscaled board on panel 2 is its own kind of failure.
-- The plate counts as one of the five objects.
-
-**Then the objects.** Composite the shipped PNGs from the shared object list into the panorama, so
-the panels advertise objects the app demonstrably contains — hero first, the plate on the stage
-Phase 1 drew for it:
-
-```bash
-python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" --out "$OUT_DIR" \
+python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
+  --out "$ART_DIR/draft" --pano-only --save-pano "$ART_DIR/keyart-draft.png" \
   --panels 3 --size 1320x2868 --gutter auto --pop vivid \
-  --save-pano "$ART_DIR/keyart-integrated.png" \
   --sprite assets/images/sprites/sprite_eagle.png@hero \
   --sprite "$ART_DIR/board-plate.png@board,light=0.15" \
   --sprite assets/images/sprites/sprite_bolt.png@panel=2,rot=-8 \
@@ -350,45 +350,84 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" --out "$OUT_
   --sprite-glow-color "#F0B34A"
 ```
 
-- **The first `--sprite` is the hero** unless another carries `@hero`. It takes panel 1 at ≈0.58×
-  the panel width with its feet past the bottom edge, so the store's one full-size screenshot opens
-  on the protagonist. Pass the hero first and the default is already right. `@board` is a role, not
-  a hero: tagging the plate does not take the hero slot away from the first object.
-- **The hero is occluded as well as lit.** The compositor lifts the strip of art under the hero's
-  lowest 14% and composites it back on top, so the berth's foreground closes over its feet and the
-  figure stands *in* the scene. Tune with `occlude=` per object; `occlude=0` restores the old
-  flat-in-front paste, which is exactly what reads as inserted. If the compositor warns that there
-  is nothing to close over — the berth had no foreground — fix Phase 1's art rather than dropping
-  the setting.
-- **The board plate stands inside the frame**, centred on the middle panel at ≈0.72× its width and
-  ≈0.88 of the height, with a contact shadow under it. Use `panel=`/`x=`/`y=`/`rot=` when the stage
-  Phase 1 drew sits somewhere else; match `rot` to the stage's perspective.
-- Sprites must be transparent PNGs. The compositor warns when one is opaque — run
-  `python3 tools/cutout.py <file> --type sprite` first, or the panel shows a background box.
-- Omit `x` and objects are auto-placed at graded depths — roughly a third of a panel wide, fanning
-  out from panel 2, anchored by the foot to the picture's ground plane, the nearest ones running off
-  the bottom edge, always clear of the seam allowance. Use `x`/`y`/`w`/`rot`/`panel`/`bleed` when
-  the panorama's composition wants a specific spot; `w` below `0.25` is sticker territory.
-- Every object is seated, not pasted: a contact shadow at its foot, a colour cast pulled from the
-  art it covers, and an edge light-wrap that spills the surrounding scene over its rim. Tune with
-  `--sprite-light` (default `0.35`) and per-object `contact=`/`light=`; `--sprite-light 0` restores
-  the flat paste, which is exactly what reads as a sticker.
-- Pass the game's accent colour as `--sprite-glow-color` so the objects sit *in* the light of the
-  scene rather than on top of it.
-- A hero plus two or three symbols beats five. The panorama is still a picture, not a sprite sheet,
-  and the compositor warns past five.
-- Foreground scale needs source pixels. The compositor warns when a sprite has to be upscaled more
-  than 2×; when it does, export the asset larger or have Phase 1 draw that object into the panorama
-  rather than shipping a soft hero on the one screenshot the store shows at full size.
-- `--save-pano` writes the graded panorama with the objects already in it. Phases 3 and 7 read that
-  file, so the app's background and the feature graphic show the same integrated picture the panels
-  do instead of the bare model output.
+- `--grid`, the symbol list and the colours come from the Phase 0 field record. Sample the colours
+  off the running game; if the game ships a real board asset, pass it as `--frame`. On any run that
+  already has gameplay frames, lift the field instead — same pixels, no reconstruction:
+  `boardplate --from-shot "$RAW_DIR/03-spin.png" --rect 0.06,0.22,0.88,0.44`.
+- **`--yaw`/`--pitch`/`--depth` are not decoration.** They give the board a near edge, a far edge
+  and a visible slab thickness, so even the draft shows an object standing on the stage rather than
+  a rectangle facing the camera. Match them to the perspective Phase 1 drew. The compositor warns
+  when all three are zero.
+- `--pano-only` writes the draft and nothing else. It is a reference image, never an upload asset,
+  and it does not go in the kit's `store/` directory.
+- Everything the earlier phases established still holds here: hero on panel 1 at ≈0.58× the panel
+  width, objects at foreground scale on the ground plane, the field on the middle panel, five
+  objects at most, nothing on a seam.
 
-If an object cannot be made to sit in the scene convincingly, regenerate the panorama with a
-better place for it — a wider ledge, a clearer ground plane, a foreground it can stand behind. The
-object still has to be there, still at foreground size, and still the real file. The one thing that
-is never the answer is asking the model to draw the object instead: that is how a listing ends up
-advertising symbols the app does not contain.
+### Phase 2b — the integration pass
+
+Hand the draft **and the objects' own files** to the image model and ask for one finished picture.
+The draft carries the composition; the asset files carry the identity; the model supplies the
+thing neither can — a single rendered space with real perspective, volume, contact and atmosphere:
+
+```bash
+python3 tools/gpt_image.py edit \
+  --prompt-file "$ART_DIR/integration-prompt.txt" \
+  --image "$ART_DIR/keyart-draft.png" \
+  --image assets/images/sprites/sprite_eagle.png \
+  --image "$ART_DIR/board-plate.png" \
+  --image assets/images/sprites/sprite_bolt.png \
+  --out "$ART_DIR/keyart-integrated.png" \
+  --size 1536x1024 --quality high --fidelity high
+```
+
+- **Order matters.** The draft goes first: it is the layout. Then one file per object whose identity
+  has to survive, in the order the prompt names them.
+- **`--fidelity high` is the setting that makes this work at all.** It is what keeps the eagle the
+  game's eagle instead of an eagle. Never drop it to save time or budget.
+- The prompt asks for a *render*, not a retouch. Say, in the game's own art language:
+  - Reproduce the layout of the first reference image exactly — same subject in the same place at
+    the same size, same panorama proportions, nothing added and nothing moved.
+  - Reproduce the objects from the other reference images **exactly**: the same silhouette, colours,
+    materials, ornament and detail. Do not redesign, restyle, simplify or substitute them. The grid
+    keeps the same symbols in the same cells in the same order.
+  - Render them as physical objects in one three-dimensional space: their own perspective agreeing
+    with the scene's, real volume and thickness, cast shadows landing on the ground and on each
+    other, contact where they touch, edges caught by the scene's key and rim light, atmospheric
+    depth between the near objects and the far ones.
+  - The character stands **in** the world: something in the foreground crosses in front of it, the
+    ground takes its shadow, the scene's light wraps its silhouette.
+  - Finish it as one painting — no cutout edges, no drop shadows, no sticker outlines, nothing that
+    looks composited.
+  - No text, letters, numbers, logo, UI, HUD, device frame or panel dividers, and no invented game
+    symbols beyond the ones supplied.
+- Iterate on the prompt, not on the objects. If the picture is close but the light is flat or the
+  board still reads as a decal, re-run with a sharper description of the light and the perspective.
+- **The pass is optional infrastructure, not an optional step.** If the image model is unavailable
+  in this environment, run the composite path instead (`triptych` without `--pano-only`, exactly as
+  Phase 2a is written) and record in `STORE_INFO.md` that the kit shipped un-integrated. A
+  composited kit is a known return risk; a kit with the wrong objects is a rejection.
+
+### Phase 2c — the identity gate
+
+The integration pass is the one step in this skill that can silently change what the listing
+advertises, so it is verified before anything downstream reads the file. Open
+`keyart-integrated.png` beside each reference file and answer, per object:
+
+| Object | Same silhouette? | Same colours and materials? | Same detail/ornament? | Same place and size? |
+|---|---|---|---|---|
+
+- Every cell yes, or the object did not survive. A "close enough" symbol is the exact defect that
+  returned the last listing, and it is harder to spot in a beautifully rendered picture than in an
+  obvious paste-up.
+- For the field, also check cell by cell: the same symbols, in the same cells, in the same order,
+  and the same tile and edge treatment.
+- One object drifting is fixed by re-running with a tighter prompt naming that object, or with
+  fewer references on the call. Repeated drift means the model cannot hold that object: keep the
+  composited draft as the deliverable rather than shipping a redesigned symbol, and say so in the
+  report.
+- The picture that passes this gate becomes `$ART_DIR/keyart-integrated.png`, which Phases 3, 5 and
+  7 all read. There is only ever one integrated panorama in a kit.
 
 ## Phase 3 — apply the storefront to the game
 
@@ -473,7 +512,15 @@ the corrected panorama, so do those again rather than leaving three versions of 
 
 ## Phase 5 — compose the concept panels
 
-Slice the same panorama separately for the App Store and Play dimensions with `store_compose.py triptych`, passing the **same `--sprite` list in the same order** so both sets lead with the same hero on panel 1 and carry the same objects. Produce numbered `store-01.png` through `store-0P.png` plus `_panorama-preview.png` for inspection.
+Slice `$ART_DIR/keyart-integrated.png` separately for the App Store and Play dimensions with
+`store_compose.py triptych`. Pass **no `--sprite`**: the objects are painted into that picture
+already, and inlaying them a second time would put a flat copy on top of the rendered one. Produce
+numbered `store-01.png` through `store-0P.png` plus `_panorama-preview.png` for inspection.
+
+The draft was graded before the render, so the integrated art arrives with the grade already in it:
+slice at `--pop soft`, and only raise it if the returned picture is genuinely flat. On the
+un-integrated fallback path the source is the composite instead, and it is sliced exactly as Phase
+2a built it — same `--sprite` list, same order, `--pop vivid`.
 
 **Slice with a seam allowance.** The store does not show the first panels edge to edge — the
 carousel puts a gap between every pair. Butt-joined panels therefore do *not* reconstruct the
@@ -501,13 +548,17 @@ page shows, gaps and all:
   character on it. Something in the scene overlaps the hero's feet, its shadow lands on the berth,
   and the light on it comes from the light in the picture. If it still reads as inserted, the fix
   is the berth (Phase 1) or the seating (`occlude=`, `contact=`, `light=`) — never a bigger sprite.
-- **The board is the game's board.** Any grid, reel set, tile or symbol frame visible anywhere in
-  the strip came out of `boardplate`, and its cells hold the same artwork the gameplay frames show.
-  A grid the image model drew is a blocker even if it is beautiful, and even if it is only partly
-  visible at a panel edge.
-- Every inlaid object reads as part of the picture: standing on something, shadowed at the contact
-  point, lit by the scene, at foreground scale. Anything that looks stuck on gets re-seated
-  (`--sprite-light`, `contact=`, a larger `w`) or removed.
+- **The board is the game's board.** The grid holds the same symbols the gameplay frames show, in
+  the same cells, in the same order, with the same tile and edge treatment — and it stands in the
+  scene as a solid object with a visible near edge, not as a rectangle facing the camera. A grid
+  whose symbols the model invented is a blocker even if it is beautiful, and even if it is only
+  partly visible at a panel edge.
+- **Nothing in the strip looks composited.** No cutout edge, no drop-shadow halo, no object facing
+  the camera while the scene recedes, no silhouette too clean for the painting around it. Every
+  object has volume, sits in the scene's perspective, casts a shadow onto something, and is caught
+  by the same light. If one still reads as laid on, that is a Phase 2b re-run, not a crop.
+- Every object is at foreground scale and standing on something. Anything that shrank to decoration
+  in the render goes back through Phase 2b with the draft's size restated.
 - No seam cuts the hero's face, central mechanic, reward, decisive action, or an inlaid game object.
 - No letters, fake glyphs, captions, UI, HUD, meters, balances, or panel borders appear.
 - The mechanic and category are recognizable without generic casino cues.
@@ -619,7 +670,10 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
 - The hero object, its size on panel 1 as a fraction of the panel, whether the scene's foreground
   was closed back over it, and the supporting objects with the panels they were seated into.
 - How the board plate was built — from which symbol files and grid, or lifted from which gameplay
-  frame and rectangle — and which panel it was seated into. `--board off` records why instead.
+  frame and rectangle — its yaw/pitch/depth, and which panel it landed on. `--board off` records
+  why instead.
+- Whether the integration pass ran, with the reference images and fidelity it used, and the
+  identity gate's per-object verdict. If the kit shipped un-integrated, why.
 - The seam allowance used, in pixels, for each set.
 - Exactly what branding was applied to the project — icon, emblem, and every background file the
   key art was wired into, with the screens that now use them.
@@ -642,7 +696,7 @@ Verify the archive contains numbered PNGs in both `store/` and `store-play/` unl
 
 ## Phase 12 — final report
 
-Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range and seam allowance, the hero on panel 1 (its share of the panel, and that the foreground closes over it), how the play field in the art was built and where it was seated, the objects seated into the art, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
+Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range and seam allowance, whether the panorama was rendered from the draft or shipped as the composite, the identity gate's verdict, the hero on panel 1 (its share of the panel, and that the scene closes in front of it), how the play field in the art was built and where it landed, the objects seated into the art, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
 
 ## Quality gates
 
@@ -659,9 +713,13 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   as `inlay hero … → panel 1 … + occluded by the foreground`.
 - Panel 1 was composed as a berth for the hero: covering the figure leaves a stage waiting for
   someone, not a finished picture with a character laid on it.
-- The play field in the art came from `boardplate` — real symbol files or a lifted frame — and the
-  audit's three same-as-the-app answers are all yes. No model-drawn grid, tile, symbol frame or
-  HUD survives anywhere in either set.
+- The play field in the art came from `boardplate` — real symbol files or a lifted frame — stands in
+  the scene's perspective with a visible near edge, and the audit's three same-as-the-app answers
+  are all yes. No model-drawn grid, tile, symbol frame or HUD survives anywhere in either set.
+- The panorama is one rendered picture, not a paste-up: nothing in either set shows a cutout edge,
+  a drop-shadow halo, or an object facing the camera while the scene around it recedes.
+- The identity gate passed for every object — same silhouette, colours, detail, place and size as
+  its reference file — or the un-integrated composite shipped instead and `STORE_INFO.md` says so.
 - Every inlaid object is at least a quarter of a panel wide and reads as seated in the scene —
   grounded, shadowed at the contact point, lit by the same light — not pasted onto it.
 - No more than five objects are inlaid, and the compositor's crowding warning is unresolved nowhere.
@@ -688,8 +746,14 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   before this run's branding.
 - Shipping concept panels that show objects, characters, or a world the app does not contain.
 - Letting the image model draw the game's board, reels, grid, cells, symbol tiles, icon frames,
-  HUD, balance, or multiplier — or keeping such art because the rest of the picture is good. The
-  field is assembled from the game's own files by `boardplate`, or it is not shown.
+  HUD, balance, or multiplier from a description — or keeping such art because the rest of the
+  picture is good. The field is assembled from the game's own files by `boardplate` and carried
+  into the render as a reference image, or it is not shown.
+- Shipping the flat composite as the finished panorama when the integration pass was available, or
+  running that pass below `--fidelity high`.
+- Accepting an integrated picture whose objects were redesigned, restyled, simplified or
+  substituted, because the render looks good. A beautiful wrong symbol is the same rejection as an
+  ugly one, and harder to catch.
 - Building the board plate in invented colours when the game's own board colours, or its shipped
   board asset, were available to sample.
 - Shipping gameplay frames that share nothing visual with the concept panels.
