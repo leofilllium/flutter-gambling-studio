@@ -11,6 +11,10 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             (`--gutter`, ~100px by default) that is thrown away, because the
             store puts its own gap between screenshots: without it a coin or a
             face crossing a boundary is visibly displaced on the listing page.
+            WHERE that allowance comes out is chosen by the picture, not by
+            arithmetic (`--seam-snap`): the cuts slide inside a little slack
+            until they land on quiet ground, because a fixed 1/3, 2/3 split is
+            what makes a panel stop halfway through the subject.
             `--sprite` inlays the game's real objects into the art — hero on
             panel 1, large, seated in the scene's own light — so the panels
             never advertise a world the app does not contain. This is a
@@ -1106,19 +1110,60 @@ def parse_gutter(spec: str, panel_w: int) -> int:
     return px
 
 
+# Where the allowance is TAKEN OUT is as important as how wide it is.
+#
+# A fixed allowance at a fixed fraction of the width is content-blind: it throws
+# the strip away wherever the arithmetic lands it, and when that is across a
+# face, a coin or the board's edge, the panel simply stops mid-object. The note
+# that comes back is "it cuts too much, the picture breaks" — not because 100px
+# is the wrong number, but because it was removed from the worst possible place.
+#
+# So the panorama is composed with a little slack and the cuts are allowed to
+# slide inside it: the picture's own column energy chooses where the strips come
+# out, and they settle on quiet background — sky, wall, floor, haze — instead of
+# through the subject. The allowance itself stays the publisher's ~100px.
+
+SNAP_REF = 0.12            # search radius, as a fraction of one panel width
+DEFAULT_SNAP = "auto"
+SNAP_GAP_DRIFT = 0.40      # how far ONE allowance may drift from the nominal width
+SEAM_HOT = 1.35            # detail ratio at which a seam is cutting a subject
+
+
+def parse_snap(spec: str, panel_w: int) -> int:
+    """`auto` | `off`/`0` | pixels | a percentage of the panel → radius in px."""
+    text = str(spec).strip().lower()
+    if text in ("", "auto"):
+        return round(panel_w * SNAP_REF)
+    if text in ("off", "none"):
+        return 0
+    try:
+        px = (round(panel_w * float(text[:-1]) / 100.0) if text.endswith("%")
+              else int(round(float(text))))
+    except ValueError:
+        die(f"--seam-snap {spec}: expected auto, off, pixels (60) or a percentage (5%)")
+    if px < 0:
+        die(f"--seam-snap {spec}: a search radius cannot be negative")
+    if px > panel_w * 0.15:
+        die(f"--seam-snap {px}px is more than 15% of a {panel_w}px panel — the cuts "
+            "would wander far enough to change what each panel is about")
+    return px
+
+
 def panel_span(index: int, panel_w: int, gutter: int) -> tuple[int, int]:
     """Left/right x of panel `index` inside the gutter-aware panorama."""
     left = index * (panel_w + gutter)
     return left, left + panel_w
 
 
-def seam_report(pano: Image.Image, panels: int, panel_w: int, gutter: int) -> None:
-    """Measure how busy the picture is exactly where the store will cut it.
+def uniform_spans(panels: int, panel_w: int, gutter: int,
+                  margin: int = 0) -> list[tuple[int, int]]:
+    """The evenly spaced cuts: every panel a gutter apart, no snapping."""
+    return [(margin + left, margin + right)
+            for left, right in (panel_span(i, panel_w, gutter) for i in range(panels))]
 
-    A vision pass can miss a seam running through a hand or a coin; column edge
-    energy cannot. Ratios near 1.0 mean the cuts land on calm background.
-    """
-    small_h = 320
+
+def _edge_map(pano: Image.Image, small_h: int) -> tuple[np.ndarray, float]:
+    """Edge magnitude of the picture at `small_h`, plus the downscale factor."""
     scale = small_h / pano.height
     small_w = max(16, round(pano.width * scale))
     grey = np.asarray(pano.convert("L").resize((small_w, small_h), RES), dtype=np.float32)
@@ -1126,27 +1171,199 @@ def seam_report(pano: Image.Image, panels: int, panel_w: int, gutter: int) -> No
     dx[:, 1:] = np.abs(np.diff(grey, axis=1))
     dy = np.zeros_like(grey)
     dy[1:, :] = np.abs(np.diff(grey, axis=0))
-    column = (dx + dy).mean(axis=0)
+    return dx + dy, scale
+
+
+def _column_energy(pano: Image.Image, small_h: int = 320) -> tuple[np.ndarray, float]:
+    """Per-column edge energy of the picture, plus the downscale factor.
+
+    A vision pass can miss a seam running through a hand or a coin; column edge
+    energy cannot, and it is cheap enough to evaluate thousands of candidate
+    cuts against.
+    """
+    energy, scale = _edge_map(pano, small_h)
+    return energy.mean(axis=0), scale
+
+
+def _strip_energy(column: np.ndarray, scale: float, x0: int, width: int,
+                  probe: int) -> float:
+    """Mean column energy over the strip the cut discards at `x0`."""
+    a = int(round(x0 * scale))
+    b = int(round((x0 + width) * scale))
+    if b - a < 2:  # butt-joint: measure a thin band across the cut instead
+        mid = (a + b) // 2
+        a, b = mid - probe, mid + probe
+    a = max(0, min(column.size - 1, a))
+    b = max(a + 1, min(column.size, b))
+    return float(column[a:b].mean())
+
+
+def plan_panel_spans(pano: Image.Image, panels: int, panel_w: int, gutter: int,
+                     radius: int) -> list[tuple[int, int]]:
+    """Choose where to cut so the discarded strips land on calm background.
+
+    The panels keep their exact store size and each allowance keeps very nearly
+    its nominal width; what moves is where the strips are taken from. The whole
+    tiling may slide within `radius`, and each individual allowance may drift a
+    little around the nominal one — which together is what stops a panel ending
+    halfway through the hero's face, the failure a fixed 1/3, 2/3 split produces
+    the moment the art is not conveniently empty there.
+
+    The allowance itself is the publisher's number and stays close to it: a cut
+    that "solved" a seam by shrinking the gap to nothing would just bring back
+    the displacement the gutter exists to prevent.
+    """
+    slack = pano.width - (panels * panel_w + (panels - 1) * gutter)
+    if radius <= 0 or slack <= 0 or panels < 2:
+        return uniform_spans(panels, panel_w, gutter, margin=max(0, slack // 2))
+
+    column, scale = _column_energy(pano)
+    reference = float(column.mean()) or 1.0
+    probe = max(1, round(panel_w * 0.02 * scale))
+    step = max(2, round(panel_w * 0.005))
+    # `--gutter 0` is an explicit butt-joint: the tiling may still slide as a
+    # whole, but no cut is allowed to open a gap the caller said not to leave.
+    tol = min(radius, round(gutter * SNAP_GAP_DRIFT))
+
+    # State = how far the tiling has slid right of the panorama's left edge, so
+    # the search stays a few dozen states wide however many panels there are.
+    offsets = list(range(0, slack + 1, step))
+    if offsets[-1] != slack:
+        offsets.append(slack)
+    home = min(offsets, key=lambda o: abs(o - slack / 2))  # the even split
+    # A drifting allowance is only worth taking for a real gain, so pay a small,
+    # bounded price for leaving the publisher's nominal width behind.
+    drift_cost = 0.08 * reference
+
+    best = {o: 0.0 for o in offsets}
+    back: list[dict[int, int]] = []
+    for seam in range(panels - 1):
+        nxt: dict[int, float] = {}
+        prev: dict[int, int] = {}
+        for o_from in offsets:
+            base = best[o_from]
+            cut = o_from + (seam + 1) * panel_w + seam * gutter
+            for o_to in offsets:
+                drift = o_to - o_from
+                if abs(drift) > tol:
+                    continue
+                width = gutter + drift
+                if width < 0 or cut + width + panel_w > pano.width:
+                    continue
+                cost = (base + _strip_energy(column, scale, cut, width, probe)
+                        + (drift_cost * abs(drift) / tol if tol else 0.0))
+                if o_to not in nxt or cost < nxt[o_to]:
+                    nxt[o_to] = cost
+                    prev[o_to] = o_from
+        if not nxt:  # nothing reachable: keep the even split rather than guess
+            return uniform_spans(panels, panel_w, gutter, margin=slack // 2)
+        best = nxt
+        back.append(prev)
+
+    end = min(best, key=best.get)
+    chain = [end]
+    for prev in reversed(back):
+        chain.append(prev[chain[-1]])
+    chain.reverse()
+
+    spans: list[tuple[int, int]] = []
+    for i, offset in enumerate(chain):
+        left = offset + i * (panel_w + gutter)
+        spans.append((left, left + panel_w))
+    if spans[-1][1] > pano.width:  # numeric safety net; never expected
+        return uniform_spans(panels, panel_w, gutter, margin=slack // 2)
+
+    if chain[0] != home:
+        info(f"panorama slid {chain[0] - home:+d}px inside its slack so the cuts miss "
+             f"the subjects")
+    for i in range(1, panels):
+        gap = spans[i][0] - spans[i - 1][1]
+        if gap != gutter:
+            info(f"seam {i}→{i + 1}: allowance {gap}px ({gap - gutter:+d}px) — "
+                 f"taken out of calmer ground")
+    return spans
+
+
+def seam_report(pano: Image.Image, spans: list[tuple[int, int]]) -> None:
+    """Measure how busy the picture is exactly where the store will cut it.
+
+    Ratios near 1.0 mean the cuts land on calm background. Anything well above
+    the picture's average means a subject is being sliced, and the panel will
+    look like it stops mid-object on the listing page.
+    """
+    if len(spans) < 2:
+        return
+    panel_w = spans[0][1] - spans[0][0]
+    column, scale = _column_energy(pano)
     reference = float(column.mean()) or 1.0
     probe = max(1, round(panel_w * 0.02 * scale))
 
     hot: list[tuple[int, float]] = []
-    for i in range(1, panels):
-        x0 = i * panel_w + (i - 1) * gutter
-        a, b = int(round(x0 * scale)), int(round((x0 + gutter) * scale))
-        if b - a < 2:  # butt-joint: probe a thin band across the cut instead
-            mid = (a + b) // 2
-            a, b = max(0, mid - probe), min(small_w, mid + probe)
-        strip = column[a:b]
-        ratio = float(strip.mean()) / reference if strip.size else 0.0
+    for i in range(1, len(spans)):
+        x0 = spans[i - 1][1]
+        width = spans[i][0] - x0
+        ratio = _strip_energy(column, scale, x0, width, probe) / reference
         info(f"seam {i}→{i + 1}: detail {ratio:.2f}× the picture's average")
-        if ratio > 1.35:
+        if ratio > SEAM_HOT:
             hot.append((i, ratio))
     for i, ratio in hot:
         warn(f"seam {i}→{i + 1} runs through the busiest part of the picture "
-             f"({ratio:.2f}× average) — a subject is being cut there. Slide the crop "
-             f"(--zoom 1.15 --offset ±0.3), widen --gutter, or regenerate the art with "
-             f"calm space {i}/{panels} of the way across.")
+             f"({ratio:.2f}× average) — a subject is being cut there, and no cut "
+             f"inside the search radius avoided it. Widen --seam-snap, slide the crop "
+             f"(--zoom 1.15 --offset ±0.3), or regenerate the art with calm space "
+             f"{i}/{len(spans)} of the way across.")
+
+
+# Is the picture actually a picture?
+#
+# The other half of the same complaint is that the art comes back "too simple,
+# too boring": a gradient, a glow, one object, and acres of empty. That reads as
+# a placeholder backdrop in a strip of thumbnails standing next to nine finished
+# listings, and no amount of grading rescues it. Flatness is measurable — a
+# finished illustration keeps detail across most of its area, a backdrop does
+# not — so it is measured here rather than left to a vision pass that has
+# already accepted it once.
+
+FLAT_LEVEL = 3.0     # local activity below this reads as empty ground
+FLAT_SHARE = 0.55    # more of the panel than this being empty = a backdrop
+THIN_DETAIL = 4.0    # mean activity below this = nothing is going on at all
+
+
+def detail_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[float]:
+    """Per-panel richness: how much of each panel carries any detail at all."""
+    energy, scale = _edge_map(pano, 360)
+    small_w = energy.shape[1]
+    # Local activity, not per-pixel edges: a smooth gradient scores zero either
+    # way, but ornament, texture, particles and material breakup survive the
+    # blur, which is exactly the difference between an illustration and a wash.
+    activity = np.asarray(
+        Image.fromarray(energy.clip(0, 255).astype(np.uint8))
+        .filter(ImageFilter.BoxBlur(4)), dtype=np.float32)
+
+    shares: list[float] = []
+    for i, (left, right) in enumerate(spans):
+        a = max(0, int(round(left * scale)))
+        b = min(small_w, max(a + 1, int(round(right * scale))))
+        panel = activity[:, a:b]
+        flat = float((panel < FLAT_LEVEL).mean())
+        mean = float(panel.mean())
+        shares.append(flat)
+        info(f"panel {i + 1}: detail {mean:.1f}, {flat * 100:.0f}% of it empty ground")
+        if flat > FLAT_SHARE:
+            reason = (f"{flat * 100:.0f}% of it is empty ground — a subject on a wash, "
+                      "with no background place and nothing carrying the quiet areas")
+        elif mean < THIN_DETAIL:
+            reason = (f"its detail measures {mean:.1f} — the shapes are there but they "
+                      "are flat fills: no material texture, ornament or secondary light "
+                      "anywhere in the frame")
+        else:
+            continue
+        warn(f"panel {i + 1} reads as a backdrop, not a finished illustration: {reason}. "
+             "Beside a competitor's listing that reads as a placeholder. Regenerate the "
+             "art with three occupied depth planes, ornament at more than one scale, a "
+             "second light source, differentiated materials, and atmosphere through the "
+             "empty region — do not grade or crop it into looking finished.")
+    return shares
 
 
 # How auto-placed game objects are sized, where they land, and how they are
@@ -1336,7 +1553,8 @@ def contact_shadow(pano: Image.Image, cx: int, foot_y: int, width: int,
 
 def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                   panel_h: int, gutter: int, glow_color: str = "#FFFFFF",
-                  light: float = DEFAULT_SPRITE_LIGHT) -> list[str]:
+                  light: float = DEFAULT_SPRITE_LIGHT,
+                  spans: list[tuple[int, int]] | None = None) -> list[str]:
     """Composite the game's OWN objects into the concept art.
 
     Stores reject listings whose first panels advertise a world the app does not
@@ -1345,10 +1563,16 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
     second — leading with the hero on panel 1, at a size that survives the
     thumbnail strip, seated in the scene's own light, and always clear of the
     seam allowance so a store gutter can never bisect one.
+
+    `spans` are the cuts the panorama will actually be sliced on. They are
+    passed in rather than recomputed because the seams are snapped to the
+    picture's calm ground first: an object placed against the nominal 1/3, 2/3
+    arithmetic can sit on a seam that has since moved.
     """
     parsed = [parse_sprite_spec(raw) for raw in (specs or [])]
     if not parsed:
         return []
+    cuts = list(spans) if spans else uniform_spans(panels, panel_w, gutter)
     if len(parsed) > CROWDED:
         warn(f"{len(parsed)} objects inlaid — the panorama is a picture, not a sprite "
              f"sheet. A hero plus two or three symbols reads better at thumbnail "
@@ -1395,7 +1619,10 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
 
         if "x" in spec:
             cx = round(float(spec["x"]) * pano.width)
-            panel = max(0, min(panels - 1, int(cx // (panel_w + gutter))))
+            # The panel an explicit x lands in — a point inside the allowance
+            # after panel i still belongs to panel i, as it did when the cuts
+            # were evenly spaced.
+            panel = max(0, sum(1 for left, _ in cuts if left <= cx) - 1)
         else:
             if "panel" in spec:
                 panel = int(spec["panel"]) - 1
@@ -1412,7 +1639,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             panel = max(0, min(panels - 1, panel))
             frac = (HERO_X if hero else BOARD_X if board
                     else _PROP_X[prop_i % len(_PROP_X)])
-            cx = round(panel_span(panel, panel_w, gutter)[0] + frac * panel_w)
+            cx = round(cuts[panel][0] + frac * panel_w)
 
         # Objects are anchored by the foot, not the centre: that is what makes
         # them stand on the scene's ground plane instead of floating in it.
@@ -1427,7 +1654,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         if not hero and not board:
             prop_i += 1
 
-        left, right = panel_span(panel, panel_w, gutter)
+        left, right = cuts[panel]
         margin = round(panel_w * 0.04)
         if art.width > panel_w - 2 * margin:
             warn(f"{Path(spec['path']).name} is {art.width}px wide — wider than one "
@@ -1539,6 +1766,7 @@ def cmd_triptych(args) -> None:
             "(`showcase --caption`) and the feature graphic (`banner --title/--tagline`).")
 
     gutter = parse_gutter(args.gutter, w)
+    snap = parse_snap(args.seam_snap, w)
     src = load_image(args.src, "key art")
 
     # The panorama is composed WIDER than the panels it produces: the extra
@@ -1546,7 +1774,16 @@ def cmd_triptych(args) -> None:
     # screenshots stands in for it. Without that allowance the panels are
     # butt-joined and every object crossing a seam is displaced on the listing
     # page by the width of the carousel gutter.
-    pano_w, pano_h = w * n + gutter * (n - 1), h
+    #
+    # It is composed wider again by `snap` per seam, and that slack is what lets
+    # the cuts slide onto quiet ground. A content-blind cut at exactly 1/3 and
+    # 2/3 is what makes a panel stop halfway through a face — the allowance is
+    # not too wide, it is being taken out of the wrong place.
+    # Slack = room for the whole tiling to slide (2 radii, so the even split sits
+    # in the middle of the search) plus room for each allowance to drift.
+    slack = (2 * snap + (n - 1) * min(snap, round(gutter * SNAP_GAP_DRIFT))
+             if snap else 0)
+    pano_w, pano_h = w * n + gutter * (n - 1) + slack, h
     want, got = pano_w / pano_h, src.width / src.height
     if abs(want - got) / want > 0.35:
         warn(f"key art aspect {got:.2f} is far from the {n}-panel panorama {want:.2f} — "
@@ -1558,15 +1795,21 @@ def cmd_triptych(args) -> None:
     pano = cover(src, pano_w, pano_h, bias_x=args.offset, zoom=args.zoom)
     pano = pop_grade(pano, args.pop, vibrance=args.vibrance, lift=args.lift,
                      contrast=args.contrast, bloom=args.bloom)
+    # The cuts are chosen on the art BEFORE the objects land on it: the objects
+    # are then placed inside the panels those cuts define, so nothing is ever
+    # seated against a seam that afterwards moves out from under it.
+    spans = plan_panel_spans(pano, n, w, gutter, snap)
     inlay_sprites(pano, getattr(args, "sprite", []), n, w, h, gutter,
-                  glow_color=args.sprite_glow_color, light=args.sprite_light)
-    seam_report(pano, n, w, gutter)
+                  glow_color=args.sprite_glow_color, light=args.sprite_light,
+                  spans=spans)
+    seam_report(pano, spans)
+    detail_report(pano, spans)
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     total = 0
     for i in range(0 if args.pano_only else n):
-        left, right = panel_span(i, w, gutter)
+        left, right = spans[i]
         panel = pano.crop((left, 0, right, h))
         path = out_dir / f"{args.prefix}{i + 1:02d}.png"
         total += save_png(panel, path)
@@ -1598,21 +1841,29 @@ def cmd_triptych(args) -> None:
              "picture that comes back.")
         return
 
-    preview = pano.copy()
-    if gutter:
-        gap = Image.new("RGBA", (gutter, pano_h), (14, 14, 18, 255))
-        for i in range(1, n):
-            preview.paste(gap, (i * w + (i - 1) * gutter, 0))
-    else:
-        guide = ImageDraw.Draw(preview)
-        for i in range(1, n):
-            guide.line([(i * w, 0), (i * w, pano_h)], fill=(255, 0, 128, 255), width=3)
-    preview = preview.resize((1800, max(1, round(1800 * pano_h / pano_w))), RES)
+    # The preview shows only what the listing page shows: the panels in upload
+    # order with the store's gaps painted between them. The slack the cuts slid
+    # inside is discarded here too, so a seam that reads as continuous in the
+    # preview reads as continuous in the carousel.
+    gaps = [spans[i][0] - spans[i - 1][1] for i in range(1, n)]
+    preview = Image.new("RGBA", (w * n + sum(gaps), pano_h), (14, 14, 18, 255))
+    x = 0
+    for i, (left, right) in enumerate(spans):
+        preview.paste(pano.crop((left, 0, right, h)), (x, 0))
+        if i < n - 1:
+            if not gaps[i]:
+                ImageDraw.Draw(preview).line(
+                    [(x + w, 0), (x + w, pano_h)], fill=(255, 0, 128, 255), width=3)
+            x += w + gaps[i]
+    preview = preview.resize(
+        (1800, max(1, round(1800 * pano_h / preview.width))), RES)
     save_png(preview, out_dir / "_panorama-preview.png")
     ok(f"_panorama-preview.png  stitched {n}-panel check "
-       + (f"(store gutters shown at {gutter}px)" if gutter else "(seams marked)"))
+       + (f"(store gutters shown at {'/'.join(str(g) for g in gaps)}px)"
+          if any(gaps) else "(seams marked)"))
     info(f"panorama {pano_w}×{pano_h}, {total // 1024} KB across {n} panels "
-         f"+ {n - 1}×{gutter}px seam allowance")
+         f"+ seam allowances of {'/'.join(str(g) for g in gaps)}px"
+         + (f" (snapped within ±{snap}px of the nominal {gutter}px)" if snap else ""))
     if not gutter:
         warn("--gutter 0: panels are butt-joined, so anything crossing a seam will look "
              "displaced once the store puts its own gap between the screenshots")
@@ -2270,6 +2521,14 @@ def main() -> None:
                         "between screenshots stands in for it, instead of displacing "
                         f"whatever crosses the seam (default auto = {GUTTER_REF_PX}px "
                         f"at {GUTTER_REF_W}px panels, scaled to --size; 0 = butt-joint)")
+    t.add_argument("--seam-snap", default=DEFAULT_SNAP, metavar="PX|N%|auto|off",
+                   help="how far each cut may slide to take its allowance out of calm "
+                        "background instead of through a face, a coin or the board's "
+                        "edge. The panorama is composed with that much slack per seam "
+                        "and the picture's own column energy picks the cuts (default "
+                        f"auto = {SNAP_REF * 100:.0f}%% of a panel; off = the "
+                        "content-blind even split, which is what makes a panel stop "
+                        "mid-object)")
     t.add_argument("--sprite", action="append", default=[], metavar="PNG[@k=v,...]",
                    help="composite a REAL game object (a transparent PNG out of "
                         "assets/images/) into the concept art, so the panels advertise "

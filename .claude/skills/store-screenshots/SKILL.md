@@ -1,7 +1,7 @@
 ---
 name: store-screenshots
-description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama sliced into panels with a seam allowance, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 is composed *for* the protagonist: the art draws it a berth, it lands there at full size, and the scene's own foreground closes back over its feet. The game's real objects are built into the artwork at foreground scale, not pasted on it, and any play field the art shows is assembled from the game's own symbol files — the image model never draws the board. The key art and the app share one world in both directions — the panorama carries the game's real objects and the game wears the panorama as its background. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
-argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 100] [--pop vivid|soft|max|off] [--hero hero.png] [--props a.png,b.png] [--board auto|off] [--sprite-light 0.35] [--occlude 0.14] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
+description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama, dense enough to stand beside a real listing, sliced into panels on cuts the picture itself chose so no panel ends mid-object, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 is composed *for* the protagonist: the art draws it a berth, it lands there at full size, and the scene's own foreground closes back over its feet. The game's real objects are built into the artwork at foreground scale, not pasted on it, and any play field the art shows is assembled from the game's own symbol files — the image model never draws the board. The key art and the app share one world in both directions — the panorama carries the game's real objects and the game wears the panorama as its background. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
+argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 100] [--seam-snap auto|off] [--pop vivid|soft|max|off] [--hero hero.png] [--props a.png,b.png] [--board auto|off] [--sprite-light 0.35] [--occlude 0.14] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
@@ -12,7 +12,7 @@ Create everything needed to present the game in App Store Connect and Google Pla
 
 | Deliverable | Source |
 |---|---|
-| Panels 1…P: one wide, text-free concept illustration composed around the hero on panel 1 and carrying the game's real objects at foreground scale, sliced into adjacent panels | GPT Images 2.0 → `store_compose.py triptych --gutter` |
+| Panels 1…P: one wide, text-free concept illustration composed around the hero on panel 1 and carrying the game's real objects at foreground scale, sliced into adjacent panels on cuts the picture chose | GPT Images 2.0 → `store_compose.py triptych --gutter --seam-snap` |
 | The layout draft the finished picture is rendered from — real hero, real field, real props placed where they belong | `store_compose.py boardplate` + `triptych --pano-only` |
 | One integrated illustration: the draft's composition and the game's own objects, rendered as a single three-dimensional scene | `gpt_image.py edit --image draft --image <each object> --fidelity high` |
 | The same key art wired into the app as its own background | `store_compose.py backdrop` → `assets/images/backgrounds/` |
@@ -178,6 +178,46 @@ the same: *make it richer and brighter*. So:
   app renders. If the captured frames look dull, the *game* is dull — fix it with the key-art
   backdrop, in-game lighting, and juice, then re-capture. Never brighten a frame in post.
 
+### Density is the other half of the brief
+
+The complaint that arrives beside "make it brighter" is "it is too simple, too boring". Raw
+image-model output tends to a poster: one object, one glow, a gradient, and acres of nothing.
+Standing in a strip beside nine finished listings, that reads as a placeholder — and no colour
+grade rescues an empty picture. A storefront panorama is a **finished illustration**, so ask for
+one and check that one came back:
+
+- **Three planes, all of them occupied.** A foreground that crops on the frame edge (rail, rocks,
+  spilled chips, foliage, a shoulder), a midground carrying the hero berth and the field stage, and
+  a background that is a *place* — architecture, landscape, crowd, machinery, weather — not a
+  gradient behind the subject.
+- **Ornament at three scales.** The silhouette that survives a thumbnail; the mid detail that
+  appears when the reviewer taps to full size — panelling, trim, plating, embroidery, carved edges;
+  and micro texture — grain, wear, scratches, engraving, condensation. A shape with one flat fill
+  and a bevel is the look being complained about.
+- **More than one light.** The scene's key from the top left, plus practical lights that belong to
+  the world (lanterns, signage, screens, embers, the glow off the reward itself) and a rim or
+  bounce separating the subject from the background. One flat key light is what makes a render look
+  like clip art.
+- **Three distinguishable materials**, each responding differently: metal with a tight specular,
+  cloth or paper with none, stone or wood with grain, glass or liquid with transmission.
+- **Atmosphere that carries the empty areas.** Volumetric shafts, haze with depth, drifting
+  particulate — dust, sparks, spray, petals, coins in flight. Empty sky or a plain wall is where
+  a panel dies.
+- **Something is happening.** A moment mid-event: a reaction, a spill, a trail, a crowd turning to
+  look. A static product arrangement of correct objects is still boring.
+- **Every panel is its own slide.** Each of the P panels must have a subject and an event of its
+  own. One good panel plus two panels of background is a three-screenshot listing with one
+  screenshot in it.
+
+The opposite failure is real too, so hold the hierarchy while adding the density: depth of field,
+value grouping and a calmer halo around the hero and the play field keep them the first things the
+eye lands on. Detail everywhere with no focal point is noise, which reads as cheap for a different
+reason.
+
+`triptych` measures this and prints it per panel — `panel 2: detail 6.4, 31% of it empty ground`.
+Above 55% empty, or a detail figure under 4, it says so: that panel is a backdrop, and the fix is
+to regenerate the art from a fuller brief, never to grade or crop it.
+
 ## Arguments and defaults
 
 | Argument | Default | Meaning |
@@ -186,6 +226,7 @@ the same: *make it richer and brighter*. So:
 | `--panels P` | `3` | Number of adjacent concept panels; `0` disables them |
 | `--size` | `1320x2868` | Main set; also supports `iphone-6.9`, `iphone-6.9-alt`, `iphone-6.5`, and `play` |
 | `--gutter` | `auto` (≈100 px at 1320-wide panels) | Seam allowance discarded between panels; `0` butt-joins them |
+| `--seam-snap` | `auto` (12% of a panel) | How far each cut may slide so its allowance comes out of calm background instead of through a subject. `off` restores the content-blind even split |
 | `--pop` | `vivid` | Colour grade applied to generated art (`off`, `soft`, `vivid`, `max`) |
 | `--hero` | first shared object | The protagonist PNG that leads panel 1; if omitted, entry 1 of the shared object list |
 | `--props` | auto | Comma-separated game PNGs inlaid into the panorama, capped at four alongside the hero; the default comes from the shared object list |
@@ -297,9 +338,17 @@ Use image generation for three sources:
      for those objects **large in the foreground, standing on a readable ground plane**, some of
      them cropped by the bottom edge — a scene with somewhere for Phase 2 to seat the real files.
      Say how many; more than five and the picture turns into a heap.
+   - **Ask for a dense picture, panel by panel.** Name what fills each third: its subject, its
+     event, its background place. Spell out the three planes, the ornament scales, the second and
+     third light sources, the materials and the atmosphere from "Density is the other half of the
+     brief" — an image model that is not told to populate the frame will hand back one object on a
+     gradient every time. Say explicitly that the empty regions carry haze, particulate and
+     structure rather than flat colour.
    - Keep important objects away from the panel seams — at 3 panels they sit at 1/3 and 2/3 of the
-     width. Ask for the vivid end of the palette: saturated colour, luminous key and rim light, deep
-     contrast, glowing highlights.
+     width — and ask for a **calm vertical corridor** there: sky, wall, haze, floor. The slicer can
+     slide a cut by about an eighth of a panel to find quiet ground, but it cannot invent any if the
+     art is busy edge to edge. Ask for the vivid end of the palette: saturated colour, luminous key
+     and rim light, deep contrast, glowing highlights.
    - **The negative list is part of the prompt, not a nicety.** No text, logo, letters, numbers,
      device frame or panel dividers — and no game board, reel grid, cells, symbol tiles, icon
      frames, HUD, balance, meter or multiplier. Anything the player touches exists as a file and is
@@ -307,6 +356,11 @@ Use image generation for three sources:
    - Inspect the returned image against that list before going on. A grid, a symbol frame or a
      stray HUD in the source is a defect: regenerate. Do not crop it out, do not cover it with the
      board plate, and do not accept it because the rest of the picture is good.
+   - Inspect it for **emptiness** in the same pass, thirds first: a third that is a gradient with
+     one shape on it is a defect too, and it is the one most easily mistaken for "clean". Regenerate
+     with the missing plane named — usually the background place and the atmosphere. The berth and
+     the stage are empty of a *subject*, not empty of a *picture*: both are built, lit, ornamented
+     surfaces.
 2. **Icon art:** one bold central mechanic/hero silhouette, readable at 48 px, no text, no thin border, and no transparent holes.
 3. **Game emblem:** a distinctive symbol/crest derived from the mechanic and world, with no letters or words, generated on a flat removable background.
 
@@ -399,6 +453,11 @@ python3 tools/gpt_image.py edit \
     ground takes its shadow, the scene's light wraps its silhouette.
   - Finish it as one painting — no cutout edges, no drop shadows, no sticker outlines, nothing that
     looks composited.
+  - Keep every plane of the draft populated and **add** the finish a render can give that a
+    composite cannot: micro texture and wear on the materials, the secondary lights and their
+    spill, volumetric haze between the planes, particulate in the air. The render must not
+    simplify the picture into a cleaner, emptier version of itself — that is the most common way
+    an integration pass makes the art worse, and `triptych`'s per-panel detail figures catch it.
   - No text, letters, numbers, logo, UI, HUD, device frame or panel dividers, and no invented game
     symbols beyond the ones supplied.
 - Iterate on the prompt, not on the objects. If the picture is close but the light is flat or the
@@ -531,10 +590,29 @@ gutter stands in for it. `auto` is ≈100 px at 1320-wide panels and scales with
 Store and Play sets slice identically. Only pass `--gutter 0` if a specific store surface is known
 to show the panels flush.
 
-The compositor also reports, per seam, how busy the picture is exactly where it cuts. Ratios near
-1.0 mean the cuts land on calm background. A warning above 1.35× means a subject is being sliced:
-slide the crop (`--zoom 1.15 --offset ±0.3`), widen `--gutter`, or regenerate the art with calm
-space at that fraction of the width.
+**Where the allowance comes out is chosen by the picture, not by arithmetic.** An even split cuts
+at exactly 1/3 and 2/3 whatever is standing there, and when that is a face, a coin or the board's
+near edge the panel simply stops mid-object — the picture looks like it was cut too hard, which is
+the complaint that follows a listing built this way. `--seam-snap` composes a little extra slack
+into the panorama and lets each cut slide inside it, choosing the columns where the picture is
+quietest; the allowance itself stays within about 40% of the publisher's nominal width, because a
+seam "solved" by shrinking the gap to nothing just brings the displacement back. `auto` searches
+±12% of a panel, which clears an object up to roughly a third of a panel wide. `--seam-snap off`
+restores the content-blind split; only use it when a specific surface needs the panels at exact
+thirds.
+
+The compositor reports what it chose and what it cost:
+
+- `panorama slid -70px inside its slack` and `seam 2→3: allowance 88px (-12px)` — where the cuts
+  actually landed. Record both in `STORE_INFO.md`.
+- `seam 1→2: detail 0.94× the picture's average` — how busy the picture is exactly where it cuts.
+  Ratios near 1.0 mean the cuts landed on calm background.
+- A warning above 1.35× means a subject is still being sliced and no cut inside the search radius
+  avoided it. Widen `--seam-snap` (up to 15%), slide the crop (`--zoom 1.15 --offset ±0.3`), or
+  regenerate the art with a calm vertical corridor at that fraction of the width. Do not answer it
+  by widening `--gutter`: that removes *more* of the subject, not less.
+- `panel 2: detail 6.4, 31% of it empty ground` — the density check from the art direction above.
+  A panel called out as empty ground is regenerated, never graded or cropped into shape.
 
 Vision-check the stitched preview — it paints the store's gutters in, so it shows what the listing
 page shows, gaps and all:
@@ -560,6 +638,15 @@ page shows, gaps and all:
 - Every object is at foreground scale and standing on something. Anything that shrank to decoration
   in the render goes back through Phase 2b with the draft's size restated.
 - No seam cuts the hero's face, central mechanic, reward, decisive action, or an inlaid game object.
+  Check this on the preview, where the gaps are painted in: the object either sits whole inside one
+  panel, or the strip that vanished into a gap was background. A panel that ends mid-object is the
+  defect, whatever the numbers said.
+- **Every panel is a finished illustration, not a backdrop.** Three occupied depth planes, ornament
+  at more than one scale, more than one light, materials that respond differently, and atmosphere
+  carrying the areas with no subject in them. A panel that is a gradient with one shape on it fails
+  even if the shape is the right one — and the compositor's `% empty ground` line already said so.
+- Density did not cost the hierarchy: the hero on panel 1 and the play field are still the first
+  things the eye lands on, held apart from the detail by focus, value or a calmer surround.
 - No letters, fake glyphs, captions, UI, HUD, meters, balances, or panel borders appear.
 - The mechanic and category are recognizable without generic casino cues.
 - At least one object from the shared list is unmistakably present, and it is the same object the
@@ -674,7 +761,10 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
   why instead.
 - Whether the integration pass ran, with the reference images and fidelity it used, and the
   identity gate's per-object verdict. If the kit shipped un-integrated, why.
-- The seam allowance used, in pixels, for each set.
+- The seam allowance used, in pixels, per seam and per set, how far the tiling slid inside
+  its slack, and each seam's final detail ratio.
+- The per-panel detail figures and empty-ground percentages, with a note on any panel that
+  was regenerated for being too sparse.
 - Exactly what branding was applied to the project — icon, emblem, and every background file the
   key art was wired into, with the screens that now use them.
 - The continuity audit table.
@@ -696,7 +786,7 @@ Verify the archive contains numbered PNGs in both `store/` and `store-play/` unl
 
 ## Phase 12 — final report
 
-Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range and seam allowance, whether the panorama was rendered from the draft or shipped as the composite, the identity gate's verdict, the hero on panel 1 (its share of the panel, and that the scene closes in front of it), how the play field in the art was built and where it landed, the objects seated into the art, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
+Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, the per-seam allowances and detail ratios, the per-panel detail figures, whether the panorama was rendered from the draft or shipped as the composite, the identity gate's verdict, the hero on panel 1 (its share of the panel, and that the scene closes in front of it), how the play field in the art was built and where it landed, the objects seated into the art, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
 
 ## Quality gates
 
@@ -731,7 +821,13 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   gameplay frame.
 - Panels are sliced with a seam allowance, stitch correctly across the preview's painted gutters in
   both sets, and are text-free.
-- No seam warning above 1.35× is left unresolved.
+- The cuts were placed by the picture, not by arithmetic: `--seam-snap` was left on, and every seam
+  either measures calm or was resolved by regenerating the art. No panel ends mid-object.
+- No seam warning above 1.35× is left unresolved, and none was answered by widening `--gutter`.
+- Every panel passes the density check: three occupied depth planes, ornament at more than one
+  scale, more than one light source, differentiated materials, atmosphere through the quiet areas —
+  and no panel left flagged as empty ground by the compositor.
+- The added density did not bury the focal points: the hero and the play field still lead.
 - Colour and brightness hold up at thumbnail size in both sets.
 - Showcase captions are readable, correctly spelled, and rendered with full glyph coverage.
 - Compliance grep and vision checks pass with no exceptions.
@@ -759,6 +855,15 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - Shipping gameplay frames that share nothing visual with the concept panels.
 - Butt-joining the panels when the store will put a gutter between them, or leaving a subject
   sitting on a seam because the preview "looks fine" as a continuous image.
+- Cutting the panorama blind — `--seam-snap off`, or a wider `--gutter` used to answer a hot seam.
+  Widening the allowance removes more of the subject that is being cut, not less; the cut has to
+  move off it, or the art has to be regenerated with quiet ground there.
+- Shipping a panel that is a gradient with one object on it — an empty backdrop dressed up with a
+  colour grade — or accepting one because the compositor's empty-ground warning was "only a
+  warning". Sparse art is regenerated from a fuller brief, not graded, cropped or captioned into
+  looking finished.
+- Letting the integration pass hand back a cleaner, emptier version of the draft and shipping it
+  because it renders nicely.
 - Colour-grading, relighting, or retouching a real gameplay frame instead of fixing the game.
 - Drawing fake gameplay, fake values, generated lettering, device frames, or panel separators into model-generated art.
 - Compositing a game object into the key art unlit, unscaled, and unshadowed so it reads as a

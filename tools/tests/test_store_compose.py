@@ -123,7 +123,6 @@ class SeamReportTests(unittest.TestCase):
         # the seam strip must measure busier than the panorama's average.
         panel_w, panel_h, gutter = 200, 400, 20
         pano = Image.new("RGBA", (panel_w * 3 + gutter * 2, panel_h), (40, 40, 60, 255))
-        from PIL import ImageDraw
         seam = panel_w + gutter // 2
         ImageDraw.Draw(pano).ellipse([seam - 60, 140, seam + 60, 260], fill=(255, 210, 80, 255))
 
@@ -131,12 +130,123 @@ class SeamReportTests(unittest.TestCase):
         original = store_compose.warn
         store_compose.warn = messages.append  # type: ignore[assignment]
         try:
-            store_compose.seam_report(pano, 3, panel_w, gutter)
+            store_compose.seam_report(
+                pano, store_compose.uniform_spans(3, panel_w, gutter))
         finally:
             store_compose.warn = original  # type: ignore[assignment]
 
         self.assertTrue(any("seam 1→2" in m for m in messages), messages)
         self.assertFalse(any("seam 2→3" in m for m in messages), messages)
+
+
+class SeamSnapTests(unittest.TestCase):
+    """The allowance is the publisher's; where it is taken out is the picture's.
+
+    A content-blind cut at exactly 1/3 and 2/3 removes 100px from wherever the
+    arithmetic lands, and when that is across a face the panel simply stops
+    mid-object. The cuts are allowed to slide until they come out of calm
+    ground instead.
+    """
+
+    PANEL_W, PANEL_H, GUTTER, PANELS = 400, 860, 30, 3
+    SUBJECT_W = 60
+
+    def _pano(self, subject_at: int | None):
+        snap = store_compose.parse_snap("auto", self.PANEL_W)
+        width = (self.PANEL_W * self.PANELS + self.GUTTER * (self.PANELS - 1)
+                 + snap * (self.PANELS - 1))
+        pano = Image.new("RGBA", (width, self.PANEL_H), (40, 40, 60, 255))
+        if subject_at is not None:
+            half = self.SUBJECT_W // 2
+            ImageDraw.Draw(pano).ellipse(
+                [subject_at - half, 300, subject_at + half, 560],
+                fill=(255, 210, 80, 255))
+        return pano, snap
+
+    def test_radius_parsing(self) -> None:
+        self.assertEqual(store_compose.parse_snap("auto", 1320), 158)
+        self.assertEqual(store_compose.parse_snap("off", 1320), 0)
+        self.assertEqual(store_compose.parse_snap("0", 1320), 0)
+        self.assertEqual(store_compose.parse_snap("40", 1320), 40)
+        self.assertEqual(store_compose.parse_snap("4%", 1000), 40)
+        for bad in ("wide", "-5", "400"):
+            with self.subTest(bad=bad), self.assertRaises(SystemExit):
+                store_compose.parse_snap(bad, 1000)
+
+    def test_the_cut_slides_off_a_subject_sitting_on_the_nominal_seam(self) -> None:
+        nominal = self.PANEL_W  # where an even split would cut
+        pano, snap = self._pano(subject_at=nominal + self.GUTTER // 2)
+        spans = store_compose.plan_panel_spans(
+            pano, self.PANELS, self.PANEL_W, self.GUTTER, snap)
+
+        # The discarded strip must clear the subject entirely, not merely shift.
+        strip = (spans[0][1], spans[1][0])
+        subject = (nominal + self.GUTTER // 2 - self.SUBJECT_W // 2,
+                   nominal + self.GUTTER // 2 + self.SUBJECT_W // 2)
+        self.assertTrue(strip[1] <= subject[0] or strip[0] >= subject[1],
+                        f"strip {strip} still cuts the subject {subject}")
+        for left, right in spans:
+            self.assertEqual(right - left, self.PANEL_W)
+        self.assertLessEqual(spans[-1][1], pano.width)
+
+    def test_a_calm_picture_is_left_where_the_arithmetic_put_it(self) -> None:
+        pano, snap = self._pano(subject_at=None)
+        spans = store_compose.plan_panel_spans(
+            pano, self.PANELS, self.PANEL_W, self.GUTTER, snap)
+        for i in range(1, self.PANELS):
+            self.assertEqual(spans[i][0] - spans[i - 1][1], self.GUTTER)
+
+    def test_off_reproduces_the_even_split(self) -> None:
+        pano, _ = self._pano(subject_at=self.PANEL_W)
+        spans = store_compose.plan_panel_spans(
+            pano, self.PANELS, self.PANEL_W, self.GUTTER, 0)
+        self.assertEqual([r - l for l, r in spans], [self.PANEL_W] * self.PANELS)
+        for i in range(1, self.PANELS):
+            self.assertEqual(spans[i][0] - spans[i - 1][1], self.GUTTER)
+
+    def test_the_allowance_stays_near_the_publisher_s_number(self) -> None:
+        pano, snap = self._pano(subject_at=self.PANEL_W + self.GUTTER // 2)
+        spans = store_compose.plan_panel_spans(
+            pano, self.PANELS, self.PANEL_W, self.GUTTER, snap)
+        for i in range(1, self.PANELS):
+            gap = spans[i][0] - spans[i - 1][1]
+            self.assertGreaterEqual(gap, 0)
+            self.assertLessEqual(abs(gap - self.GUTTER), snap)
+
+
+class DetailReportTests(unittest.TestCase):
+    """"Too simple, too boring" is measurable, so it is measured."""
+
+    PANEL_W, PANEL_H = 200, 400
+
+    def _measure(self, pano: Image.Image, panels: int = 2):
+        spans = store_compose.uniform_spans(panels, self.PANEL_W, 0)
+        messages: list[str] = []
+        original_warn, original_info = store_compose.warn, store_compose.info
+        store_compose.warn = messages.append  # type: ignore[assignment]
+        store_compose.info = lambda *_: None  # type: ignore[assignment]
+        try:
+            return store_compose.detail_report(pano, spans), messages
+        finally:
+            store_compose.warn = original_warn  # type: ignore[assignment]
+            store_compose.info = original_info  # type: ignore[assignment]
+
+    def test_a_gradient_with_one_shape_is_called_a_backdrop(self) -> None:
+        pano = store_compose.gradient(
+            (self.PANEL_W * 2, self.PANEL_H),
+            [(0.0, (20, 24, 60, 255)), (1.0, (90, 40, 120, 255))])
+        ImageDraw.Draw(pano).ellipse([60, 150, 200, 290], fill=(240, 200, 90, 255))
+        shares, messages = self._measure(pano)
+        self.assertTrue(all(share > store_compose.FLAT_SHARE for share in shares), shares)
+        self.assertTrue(any("empty ground" in m for m in messages), messages)
+
+    def test_a_populated_illustration_passes(self) -> None:
+        rng = np.random.default_rng(7)
+        noise = rng.integers(30, 220, (self.PANEL_H, self.PANEL_W * 2, 3), dtype=np.uint8)
+        pano = Image.fromarray(noise, "RGB").convert("RGBA")
+        shares, messages = self._measure(pano)
+        self.assertTrue(all(share < store_compose.FLAT_SHARE for share in shares), shares)
+        self.assertEqual(messages, [])
 
 
 class InlayTests(unittest.TestCase):
