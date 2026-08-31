@@ -20,8 +20,89 @@ store_compose = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(store_compose)
 
 
+class ReassemblyTests(unittest.TestCase):
+    """The contract: lay the panels side by side and the picture comes back.
+
+    Not a millimetre of it may be missing anywhere, so the default cut is
+    butt-joined and slicing discards nothing between the panels.
+    """
+
+    PANEL_W, PANEL_H, PANELS = 240, 520, 3
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dir = Path(self._tmp.name)
+        for name in ("info", "ok", "warn"):
+            original = getattr(store_compose, name)
+            setattr(store_compose, name, lambda *_: None)
+            self.addCleanup(setattr, store_compose, name, original)
+
+    def _slice(self, **kwargs) -> tuple[list[Image.Image], Image.Image]:
+        rng = np.random.default_rng(11)
+        src = Image.fromarray(
+            rng.integers(20, 235, (self.PANEL_H, self.PANEL_W * self.PANELS, 3),
+                         dtype=np.uint8), "RGB").convert("RGBA")
+        src_path = self.dir / "keyart.png"
+        src.save(src_path)
+        out = self.dir / "panels"
+        pano_path = self.dir / "pano.png"
+        args = argparse.Namespace(
+            src=str(src_path), out=str(out), panels=self.PANELS,
+            size=f"{self.PANEL_W}x{self.PANEL_H}", prefix="store-", zoom=1.0,
+            offset=0.0, gutter=store_compose.DEFAULT_GUTTER, seam_snap="auto",
+            sprite=[], sprite_glow_color="#FFFFFF",
+            sprite_light=store_compose.DEFAULT_SPRITE_LIGHT,
+            save_pano=str(pano_path), pano_only=False, pop="off", vibrance=None,
+            lift=None, contrast=None, bloom=None, title=None, tagline=None,
+            logo=None, title_panel=None, title_pos=None)
+        for key, value in kwargs.items():
+            setattr(args, key, value)
+        store_compose.cmd_triptych(args)
+        panels = [Image.open(out / f"store-{i + 1:02d}.png").convert("RGBA")
+                  for i in range(self.PANELS)]
+        return panels, Image.open(pano_path).convert("RGBA")
+
+    def test_the_panels_laid_edge_to_edge_are_the_picture_again(self) -> None:
+        panels, pano = self._slice()
+        stitched = Image.new("RGBA", (self.PANEL_W * self.PANELS, self.PANEL_H))
+        for i, panel in enumerate(panels):
+            self.assertEqual(panel.size, (self.PANEL_W, self.PANEL_H))
+            stitched.paste(panel, (i * self.PANEL_W, 0))
+
+        # The stitch has to appear in the saved panorama verbatim: same pixels,
+        # same order, nothing dropped between one panel and the next.
+        wide = np.asarray(pano)
+        want = np.asarray(stitched)
+        offsets = [x for x in range(wide.shape[1] - want.shape[1] + 1)
+                   if np.array_equal(wide[:, x:x + want.shape[1]], want)]
+        self.assertTrue(offsets, "the panels do not reassemble the panorama")
+
+    def test_an_explicit_allowance_is_still_available_and_does_cost_pixels(self) -> None:
+        panels, pano = self._slice(gutter="20")
+        stitched = Image.new("RGBA", (self.PANEL_W * self.PANELS, self.PANEL_H))
+        for i, panel in enumerate(panels):
+            stitched.paste(panel, (i * self.PANEL_W, 0))
+        wide, want = np.asarray(pano), np.asarray(stitched)
+        matches = [x for x in range(wide.shape[1] - want.shape[1] + 1)
+                   if np.array_equal(wide[:, x:x + want.shape[1]], want)]
+        self.assertFalse(matches, "an allowance was requested but nothing was discarded")
+
+    def test_both_previews_are_written_and_neither_is_an_upload_asset(self) -> None:
+        self._slice()
+        out = self.dir / "panels"
+        for name in ("_panorama-preview.png", "_carousel-preview.png"):
+            self.assertTrue((out / name).is_file(), name)
+        uploads = sorted(p.name for p in out.glob("*.png")
+                         if not p.name.startswith("_"))
+        self.assertEqual(uploads, ["store-01.png", "store-02.png", "store-03.png"])
+
+
 class GutterTests(unittest.TestCase):
-    """The seam allowance is the whole point of slicing wider than the panels."""
+    """The opt-in seam allowance, for a publisher who asks the panels to line up."""
+
+    def test_the_default_discards_nothing(self) -> None:
+        self.assertEqual(store_compose.parse_gutter(store_compose.DEFAULT_GUTTER, 1320), 0)
 
     def test_auto_scales_with_the_panel_so_both_store_sets_match(self) -> None:
         self.assertEqual(store_compose.parse_gutter("auto", 1320), 100)

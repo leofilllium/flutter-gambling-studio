@@ -1,7 +1,7 @@
 ---
 name: store-screenshots
-description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama, dense enough to stand beside a real listing, sliced into panels on cuts the picture itself chose so no panel ends mid-object, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 is composed *for* the protagonist: the art draws it a berth, it lands there at full size, and the scene's own foreground closes back over its feet. The game's real objects are built into the artwork at foreground scale, not pasted on it, and any play field the art shows is assembled from the game's own symbol files — the image model never draws the board. The key art and the app share one world in both directions — the panorama carries the game's real objects and the game wears the panorama as its background. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
-argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 100] [--seam-snap auto|off] [--pop vivid|soft|max|off] [--hero hero.png] [--props a.png,b.png] [--board auto|off] [--sprite-light 0.35] [--occlude 0.14] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
+description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama, dense enough to stand beside a real listing, sliced into panels that reassemble into that exact picture — nothing discarded between them, no panel ending mid-object, the cuts placed on the quietest columns the picture has, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 is composed *for* the protagonist: the art draws it a berth, it lands there at full size, and the scene's own foreground closes back over its feet. The game's real objects are built into the artwork at foreground scale, not pasted on it, and any play field the art shows is assembled from the game's own symbol files — the image model never draws the board. The key art and the app share one world in both directions — the panorama carries the game's real objects and the game wears the panorama as its background. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
+argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 0|100] [--seam-snap auto|off] [--pop vivid|soft|max|off] [--hero hero.png] [--props a.png,b.png] [--board auto|off] [--sprite-light 0.35] [--occlude 0.14] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
@@ -12,7 +12,7 @@ Create everything needed to present the game in App Store Connect and Google Pla
 
 | Deliverable | Source |
 |---|---|
-| Panels 1…P: one wide, text-free concept illustration composed around the hero on panel 1 and carrying the game's real objects at foreground scale, sliced into adjacent panels on cuts the picture chose | GPT Images 2.0 → `store_compose.py triptych --gutter --seam-snap` |
+| Panels 1…P: one wide, text-free concept illustration composed around the hero on panel 1 and carrying the game's real objects at foreground scale, sliced into adjacent panels that lay back down into the whole picture | GPT Images 2.0 → `store_compose.py triptych --seam-snap` |
 | The layout draft the finished picture is rendered from — real hero, real field, real props placed where they belong | `store_compose.py boardplate` + `triptych --pano-only` |
 | One integrated illustration: the draft's composition and the game's own objects, rendered as a single three-dimensional scene | `gpt_image.py edit --image draft --image <each object> --fidelity high` |
 | The same key art wired into the app as its own background | `store_compose.py backdrop` → `assets/images/backgrounds/` |
@@ -225,8 +225,8 @@ to regenerate the art from a fuller brief, never to grade or crop it.
 | `--count N` | `8` | Total screenshots |
 | `--panels P` | `3` | Number of adjacent concept panels; `0` disables them |
 | `--size` | `1320x2868` | Main set; also supports `iphone-6.9`, `iphone-6.9-alt`, `iphone-6.5`, and `play` |
-| `--gutter` | `auto` (≈100 px at 1320-wide panels) | Seam allowance discarded between panels; `0` butt-joins them |
-| `--seam-snap` | `auto` (12% of a panel) | How far each cut may slide so its allowance comes out of calm background instead of through a subject. `off` restores the content-blind even split |
+| `--gutter` | `0` | Nothing is discarded between panels: they reassemble into the picture. An explicit width (`100`, `auto`) throws that strip away instead, for a publisher who asks the panels to line up across the store's carousel gap — it costs the picture |
+| `--seam-snap` | `auto` (12% of a panel) | How far the tiling may slide so the cuts land on the picture's quietest columns. With a lossless cut this is the only lever there is. `off` restores the content-blind even split |
 | `--pop` | `vivid` | Colour grade applied to generated art (`off`, `soft`, `vivid`, `max`) |
 | `--hero` | first shared object | The protagonist PNG that leads panel 1; if omitted, entry 1 of the shared object list |
 | `--props` | auto | Comma-separated game PNGs inlaid into the panorama, capped at four alongside the hero; the default comes from the shared object list |
@@ -345,10 +345,12 @@ Use image generation for three sources:
      gradient every time. Say explicitly that the empty regions carry haze, particulate and
      structure rather than flat colour.
    - Keep important objects away from the panel seams — at 3 panels they sit at 1/3 and 2/3 of the
-     width — and ask for a **calm vertical corridor** there: sky, wall, haze, floor. The slicer can
-     slide a cut by about an eighth of a panel to find quiet ground, but it cannot invent any if the
-     art is busy edge to edge. Ask for the vivid end of the palette: saturated colour, luminous key
-     and rim light, deep contrast, glowing highlights.
+     width — and ask for a **calm vertical corridor** at each of them: sky, wall, haze, floor,
+     roughly an eighth of a panel wide. This is the only protection a seam has. The panels must
+     reassemble into the whole picture, so nothing can be discarded at a cut and the slicer can
+     only slide the tiling as a whole to find quiet ground; if the art is busy edge to edge, some
+     cut lands on a subject and the only fix left is regenerating the art. Ask for the vivid end of
+     the palette: saturated colour, luminous key and rim light, deep contrast, glowing highlights.
    - **The negative list is part of the prompt, not a nicety.** No text, logo, letters, numbers,
      device frame or panel dividers — and no game board, reel grid, cells, symbol tiles, icon
      frames, HUD, balance, meter or multiplier. Anything the player touches exists as a file and is
@@ -396,7 +398,7 @@ python3 tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
 
 python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
   --out "$ART_DIR/draft" --pano-only --save-pano "$ART_DIR/keyart-draft.png" \
-  --panels 3 --size 1320x2868 --gutter auto --pop vivid \
+  --panels 3 --size 1320x2868 --pop vivid \
   --sprite assets/images/sprites/sprite_eagle.png@hero \
   --sprite "$ART_DIR/board-plate.png@board,light=0.15" \
   --sprite assets/images/sprites/sprite_bolt.png@panel=2,rot=-8 \
@@ -416,7 +418,8 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
   and it does not go in the kit's `store/` directory.
 - Everything the earlier phases established still holds here: hero on panel 1 at ≈0.58× the panel
   width, objects at foreground scale on the ground plane, the field on the middle panel, five
-  objects at most, nothing on a seam.
+  objects at most, nothing on a seam. The draft is composed against the same cuts the final slice
+  will use, so an object placed clear of a seam here stays clear of it there.
 
 ### Phase 2b — the integration pass
 
@@ -574,50 +577,63 @@ the corrected panorama, so do those again rather than leaving three versions of 
 Slice `$ART_DIR/keyart-integrated.png` separately for the App Store and Play dimensions with
 `store_compose.py triptych`. Pass **no `--sprite`**: the objects are painted into that picture
 already, and inlaying them a second time would put a flat copy on top of the rendered one. Produce
-numbered `store-01.png` through `store-0P.png` plus `_panorama-preview.png` for inspection.
+numbered `store-01.png` through `store-0P.png` plus `_panorama-preview.png` and
+`_carousel-preview.png` for inspection.
 
 The draft was graded before the render, so the integrated art arrives with the grade already in it:
 slice at `--pop soft`, and only raise it if the returned picture is genuinely flat. On the
 un-integrated fallback path the source is the composite instead, and it is sliced exactly as Phase
 2a built it — same `--sprite` list, same order, `--pop vivid`.
 
-**Slice with a seam allowance.** The store does not show the first panels edge to edge — the
-carousel puts a gap between every pair. Butt-joined panels therefore do *not* reconstruct the
-picture on the listing page: everything crossing a boundary is displaced by the width of that gap,
-which is why a coin or a face sitting on a seam comes back from review looking broken. `--gutter`
-composes the panorama wider than the panels and throws away a strip at each cut, so the store's own
-gutter stands in for it. `auto` is ≈100 px at 1320-wide panels and scales with `--size`, so the App
-Store and Play sets slice identically. Only pass `--gutter 0` if a specific store surface is known
-to show the panels flush.
+**The panels must reassemble into the whole picture.** Lay them side by side in upload order and
+the panorama has to come back exactly as it was rendered — not a millimetre of it missing anywhere.
+That is the contract the slice is built around: `--gutter` defaults to `0`, panel *i* ends on the
+very column panel *i+1* begins on, and slicing discards nothing between them. The compositor says
+so on every run — `they reassemble the panorama exactly, 0px discarded` — and if that line ever
+reports missing pixels, the kit is wrong.
 
-**Where the allowance comes out is chosen by the picture, not by arithmetic.** An even split cuts
-at exactly 1/3 and 2/3 whatever is standing there, and when that is a face, a coin or the board's
-near edge the panel simply stops mid-object — the picture looks like it was cut too hard, which is
-the complaint that follows a listing built this way. `--seam-snap` composes a little extra slack
-into the panorama and lets each cut slide inside it, choosing the columns where the picture is
-quietest; the allowance itself stays within about 40% of the publisher's nominal width, because a
-seam "solved" by shrinking the gap to nothing just brings the displacement back. `auto` searches
-±12% of a panel, which clears an object up to roughly a third of a panel wide. `--seam-snap off`
-restores the content-blind split; only use it when a specific surface needs the panels at exact
-thirds.
+**What protects a seam is where it falls, not what is removed there.** An even split cuts at
+exactly 1/3 and 2/3 whatever is standing there, and when that is a face, a coin or the board's near
+edge the panel stops mid-object. `--seam-snap` composes a little slack into the panorama and slides
+the whole tiling inside it, choosing the position where the cuts land on the quietest columns the
+picture has. Panel width is fixed by the store and nothing may be discarded, so the cuts move
+*together*: this is the only lever, which is why Phase 1 has to ask the art for a calm vertical
+corridor at each boundary. `auto` searches ±12% of a panel. `--seam-snap off` restores the
+content-blind split; there is no good reason to use it.
+
+**The seam allowance is opt-in and it costs the picture.** `--gutter 100` composes the panorama
+wider and throws that strip away at each cut, so the store's own carousel gap stands in for it and
+the panels line up across the gaps on the listing page. The price is a hole: each panel then ends
+mid-object wherever the cut fell, and the set no longer reassembles. Pass it only when a publisher
+has explicitly asked for that alignment, and record it in `STORE_INFO.md` when you do.
 
 The compositor reports what it chose and what it cost:
 
-- `panorama slid -70px inside its slack` and `seam 2→3: allowance 88px (-12px)` — where the cuts
-  actually landed. Record both in `STORE_INFO.md`.
+- `panorama slid -70px inside its slack so the cuts miss the subjects` — where the tiling landed.
+  Record it in `STORE_INFO.md`.
+- `_panorama-preview.png` — the panels laid edge to edge, cut positions marked with short ticks at
+  the top and bottom edges only. This is the proof: it must read as one uninterrupted picture.
+- `_carousel-preview.png` — the same panels with the store's own gap (~4.5% of a panel) drawn
+  between them, which is what the listing page shows. Nothing important may straddle a cut here.
 - `seam 1→2: detail 0.94× the picture's average` — how busy the picture is exactly where it cuts.
   Ratios near 1.0 mean the cuts landed on calm background.
-- A warning above 1.35× means a subject is still being sliced and no cut inside the search radius
+- A warning above 1.35× means a subject is being sliced and no position inside the search radius
   avoided it. Widen `--seam-snap` (up to 15%), slide the crop (`--zoom 1.15 --offset ±0.3`), or
-  regenerate the art with a calm vertical corridor at that fraction of the width. Do not answer it
-  by widening `--gutter`: that removes *more* of the subject, not less.
+  regenerate the art with a calm vertical corridor at that fraction of the width. Never answer it
+  with `--gutter`: cutting a hole in the subject is not a way to stop cutting the subject.
 - `panel 2: detail 6.4, 31% of it empty ground` — the density check from the art direction above.
   A panel called out as empty ground is regenerated, never graded or cropped into shape.
 
-Vision-check the stitched preview — it paints the store's gutters in, so it shows what the listing
-page shows, gaps and all:
+Both previews are verification artifacts and neither is uploaded.
 
-- Adjacent panels form one continuous image in upload order **across the painted gaps**.
+Vision-check both previews — `_panorama-preview.png` for whether the panels are still one picture,
+`_carousel-preview.png` for whether that survives the store's own gaps:
+
+- **The panels are one picture again.** `_panorama-preview.png` shows no join at all: no step in a
+  gradient, no jump in a line, no object with a slice missing out of it. The compositor's
+  `0px discarded` line says the arithmetic is right; this says the eye agrees.
+- Adjacent panels still read together in `_carousel-preview.png`, where the store's gaps are drawn
+  in — nothing important straddles a cut.
 - **Panel 1 opens on the protagonist**, large enough to be the first thing the eye lands on and
   recognizable as a character rather than a decorative shape. If the hero is absent, small, or
   upstaged on panel 1, that panel is wrong no matter how good the rest of the strip is.
@@ -638,9 +654,8 @@ page shows, gaps and all:
 - Every object is at foreground scale and standing on something. Anything that shrank to decoration
   in the render goes back through Phase 2b with the draft's size restated.
 - No seam cuts the hero's face, central mechanic, reward, decisive action, or an inlaid game object.
-  Check this on the preview, where the gaps are painted in: the object either sits whole inside one
-  panel, or the strip that vanished into a gap was background. A panel that ends mid-object is the
-  defect, whatever the numbers said.
+  Check it on `_carousel-preview.png`: every one of them sits whole inside a single panel, so the
+  store's gap falls on background.
 - **Every panel is a finished illustration, not a backdrop.** Three occupied depth planes, ornament
   at more than one scale, more than one light, materials that respond differently, and atmosphere
   carrying the areas with no subject in them. A panel that is a gradient with one shape on it fails
@@ -656,7 +671,7 @@ page shows, gaps and all:
   unmistakably specific to this game's Design DNA.
 - Colour is rich and the image is bright enough to hold up at thumbnail size.
 
-The preview is a verification artifact and must not be listed for store upload.
+Both previews are verification artifacts and must not be listed for store upload.
 
 ## Phase 6 — compose gameplay showcase frames
 
@@ -752,7 +767,8 @@ audited the same way.
 Write `$STORE_DIR/STORE_INFO.md` in English with:
 
 - Build timestamp, category, archetype, title, tagline, and dimensions.
-- An inventory of both screenshot sets, feature graphic, icons, emblem, and verification-only preview.
+- An inventory of both screenshot sets, feature graphic, icons, emblem, and the two
+  verification-only previews.
 - Ordered caption mapping.
 - The hero object, its size on panel 1 as a fraction of the panel, whether the scene's foreground
   was closed back over it, and the supporting objects with the panels they were seated into.
@@ -761,15 +777,18 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
   why instead.
 - Whether the integration pass ran, with the reference images and fidelity it used, and the
   identity gate's per-object verdict. If the kit shipped un-integrated, why.
-- The seam allowance used, in pixels, per seam and per set, how far the tiling slid inside
-  its slack, and each seam's final detail ratio.
+- That the panels reassemble the panorama with nothing discarded (quote the compositor's
+  `0px discarded` line), how far the tiling slid inside its slack, and each seam's final detail
+  ratio. If an explicit `--gutter` was used instead, say so, give the width, and say who asked
+  for it.
 - The per-panel detail figures and empty-ground percentages, with a note on any panel that
   was regenerated for being too sparse.
 - Exactly what branding was applied to the project — icon, emblem, and every background file the
   key art was wired into, with the screens that now use them.
 - The continuity audit table.
 - Compliance profile, ratings, simulated-gambling answer, disclaimer, odds disclosure, and grep/vision results.
-- Exact Google Play and App Store upload order. Emphasize that `_panorama-preview.png` is not uploaded.
+- Exact Google Play and App Store upload order. Emphasize that neither `_panorama-preview.png` nor
+  `_carousel-preview.png` is uploaded.
 
 ## Phase 11 — package
 
@@ -786,7 +805,7 @@ Verify the archive contains numbered PNGs in both `store/` and `store-play/` unl
 
 ## Phase 12 — final report
 
-Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, the per-seam allowances and detail ratios, the per-panel detail figures, whether the panorama was rendered from the draft or shipped as the composite, the identity gate's verdict, the hero on panel 1 (its share of the panel, and that the scene closes in front of it), how the play field in the art was built and where it landed, the objects seated into the art, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
+Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, the per-panel detail figures, whether the panorama was rendered from the draft or shipped as the composite, the identity gate's verdict, the hero on panel 1 (its share of the panel, and that the scene closes in front of it), how the play field in the art was built and where it landed, the objects seated into the art, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
 
 ## Quality gates
 
@@ -819,11 +838,14 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   `flutter analyze` is clean afterwards.
 - The continuity audit table is complete: every shared object appears in both a concept panel and a
   gameplay frame.
-- Panels are sliced with a seam allowance, stitch correctly across the preview's painted gutters in
-  both sets, and are text-free.
+- **The panels reassemble into the whole picture in both sets**: the compositor reported `0px
+  discarded`, and `_panorama-preview.png` shows no join — no step, no jump, no object with a slice
+  missing. Anything else is a blocker, not a note.
+- They still read together in `_carousel-preview.png`, with the store's own gaps drawn in, and are
+  text-free.
 - The cuts were placed by the picture, not by arithmetic: `--seam-snap` was left on, and every seam
   either measures calm or was resolved by regenerating the art. No panel ends mid-object.
-- No seam warning above 1.35× is left unresolved, and none was answered by widening `--gutter`.
+- No seam warning above 1.35× is left unresolved, and none was answered with `--gutter`.
 - Every panel passes the density check: three occupied depth planes, ornament at more than one
   scale, more than one light source, differentiated materials, atmosphere through the quiet areas —
   and no panel left flagged as empty ground by the compositor.
@@ -853,11 +875,17 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - Building the board plate in invented colours when the game's own board colours, or its shipped
   board asset, were available to sample.
 - Shipping gameplay frames that share nothing visual with the concept panels.
-- Butt-joining the panels when the store will put a gutter between them, or leaving a subject
-  sitting on a seam because the preview "looks fine" as a continuous image.
-- Cutting the panorama blind — `--seam-snap off`, or a wider `--gutter` used to answer a hot seam.
-  Widening the allowance removes more of the subject that is being cut, not less; the cut has to
-  move off it, or the art has to be regenerated with quiet ground there.
+- Shipping a set whose panels do not lay back down into the whole picture. Any strip discarded
+  between panels — an unrequested `--gutter`, a re-crop, a "tidied" edge — means every panel ends
+  mid-object, which is the defect this contract exists to prevent. `--gutter` is used only when a
+  publisher has explicitly asked for the panels to line up across the store's carousel gap, and
+  the choice is recorded.
+- Cutting the panorama blind — `--seam-snap off`, or `--gutter` used to answer a hot seam. Cutting
+  a hole in the subject is not a way to stop cutting the subject; the cuts have to move off it, or
+  the art has to be regenerated with a calm corridor there.
+- Leaving a subject sitting on a cut because `_panorama-preview.png` "looks fine" as a continuous
+  image — of course it does, that is the panorama. The store's gaps are in
+  `_carousel-preview.png`, and that is where a straddled subject shows.
 - Shipping a panel that is a gradient with one object on it — an empty backdrop dressed up with a
   colour grade — or accepting one because the compositor's empty-ground warning was "only a
   warning". Sparse art is regenerated from a fuller brief, not graded, cropped or captioned into
@@ -883,4 +911,4 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - Any real-money promise, currency symbol, banknote, cash/payout language, or financial implication.
 - Reusing the 6.9-inch files as the Play set or scaling them instead of recomposing.
 - Hiding generation, compliance, verification, or packaging failures.
-- Listing `_panorama-preview.png` as an upload asset.
+- Listing `_panorama-preview.png` or `_carousel-preview.png` as an upload asset.

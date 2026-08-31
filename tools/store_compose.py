@@ -6,15 +6,15 @@ Produces the full set of publishable listing images for ANY game the studio
 makes (genre/theme agnostic — everything visual comes from the arguments):
 
   triptych  N vertical panels sliced out of ONE wide key-art panorama, so the
-            first N store screenshots read as a single continuous picture when
-            the store shows them side by side. The cut leaves a seam allowance
-            (`--gutter`, ~100px by default) that is thrown away, because the
-            store puts its own gap between screenshots: without it a coin or a
-            face crossing a boundary is visibly displaced on the listing page.
-            WHERE that allowance comes out is chosen by the picture, not by
-            arithmetic (`--seam-snap`): the cuts slide inside a little slack
-            until they land on quiet ground, because a fixed 1/3, 2/3 split is
-            what makes a panel stop halfway through the subject.
+            first N store screenshots REASSEMBLE into that exact picture: the
+            cuts are butt-joined, nothing at all is discarded between the panels
+            and no panel ends mid-object. WHERE the cuts fall is chosen by the
+            picture, not by arithmetic (`--seam-snap`): the tiling slides until
+            they land on the quietest columns, and the art is asked for a calm
+            corridor there. `--gutter` can still throw a seam allowance away at
+            each cut, for a publisher who asks the panels to line up across the
+            store's own carousel gap — but that is opt-in, because it puts a
+            hole in the picture.
             `--sprite` inlays the game's real objects into the art — hero on
             panel 1, large, seated in the scene's own light — so the panels
             never advertise a world the app does not contain. This is a
@@ -63,7 +63,7 @@ Requires: Pillow + numpy (both already required by tools/cutout.py).
 Examples:
   python3 tools/store_compose.py fonts --font-dir assets/fonts
   python3 tools/store_compose.py triptych --src keyart.png --out store/ \\
-      --panels 3 --size 1320x2868 --gutter 100 --save-pano art/keyart-integrated.png \\
+      --panels 3 --size 1320x2868 --save-pano art/keyart-integrated.png \\
       --sprite assets/images/sprites/eagle.png@hero \\
       --sprite assets/images/sprites/lightning.png@panel=2 \\
       --sprite assets/images/sprites/shield.png --sprite-glow-color "#F0B34A"
@@ -1077,19 +1077,26 @@ def calm(img: Image.Image, strength: float) -> Image.Image:
 
 # ──────────────────────── seams, gutters and props ──────────────────────────
 #
-# Stores do not show the first N screenshots edge to edge: the carousel puts a
-# gap between every pair. Slicing a panorama into butt-joined panels therefore
-# does NOT reconstruct the picture on the listing page — every object crossing a
-# boundary is displaced by the width of that gap, which is exactly why a coin or
-# a face straddling a seam comes back from review looking broken.
+# THE PANELS MUST REASSEMBLE INTO THE WHOLE PICTURE. Lay them side by side and
+# the panorama has to come back exactly as it was drawn — not a millimetre of it
+# missing anywhere. That is the contract, and it is why `--gutter` defaults to 0:
+# panel i ends on the very column panel i+1 begins on, so nothing is discarded
+# between them and the set is one picture cut into parts.
 #
-# The fix is a seam allowance: compose the panorama WIDER than N panels and
-# throw away a strip at each cut. The store's gutter then stands in for the
-# discarded strip and the panels read as one continuous picture again.
+# The alternative — composing wider than N panels and throwing a strip away at
+# each cut, so the store's own carousel gap stands in for the discarded strip —
+# is still reachable as `--gutter 100`, because some publishers ask for it. It
+# buys alignment on the listing page at the price of a hole in the picture: every
+# panel then ends mid-object wherever the cut fell, which is exactly the "it cuts
+# too much" the default exists to avoid. Opt-in, never automatic.
+#
+# What protects a seam now is WHERE it falls, not what is removed there: the
+# whole tiling slides (`--seam-snap`) until the cuts land on quiet columns, and
+# Phase 1 asks the art for a calm vertical corridor at each panel boundary.
 
-GUTTER_REF_W = 1320   # the App Store 6.9" panel the default was measured on
+GUTTER_REF_W = 1320   # the App Store 6.9" panel the allowance was measured on
 GUTTER_REF_PX = 100   # the allowance publishers ask for at that panel width
-DEFAULT_GUTTER = "auto"
+DEFAULT_GUTTER = "0"  # lossless by default: the panels reassemble the picture
 
 
 def parse_gutter(spec: str, panel_w: int) -> int:
@@ -1127,6 +1134,7 @@ SNAP_REF = 0.12            # search radius, as a fraction of one panel width
 DEFAULT_SNAP = "auto"
 SNAP_GAP_DRIFT = 0.40      # how far ONE allowance may drift from the nominal width
 SEAM_HOT = 1.35            # detail ratio at which a seam is cutting a subject
+CAROUSEL_GAP = 0.045       # the store's own gap between thumbnails, ~ per panel width
 
 
 def parse_snap(spec: str, panel_w: int) -> int:
@@ -1841,32 +1849,60 @@ def cmd_triptych(args) -> None:
              "picture that comes back.")
         return
 
-    # The preview shows only what the listing page shows: the panels in upload
-    # order with the store's gaps painted between them. The slack the cuts slid
-    # inside is discarded here too, so a seam that reads as continuous in the
-    # preview reads as continuous in the carousel.
+    # The primary preview is the PROOF: the panels laid edge to edge exactly as
+    # they were written, so what comes back is the picture itself if nothing was
+    # discarded between them. The cut positions are marked with short ticks at
+    # the very top and bottom rather than full-height lines, so the picture in
+    # the middle is unobstructed for a vision pass.
     gaps = [spans[i][0] - spans[i - 1][1] for i in range(1, n)]
-    preview = Image.new("RGBA", (w * n + sum(gaps), pano_h), (14, 14, 18, 255))
+    stitched = Image.new("RGBA", (w * n + sum(gaps), pano_h), (14, 14, 18, 255))
     x = 0
     for i, (left, right) in enumerate(spans):
-        preview.paste(pano.crop((left, 0, right, h)), (x, 0))
-        if i < n - 1:
-            if not gaps[i]:
-                ImageDraw.Draw(preview).line(
-                    [(x + w, 0), (x + w, pano_h)], fill=(255, 0, 128, 255), width=3)
-            x += w + gaps[i]
-    preview = preview.resize(
-        (1800, max(1, round(1800 * pano_h / preview.width))), RES)
-    save_png(preview, out_dir / "_panorama-preview.png")
-    ok(f"_panorama-preview.png  stitched {n}-panel check "
-       + (f"(store gutters shown at {'/'.join(str(g) for g in gaps)}px)"
-          if any(gaps) else "(seams marked)"))
-    info(f"panorama {pano_w}×{pano_h}, {total // 1024} KB across {n} panels "
-         f"+ seam allowances of {'/'.join(str(g) for g in gaps)}px"
-         + (f" (snapped within ±{snap}px of the nominal {gutter}px)" if snap else ""))
-    if not gutter:
-        warn("--gutter 0: panels are butt-joined, so anything crossing a seam will look "
-             "displaced once the store puts its own gap between the screenshots")
+        stitched.paste(pano.crop((left, 0, right, h)), (x, 0))
+        x += w + (gaps[i] if i < n - 1 else 0)
+    marked = stitched.copy()
+    tick = ImageDraw.Draw(marked)
+    tick_h = max(8, round(pano_h * 0.02))
+    x = 0
+    for i in range(n - 1):
+        x += w + gaps[i]
+        for y0, y1 in ((0, tick_h), (pano_h - tick_h, pano_h)):
+            tick.line([(x - gaps[i] // 2, y0), (x - gaps[i] // 2, y1)],
+                      fill=(255, 0, 128, 255), width=3)
+    scale = 1800 / marked.width
+    save_png(marked.resize((1800, max(1, round(marked.height * scale))), RES),
+             out_dir / "_panorama-preview.png")
+    lost = sum(gaps)
+    ok(f"_panorama-preview.png  the {n} panels laid edge to edge — "
+       + ("they reassemble the panorama exactly, 0px discarded"
+          if not lost else
+          f"{lost}px of the picture is missing at the seams ({'/'.join(map(str, gaps))}px)"))
+
+    # The secondary preview answers the opposite question: what the listing page
+    # will look like once the store puts its own gap between the screenshots.
+    # That gap is roughly 4-5% of a panel's width in both carousels; it is drawn
+    # only to judge whether a seam survives it, and it is not a store asset.
+    shown = [g or round(w * CAROUSEL_GAP) for g in gaps]
+    carousel = Image.new("RGBA", (w * n + sum(shown), pano_h), (14, 14, 18, 255))
+    x = 0
+    for i, (left, right) in enumerate(spans):
+        carousel.paste(pano.crop((left, 0, right, h)), (x, 0))
+        x += w + (shown[i] if i < n - 1 else 0)
+    scale = 1800 / carousel.width
+    save_png(carousel.resize((1800, max(1, round(carousel.height * scale))), RES),
+             out_dir / "_carousel-preview.png")
+    ok(f"_carousel-preview.png  the same panels with the store's own gap between "
+       f"them (~{shown[0]}px) — check that nothing important straddles a cut")
+
+    info(f"panorama {pano_w}×{pano_h}, {total // 1024} KB across {n} panels"
+         + (f", nothing discarded between them" if not lost
+            else f", {'/'.join(map(str, gaps))}px discarded at the seams")
+         + (f" (cuts snapped within ±{snap}px)" if snap else ""))
+    if gutter:
+        warn(f"--gutter {gutter}: a {gutter}px strip is thrown away at every cut, so the "
+             "panels no longer reassemble into the whole picture and each one ends "
+             "mid-object wherever the cut fell. Only do this for a publisher who has "
+             "asked the panels to line up across the store's carousel gap.")
 
 
 def _perspective_coeffs(dst, src) -> tuple:
@@ -2517,18 +2553,20 @@ def main() -> None:
                    help="-1..1 horizontal crop bias; slides a face off a panel seam "
                         "without regenerating the art (needs --zoom > 1)")
     t.add_argument("--gutter", default=DEFAULT_GUTTER, metavar="PX|N%|auto",
-                   help="seam allowance discarded at every cut so the store's own gap "
-                        "between screenshots stands in for it, instead of displacing "
-                        f"whatever crosses the seam (default auto = {GUTTER_REF_PX}px "
-                        f"at {GUTTER_REF_W}px panels, scaled to --size; 0 = butt-joint)")
+                   help="OPT-IN seam allowance thrown away at every cut, so the store's "
+                        "own carousel gap stands in for it. It costs the picture: the "
+                        "panels stop reassembling and each ends mid-object wherever the "
+                        f"cut fell. Default 0 — nothing discarded. `auto` = "
+                        f"{GUTTER_REF_PX}px at {GUTTER_REF_W}px panels, scaled to --size")
     t.add_argument("--seam-snap", default=DEFAULT_SNAP, metavar="PX|N%|auto|off",
-                   help="how far each cut may slide to take its allowance out of calm "
-                        "background instead of through a face, a coin or the board's "
-                        "edge. The panorama is composed with that much slack per seam "
-                        "and the picture's own column energy picks the cuts (default "
+                   help="how far the tiling may slide so the cuts fall on quiet "
+                        "columns instead of through a face, a coin or the board's edge. "
+                        "The panorama is composed with that much slack and the picture's "
+                        "own column energy picks the cuts. With the default lossless cut "
+                        "this is the only lever there is — panel width is fixed and "
+                        "nothing may be discarded, so the cuts move together (default "
                         f"auto = {SNAP_REF * 100:.0f}%% of a panel; off = the "
-                        "content-blind even split, which is what makes a panel stop "
-                        "mid-object)")
+                        "content-blind even split)")
     t.add_argument("--sprite", action="append", default=[], metavar="PNG[@k=v,...]",
                    help="composite a REAL game object (a transparent PNG out of "
                         "assets/images/) into the concept art, so the panels advertise "
