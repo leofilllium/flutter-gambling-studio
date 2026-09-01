@@ -1,6 +1,6 @@
 ---
 name: store-screenshots
-description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama, dense enough to stand beside a real listing, sliced into panels that reassemble into that exact picture — nothing discarded between them, no panel ending mid-object, the cuts placed on the quietest columns the picture has, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 is composed *for* the protagonist: the art draws it an ornamental berth, the figure fills about three quarters of the panel's height with the ornament crowning the headroom above it, and the scene's own foreground closes back over its feet. The middle panel is the gameplay example and it shows the round *resolving* — the game's own field, caught at the moment it pays, with the paying symbol lifting out of the board. Every one of the three split slides carries at least one unmistakable real game anchor: hero on panel 1, field/mechanic on panel 2, and reward, collectible, token, or prop on panel 3. Those assets are built into decorated physical contexts at foreground scale — held, mounted, emerging, nested, or partly occluded — then re-rendered as one scene, never left as pasted icons. Any play field the art shows is assembled from the game's own symbol files — the image model never draws the board. The key art and the app share one world in both directions — the panorama carries the game's real objects and the game wears the panorama as its background. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
+description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama, dense enough to stand beside a real listing, sliced into panels that reassemble into that exact picture — nothing discarded between them, no panel ending mid-object, the cuts placed on the quietest columns the picture has, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 is composed *for* the protagonist: the art draws it an ornamental berth, the figure fills about three quarters of the panel's height with the ornament crowning the headroom above it, and the scene's own foreground closes back over its feet. The middle panel is a generated 3D gameplay scene, not a pasted screenshot: an actual resolving gameplay frame is supplied as authoritative visual context, then the field is created together with the scene so its real mechanic, grid, symbols and state remain recognizable while perspective, material, lighting, shadow, ornament and foreground interaction make it belong to the same world. Every one of the three split slides carries at least one unmistakable real game anchor: hero on panel 1, field/mechanic on panel 2, and reward, collectible, token, or prop on panel 3. Those assets are built into decorated physical contexts at foreground scale — held, mounted, emerging, nested, or partly occluded — then re-rendered as one scene, never left as pasted icons or screenshots. The key art and the app share one world in both directions — the panorama carries the game's real objects and the game wears the panorama as its background. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
 argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 0|100] [--seam-snap auto|off] [--pop vivid|soft|max|off] [--hero hero.png] [--hero-height 0.72] [--props a.png,b.png] [--board auto|rest|off] [--sprite-light 0.35] [--occlude 0.14] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -13,8 +13,8 @@ Create everything needed to present the game in App Store Connect and Google Pla
 | Deliverable | Source |
 |---|---|
 | Panels 1…P: one wide, text-free concept illustration composed around the hero on panel 1 and carrying at least one real game anchor in every split panel at foreground scale, sliced into adjacent panels that lay back down into the whole picture | GPT Images 2.0 → `store_compose.py triptych --seam-snap` |
-| The layout draft the finished picture is rendered from — real hero at full panel height under the berth's ornament, the real field caught mid-payout, and a real reward/prop in a decorated physical home on the final panel | `store_compose.py boardplate --win` + `triptych --pano-only` |
-| One integrated illustration: the draft's composition and the game's own objects, rendered as a single three-dimensional scene | `gpt_image.py edit --image draft --image <each object> --fidelity high` |
+| The layout draft the finished picture is rendered from — real hero at full panel height under the berth's ornament, the real field caught mid-payout, and a real reward/prop in a decorated physical home on the final panel | actual gameplay win frame → `store_compose.py boardplate --from-shot` + `triptych --pano-only` |
+| One integrated illustration: the draft, the actual gameplay frame, and the game's own objects used as references to generate a single three-dimensional scene | `gpt_image.py edit --image draft --image gameplay --image <each object> --fidelity high` |
 | The same key art wired into the app as its own background | `store_compose.py backdrop` → `assets/images/backgrounds/` |
 | Panels P+1…N: real gameplay frames in a device mockup with marketing captions | `web_verify.mjs` → `store_compose.py showcase` |
 | Google Play feature graphic, 1024×500 | `store_compose.py banner` |
@@ -43,9 +43,9 @@ Continuity runs in **both** directions, and both are mandatory:
 
 | Direction | Requirement | How it is enforced |
 |---|---|---|
-| Key art → app | The concept panels' world, hero, palette, materials, and light must be visible on the game's own screens | `store_compose.py backdrop` exports the panorama as the game's menu and gameplay background, and Phase 3 wires it in **before** a single frame is captured |
+| Key art → app | The concept panels' world, hero, palette, materials, and light must be visible on the game's own screens | `store_compose.py backdrop` exports the panorama as the game's menu and gameplay background, and Phase 3 wires it in **before** the final storefront frames are captured |
 | App → key art (objects) | **Every concept panel** must contain at least one of the game's **real** objects — the exact symbols, tokens, characters, and props the player touches | the shipped PNGs from `assets/images/` are distributed one anchor per panel in the draft (`triptych --sprite`) and passed as reference images to the render (`gpt_image.py edit --fidelity high`) |
-| App → key art (the field) | Where the art shows the game being *played* — a grid, reels, a board, a track, a peg field — it must be the game's own field, with the game's own symbols in it | `store_compose.py boardplate` builds the field out of the shipped files (or lifts it from a captured frame), stands it up in perspective, and it goes into the draft and the render as a reference |
+| App → key art (the field) | Where the art shows the game being *played* — a grid, reels, a board, a track, a peg field — it must clearly derive from the actual game while being created as part of the same 3D scene | a real resolving gameplay frame is the authoritative context image; `boardplate --from-shot` supplies layout/perspective guidance, and both go into the integration render as references rather than being pasted into the final art |
 
 Describing a symbol to an image model produces something *similar*. **Handing it the file** produces
 the same object — that is what the reference-image render in Phase 2b is for, and why it always runs
@@ -58,15 +58,19 @@ invented by the image model. The app's actual board was a gold-edged panel of ro
 flat tiles. Two different games in one listing. The note back was exactly that: *the gameplay
 example in the slider and the real gameplay have to be the same*.
 
-So the image model does not draw the field. It does not draw cells, tiles, symbol frames, reels,
-a HUD, a balance, a multiplier, or any object that already exists as a file in `assets/images/`.
-It draws the **world around** the field and a **stage** for it; `boardplate` supplies the field
-itself out of the real files, and the compositor seats it. If the model returns art with a grid
-in it anyway, that is a defective source — regenerate it, do not paint over it.
+So the image model does not **invent** the field from a written description. The first panorama
+generation draws the world and an empty stage. The integration generation then receives the real
+gameplay frame, the board plate and the real object files as visual context and creates the field
+**with** that world: one perspective, one material space, one lighting rig, real contact and real
+depth. The final field is generated scene art, not a screenshot layer, but it must remain
+unmistakably the same game — same mechanic, grid, symbol identities, ordering and resolving state.
+If it becomes a decorative fantasy board or a flat rectangular screen, regenerate it.
 
-**Phase order is part of the contract.** Art → apply to the game → capture frames. Capturing
-gameplay first and applying branding afterwards is exactly the bug that ships a listing whose two
-halves show different products.
+**Phase order is part of the contract.** A reference-only gameplay frame is read or captured first
+so the integration model knows what the game truly looks like; it is an input, never an upload.
+Then art → apply to the game → capture the final storefront frames. Reusing the pre-branding
+reference as a showcase screenshot is exactly the bug that ships a listing whose two halves show
+different products.
 
 **The shared object list.** In Phase 0, choose 3–5 named objects that must appear on both sides of
 the listing — the hero plus the two or three symbols the round is actually played with. Record them
@@ -81,7 +85,7 @@ object or an unanchored panel is a blocker.
 Continuity gets the right objects into the picture. This gets them in at the right size and in the
 right place, which is what the publisher's designer sends listings back for: *put the protagonist
 on the first screen, always, so it hits the eye immediately — and the game's objects are not worked
-into the design at all and are far too small; build them into the artwork itself.* Five rules, all
+into the design at all and are far too small; build them into the artwork itself.* Seven rules, all
 defaults rather than options:
 
 **0. The result is one picture, not an assembly.** This is the note that outranks the rest: *don't
@@ -89,8 +93,10 @@ just insert them into the slide — use them as strong context and make one comp
 looks natural and three-dimensional, not inserted.* A composite can only ever put the right objects
 in the right places; it cannot give them volume, a shared perspective, shadows falling across each
 other, or air between the near and the far. So the composite is a **draft**, and the deliverable is
-rendered from it with the real asset files as reference images (Phase 2). Every rule below describes
-what that draft has to establish and what the render has to preserve.
+rendered from it with the real asset files and actual gameplay frame as reference images (Phase 2).
+The gameplay reference has no special permission to remain as pixels: it informs the generated
+field, then disappears into the same 3D render as everything else. Every rule below describes what
+that draft has to establish and what the render has to preserve.
 
 **1. The protagonist owns panel 1, at the panel's own scale.** Screenshot 1 is the only one the
 store shows at full size; everything after it is a thumbnail in a strip. Whatever stops the scroll
@@ -137,18 +143,20 @@ the light they are standing in, with the nearest ones cropped by the frame edge.
 the seating — foot anchoring, contact shadow, edge light-wrap and colour cast (`--sprite-light`) —
 but it can only seat an object into a scene that has somewhere to stand, so Phase 1 has to draw one.
 
-**4. The middle panel is the gameplay example, and it shows the round *resolving*.** Panel 1 sells
-the world; the panel the play field lands on has to answer *what do I actually do*, and the note it
-came back with was that it is boring. It was: a correct grid of correct symbols, sitting at rest,
-is a diagram of a board — accurate and inert, which beside nine finished listings reads as a
-placeholder. Accuracy is not negotiable (the field is still built from the game's own files, and
-the model still never draws it), so the fix is **timing**, not invention: build the plate at the
-moment the round pays. `boardplate --win` names the cells that hit and gives them the payline, the
-accent ring and the light they spill onto the panel while the rest of the field falls back
-(`--dim`); `--lift` raises the paying symbol out of its cell with its own shadow landing on the
-board, so one object has broken the board's plane. Around it, Phase 1's art carries the *event* —
-the reward bursting up off the field, coins or sparks crossing the near edge, the crowd or the
-machine reacting to it. Same board the app renders, one frame later.
+**4. The middle panel is gameplay created with the scene, not a screenshot mounted in it.** Panel
+1 sells the world; the middle panel answers *what do I actually do*. Use an actual resolving/win
+frame as authoritative visual context, then ask the integration model to rebuild that play field
+as a physical part of the same illustration. It gains the scene's perspective, thickness,
+material, highlights, cast/reflected light, contact shadows, atmosphere and selective foreground
+overlap. The stage, trim and payout decoration grow from its construction instead of forming a
+picture frame around a flat rectangle.
+
+The freedom is three-dimensional, not mechanical. Keep the real field readable and recognizable:
+same topology, symbol identities, meaningful ordering, active cells, outcome and essential state.
+Do not stretch it beyond recognition, replace symbols, turn the grid into ornamental texture, or
+cover the decisive interaction. The result should look like the game's board exists physically in
+the key-art world — not like a phone screenshot was pasted into a decorative bezel, and not like
+unrelated concept art merely inspired by the game.
 
 **5. Every split slide carries the game, not only the panorama as a whole.** One real hero on
 panel 1 and one real board on panel 2 do not excuse panel 3 becoming attractive generic scenery.
@@ -172,11 +180,11 @@ pile does not. `triptych` warns past five, and the board plate counts as one of 
 comes from deliberate distribution, not from increasing the object count.
 
 The target is one finished picture — the hero standing at full height in a place the art built and
-decorated for it at one end, the game's own field across the middle as a solid object caught at the
-moment it pays, and the final panel built around a real reward/prop as its own scene beat, with the
-real objects carried through the foreground with weight and shadow — not a background with props
-arranged on it. Ask the model for the world that way in Phase 1, place the real files into it as a
-draft, then render the picture from that draft with the files themselves as references (Phase 2).
+decorated for it at one end, gameplay recreated from the real win frame as a readable physical
+mechanism across the middle, and the final panel built around a real reward/prop as its own scene
+beat, with every element carried through the foreground with weight and shadow. Ask the model for
+the world that way in Phase 1, place the references into a draft, then render the whole picture —
+including the gameplay field — together in Phase 2. Nothing is pasted back afterward.
 
 ## Category-specific art direction
 
@@ -285,8 +293,8 @@ to regenerate the art from a fuller brief, never to grade or crop it.
 | `--hero` | first shared object | The protagonist PNG that leads panel 1; if omitted, entry 1 of the shared object list |
 | `--hero-height` | `0.72` | The hero's share of panel 1's **height** — the panel is sized by it, the width is only a cap. Below ≈0.6 the figure is scenery again; above ≈0.8 there is no crown left for the berth's ornament. Passed through as `h=` on the hero sprite |
 | `--props` | auto | Comma-separated game PNGs inlaid into the panorama, capped at four alongside the hero; the default comes from the shared object list and fills a panel with no game anchor before adding a second prop elsewhere |
-| `--board` | `auto` | Build the game's play field from its real files (`boardplate`), stand it up in perspective, catch it at the moment it pays (`--win`/`--lift`), and place it in the middle of the key art. `rest` builds the same field with nothing resolving — only for a mechanic that has no win state to show. `off` for a game with no readable field |
-| `--integrate` | `on` | Render the finished panorama from the draft with the real assets as reference images (`gpt_image.py edit`). `off` ships the flat composite and records it as un-integrated |
+| `--board` | `auto` | Prefer a real resolving gameplay crop (`boardplate --from-shot`) as the field reference, stand the draft plate in the scene's perspective, and place it in the middle. A symbol-built plate is provisional context only until a frame exists. `rest` is only for a mechanic with no resolving state; `off` for a game with no readable field |
+| `--integrate` | `on` | Generate the finished panorama from the draft, actual gameplay frame and real assets as reference images (`gpt_image.py edit`). The field is recreated with the 3D scene, never pasted afterward. `off` may retain a layout draft for debugging but cannot produce a shippable concept panorama |
 | `--sprite-light` | `0.35` | How hard inlaid objects are pulled into the scene's light (colour cast + edge light-wrap). `0` pastes them flat |
 | `--occlude` | hero `0.14`, props `0.08`, board `0` | How much of an object's height the scene's foreground closes back over, so heroes and supporting props sit *in* the picture. The board stays unobscured for legibility; `0` leaves an object in front of everything |
 | `--no-backdrop` | off | Do not wire the key art into the game as its background |
@@ -364,7 +372,10 @@ audits:
 - Its real colours and materials, sampled from the game — the board/panel background, the cell
   tile, the edge, the corner radius — or the path of the real board asset in
   `assets/images/ui/` if one is shipped.
-- The gameplay frame whose field will be lifted, once Phase 4 has produced one.
+- One actual resolving gameplay frame used as visual context for the integration render. Prefer an
+  existing verified frame; otherwise capture a reference-only win state during preflight. Record
+  its path and field rectangle. This frame may predate the new branding because it is never shipped;
+  Phase 4 still captures all final showcase frames after branding.
 
 A game whose round has no readable field — a crash curve, a capsule machine, a single scratch card —
 records the object the round *happens on* instead (the rocket and its curve, the machine, the card)
@@ -443,9 +454,9 @@ Use image generation for three sources:
      cut lands on a subject and the only fix left is regenerating the art. Ask for the vivid end of
      the palette: saturated colour, luminous key and rim light, deep contrast, glowing highlights.
    - **The negative list is part of the prompt, not a nicety.** No text, logo, letters, numbers,
-     device frame or panel dividers — and no game board, reel grid, cells, symbol tiles, icon
-     frames, HUD, balance, meter or multiplier. Anything the player touches exists as a file and is
-     composited; anything the model draws instead is a different game's art.
+     device frame or panel dividers — and no invented game board, reel grid, cells, symbol tiles,
+     icon frames, HUD, balance, meter or multiplier in this first base-art pass. The gameplay field
+     is generated only in Phase 2, where the actual gameplay frame is present as visual context.
    - Inspect the returned image against that list before going on. A grid, a symbol frame or a
      stray HUD in the source is a defect: regenerate. Do not crop it out, do not cover it with the
      board plate, and do not accept it because the rest of the picture is good.
@@ -460,33 +471,32 @@ Use image generation for three sources:
 Use the same Design DNA and top-left light for all three. Run `tools/cutout.py` on the emblem and inspect alpha edges. Regenerate an asset only when the source is genuinely defective.
 
 If the image tool accepts reference images, pass the actual sprite files from the shared object
-list. If it does not, do not treat the description as sufficient — Phase 2 composites the real
-files instead.
+list and the actual gameplay frame. If it does not support reference images, it cannot satisfy the
+identity/integration contract; use a reference-capable integration path rather than substituting a
+flat composite or a description-only generation.
 
-## Phase 2 — draft the layout, then render one finished picture from it
+## Phase 2 — use gameplay as context, then render one finished picture
 
-The output of this phase is **one illustration**, not an assembly. Compositing the real files onto
-the art gets the objects right and the picture wrong: a cutout is flat, it faces the camera when
-nothing else in the scene does, its edges are too clean, and a designer reads it as inserted in the
-first second. The objects still have to be the game's own — that part is not negotiable — so the
-real files are used as the **reference the finished picture is rendered from**, not as stickers laid
-on top of it.
+The output of this phase is **one illustration**, not an assembly. Compositing the real files or a
+gameplay screenshot onto the art gets identity right and the picture wrong: the rectangle is flat,
+its camera does not belong to the world, its edges are too clean, and a designer reads it as pasted
+in the first second. The actual gameplay still has to author the mechanic — that part is not
+negotiable — so its captured frame is used as **visual context the finished 3D field is generated
+from**, never as a layer preserved in the final panorama.
 
-Three steps: assemble a draft, render the picture from it, then prove the objects survived.
+Three steps: assemble a placement draft from the real gameplay, render the entire picture together,
+then prove that gameplay survived as gameplay while becoming part of the scene.
 
 ### Phase 2a — the layout draft
 
-Build the field as a real object in space, then compose the draft that says where everything goes:
+Lift the resolving field from the actual game, give that draft object the scene's broad perspective,
+then compose the placement draft:
 
 ```bash
 python3 tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
-  --grid 3x3 --cell 360 --yaw -16 --pitch 7 --depth 0.06 --sheen 0.3 \
-  --symbol assets/images/sprites/sprite_cloud.png \
-  --symbol assets/images/sprites/sprite_sun.png \
-  --symbol assets/images/sprites/sprite_eagle.png \
-  --symbol assets/images/sprites/sprite_lyre.png \
-  --panel "#141B3C" --tile "#1E2A6B" --border "#F0B34A" \
-  --win 1x2,2x2,3x2 --win-color "#FFD67A" --dim 0.35 --lift 1.45
+  --from-shot "$RAW_DIR/gameplay-reference-win.png" \
+  --rect 0.06,0.22,0.88,0.44 --radius 0.04 \
+  --yaw -16 --pitch 7 --depth 0.06 --sheen 0.2
 
 python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
   --out "$ART_DIR/draft" --pano-only --save-pano "$ART_DIR/keyart-draft.png" \
@@ -498,19 +508,16 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
   --sprite-glow-color "#F0B34A"
 ```
 
-- `--grid`, the symbol list and the colours come from the Phase 0 field record. Sample the colours
-  off the running game; if the game ships a real board asset, pass it as `--frame`. On any run that
-  already has gameplay frames, lift the field instead — same pixels, no reconstruction — and lift
-  the frame where the round **pays**, not an idle board:
-  `boardplate --from-shot "$RAW_DIR/04-win.png" --rect 0.06,0.22,0.88,0.44`. A lifted frame carries
-  its own win state, so `--win` is refused there; the capture is what has to be right.
-- **`--win` is the middle panel's whole answer to "boring".** Name the cells the game's own
-  paytable would pay — a line, a cluster, a column — in the order they pay. They get the payline,
-  the accent ring and the spill of light onto the panel; `--dim` drops the rest of the field back
-  so the win reads first; `--lift` raises the paying symbol out of its cell with a shadow on the
-  board, which is the cue that says a round is resolving rather than posed. Nothing here is
-  invented: the symbols, the grid, the colours and the win shape are all the game's. Use
-  `--board rest` only for a mechanic with no win state to show, and record why.
+- `gameplay-reference-win.png` is the authoritative context: a real captured resolving state, not
+  a mockup and not an idle board. The plate is a placement aid derived from it. Neither the full
+  frame nor the plate is pasted into the deliverable; both are references for Phase 2b.
+- If no runtime frame can be captured during preflight, a plate built from the real grid, symbol
+  files and sampled colours may establish the first draft. It is provisional. After Phase 4
+  captures a real win frame, rebuild the plate and rerun Phase 2b with that complete gameplay frame
+  as context before packaging.
+- `--win`, `--dim` and `--lift` are fallback draft tools only. With `--from-shot`, the captured game
+  already supplies the resolving state and those flags are refused. Never add a storefront-only win
+  cue that the game itself does not show.
 - **`--yaw`/`--pitch`/`--depth` are not decoration.** They give the board a near edge, a far edge
   and a visible slab thickness, so even the draft shows an object standing on the stage rather than
   a rectangle facing the camera. Match them to the perspective Phase 1 drew. The compositor warns
@@ -534,14 +541,16 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
 
 ### Phase 2b — the integration pass
 
-Hand the draft **and the objects' own files** to the image model and ask for one finished picture.
-The draft carries the composition; the asset files carry the identity; the model supplies the
-thing neither can — a single rendered space with real perspective, volume, contact and atmosphere:
+Hand the draft, the **actual gameplay frame**, and the objects' own files to the image model and ask
+for one finished picture. The draft carries composition, the full gameplay frame carries mechanic
+and state, the object files carry identity, and the model supplies the thing none can provide when
+pasted together — a single rendered space with real perspective, volume, contact and atmosphere:
 
 ```bash
 python3 tools/gpt_image.py edit \
   --prompt-file "$ART_DIR/integration-prompt.txt" \
   --image "$ART_DIR/keyart-draft.png" \
+  --image "$RAW_DIR/gameplay-reference-win.png" \
   --image assets/images/sprites/sprite_eagle.png \
   --image "$ART_DIR/board-plate.png" \
   --image assets/images/sprites/sprite_bolt.png \
@@ -549,13 +558,23 @@ python3 tools/gpt_image.py edit \
   --size 1536x1024 --quality high --fidelity high
 ```
 
-- **Order matters.** The draft goes first: it is the layout. Then one file per object whose identity
-  has to survive, in the order the prompt names them.
+- **Order matters.** The draft goes first: it is the layout. The actual gameplay frame goes second:
+  it is contextual truth, not a layer to copy. Then one file per object whose identity has to
+  survive, in the order the prompt names them.
 - **`--fidelity high` is the setting that makes this work at all.** It is what keeps the eagle the
   game's eagle instead of an eagle. Never drop it to save time or budget.
 - The prompt asks for a *render*, not a retouch. Say, in the game's own art language:
   - Reproduce the layout of the first reference image exactly — same subject in the same place at
     the same size, same panorama proportions, nothing added and nothing moved.
+  - Use the second reference image as **gameplay context only**. Do not paste, frame, mask or retain
+    its rectangular screenshot pixels. Create the play field anew inside the panorama as a solid
+    3D mechanism belonging to the stage: scene-matched perspective and thickness, materials that
+    take the same key/rim light, real contact and cast shadows, reflections on nearby surfaces,
+    atmospheric depth, and foreground elements naturally passing in front of non-critical edges.
+  - Preserve what makes it actual gameplay while integrating it: field topology and proportions,
+    recognizable symbols, meaningful cell order, active/resolving state and decisive interaction.
+    Perspective may change; mechanic identity may not. Keep the core field readable and do not let
+    ornament, particles, props or dramatic foreshortening obscure how the game is played.
   - Reproduce the objects from the other reference images **exactly**: the same silhouette, colours,
     materials, ornament and detail. Do not redesign, restyle, simplify or substitute them. The grid
     keeps the same symbols in the same cells in the same order, and the same cells keep paying: the
@@ -583,14 +602,17 @@ python3 tools/gpt_image.py edit \
     spill, volumetric haze between the planes, particulate in the air. The render must not
     simplify the picture into a cleaner, emptier version of itself — that is the most common way
     an integration pass makes the art worse, and `triptych`'s per-panel detail figures catch it.
-  - No text, letters, numbers, logo, UI, HUD, device frame or panel dividers, and no invented game
-    symbols beyond the ones supplied.
-- Iterate on the prompt, not on the objects. If the picture is close but the light is flat or the
-  board still reads as a decal, re-run with a sharper description of the light and the perspective.
-- **The pass is optional infrastructure, not an optional step.** If the image model is unavailable
-  in this environment, run the composite path instead (`triptych` without `--pano-only`, exactly as
-  Phase 2a is written) and record in `STORE_INFO.md` that the kit shipped un-integrated. A
-  composited kit is a known return risk; a kit with the wrong objects is a rejection.
+  - No text, letters, numbers, logo, app chrome, HUD, device frame, screenshot border or panel
+    dividers, and no invented game symbols beyond the ones supplied. The gameplay reference informs
+    the field; it does not import the phone screen surrounding it.
+- Iterate on the prompt, not on the objects. If the board still reads as a decal, explicitly ask
+  for shared perspective, visible thickness, attached architecture, mutual occlusion, cast light
+  and shadows. If it becomes too decorative to read as gameplay, restate the protected mechanic
+  topology and decisive interaction while keeping the 3D scene treatment.
+- **The integration pass is mandatory for concept panels.** If the image model is unavailable,
+  retain the Phase 2a composite only as a layout draft and report the concept-art portion blocked.
+  Do not slice or package that draft as a storefront deliverable: a correctly referenced screenshot
+  pasted into the scene still fails the requested treatment.
 
 ### Phase 2c — the identity gate
 
@@ -604,8 +626,10 @@ advertises, so it is verified before anything downstream reads the file. Open
 - Every cell yes, or the object did not survive. A "close enough" symbol is the exact defect that
   returned the last listing, and it is harder to spot in a beautifully rendered picture than in an
   obvious paste-up.
-- For the field, also check cell by cell: the same symbols, in the same cells, in the same order,
-  and the same tile and edge treatment.
+- For the field, compare against the actual gameplay frame: same mechanic topology, recognizable
+  symbol art, meaningful ordering and resolving outcome. Then check the other direction: the final
+  field has scene-matched perspective, volume, material, light, contact and selective overlap, with
+  no surviving rectangular screenshot boundary. It must pass identity **and** integration.
 - “Built into the scene” means a visible physical relationship: contact with a fitted surface,
   mutual overlap or occlusion, shared perspective, cast/reflected light, and decoration belonging
   to that relationship. A clean cutout edge plus a generic glow is a no even when identity passed.
@@ -613,16 +637,16 @@ advertises, so it is verified before anything downstream reads the file. Open
   object is unmistakable there. An empty panel, or the same floating icon repeated to fill one, is
   a failed integration pass.
 - One object drifting is fixed by re-running with a tighter prompt naming that object, or with
-  fewer references on the call. Repeated drift means the model cannot hold that object: keep the
-  composited draft as the deliverable rather than shipping a redesigned symbol, and say so in the
-  report.
+  fewer references on the call. Repeated drift means the concept-art portion is blocked: neither a
+  redesigned symbol nor the composited placement draft is an acceptable deliverable.
 - The picture that passes this gate becomes `$ART_DIR/keyart-integrated.png`, which Phases 3, 5 and
   7 all read. There is only ever one integrated panorama in a kit.
 
 ## Phase 3 — apply the storefront to the game
 
-This is the direction that gets listings rejected, and it must happen **before** any gameplay frame
-is captured.
+This is the direction that gets listings rejected, and it must happen **before** any final
+storefront gameplay frame is captured. The reference-only context frame from preflight remains an
+input to the artwork and is never part of the upload set.
 
 **Launcher icon.** Use `store_compose.py icon` to create the 1024 master, 512 listing icon, and adaptive foreground. Add/configure `flutter_launcher_icons` in `pubspec.yaml`, then run:
 
@@ -685,12 +709,12 @@ shared-object list must be findable in them. If the backdrop did not survive a s
 never appears in the app, or if the symbols on screen look nothing like the ones in the panels, fix
 the game and re-capture. Do not proceed and compensate in composition.
 
-**Compare the plate against the real field, side by side, now that both exist.** Put the captured
-round frame next to panel 2 and check that they show the same board: the same grid shape, the same
-symbol artwork, the same tile and edge treatment, the same proportions. This is the exact
-comparison the designer made when the listing came back, so make it before they do. Any difference
-that would read as "a different game" is fixed by rebuilding the plate from the frame and re-running
-Phase 2:
+**The captured win frame now becomes the authoritative integration context.** Put it next to panel
+2 and check that they show the same game: the same mechanic topology, recognizable symbols,
+meaningful ordering and resolving outcome. Then check that panel 2 is a created 3D scene rather
+than that frame pasted into one. This is the exact pair of failures the designer will see first,
+so make both comparisons before they do. Rebuild the plate from the frame and rerun Phase 2b with
+this complete win frame as the second context image:
 
 ```bash
 python3 tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
@@ -698,7 +722,10 @@ python3 tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
 ```
 
 Lift the **win** frame, not a resting one: the panel it lands on is the listing's gameplay example,
-and the state the app was in when the frame was captured is the state the panel advertises.
+and the state the app was in when the frame was captured is the state the panel advertises. On the
+rerun, substitute `$RAW_DIR/04-win.png` for the provisional
+`$RAW_DIR/gameplay-reference-win.png` input in the Phase 2b command. Do not composite either image
+after generation; they remain references only.
 
 Re-running Phase 2 also re-exports the backdrop (Phase 3) and the feature graphic (Phase 7) from
 the corrected panorama, so do those again rather than leaving three versions of the art in one kit.
@@ -712,9 +739,8 @@ numbered `store-01.png` through `store-0P.png` plus `_panorama-preview.png` and
 `_carousel-preview.png` for inspection.
 
 The draft was graded before the render, so the integrated art arrives with the grade already in it:
-slice at `--pop soft`, and only raise it if the returned picture is genuinely flat. On the
-un-integrated fallback path the source is the composite instead, and it is sliced exactly as Phase
-2a built it — same `--sprite` list, same order, `--pop vivid`.
+slice at `--pop soft`, and only raise it if the returned picture is genuinely flat. Never slice the
+Phase 2a composite as a fallback; it contains placement references rather than finished scene art.
 
 **The panels must reassemble into the whole picture.** Lay them side by side in upload order and
 the panorama has to come back exactly as it was rendered — not a millimetre of it missing anywhere.
@@ -779,19 +805,19 @@ Vision-check both previews — `_panorama-preview.png` for whether the panels ar
   character on it. Something in the scene overlaps the hero's feet, its shadow lands on the berth,
   and the light on it comes from the light in the picture. If it still reads as inserted, the fix
   is the berth (Phase 1) or the seating (`occlude=`, `contact=`, `light=`) — never a bigger sprite.
-- **The board is the game's board.** The grid holds the same symbols the gameplay frames show, in
-  the same cells, in the same order, with the same tile and edge treatment — and it stands in the
-  scene as a solid object with a visible near edge, not as a rectangle facing the camera. A grid
-  whose symbols the model invented is a blocker even if it is beautiful, and even if it is only
-  partly visible at a panel edge.
-- **The middle panel shows a round resolving, not a board.** The paying cells are lit and ringed,
-  the rest of the field has fallen back, one symbol stands proud of the board with its shadow on
-  it, and the picture around the field is reacting — light, thrown coins, sparks, a crowd. Cover
-  the field with a thumb: what is left should still be a moment. A panel where the field is correct
-  and nothing is happening is the "boring" note coming back, and the fix is `--win`/`--lift` plus a
-  fuller Phase 1 brief, never a crop or a caption.
-- **Nothing in the strip looks composited.** No cutout edge, no drop-shadow halo, no object facing
-  the camera while the scene recedes, no silhouette too clean for the painting around it. Every
+- **The board is gameplay-derived and scene-created.** It retains the actual frame's mechanic
+  topology, recognizable symbols, meaningful ordering and resolving outcome, while standing in the
+  scene as a solid object with perspective, a visible near edge, attached material, mutual light
+  and natural overlap. A flat screenshot rectangle is a blocker. So is a beautiful fantasy board
+  whose mechanic or symbols no longer read as the real game.
+- **The middle panel shows the actual round resolving, not a board at rest.** Preserve whichever
+  cells, symbols and outcome cues the gameplay frame truly shows; do not manufacture a lifted
+  symbol or payline solely for the storefront. The created scene reacts through attached structure,
+  reflected light, controlled particles and surrounding action. Cover the field with a thumb: what
+  remains should still be a moment. Cover the surround: what remains should still read as gameplay.
+- **Nothing in the strip looks composited.** No screenshot rectangle, cutout edge, drop-shadow
+  halo, object facing the camera while the scene recedes, or silhouette too clean for the painting
+  around it. Every
   object has volume, sits in the scene's perspective, casts a shadow onto something, and is caught
   by the same light. It also has a physical relationship to the panel — held, fitted, mounted,
   emerging, travelling through, or partly behind something — with decoration growing from that
@@ -918,14 +944,15 @@ standing in front of the whole scene, or crowned by empty sky is a blocker.
 Record the field row separately too, and answer it by looking at the two images rather than at the
 command line:
 
-| The field | Concept panel | Gameplay frame | Same grid? | Same symbol art? | Same tile/edge? | Shows a round resolving? |
+| The field | Concept panel | Actual gameplay context | Same mechanic/layout? | Same symbols/state? | Created as 3D scene art? | No pasted screenshot edge? |
 |---|---|---|---|---|---|---|
 
 Four yeses or the plate is rebuilt from the frame (`boardplate --from-shot` on the win frame) and
-Phases 2, 3 and 7 are re-run. The last column is the middle panel's own gate: the paying cells are
-marked, the field is caught mid-payout, and the panel around it is reacting. `--board rest` answers
-it with the reason there is no win state to show. `--board off` fills the whole row with the object
-the round happens on instead, and it is audited the same way.
+the integration render plus Phases 3 and 7 are re-run. The two tests are independent: gameplay
+identity can pass while the frame still looks pasted, and 3D integration can pass while the model
+has invented a different game. `--board rest` answers the state column with the reason there is no
+win state to show. `--board off` fills the whole row with the object the round happens on instead,
+and it is audited the same way.
 
 ## Phase 10 — store information
 
@@ -939,13 +966,14 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
   `panel 1 crown` line measured above its head and what ornament fills that band, whether the
   scene's foreground was closed back over it, and the supporting objects with the panels they were
   seated into.
-- How the board plate was built — from which symbol files and grid, or lifted from which gameplay
-  frame and rectangle — its yaw/pitch/depth, the win it was caught in (`--win` cells, `--dim`,
-  `--lift`, or the state the lifted frame carried), and which panel it landed on. `--board rest`
-  and `--board off` record why instead.
-- Whether the integration pass ran, with the reference images and fidelity it used, and the
-  identity gate's per-object verdict, including the `Built into the scene?` column. If the kit
-  shipped un-integrated, why.
+- Which actual gameplay frame and field rectangle supplied the integration context; how the board
+  plate was derived; its yaw/pitch/depth; the resolving state it carried; and which panel it landed
+  on. Record explicitly that the gameplay frame was used as a reference and was not pasted into the
+  final panorama. `--board rest` and `--board off` record why instead.
+- The integration pass's draft, actual gameplay frame, object references and fidelity; the identity
+  gate's per-object verdict; and the field's separate gameplay-identity / 3D-integration /
+  no-screenshot-edge verdict. An unavailable or failed integration is reported as a blocker, never
+  as an un-integrated shipped fallback.
 - The per-panel anchor audit: the exact real asset anchoring every split slide, the physical
   construction it completes, its contact/overlap/shared-light evidence, and how decoration grows
   naturally from it. Explicitly record panel 3 rather than summarizing the triptych as a whole.
@@ -977,7 +1005,7 @@ Verify the archive contains numbered PNGs in both `store/` and `store-play/` unl
 
 ## Phase 12 — final report
 
-Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, the per-panel detail figures, whether the panorama was rendered from the draft or shipped as the composite, the identity gate's verdict, the real anchor on **each** split panel and the physical/decorative construction it completes, the hero on panel 1 (its share of the panel's width and height, what crowns the band above its head, and that the scene closes in front of it), how the play field in the art was built, the round it was caught in, and where it landed, the objects seated into the art, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row and the per-panel anchor audit, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
+Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, the per-panel detail figures, whether the panorama was rendered from the draft or shipped as the composite, the identity gate's verdict, the real anchor on **each** split panel and the physical/decorative construction it completes, the hero on panel 1 (its share of the panel's width and height, what crowns the band above its head, and that the scene closes in front of it), the actual gameplay frame used as context for the middle field, how that field preserved the mechanic/state while being recreated as scene-matched 3D art, confirmation that no screenshot layer or rectangular edge survived, the objects seated into the art, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row and the per-panel anchor audit, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
 
 ## Quality gates
 
@@ -997,17 +1025,19 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   someone, not a finished picture with a character laid on it.
 - The band above the hero's head is ornament — arch, canopy, crest, banner, halo, flanking
   columns, particles — and the compositor left no `crown … is empty sky` warning standing.
-- The middle panel shows the round resolving: the paying cells marked, the rest of the field fallen
-  back, the paying symbol proud of the board, and the art around it reacting. `--board rest` was
-  used only for a mechanic with no win state, and `STORE_INFO.md` says why.
-- The play field in the art came from `boardplate` — real symbol files or a lifted frame — stands in
-  the scene's perspective with a visible near edge, and the audit's four columns — same grid, same
-  symbol art, same tile/edge, a round resolving — are all yes. No model-drawn grid, tile, symbol frame or HUD survives anywhere in either set.
-- The panorama is one rendered picture, not a paste-up: nothing in either set shows a cutout edge,
-  a drop-shadow halo, or an object facing the camera while the scene around it recedes.
+- The middle panel shows the game's real resolving outcome. Any lit/dimmed cells, raised symbol or
+  outcome cue comes from the actual gameplay context rather than storefront invention; the created
+  scene adds 3D construction and controlled reaction without covering the decisive interaction.
+  `--board rest` was used only for a mechanic with no win state, and `STORE_INFO.md` says why.
+- The play field was generated with the scene from an actual gameplay context frame. The audit's
+  four columns — same mechanic/layout, same symbols/state, created as 3D scene art, no pasted
+  screenshot edge — are all yes. It remains readable while carrying the scene's perspective,
+  thickness, materials, light, shadows, contact and controlled foreground overlap.
+- The panorama is one rendered picture, not a paste-up: no screenshot rectangle, cutout edge,
+  drop-shadow halo, or object facing the camera while the scene around it recedes survives.
 - The identity gate passed for every object — same silhouette, colours, detail, place and size as
-  its reference file, and visibly built into the scene — or the un-integrated composite shipped
-  instead and `STORE_INFO.md` says so.
+  its reference file, and visibly built into the scene. A flat composite is never accepted as the
+  concept-panel fallback.
 - Every split panel contains at least one unmistakable real game anchor and the compositor printed
   no `panel N game anchors: NONE`: panel 1 hero, middle panel field/mechanic, final panel named
   reward/collectible/token/prop. Each completes a different scene beat; none is a duplicated
@@ -1044,17 +1074,24 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 
 - Changing gameplay logic, state, configuration, balance, or economy. Applying the icon, emblem,
   and key-art backdrop is the only project modification this skill makes.
-- Capturing gameplay frames before the branding and backdrop are applied, or reusing frames from
-  before this run's branding.
+- Shipping gameplay frames captured before the branding and backdrop were applied, or reusing them
+  in the upload set. One pre-branding resolving frame is allowed only as reference context for the
+  integration generation and must never be exported as a storefront screenshot.
 - Shipping concept panels that show objects, characters, or a world the app does not contain.
 - Shipping any split concept panel with no real game anchor because the panorama as a whole has
   enough assets, or filling that gap by repeating the same floating icon over generic scenery.
-- Letting the image model draw the game's board, reels, grid, cells, symbol tiles, icon frames,
+- Letting the image model invent the game's board, reels, grid, cells, symbol tiles, icon frames,
   HUD, balance, or multiplier from a description — or keeping such art because the rest of the
-  picture is good. The field is assembled from the game's own files by `boardplate` and carried
-  into the render as a reference image, or it is not shown.
-- Shipping the flat composite as the finished panorama when the integration pass was available, or
-  running that pass below `--fidelity high`.
+  picture is good. Actual gameplay must be present as authoritative visual context when the field
+  is generated with the scene.
+- Pasting, masking or framing the gameplay screenshot into the final panorama, including a flat
+  front-on rectangle surrounded by an ornate bezel. The screenshot is a generation reference,
+  never a final layer; the created field must share the scene's perspective, volume, material,
+  light, shadow, contact, atmosphere and controlled overlap.
+- Using “make it 3D” as permission to lose the game: no replacement symbols, changed topology,
+  ornamentalized cells, unreadable foreshortening or decoration covering the decisive interaction.
+- Shipping the flat composite as the finished panorama under any circumstance, or running the
+  integration pass below `--fidelity high`.
 - Accepting an integrated picture whose objects were redesigned, restyled, simplified or
   substituted, because the render looks good. A beautiful wrong symbol is the same rejection as an
   ugly one, and harder to catch.
