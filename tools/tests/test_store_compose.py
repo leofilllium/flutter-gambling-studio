@@ -398,6 +398,36 @@ class InlayTests(unittest.TestCase):
         for name in ("gem.png", "coin.png"):
             self.assertGreaterEqual(widths[name], self.PANEL_W * 0.25, name)
 
+    def test_auto_layout_puts_a_real_game_anchor_on_every_split_slide(self) -> None:
+        # Hero and board already claim panels 1 and 2. The first supporting
+        # object must therefore anchor panel 3, not decorate panel 2 again.
+        lines = self._inlay(self._sprite("hero.png", (200, 420)),
+                            self._sprite("board.png", (360, 360)) + "@board",
+                            self._sprite("reward.png", (160, 160)))
+        panels = {int(line.split("panel ")[1].split()[0]) for line in lines}
+        self.assertEqual(panels, {1, 2, 3}, lines)
+
+    def test_fixed_roles_are_reserved_before_an_earlier_prop_is_placed(self) -> None:
+        # Callers do not have to know that the board must precede props on the
+        # command line for the auto-layout to cover the triptych.
+        lines = self._inlay(self._sprite("hero.png", (200, 420)),
+                            self._sprite("reward.png", (160, 160)),
+                            self._sprite("board.png", (360, 360)) + "@board")
+        reward = next(line for line in lines if "reward.png" in line)
+        self.assertIn("panel 3", reward, lines)
+
+    def test_a_split_slide_without_a_game_anchor_is_called_out(self) -> None:
+        self._inlay(self._sprite("hero.png", (200, 420)),
+                    self._sprite("gem.png", (160, 160)) + "@panel=2")
+        self.assertTrue(any("panel 3" in m and "no real game object" in m
+                            for m in self.quiet_warnings), self.quiet_warnings)
+
+    def test_supporting_objects_are_tucked_behind_the_scene_by_default(self) -> None:
+        lines = self._inlay(self._sprite("hero.png", (200, 420)),
+                            self._sprite("gem.png", (160, 160)))
+        prop = next(line for line in lines if line.startswith("prop"))
+        self.assertIn("occluded by the foreground", prop, lines)
+
     def test_the_hero_is_sized_by_the_panel_s_height_not_its_width(self) -> None:
         # "the player on the first slide should be bigger — full height, but not
         # too much". A width-driven hero on a 300x640 panel came out barely 40%
@@ -541,7 +571,8 @@ class BoardRoleTests(unittest.TestCase):
 
     def test_a_board_does_not_consume_a_prop_slot(self) -> None:
         # The board is the mechanic, not one of the two or three symbols, so it
-        # must not push a prop off its depth in the fan-out.
+        # must not push a prop off its depth/size in the fan-out. Its panel can
+        # change: covering an otherwise empty split slide now takes priority.
         with_board = self._inlay(self._png("hero.png", (200, 320)),
                                  self._png("board.png", (600, 600)) + "@board",
                                  self._png("gem.png", (160, 160)))
@@ -549,7 +580,8 @@ class BoardRoleTests(unittest.TestCase):
                               self._png("gem.png", (160, 160)))
         gem = next(l for l in with_board if "gem.png" in l)
         plain = next(l for l in without if "gem.png" in l)
-        self.assertEqual(gem.split("@")[1], plain.split("@")[1])
+        self.assertEqual(gem.split("@")[1].split(",", 1)[1],
+                         plain.split("@")[1].split(",", 1)[1])
 
     def test_a_plate_is_built_from_the_real_symbol_files(self) -> None:
         red, green = (220, 40, 60), (40, 200, 90)

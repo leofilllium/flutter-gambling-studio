@@ -1,6 +1,6 @@
 ---
 name: store-screenshots
-description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama, dense enough to stand beside a real listing, sliced into panels that reassemble into that exact picture — nothing discarded between them, no panel ending mid-object, the cuts placed on the quietest columns the picture has, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 is composed *for* the protagonist: the art draws it an ornamental berth, the figure fills about three quarters of the panel's height with the ornament crowning the headroom above it, and the scene's own foreground closes back over its feet. The middle panel is the gameplay example and it shows the round *resolving* — the game's own field, caught at the moment it pays, with the paying symbol lifting out of the board. The game's real objects are built into the artwork at foreground scale, not pasted on it, and any play field the art shows is assembled from the game's own symbol files — the image model never draws the board. The key art and the app share one world in both directions — the panorama carries the game's real objects and the game wears the panorama as its background. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
+description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama, dense enough to stand beside a real listing, sliced into panels that reassemble into that exact picture — nothing discarded between them, no panel ending mid-object, the cuts placed on the quietest columns the picture has, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 is composed *for* the protagonist: the art draws it an ornamental berth, the figure fills about three quarters of the panel's height with the ornament crowning the headroom above it, and the scene's own foreground closes back over its feet. The middle panel is the gameplay example and it shows the round *resolving* — the game's own field, caught at the moment it pays, with the paying symbol lifting out of the board. Every one of the three split slides carries at least one unmistakable real game anchor: hero on panel 1, field/mechanic on panel 2, and reward, collectible, token, or prop on panel 3. Those assets are built into decorated physical contexts at foreground scale — held, mounted, emerging, nested, or partly occluded — then re-rendered as one scene, never left as pasted icons. Any play field the art shows is assembled from the game's own symbol files — the image model never draws the board. The key art and the app share one world in both directions — the panorama carries the game's real objects and the game wears the panorama as its background. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
 argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 0|100] [--seam-snap auto|off] [--pop vivid|soft|max|off] [--hero hero.png] [--hero-height 0.72] [--props a.png,b.png] [--board auto|rest|off] [--sprite-light 0.35] [--occlude 0.14] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -12,8 +12,8 @@ Create everything needed to present the game in App Store Connect and Google Pla
 
 | Deliverable | Source |
 |---|---|
-| Panels 1…P: one wide, text-free concept illustration composed around the hero on panel 1 and carrying the game's real objects at foreground scale, sliced into adjacent panels that lay back down into the whole picture | GPT Images 2.0 → `store_compose.py triptych --seam-snap` |
-| The layout draft the finished picture is rendered from — real hero at full panel height under the berth's ornament, the real field caught mid-payout, real props placed where they belong | `store_compose.py boardplate --win` + `triptych --pano-only` |
+| Panels 1…P: one wide, text-free concept illustration composed around the hero on panel 1 and carrying at least one real game anchor in every split panel at foreground scale, sliced into adjacent panels that lay back down into the whole picture | GPT Images 2.0 → `store_compose.py triptych --seam-snap` |
+| The layout draft the finished picture is rendered from — real hero at full panel height under the berth's ornament, the real field caught mid-payout, and a real reward/prop in a decorated physical home on the final panel | `store_compose.py boardplate --win` + `triptych --pano-only` |
 | One integrated illustration: the draft's composition and the game's own objects, rendered as a single three-dimensional scene | `gpt_image.py edit --image draft --image <each object> --fidelity high` |
 | The same key art wired into the app as its own background | `store_compose.py backdrop` → `assets/images/backgrounds/` |
 | Panels P+1…N: real gameplay frames in a device mockup with marketing captions | `web_verify.mjs` → `store_compose.py showcase` |
@@ -44,7 +44,7 @@ Continuity runs in **both** directions, and both are mandatory:
 | Direction | Requirement | How it is enforced |
 |---|---|---|
 | Key art → app | The concept panels' world, hero, palette, materials, and light must be visible on the game's own screens | `store_compose.py backdrop` exports the panorama as the game's menu and gameplay background, and Phase 3 wires it in **before** a single frame is captured |
-| App → key art (objects) | The concept panels must contain the game's **real** objects — the exact symbols, tokens, characters, and props the player touches | the shipped PNGs from `assets/images/` are placed in the draft (`triptych --sprite`) and passed as reference images to the render (`gpt_image.py edit --fidelity high`) |
+| App → key art (objects) | **Every concept panel** must contain at least one of the game's **real** objects — the exact symbols, tokens, characters, and props the player touches | the shipped PNGs from `assets/images/` are distributed one anchor per panel in the draft (`triptych --sprite`) and passed as reference images to the render (`gpt_image.py edit --fidelity high`) |
 | App → key art (the field) | Where the art shows the game being *played* — a grid, reels, a board, a track, a peg field — it must be the game's own field, with the game's own symbols in it | `store_compose.py boardplate` builds the field out of the shipped files (or lifts it from a captured frame), stands it up in perspective, and it goes into the draft and the render as a reference |
 
 Describing a symbol to an image model produces something *similar*. **Handing it the file** produces
@@ -70,8 +70,11 @@ halves show different products.
 
 **The shared object list.** In Phase 0, choose 3–5 named objects that must appear on both sides of
 the listing — the hero plus the two or three symbols the round is actually played with. Record them
-in `STORE_BRIEF.md`. Entry 1 is always the hero. Phase 9 verifies every one of them by eye in at
-least one concept panel *and* at least one gameplay frame. A missing entry is a blocker.
+in `STORE_BRIEF.md`. Entry 1 is always the hero. For the default triptych, the hero anchors panel 1,
+the real field/mechanic anchors panel 2, and a named reward, collectible, token, or prop anchors
+panel 3. Phase 9 verifies every object by eye in at least one concept panel *and* at least one
+gameplay frame, and separately verifies that **all three panels** have a real anchor. A missing
+object or an unanchored panel is a blocker.
 
 ## Compose the slide around the hero, build the objects in — the composition contract
 
@@ -147,16 +150,33 @@ board, so one object has broken the board's plane. Around it, Phase 1's art carr
 the reward bursting up off the field, coins or sparks crossing the near edge, the crowd or the
 machine reacting to it. Same board the app renders, one frame later.
 
-**5. Stop at five.** The reference the designer sent as a *good* example came with its own
+**5. Every split slide carries the game, not only the panorama as a whole.** One real hero on
+panel 1 and one real board on panel 2 do not excuse panel 3 becoming attractive generic scenery.
+Each panel needs an unmistakable anchor from `assets/images/`: the hero or hero-held item on the
+first, the real field/mechanic on the middle, and a reward, collectible, token, prop, modifier,
+capsule, ball, or other touched object on the last. `triptych` reserves the hero and board panels,
+then auto-places supporting props into uncovered panels before doubling up; it prints `panel N game
+anchors:` and warns on `NONE`.
+
+Coverage alone is not the finish. Give every anchor a **physical job in that panel's scene**. It is
+held or worn by the hero, rising out of the paying field, mounted into a machine, nested in a
+carved shrine, resting in a fitted pedestal, crossing in front of architecture, or partly hidden
+behind foreground furniture. Build decoration *around its function* — trim following its
+silhouette, a socket made for its base, particles emitted by it, reflected light on nearby material,
+supporting ribbons/foliage/mechanism — without redesigning the asset itself. A repeated icon
+floating over three backgrounds technically covers three panels and still fails.
+
+**6. Stop at five.** The reference the designer sent as a *good* example came with its own
 correction: slightly too many objects. A hero plus two or three symbols reads at thumbnail size; a
-pile does not. `triptych` warns past five, and the board plate counts as one of them.
+pile does not. `triptych` warns past five, and the board plate counts as one of them. Panel coverage
+comes from deliberate distribution, not from increasing the object count.
 
 The target is one finished picture — the hero standing at full height in a place the art built and
 decorated for it at one end, the game's own field across the middle as a solid object caught at the
-moment it pays, the real objects carried through the foreground with weight and shadow — not a
-background with props arranged on it. Ask the model for the world that way in Phase 1, place the
-real files into it as a draft, then render the picture from that draft with the files themselves as
-references (Phase 2).
+moment it pays, and the final panel built around a real reward/prop as its own scene beat, with the
+real objects carried through the foreground with weight and shadow — not a background with props
+arranged on it. Ask the model for the world that way in Phase 1, place the real files into it as a
+draft, then render the picture from that draft with the files themselves as references (Phase 2).
 
 ## Category-specific art direction
 
@@ -264,11 +284,11 @@ to regenerate the art from a fuller brief, never to grade or crop it.
 | `--pop` | `vivid` | Colour grade applied to generated art (`off`, `soft`, `vivid`, `max`) |
 | `--hero` | first shared object | The protagonist PNG that leads panel 1; if omitted, entry 1 of the shared object list |
 | `--hero-height` | `0.72` | The hero's share of panel 1's **height** — the panel is sized by it, the width is only a cap. Below ≈0.6 the figure is scenery again; above ≈0.8 there is no crown left for the berth's ornament. Passed through as `h=` on the hero sprite |
-| `--props` | auto | Comma-separated game PNGs inlaid into the panorama, capped at four alongside the hero; the default comes from the shared object list |
+| `--props` | auto | Comma-separated game PNGs inlaid into the panorama, capped at four alongside the hero; the default comes from the shared object list and fills a panel with no game anchor before adding a second prop elsewhere |
 | `--board` | `auto` | Build the game's play field from its real files (`boardplate`), stand it up in perspective, catch it at the moment it pays (`--win`/`--lift`), and place it in the middle of the key art. `rest` builds the same field with nothing resolving — only for a mechanic that has no win state to show. `off` for a game with no readable field |
 | `--integrate` | `on` | Render the finished panorama from the draft with the real assets as reference images (`gpt_image.py edit`). `off` ships the flat composite and records it as un-integrated |
 | `--sprite-light` | `0.35` | How hard inlaid objects are pulled into the scene's light (colour cast + edge light-wrap). `0` pastes them flat |
-| `--occlude` | `0.14` | How much of the hero's height the scene's foreground closes back over, so it stands *in* the picture. `0` leaves it in front of everything |
+| `--occlude` | hero `0.14`, props `0.08`, board `0` | How much of an object's height the scene's foreground closes back over, so heroes and supporting props sit *in* the picture. The board stays unobscured for legibility; `0` leaves an object in front of everything |
 | `--no-backdrop` | off | Do not wire the key art into the game as its background |
 | `--no-play-set` | off | Skip the separate 9:16 Play set |
 | `--lang` | `en` | Caption/title language; change only on explicit request |
@@ -317,8 +337,22 @@ Pick 3–5 objects that carry this game's identity — the hero/character plus t
 the round is actually played with (the eagle, the bolt, the shield; the capsule, the rarity gem;
 the ball, the peg field). **List the hero first and mark it as the hero**: it is the object that
 leads panel 1, and every downstream phase reads that ordering. Record in `STORE_BRIEF.md`, for each
-one: its name, its PNG path, its role (hero or symbol), where it will appear in the concept art, and
-which gameplay screen shows it. That table is what Phase 9 audits.
+one: its name, its PNG path, its role (hero or symbol), the concept panel it anchors, the physical
+feature it will be built into there, the decoration that connects it to that feature, and which
+gameplay screen shows it. That table is what Phase 9 audits.
+
+For the default three panels, assign the coverage before generating anything:
+
+| Panel | Required real anchor | Natural construction — decide this now |
+|---|---|---|
+| 1 | Hero, plus a hero-held/worn object when useful | Empty decorated berth shaped around the hero; foreground crosses its feet |
+| 2 | The real field or mechanic object | Fitted stage/machine caught mid-resolution; nearby surfaces take its light |
+| 3 | Named reward, collectible, token, prop, modifier, capsule, ball, or progression object | Fitted shrine, pedestal, machinery, architecture, trail, or environment built around its exact silhouette |
+
+The field counts as panel 2's anchor even though it is recorded separately below. When `--board
+off`, reserve **two** supporting objects for panels 2 and 3. Do not plan to cover a missing panel by
+duplicating one floating symbol; every panel gets a different scene beat and the minimum number of
+objects needed to express it.
 
 Then record **the field** — the surface the round is played on, and the second thing Phase 9
 audits:
@@ -381,16 +415,26 @@ Use image generation for three sources:
      reacting, the reward resolving above it. This is what stops the middle panel — the listing's
      gameplay example — from being a board on a table. The *drama* of the mechanic is the model's
      job; the mechanic's own hardware is not.
+   - **Build the rightmost panel for a real game object too.** Name the exact object assigned to
+     panel 3 in the brief, but ask the model to draw its *empty physical home*, not a substitute:
+     a fitted shrine whose opening follows its silhouette, a machine socket with the right contact
+     plane, an opened vault/pedestal, a progression arch, a curved trail, or environment that will
+     close in front of it. Carry the decoration out of that function — carved trim, ribbons,
+     foliage, braces, cables, sparks, reflected light — so adding the reference asset completes the
+     scene rather than laying an icon on it. The final third may not be generic scenery and may not
+     contain a model-drawn version of the object.
    - Describe the shared-object list explicitly, in the game's own materials and palette, and ask
      for those objects **large in the foreground, standing on a readable ground plane**, some of
      them cropped by the bottom edge — a scene with somewhere for Phase 2 to seat the real files.
-     Say how many; more than five and the picture turns into a heap.
+     Assign at least one named real anchor to **every third**. Say how many; more than five and the
+     picture turns into a heap.
    - **Ask for a dense picture, panel by panel.** Name what fills each third: its subject, its
-     event, its background place. Spell out the three planes, the ornament scales, the second and
-     third light sources, the materials and the atmosphere from "Density is the other half of the
-     brief" — an image model that is not told to populate the frame will hand back one object on a
-     gradient every time. Say explicitly that the empty regions carry haze, particulate and
-     structure rather than flat colour.
+     event, its real-game anchor, the physical construction waiting for that anchor, and its
+     background place. Spell out the three planes, the ornament scales, the second and third light
+     sources, the materials and the atmosphere from "Density is the other half of the brief" — an
+     image model that is not told to populate the frame will hand back one object on a gradient
+     every time. Say explicitly that the empty regions carry haze, particulate and structure
+     rather than flat colour.
    - Keep important objects away from the panel seams — at 3 panels they sit at 1/3 and 2/3 of the
      width — and ask for a **calm vertical corridor** at each of them: sky, wall, haze, floor,
      roughly an eighth of a panel wide. This is the only protection a seam has. The panels must
@@ -449,8 +493,8 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
   --panels 3 --size 1320x2868 --pop vivid \
   --sprite assets/images/sprites/sprite_eagle.png@hero \
   --sprite "$ART_DIR/board-plate.png@board,light=0.15" \
-  --sprite assets/images/sprites/sprite_bolt.png@panel=2,rot=-8 \
-  --sprite assets/images/sprites/sprite_shield.png \
+  --sprite assets/images/sprites/sprite_bolt.png@panel=3,rot=-8,occlude=0.10 \
+  --sprite assets/images/sprites/sprite_shield.png@panel=1,rot=6 \
   --sprite-glow-color "#F0B34A"
 ```
 
@@ -480,6 +524,13 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
   and it is the one to raise for a broad-shouldered cutout that hits it before reaching full
   height. The draft is composed against the same cuts the final slice will use, so an object placed
   clear of a seam here stays clear of it there.
+- Read the `panel N game anchors:` lines before moving on. Every panel must name at least one real
+  file and none may print `NONE`. Fixed hero/board placements are reserved first, so an unassigned
+  supporting prop automatically fills the uncovered panel; explicit `panel=` remains available
+  when the art has a precise fitted home. The default `occlude=0.08` on props closes a small amount
+  of the scene back over them in the draft, while the integration pass below supplies final volume,
+  mutual shadow, and decoration. A coverage warning is a blocker, not a suggestion to duplicate a
+  floating icon.
 
 ### Phase 2b — the integration pass
 
@@ -510,6 +561,12 @@ python3 tools/gpt_image.py edit \
     keeps the same symbols in the same cells in the same order, and the same cells keep paying: the
     payline, the lit cells, the fallen-back cells and the symbol standing proud of the board are
     the state of the round, not clutter to tidy away.
+  - Preserve the draft's one-anchor-per-panel plan and make each anchor complete a physical
+    construction rather than hover over it: hero seated in the decorated berth on panel 1, field
+    fitted into and illuminating the resolving stage on panel 2, and the named reward/prop held,
+    mounted, nested, emerging, travelling through, or partly occluded by its decorated context on
+    panel 3. Let nearby trim follow the object's form and nearby material catch its light, but do
+    not paint ornament over the identifying silhouette or turn one asset into a repeated pattern.
   - Render them as physical objects in one three-dimensional space: their own perspective agreeing
     with the scene's, real volume and thickness, cast shadows landing on the ground and on each
     other, contact where they touch, edges caught by the scene's key and rim light, atmospheric
@@ -541,14 +598,20 @@ The integration pass is the one step in this skill that can silently change what
 advertises, so it is verified before anything downstream reads the file. Open
 `keyart-integrated.png` beside each reference file and answer, per object:
 
-| Object | Same silhouette? | Same colours and materials? | Same detail/ornament? | Same place and size? |
-|---|---|---|---|---|
+| Object | Same silhouette? | Same colours and materials? | Same detail/ornament? | Same place and size? | Built into the scene? |
+|---|---|---|---|---|---|
 
 - Every cell yes, or the object did not survive. A "close enough" symbol is the exact defect that
   returned the last listing, and it is harder to spot in a beautifully rendered picture than in an
   obvious paste-up.
 - For the field, also check cell by cell: the same symbols, in the same cells, in the same order,
   and the same tile and edge treatment.
+- “Built into the scene” means a visible physical relationship: contact with a fitted surface,
+  mutual overlap or occlusion, shared perspective, cast/reflected light, and decoration belonging
+  to that relationship. A clean cutout edge plus a generic glow is a no even when identity passed.
+- Check coverage as a second axis: panel 1, panel 2, and panel 3 each have at least one row whose
+  object is unmistakable there. An empty panel, or the same floating icon repeated to fill one, is
+  a failed integration pass.
 - One object drifting is fixed by re-running with a tighter prompt naming that object, or with
   fewer references on the call. Repeated drift means the model cannot hold that object: keep the
   composited draft as the deliverable rather than shipping a redesigned symbol, and say so in the
@@ -730,7 +793,10 @@ Vision-check both previews — `_panorama-preview.png` for whether the panels ar
 - **Nothing in the strip looks composited.** No cutout edge, no drop-shadow halo, no object facing
   the camera while the scene recedes, no silhouette too clean for the painting around it. Every
   object has volume, sits in the scene's perspective, casts a shadow onto something, and is caught
-  by the same light. If one still reads as laid on, that is a Phase 2b re-run, not a crop.
+  by the same light. It also has a physical relationship to the panel — held, fitted, mounted,
+  emerging, travelling through, or partly behind something — with decoration growing from that
+  relationship rather than floating around it. If one still reads as laid on, that is a Phase 2b
+  re-run, not a crop.
 - Every object is at foreground scale and standing on something. Anything that shrank to decoration
   in the render goes back through Phase 2b with the draft's size restated.
 - No seam cuts the hero's face, central mechanic, reward, decisive action, or an inlaid game object.
@@ -744,8 +810,11 @@ Vision-check both previews — `_panorama-preview.png` for whether the panels ar
   things the eye lands on, held apart from the detail by focus, value or a calmer surround.
 - No letters, fake glyphs, captions, UI, HUD, meters, balances, or panel borders appear.
 - The mechanic and category are recognizable without generic casino cues.
-- At least one object from the shared list is unmistakably present, and it is the same object the
-  gameplay frames show.
+- **Every split panel has a real game anchor.** Panel 1 has the hero, panel 2 has the real
+  field/mechanic, and panel 3 has the named reward/collectible/token/prop assigned in the brief.
+  Each is unmistakably the same object the gameplay frames show. Decorative world-building alone
+  cannot stand in for the final panel's object, and duplicating one floating icon across panels
+  does not pass.
 - The panels are not crowded: a hero and two or three symbols, not a heap.
 - The panorama uses casino-grade tension, depth, tactility, and reward focus while remaining
   unmistakably specific to this game's Design DNA.
@@ -828,6 +897,19 @@ either inlay the object into the panorama (Phase 2) or surface it in the game an
 (Phases 3–4). Confirm in the same pass that the panels and the gameplay frames share one palette,
 one light direction, and one material language, and that neither set looks flat next to the other.
 
+Then audit the split slides themselves — object continuity can pass while panel 3 is still only
+background:
+
+| Concept panel | Real game anchor | Built into what? | Contact / overlap / shared light? | Decoration grows from the object? |
+|---|---|---|---|---|
+| 1 | Hero path/name | Berth / throne / ledge / doorway | yes/no | yes/no |
+| 2 | Field/mechanic path/name | Stage / machine / altar / track | yes/no | yes/no |
+| 3 | Reward/prop path/name | Shrine / socket / pedestal / trail / architecture | yes/no | yes/no |
+
+Every row needs a named shipped asset and three specific visual answers; all yes. “Placed over the
+background”, “surrounded by glow”, or the same free-floating icon copied between panels is a no.
+For `P` other than three, add one row per panel and apply the same gate.
+
 Record the hero row separately, with the fractions of panel 1 it occupies — **width and height
 both** — the compositor's own `inlay hero …` line, its `panel 1 crown` line, and whether the inlay
 line ends in `+ occluded by the foreground`. Under 0.6 of the panel's height, absent from panel 1,
@@ -862,7 +944,11 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
   `--lift`, or the state the lifted frame carried), and which panel it landed on. `--board rest`
   and `--board off` record why instead.
 - Whether the integration pass ran, with the reference images and fidelity it used, and the
-  identity gate's per-object verdict. If the kit shipped un-integrated, why.
+  identity gate's per-object verdict, including the `Built into the scene?` column. If the kit
+  shipped un-integrated, why.
+- The per-panel anchor audit: the exact real asset anchoring every split slide, the physical
+  construction it completes, its contact/overlap/shared-light evidence, and how decoration grows
+  naturally from it. Explicitly record panel 3 rather than summarizing the triptych as a whole.
 - That the panels reassemble the panorama with nothing discarded (quote the compositor's
   `0px discarded` line), how far the tiling slid inside its slack, and each seam's final detail
   ratio. If an explicit `--gutter` was used instead, say so, give the width, and say who asked
@@ -891,13 +977,14 @@ Verify the archive contains numbered PNGs in both `store/` and `store-play/` unl
 
 ## Phase 12 — final report
 
-Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, the per-panel detail figures, whether the panorama was rendered from the draft or shipped as the composite, the identity gate's verdict, the hero on panel 1 (its share of the panel's width and height, what crowns the band above its head, and that the scene closes in front of it), how the play field in the art was built, the round it was caught in, and where it landed, the objects seated into the art, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
+Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, the per-panel detail figures, whether the panorama was rendered from the draft or shipped as the composite, the identity gate's verdict, the real anchor on **each** split panel and the physical/decorative construction it completes, the hero on panel 1 (its share of the panel's width and height, what crowns the band above its head, and that the scene closes in front of it), how the play field in the art was built, the round it was caught in, and where it landed, the objects seated into the art, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row and the per-panel anchor audit, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
 
 ## Quality gates
 
 - Preflight tools and fonts are available.
-- The shared object list exists in `STORE_BRIEF.md` with 3–5 entries, real asset paths, and the
-  hero first.
+- The shared object list exists in `STORE_BRIEF.md` with 3–5 entries, real asset paths, the hero
+  first, one real anchor assigned to every concept panel, and a named physical/decorative
+  construction for each anchor.
 - At least one valid phone-aspect raw frame exists; the final selection includes active play and a win/reward state.
 - Gameplay frames were captured **after** branding and the backdrop were applied.
 - Every selected gameplay frame passes the full-viewport gameplay-screen contract; no thumbnail
@@ -919,9 +1006,15 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - The panorama is one rendered picture, not a paste-up: nothing in either set shows a cutout edge,
   a drop-shadow halo, or an object facing the camera while the scene around it recedes.
 - The identity gate passed for every object — same silhouette, colours, detail, place and size as
-  its reference file — or the un-integrated composite shipped instead and `STORE_INFO.md` says so.
+  its reference file, and visibly built into the scene — or the un-integrated composite shipped
+  instead and `STORE_INFO.md` says so.
+- Every split panel contains at least one unmistakable real game anchor and the compositor printed
+  no `panel N game anchors: NONE`: panel 1 hero, middle panel field/mechanic, final panel named
+  reward/collectible/token/prop. Each completes a different scene beat; none is a duplicated
+  floating icon used to satisfy coverage mechanically.
 - Every inlaid object is at least a quarter of a panel wide and reads as seated in the scene —
-  grounded, shadowed at the contact point, lit by the same light — not pasted onto it.
+  grounded, shadowed at the contact point, lit by the same light, held/fitted/mounted/emerging or
+  partly occluded, with decoration growing from that relationship — not pasted onto it.
 - No more than five objects are inlaid, and the compositor's crowding warning is unresolved nowhere.
 - Panorama, icon, and emblem share one visual world and pass vision review.
 - Launcher icons are applied unless `--no-apply` was requested.
@@ -954,6 +1047,8 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - Capturing gameplay frames before the branding and backdrop are applied, or reusing frames from
   before this run's branding.
 - Shipping concept panels that show objects, characters, or a world the app does not contain.
+- Shipping any split concept panel with no real game anchor because the panorama as a whole has
+  enough assets, or filling that gap by repeating the same floating icon over generic scenery.
 - Letting the image model draw the game's board, reels, grid, cells, symbol tiles, icon frames,
   HUD, balance, or multiplier from a description — or keeping such art because the rest of the
   picture is good. The field is assembled from the game's own files by `boardplate` and carried
@@ -987,6 +1082,9 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - Drawing fake gameplay, fake values, generated lettering, device frames, or panel separators into model-generated art.
 - Compositing a game object into the key art unlit, unscaled, and unshadowed so it reads as a
   sticker, or at a size that makes it decoration rather than part of the composition.
+- Treating contact shadow plus glow as sufficient integration. Each game object must complete a
+  physical, decorated construction in its panel — held, fitted, mounted, nested, emerging,
+  travelling through, or partly occluded — and the final render must show mutual contact and light.
 - Opening the listing on anything other than the protagonist: a logo panel, an empty establishing
   shot, or a first panel where the hero is small, cropped out, or upstaged.
 - Sizing the hero by the panel's width and shipping the 40%-of-the-height figure that produces, or

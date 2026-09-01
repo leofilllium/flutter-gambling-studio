@@ -16,8 +16,11 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             store's own carousel gap — but that is opt-in, because it puts a
             hole in the picture.
             `--sprite` inlays the game's real objects into the art — hero on
-            panel 1, large, seated in the scene's own light — so the panels
-            never advertise a world the app does not contain. This is a
+            panel 1, the real field on panel 2, and a real reward/prop anchoring
+            panel 3 — so every split slide belongs unmistakably to the game.
+            Auto-placement fills an uncovered panel before adding a second
+            object to another one, and supporting props are tucked behind the
+            scene's foreground instead of left on its surface. This is a
             *conceptual* poster of the game world, not a screen of the app —
             and it carries NO TEXT: lettering across a panel boundary is cut by
             the store's gutters, and a lockup inside one panel breaks the
@@ -1478,6 +1481,7 @@ HERO_MIN_H = 0.60                 # below this the figure is scenery again
 HERO_X, HERO_FOOT = 0.47, 1.04    # foot past the frame: the hero stands in front
 HERO_OCCLUDE = 0.14               # of its height, taken back by the foreground
 PROP_H = 0.42                     # height cap for a supporting object
+PROP_OCCLUDE = 0.08               # props also sit behind scene furniture, not on it
 # Cycled, so props read as a composed scene at three depths instead of a row of
 # stickers at one height and one size.
 _PROP_W = (0.36, 0.29, 0.33, 0.26, 0.30)
@@ -1674,6 +1678,30 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         if lead is not None:
             lead["role"] = "hero"
 
+    # Fixed placements claim their panels before auto props are distributed.
+    # Without that look-ahead, `hero, prop, board` puts both of the latter on
+    # panel 2 and leaves panel 3 as generic background. The default triptych is
+    # a three-slide story, so a real game anchor belongs on every slide before
+    # any one slide receives a second prop.
+    fixed_load = [0] * panels
+    for spec in parsed:
+        role = spec.get("role")
+        if "x" in spec:
+            point = round(float(spec["x"]) * pano.width)
+            fixed_panel = max(0, sum(1 for left, _ in cuts if left <= point) - 1)
+        elif "panel" in spec:
+            fixed_panel = int(spec["panel"]) - 1
+        elif role == "hero":
+            fixed_panel = 0
+        elif role == "board":
+            fixed_panel = panels // 2
+        else:
+            continue
+        fixed_panel = max(0, min(panels - 1, fixed_panel))
+        fixed_load[fixed_panel] += 1
+
+    auto_load = fixed_load[:]
+
     placements: list[dict] = []
     prop_i = 0
     for spec in parsed:
@@ -1738,8 +1766,13 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                 # crops first on a narrow carousel.
                 panel = panels // 2
             else:
-                # Props fan out from panel 2 so they do not crowd the hero.
-                panel = (prop_i + 1) % panels
+                # Fill every split slide with a real game anchor before any
+                # panel gets another prop. Prefer panels after the hero's in
+                # reading order, so hero + two props becomes 1 / 2 / 3, while
+                # hero + board + one prop becomes 1 / 2 / 3 as well.
+                order = list(range(1, panels)) + [0]
+                panel = min(order, key=lambda i: (auto_load[i], order.index(i)))
+                auto_load[panel] += 1
             panel = max(0, min(panels - 1, panel))
             frac = (HERO_X if hero else BOARD_X if board
                     else _PROP_X[prop_i % len(_PROP_X)])
@@ -1779,16 +1812,28 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             "shadow": max(0.0, min(1.0, float(spec.get("shadow", 0.42)))),
             "contact": max(0.0, min(1.0, float(spec.get("contact", 0.62)))),
             "light": max(0.0, min(1.0, float(spec.get("light", light)))),
-            # Only the hero is occluded by default. It is the one object the
-            # panorama is composed around, and the one the designer reads as
-            # "inserted" the moment it floats in front of the whole scene.
+            # The hero gets the deepest foreground overlap, but props also sit
+            # behind a small amount of scene furniture. Otherwise a correctly
+            # lit prop still reads as an icon pasted onto the illustration.
+            # The board stays unobscured because its cells must remain legible.
             "occlude": max(0.0, min(0.5, float(
-                spec.get("occlude", HERO_OCCLUDE if hero else 0.0)))),
+                spec.get("occlude", HERO_OCCLUDE if hero else
+                         0.0 if board else PROP_OCCLUDE)))),
         })
 
-    if not any(p["panel"] == 0 for p in placements):
-        warn("no game object landed on panel 1 — that is the screenshot the store "
-             "shows at full size, so the protagonist belongs there")
+    anchors: list[list[str]] = [[] for _ in range(panels)]
+    for p in placements:
+        anchors[p["panel"]].append(p["name"])
+    for i, names in enumerate(anchors):
+        info(f"panel {i + 1} game anchors: {', '.join(names) if names else 'NONE'}")
+    missing = [str(i + 1) for i, names in enumerate(anchors) if not names]
+    if missing:
+        warn(f"panel{'s' if len(missing) > 1 else ''} {', '.join(missing)} "
+             "contain no real game object — every split slide needs an unmistakable "
+             "anchor from assets/images/ built into its own scene (panel 1 hero, "
+             "middle panel field, final panel reward/prop). Add another --sprite or "
+             "move one with panel=; decorative background alone does not establish "
+             "game continuity.")
 
     placed: list[str] = []
     # Farthest first: the smaller an object is the deeper it sits, so painting in
@@ -2842,7 +2887,9 @@ def main() -> None:
     t.add_argument("--sprite", action="append", default=[], metavar="PNG[@k=v,...]",
                    help="composite a REAL game object (a transparent PNG out of "
                         "assets/images/) into the concept art, so the panels advertise "
-                        "objects the app actually contains. Repeatable, and the FIRST "
+                        "objects the app actually contains. Every split panel must have "
+                        "at least one game anchor; auto-placement fills an empty panel "
+                        "before doubling up. Repeatable, and the FIRST "
                         "one is the hero unless a role flag says otherwise: it takes "
                         f"panel 1 at ~{HERO_H:.0%} of the panel HEIGHT (capped at "
                         f"{HERO_W:.2f}× its width), because that is the screenshot the "
@@ -2855,7 +2902,8 @@ def main() -> None:
                         "panel (1-based), rot, bleed (how far the foot runs past the "
                         "bottom edge), glow, shadow, contact, light, occlude (how much "
                         "of the object's height the scene's foreground closes back over "
-                        f"— {HERO_OCCLUDE} for the hero, 0 otherwise), opacity. Omit x "
+                        f"— {HERO_OCCLUDE} for the hero, {PROP_OCCLUDE} for props, 0 for "
+                        "the legible board), opacity. Omit x "
                         "and objects are auto-placed at graded depths, standing on the "
                         "ground plane and always clear of the seams.")
     t.add_argument("--sprite-glow-color", default="#FFFFFF", metavar="HEX",
