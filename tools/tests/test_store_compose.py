@@ -149,6 +149,27 @@ class SpriteSpecTests(unittest.TestCase):
                 store_compose.parse_sprite_spec(bad)
 
 
+class SpriteInventoryTests(unittest.TestCase):
+    def test_directory_inventory_is_recursive_complete_and_deduplicated(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "sprites"
+            nested = root / "rewards"
+            nested.mkdir(parents=True)
+            hero = root / "hero.png"
+            coin = nested / "coin.png"
+            Image.new("RGBA", (16, 16), (255, 0, 0, 255)).save(hero)
+            Image.new("RGBA", (16, 16), (255, 220, 0, 255)).save(coin)
+            (root / "notes.txt").write_text("not a sprite")
+
+            specs = store_compose.expand_sprite_specs(
+                [f"{hero}@hero", str(hero)], [str(root)])
+
+            self.assertEqual(specs[0], f"{hero}@hero")
+            self.assertEqual(len(specs), 2)
+            self.assertEqual(Path(store_compose.parse_sprite_spec(specs[1])["path"]),
+                             coin)
+
+
 class PopGradeTests(unittest.TestCase):
     """Saturate and brighten — without clipping, which is the usual failure."""
 
@@ -480,11 +501,15 @@ class InlayTests(unittest.TestCase):
         cy = int(line.split("@")[1].split(",")[1].split()[0])
         self.assertGreater(cy, self.PANEL_H * 0.5)
 
-    def test_a_crowd_of_objects_is_called_out(self) -> None:
-        self._inlay(*(self._sprite(f"o{i}.png", (160, 160))
-                      for i in range(store_compose.CROWDED + 1)))
-        self.assertTrue(any("sprite sheet" in m for m in self.quiet_warnings),
-                        self.quiet_warnings)
+    def test_all_sprite_assets_are_accepted_and_distributed(self) -> None:
+        lines = self._inlay(*(self._sprite(f"o{i}.png", (160, 160))
+                              for i in range(8)))
+        self.assertEqual(len(lines), 8)
+        counts = [sum(f"panel {panel}" in line for line in lines)
+                  for panel in range(1, self.PANELS + 1)]
+        self.assertLessEqual(max(counts) - min(counts), 1, counts)
+        self.assertFalse(any("sprite sheet" in m for m in self.quiet_warnings),
+                         self.quiet_warnings)
 
     def test_placing_everything_off_panel_one_is_called_out(self) -> None:
         self._inlay(self._sprite("gem.png", (160, 160)) + "@panel=2",

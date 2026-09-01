@@ -15,16 +15,16 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             each cut, for a publisher who asks the panels to line up across the
             store's own carousel gap — but that is opt-in, because it puts a
             hole in the picture.
-            `--sprite` inlays the game's real objects into the art — hero on
-            panel 1, the real field on panel 2, and a real reward/prop anchoring
-            panel 3 — so every split slide belongs unmistakably to the game.
-            Auto-placement fills an uncovered panel before adding a second
-            object to another one, and supporting props are tucked behind the
-            scene's foreground instead of left on its surface. This is a
-            *conceptual* poster of the game world, not a screen of the app —
-            and it carries NO TEXT: lettering across a panel boundary is cut by
-            the store's gutters, and a lockup inside one panel breaks the
-            single-picture illusion.
+            `--sprite` and `--sprite-dir` inlay the game's real objects into the
+            layout draft — hero on panel 1, the real field on panel 2, and ALL
+            shipped sprite assets distributed across the slides — so every
+            split panel belongs unmistakably to the game. Auto-placement fills
+            uncovered panels first and supporting props are tucked behind the
+            scene's foreground. The inlaid result is a generation reference,
+            never the final paste-up: the finished panorama is rendered as one
+            scene from this context. It carries NO TEXT: lettering across a
+            panel boundary is cut by the store's gutters, and a lockup inside
+            one panel breaks the single-picture illusion.
   boardplate
             the game's REAL play field as a transparent cutout for `triptych
             --sprite plate.png@board`: the shipped symbol files laid into the
@@ -74,11 +74,13 @@ Requires: Pillow + numpy (both already required by tools/cutout.py).
 
 Examples:
   python3 tools/store_compose.py fonts --font-dir assets/fonts
-  python3 tools/store_compose.py triptych --src keyart.png --out store/ \\
-      --panels 3 --size 1320x2868 --save-pano art/keyart-integrated.png \\
+  python3 tools/store_compose.py triptych --src keyart.png --out art/draft/ \\
+      --panels 3 --size 1320x2868 --pano-only \\
+      --save-pano art/keyart-draft.png \\
       --sprite assets/images/sprites/eagle.png@hero \\
+      --sprite-dir assets/images/sprites \\
       --sprite assets/images/sprites/lightning.png@panel=2 \\
-      --sprite assets/images/sprites/shield.png --sprite-glow-color "#F0B34A"
+      --sprite-glow-color "#F0B34A"
   python3 tools/store_compose.py backdrop --src art/keyart-integrated.png \\
       --out-dir assets/images/backgrounds --variants menu,game --offset -0.6
   python3 tools/store_compose.py showcase --shot raw/02-menu.png \\
@@ -1484,9 +1486,12 @@ PROP_H = 0.42                     # height cap for a supporting object
 PROP_OCCLUDE = 0.08               # props also sit behind scene furniture, not on it
 # Cycled, so props read as a composed scene at three depths instead of a row of
 # stickers at one height and one size.
-_PROP_W = (0.36, 0.29, 0.33, 0.26, 0.30)
-_PROP_X = (0.34, 0.66, 0.50, 0.30, 0.70)
-_PROP_FOOT = (1.02, 0.88, 0.97, 0.84, 1.00)
+_PROP_W = (0.36, 0.29, 0.33, 0.26, 0.30, 0.22, 0.24, 0.20,
+           0.23, 0.19, 0.21, 0.18)
+_PROP_X = (0.34, 0.66, 0.50, 0.24, 0.76, 0.42, 0.58, 0.16,
+           0.84, 0.31, 0.69, 0.50)
+_PROP_FOOT = (1.02, 0.88, 0.97, 0.84, 1.00, 0.78, 0.74, 0.92,
+              0.86, 0.68, 0.72, 0.62)
 # The play field built out of the game's REAL symbols (`boardplate`). It is the
 # picture's mechanic, so it takes the middle panel at nearly full width and
 # stands inside the frame instead of bleeding off the bottom like a foreground
@@ -1496,8 +1501,8 @@ _PROP_FOOT = (1.02, 0.88, 0.97, 0.84, 1.00)
 # is that it must be caught mid-round rather than at rest (`boardplate --win`).
 BOARD_W, BOARD_H = 0.78, 0.56
 BOARD_X, BOARD_FOOT = 0.50, 0.88
-CROWDED = 5                       # past this the same designer says it is a heap
 DEFAULT_SPRITE_LIGHT = 0.35       # how hard an object is pulled into the scene
+SPRITE_EXTENSIONS = frozenset((".png", ".webp", ".jpg", ".jpeg"))
 _SPRITE_KEYS = ("x", "y", "w", "h", "rot", "glow", "shadow", "opacity", "panel",
                 "bleed", "contact", "light", "occlude")
 _SPRITE_FLAGS = ("hero", "prop", "board")
@@ -1526,6 +1531,52 @@ def parse_sprite_spec(spec: str) -> dict:
         except ValueError:
             die(f"--sprite {spec}: {key}={value!r} is not a number")
     return out
+
+
+def expand_sprite_specs(specs, sprite_dirs) -> list[str]:
+    """Add every raster sprite below each directory, preserving explicit specs.
+
+    Explicit entries come first so callers can assign the hero and precise
+    panel roles. Directory discovery is recursive and de-duplicates the same
+    file without losing the explicit role/placement suffix. The result is a
+    layout/reference manifest; final art must still be generated from it as one
+    integrated scene rather than shipping these composited pixels.
+    """
+    expanded = []
+    seen: set[Path] = set()
+    for raw in (specs or []):
+        path = Path(parse_sprite_spec(raw)["path"])
+        identity = path.expanduser().resolve(strict=False)
+        if identity in seen:
+            warn(f"duplicate sprite ignored in exhaustive manifest: {path}")
+            continue
+        expanded.append(raw)
+        seen.add(identity)
+
+    discovered = 0
+    for raw_dir in (sprite_dirs or []):
+        root = Path(raw_dir).expanduser()
+        if not root.is_dir():
+            die(f"--sprite-dir is not a directory: {root}")
+        paths = sorted(
+            (p for p in root.rglob("*")
+             if p.is_file() and p.suffix.lower() in SPRITE_EXTENSIONS),
+            key=lambda p: str(p).lower())
+        if not paths:
+            warn(f"--sprite-dir {root} contains no supported raster sprites "
+                 f"({', '.join(sorted(SPRITE_EXTENSIONS))})")
+        for path in paths:
+            identity = path.resolve(strict=False)
+            if identity in seen:
+                continue
+            expanded.append(str(path))
+            seen.add(identity)
+            discovered += 1
+    if sprite_dirs:
+        info(f"sprite inventory: {len(expanded)} unique asset(s), including "
+             f"{discovered} discovered through --sprite-dir — every one belongs "
+             "in the layout/reference manifest and final integrated scene")
+    return expanded
 
 
 def plate_patch(base: Image.Image, x0: int, y0: int, w: int, h: int) -> Image.Image:
@@ -1665,10 +1716,11 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
     if not parsed:
         return []
     cuts = list(spans) if spans else uniform_spans(panels, panel_w, gutter)
-    if len(parsed) > CROWDED:
-        warn(f"{len(parsed)} objects inlaid — the panorama is a picture, not a sprite "
-             f"sheet. A hero plus two or three symbols reads better at thumbnail "
-             f"size than a pile; keep it to {CROWDED}.")
+    if len(parsed) > panels:
+        info(f"exhaustive sprite coverage: {len(parsed)} objects distributed across "
+             f"{panels} panels. This composite is a placement/reference draft, not "
+             "the deliverable; the integration render must build every asset into "
+             "the scene and keep each identity recognizable.")
     if not any(spec.get("role") == "hero" for spec in parsed):
         # The store shows screenshot 1 at full size and the rest as thumbnails,
         # so the protagonist leads unless the caller names one itself. Tagging
@@ -1954,7 +2006,9 @@ def cmd_triptych(args) -> None:
     # are then placed inside the panels those cuts define, so nothing is ever
     # seated against a seam that afterwards moves out from under it.
     spans = plan_panel_spans(pano, n, w, gutter, snap)
-    inlay_sprites(pano, getattr(args, "sprite", []), n, w, h, gutter,
+    sprite_specs = expand_sprite_specs(getattr(args, "sprite", []),
+                                       getattr(args, "sprite_dir", []))
+    inlay_sprites(pano, sprite_specs, n, w, h, gutter,
                   glow_color=args.sprite_glow_color, light=args.sprite_light,
                   spans=spans)
     seam_report(pano, spans)
@@ -2885,13 +2939,13 @@ def main() -> None:
                         f"auto = {SNAP_REF * 100:.0f}%% of a panel; off = the "
                         "content-blind even split)")
     t.add_argument("--sprite", action="append", default=[], metavar="PNG[@k=v,...]",
-                   help="composite a REAL game object (a transparent PNG out of "
-                        "assets/images/) into the concept art, so the panels advertise "
-                        "objects the app actually contains. Every split panel must have "
-                        "at least one game anchor; auto-placement fills an empty panel "
-                        "before doubling up. Repeatable, and the FIRST "
+                   help="place a REAL game object into the layout/reference draft so "
+                        "the integration render can build it naturally into the scene. "
+                        "Use --sprite-dir to complete the exhaustive inventory. Every "
+                        "split panel must carry part of the manifest; auto-placement "
+                        "fills an empty panel before doubling up. Repeatable, and the FIRST "
                         "one is the hero unless a role flag says otherwise: it takes "
-                        f"panel 1 at ~{HERO_H:.0%} of the panel HEIGHT (capped at "
+                        f"panel 1 at ~{HERO_H * 100:.0f}%% of the panel HEIGHT (capped at "
                         f"{HERO_W:.2f}× its width), because that is the screenshot the "
                         "store shows at full size and the note was that the figure on "
                         "it has to be big. Flags: hero, "
@@ -2905,7 +2959,15 @@ def main() -> None:
                         f"— {HERO_OCCLUDE} for the hero, {PROP_OCCLUDE} for props, 0 for "
                         "the legible board), opacity. Omit x "
                         "and objects are auto-placed at graded depths, standing on the "
-                        "ground plane and always clear of the seams.")
+                        "ground plane and always clear of the seams. Never ship this "
+                        "draft as a pasted composite.")
+    t.add_argument("--sprite-dir", action="append", default=[], metavar="DIR",
+                   help="recursively add EVERY raster sprite in DIR to the layout/"
+                        "reference manifest (PNG, WebP, JPEG). Repeatable. Explicit "
+                        "--sprite entries come first and override duplicate files, so "
+                        "pass the hero with @hero before its directory. Assets are "
+                        "distributed across panels; this remains a generation draft, "
+                        "never a shippable sprite paste-up.")
     t.add_argument("--sprite-glow-color", default="#FFFFFF", metavar="HEX",
                    help="halo colour behind inlaid objects — pass the game's accent so "
                         "they sit in the art instead of on top of it")
