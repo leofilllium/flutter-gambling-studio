@@ -398,6 +398,53 @@ class InlayTests(unittest.TestCase):
         for name in ("gem.png", "coin.png"):
             self.assertGreaterEqual(widths[name], self.PANEL_W * 0.25, name)
 
+    def test_the_hero_is_sized_by_the_panel_s_height_not_its_width(self) -> None:
+        # "the player on the first slide should be bigger — full height, but not
+        # too much". A width-driven hero on a 300x640 panel came out barely 40%
+        # of its height; the target is now the height itself.
+        line = self._inlay(self._sprite("hero.png", (200, 420)))[0]
+        share = int(line.split("of its height")[0].split(",")[-1].strip().rstrip("%"))
+        self.assertGreaterEqual(share, 65, line)
+        self.assertLessEqual(share, 80, line)   # the "not too much" half
+
+    def test_the_hero_keeps_headroom_for_the_berth_s_ornament(self) -> None:
+        # The band the note calls "decorative" is above the head: the hero may
+        # not grow into it, and the picture may not leave it empty.
+        line = self._inlay(self._sprite("hero.png", (200, 420)))[0]
+        height = round(self.PANEL_H
+                       * int(line.split("of its height")[0].split(",")[-1]
+                             .strip().rstrip("%")) / 100)
+        cy = int(line.split("@")[1].split(",")[1].split()[0])
+        self.assertGreater(cy - height // 2, self.PANEL_H * 0.15, line)
+
+    def test_a_squat_cutout_that_cannot_reach_full_height_is_called_out(self) -> None:
+        self._inlay(self._sprite("hero.png", (420, 200)))
+        self.assertTrue(any("of panel 1's height" in m for m in self.quiet_warnings),
+                        self.quiet_warnings)
+
+    def test_an_explicit_height_overrides_the_target(self) -> None:
+        line = self._inlay(self._sprite("hero.png", (200, 420)) + "@h=0.4")[0]
+        share = int(line.split("of its height")[0].split(",")[-1].strip().rstrip("%"))
+        self.assertLessEqual(share, 42, line)
+
+    def test_empty_sky_above_the_hero_s_head_is_called_out(self) -> None:
+        # A flat panorama: the berth is a place to stand, not an ornament.
+        self._inlay(self._sprite("hero.png", (200, 420)))
+        self.assertTrue(any("empty sky" in m for m in self.quiet_warnings),
+                        self.quiet_warnings)
+
+    def test_an_ornamented_crown_band_passes(self) -> None:
+        rng = np.random.default_rng(5)
+        w = self.PANEL_W * self.PANELS + self.GUTTER * (self.PANELS - 1)
+        pano = Image.fromarray(
+            rng.integers(20, 235, (self.PANEL_H, w, 3), dtype=np.uint8),
+            "RGB").convert("RGBA")
+        store_compose.inlay_sprites(pano, [self._sprite("hero.png", (200, 420))],
+                                    self.PANELS, self.PANEL_W, self.PANEL_H,
+                                    self.GUTTER)
+        self.assertFalse([m for m in self.quiet_warnings if "empty sky" in m],
+                         self.quiet_warnings)
+
     def test_objects_stand_on_the_ground_instead_of_floating_mid_panel(self) -> None:
         line = self._inlay(self._sprite("hero.png", (200, 320)))[0]
         cy = int(line.split("@")[1].split(",")[1].split()[0])
@@ -466,7 +513,8 @@ class BoardRoleTests(unittest.TestCase):
             out=str(out), from_shot=None, rect=None, symbol=[], grid="3x3",
             frame=None, panel="", tile="", border="", border_width=0.045,
             cell=64, gap=0.06, pad=0.09, tile_radius=0.16, symbol_pad=0.12,
-            radius=0.05, sheen=0.0, yaw=0.0, pitch=0.0, depth=0.0, tilt=0.0)
+            radius=0.05, sheen=0.0, yaw=0.0, pitch=0.0, depth=0.0, tilt=0.0,
+            win="", win_color="", dim=0.35, lift=1.45)
         for key, value in kwargs.items():
             setattr(args, key, value)
         store_compose.cmd_boardplate(args)
@@ -476,9 +524,9 @@ class BoardRoleTests(unittest.TestCase):
     def test_the_field_takes_the_middle_panel_at_foreground_size(self) -> None:
         # Not the hero's panel, not the last one the carousel crops first, and
         # big enough that a reviewer can see which game it is.
-        line = self._inlay(self._png("hero.png", (200, 320)),
-                           self._png("board.png", (600, 600)) + "@board")[-1]
-        self.assertTrue(line.startswith("board"), line)
+        line = next(l for l in self._inlay(
+            self._png("hero.png", (200, 320)),
+            self._png("board.png", (600, 600)) + "@board") if l.startswith("board"))
         self.assertIn("panel 2", line)
         width = int(line.split("(")[1].split("px")[0])
         self.assertGreaterEqual(width, self.PANEL_W * 0.6)
@@ -537,6 +585,74 @@ class BoardRoleTests(unittest.TestCase):
         hero = next(line for line in lines if line.startswith("hero"))
         self.assertIn("hero.png", hero)
         self.assertIn("panel 1", hero)
+
+    def _cell_luma(self, plate: Image.Image, col: int, row: int,
+                   cell: int = 64) -> float:
+        gap, pad = round(cell * 0.06), round(cell * 0.09)
+        x = pad + col * (cell + gap)
+        y = pad + row * (cell + gap)
+        patch = np.asarray(plate.crop((x, y, x + cell, y + cell)).convert("RGB"),
+                           dtype=np.float32)
+        return float(patch.mean())
+
+    def test_the_paying_cells_are_lit_and_the_rest_of_the_field_falls_back(self) -> None:
+        # The middle panel is the listing's gameplay example, and a correct grid
+        # with nothing happening in it is the slide that came back as boring.
+        symbol = self._png("sym.png", (48, 48))
+        rest = self._boardplate(out="rest.png", symbol=[symbol], panel="#141B3C",
+                                tile="#1E2A6B", border="#F0B34A", lift=1.0)
+        won = self._boardplate(out="won.png", symbol=[symbol], panel="#141B3C",
+                               tile="#1E2A6B", border="#F0B34A", lift=1.0,
+                               win="1x2,2x2,3x2", win_color="#FFD67A")
+        self.assertGreater(self._cell_luma(won, 1, 1), self._cell_luma(rest, 1, 1))
+        self.assertLess(self._cell_luma(won, 1, 0), self._cell_luma(rest, 1, 0))
+        self.assertGreater(self._cell_luma(won, 1, 1), self._cell_luma(won, 1, 0))
+
+    def test_the_paying_symbol_rises_out_of_its_cell(self) -> None:
+        # A board where one symbol has broken its own plane reads as a round
+        # resolving; a flat one reads as a diagram of a board.
+        symbol = self._png("sym.png", (48, 48))
+        flat = self._boardplate(out="flat.png", symbol=[symbol], panel="#141B3C",
+                                win="1x2,2x2,3x2", lift=1.0)
+        risen = self._boardplate(out="risen.png", symbol=[symbol], panel="#141B3C",
+                                 win="1x2,2x2,3x2", lift=1.6)
+        self.assertEqual(flat.size, risen.size)
+        # The cell ABOVE the paying one is where the lift shows: the symbol is
+        # standing in front of it now.
+        moved = np.abs(np.asarray(risen.convert("RGB"), dtype=np.float32)[0:70]
+                       - np.asarray(flat.convert("RGB"), dtype=np.float32)[0:70])
+        self.assertGreater(float(moved.mean()), 4.0)
+
+    def test_the_plate_grows_so_a_lifted_symbol_is_never_clipped(self) -> None:
+        symbol = self._png("sym.png", (48, 48))
+        flat = self._boardplate(out="flat-top.png", symbol=[symbol],
+                                panel="#141B3C", win="1x1,2x1,3x1", lift=1.0)
+        risen = self._boardplate(out="risen-top.png", symbol=[symbol],
+                                 panel="#141B3C", win="1x1,2x1,3x1", lift=1.6)
+        self.assertGreater(risen.height, flat.height)
+        above = np.asarray(risen.crop((0, 0, risen.width,
+                                       risen.height - flat.height))
+                           .getchannel("A"), dtype=np.float32)
+        self.assertGreater(float(above.max()), 200.0)
+
+    def test_a_field_at_rest_is_called_out(self) -> None:
+        self._boardplate(out="idle.png", symbol=[self._png("sym.png", (48, 48))],
+                         panel="#141B3C")
+        self.assertTrue(any("boring" in m for m in self.quiet_warnings),
+                        self.quiet_warnings)
+
+    def test_cells_outside_the_grid_or_repeated_are_refused(self) -> None:
+        for bad in ("4x1", "1x9", "0x1", "1x2,1x2", "middle", ""):
+            with self.subTest(bad=bad), self.assertRaises(SystemExit):
+                store_compose.parse_cells(bad, 3, 3)
+
+    def test_a_lifted_frame_carries_its_own_win_state(self) -> None:
+        # --win draws a win; a captured frame already has one, or the capture is
+        # what needs fixing.
+        shot = self._png("shot.png", (400, 400))
+        with self.assertRaises(SystemExit):
+            self._boardplate(out="shot-plate.png", from_shot=shot,
+                             rect="0.25,0.25,0.5,0.5", win="1x2")
 
     def test_a_neutral_plate_is_called_out(self) -> None:
         # Generic colours would advertise a field the app does not have.

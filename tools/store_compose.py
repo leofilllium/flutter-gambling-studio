@@ -22,6 +22,15 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             and it carries NO TEXT: lettering across a panel boundary is cut by
             the store's gutters, and a lockup inside one panel breaks the
             single-picture illusion.
+  boardplate
+            the game's REAL play field as a transparent cutout for `triptych
+            --sprite plate.png@board`: the shipped symbol files laid into the
+            game's own grid (or the field lifted straight out of a captured
+            frame), stood up in perspective with a slab edge. `--win` builds it
+            at the moment the round pays — payline, ring, spill light, the rest
+            of the field falling back and the paying symbol lifting out of its
+            cell — because the middle panel of a listing is its gameplay
+            example, and a correct grid at rest reads as a diagram.
   showcase  a real in-game frame placed inside a drawn phone (bezel, notch,
             home indicator, glass glare, drop shadow) over a themed background,
             with the caption typography that sells the frame.
@@ -353,6 +362,19 @@ def rr_mask(size: tuple[int, int], radius: int, ss: int = 3) -> Image.Image:
         [0, 0, w * ss - 1, h * ss - 1], radius=radius * ss, fill=255
     )
     return m.resize((w, h), RES)
+
+
+def rr_ring(size: tuple[int, int], radius: int, stroke: int) -> Image.Image:
+    """Alpha mask of a rounded-rectangle outline `stroke` px thick."""
+    w, h = size
+    stroke = max(1, min(stroke, min(w, h) // 2))
+    outer = rr_mask(size, radius)
+    inner = Image.new("L", size, 0)
+    inner.paste(rr_mask((w - 2 * stroke, h - 2 * stroke), max(0, radius - stroke)),
+                (stroke, stroke))
+    return Image.fromarray(
+        np.clip(np.asarray(outer, dtype=np.int16)
+                - np.asarray(inner, dtype=np.int16), 0, 255).astype(np.uint8), "L")
 
 
 def gradient(size: tuple[int, int], stops, horizontal: bool = False) -> Image.Image:
@@ -1374,6 +1396,49 @@ def detail_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[float
     return shares
 
 
+def crown_report(pano: Image.Image, span: tuple[int, int], hero_top: int,
+                 panel: int = 1) -> float | None:
+    """How decorated the band above the hero's head is, on panel 1.
+
+    The hero now fills most of the panel's height, which leaves one band above
+    its head — and that band is what the note "more decorative" is about. A
+    berth drawn as a place to *stand* leaves sky there; a berth drawn as an
+    ornament around the character fills it with the arch, the crest, the banner,
+    the hanging lamps and the light burst the figure's head sits inside. The
+    difference is the whole distance between a screenshot and a poster, and it
+    is measurable the same way panel emptiness is.
+
+    Returns the band's empty share, or None when the hero is so tall there is no
+    band left to judge.
+    """
+    left, right = span
+    if hero_top <= pano.height * 0.06:
+        return None
+    energy, scale = _edge_map(pano, 360)
+    activity = np.asarray(
+        Image.fromarray(energy.clip(0, 255).astype(np.uint8))
+        .filter(ImageFilter.BoxBlur(4)), dtype=np.float32)
+    a = max(0, int(round(left * scale)))
+    b = min(activity.shape[1], max(a + 1, int(round(right * scale))))
+    bottom = min(activity.shape[0], max(1, int(round(hero_top * scale))))
+    band = activity[:bottom, a:b]
+    flat = float((band < FLAT_LEVEL).mean())
+    mean = float(band.mean())
+    info(f"panel {panel} crown: detail {mean:.1f}, {flat * 100:.0f}% of the "
+         f"{hero_top / pano.height:.0%} of the panel above the hero's head is empty")
+    if flat > FLAT_SHARE or mean < THIN_DETAIL:
+        warn(f"the band above the hero's head on panel {panel} is empty sky: the "
+             "berth was drawn as a place to stand, not as an ornament around the "
+             "character. "
+             "That band is the one the store shows at full size and it is what makes "
+             "the slide read as decorated — ask Phase 1 for the berth as a framing "
+             "device (arch, portal, crest, banner, drapery, flanking lanterns or "
+             "columns, a light burst behind where the head will be, embers or petals "
+             "drifting through it) and regenerate. Do not answer it by scaling the "
+             "hero up into the gap — a cropped head is not ornament.")
+    return flat
+
+
 # How auto-placed game objects are sized, where they land, and how they are
 # seated INTO the picture rather than onto it.
 #
@@ -1397,8 +1462,20 @@ def detail_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[float
 # composited back over its feet, which is the one cue that says the picture was
 # drawn around it. Phase 1 draws the berth, this closes the scene over it.
 
-HERO_W, HERO_H = 0.58, 0.66       # the hero, as fractions of ONE panel
-HERO_X, HERO_FOOT = 0.46, 1.04    # foot past the frame: the hero stands in front
+# The round after that asked for one more thing on the same screenshot: "the
+# player on the first slide should be bigger and more decorative — full height,
+# but not too much". Sizing the hero by WIDTH is what made it small: a 0.58×
+# panel-width figure on a 1320×2868 panel is barely 40% of the panel's height,
+# which reads as a person standing in a landscape. So the hero is sized by its
+# HEIGHT — it fills HERO_H of the panel — and the width is only a cap. The
+# headroom left above the head is deliberate and is the "not too much" half of
+# the note: it is where the berth's ornament lives (arch, crest, banner, the
+# light burst behind the head), and it is what keeps "bigger" from becoming
+# "cropped at the neck".
+HERO_H = 0.72                     # of the panel's HEIGHT — the driver
+HERO_W = 0.86                     # of the panel's WIDTH — a cap, not a target
+HERO_MIN_H = 0.60                 # below this the figure is scenery again
+HERO_X, HERO_FOOT = 0.47, 1.04    # foot past the frame: the hero stands in front
 HERO_OCCLUDE = 0.14               # of its height, taken back by the foreground
 PROP_H = 0.42                     # height cap for a supporting object
 # Cycled, so props read as a composed scene at three depths instead of a row of
@@ -1409,12 +1486,15 @@ _PROP_FOOT = (1.02, 0.88, 0.97, 0.84, 1.00)
 # The play field built out of the game's REAL symbols (`boardplate`). It is the
 # picture's mechanic, so it takes the middle panel at nearly full width and
 # stands inside the frame instead of bleeding off the bottom like a foreground
-# prop — a board cropped by the edge stops reading as a board.
-BOARD_W, BOARD_H = 0.72, 0.52
+# prop — a board cropped by the edge stops reading as a board. The middle panel
+# is the slide that was called boring, and half of the answer is size: the field
+# is the subject of that screenshot, not an illustration of one. The other half
+# is that it must be caught mid-round rather than at rest (`boardplate --win`).
+BOARD_W, BOARD_H = 0.78, 0.56
 BOARD_X, BOARD_FOOT = 0.50, 0.88
 CROWDED = 5                       # past this the same designer says it is a heap
 DEFAULT_SPRITE_LIGHT = 0.35       # how hard an object is pulled into the scene
-_SPRITE_KEYS = ("x", "y", "w", "rot", "glow", "shadow", "opacity", "panel",
+_SPRITE_KEYS = ("x", "y", "w", "h", "rot", "glow", "shadow", "opacity", "panel",
                 "bleed", "contact", "light", "occlude")
 _SPRITE_FLAGS = ("hero", "prop", "board")
 
@@ -1608,8 +1688,24 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                      else _PROP_W[prop_i % len(_PROP_W)])
         max_h = HERO_H if hero else BOARD_H if board else PROP_H
         w_frac = float(spec.get("w", default_w))
+        h_frac = float(spec.get("h", max_h))
         source_w = art.width
-        art = contain(art, max(8, round(panel_w * w_frac)), round(panel_h * max_h))
+        # `contain` fits inside both bounds, so which one binds is the design
+        # decision. For the hero the height is the target and the width is the
+        # cap (a tall figure filling the panel); for everything else it is the
+        # other way round.
+        art = contain(art, max(8, round(panel_w * w_frac)),
+                      max(8, round(panel_h * h_frac)))
+        if hero and art.height < panel_h * HERO_MIN_H and "h" not in spec:
+            # A squat or wide cutout hits the width cap before it reaches full
+            # height, and then the one screenshot the store shows at full size
+            # is a landscape with a person in it again.
+            warn(f"{Path(spec['path']).name} fills only "
+                 f"{art.height / panel_h:.0%} of panel 1's height — the width cap "
+                 f"({w_frac:.2f}× the panel) binds first on a cutout this wide. "
+                 "Export the hero as a tall full-body figure, crop its empty "
+                 "margins, or raise the cap with w= — the first slide wants the "
+                 f"character at ~{HERO_H:.0%} of the panel height.")
         if art.width > source_w * 2:
             # Foreground scale is the whole point now, so a small in-game sprite
             # gets blown up much harder than it used to. Say so before it lands
@@ -1667,7 +1763,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         if art.width > panel_w - 2 * margin:
             warn(f"{Path(spec['path']).name} is {art.width}px wide — wider than one "
                  f"{panel_w}px panel's safe band; scaling it down to fit")
-            art = contain(art, panel_w - 2 * margin, round(panel_h * max_h))
+            art = contain(art, panel_w - 2 * margin, round(panel_h * h_frac))
         half = art.width // 2
         lo, hi = left + half + margin, right - half - margin
         if not lo <= cx <= hi:
@@ -1744,9 +1840,15 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         seating = " + occluded by the foreground" if front is not None else ""
         placed.append(f"{role}{p['name']} → panel "
                       f"{p['panel'] + 1} @ {cx},{cy} ({art.width}px, "
-                      f"{art.width / panel_w:.0%} of the panel){seating}")
+                      f"{art.width / panel_w:.0%} of the panel, "
+                      f"{art.height / panel_h:.0%} of its height){seating}")
     for line in placed:
         info(f"inlay  {line}")
+    hero_p = next((p for p in placements if p["hero"]), None)
+    if hero_p is not None:
+        crown_report(pano, cuts[hero_p["panel"]],
+                     hero_p["cy"] - hero_p["art"].height // 2,
+                     hero_p["panel"] + 1)
     return placed
 
 
@@ -1944,12 +2046,8 @@ def _slab_quads(w: int, h: int, yaw: float, pitch: float, depth: float,
     return faces
 
 
-def to_perspective(img: Image.Image, yaw: float, pitch: float, depth: float,
-                   shade: float = 0.22) -> Image.Image:
-    """Stand a flat plate up in 3D: perspective, a slab edge, and a light falloff."""
-    if not (yaw or pitch or depth):
-        return img
-    w, h = img.size
+def _plate_geometry(w: int, h: int, yaw: float, pitch: float, depth: float):
+    """Canvas size and the front/back quads, shifted into that canvas."""
     front, back = _slab_quads(w, h, yaw, pitch, depth)
     pts = front + (back if depth else front)
     pad = max(2, round(max(w, h) * 0.01))
@@ -1957,7 +2055,33 @@ def to_perspective(img: Image.Image, yaw: float, pitch: float, depth: float,
     max_x, max_y = max(x for x, _ in pts) + pad, max(y for _, y in pts) + pad
     size = (max(8, math.ceil(max_x - min_x)), max(8, math.ceil(max_y - min_y)))
     shift = lambda quad: [(x - min_x, y - min_y) for x, y in quad]
-    front, back = shift(front), shift(back)
+    return size, shift(front), shift(back)
+
+
+def plate_point(w: int, h: int, yaw: float, pitch: float, depth: float,
+                x: float, y: float) -> tuple[float, float]:
+    """Where a point on the flat plate lands once the plate is stood up.
+
+    `to_perspective` warps the plate into a bigger canvas, so anything that has
+    to meet the board *after* the warp — a symbol lifted out of its cell, say —
+    needs the same mapping in the forward direction.
+    """
+    if not (yaw or pitch or depth):
+        return float(x), float(y)
+    _, front, _ = _plate_geometry(w, h, yaw, pitch, depth)
+    c = _perspective_coeffs(((0, 0), (w, 0), (w, h), (0, h)), front)
+    den = c[6] * x + c[7] * y + 1.0
+    return ((c[0] * x + c[1] * y + c[2]) / den,
+            (c[3] * x + c[4] * y + c[5]) / den)
+
+
+def to_perspective(img: Image.Image, yaw: float, pitch: float, depth: float,
+                   shade: float = 0.22) -> Image.Image:
+    """Stand a flat plate up in 3D: perspective, a slab edge, and a light falloff."""
+    if not (yaw or pitch or depth):
+        return img
+    w, h = img.size
+    size, front, back = _plate_geometry(w, h, yaw, pitch, depth)
 
     canvas = Image.new("RGBA", size, (0, 0, 0, 0))
     if depth:
@@ -2012,6 +2136,43 @@ def parse_rect(spec: str, w: int, h: int) -> tuple[int, int, int, int]:
     return x, y, min(bw, w - x), min(bh, h - y)
 
 
+def parse_cells(spec: str, cols: int, rows: int) -> list[tuple[int, int]]:
+    """`--win 1x2,2x2,3x2` — COLxROW, 1-based, in the order they pay."""
+    cells: list[tuple[int, int]] = []
+    for chunk in (c.strip() for c in str(spec).replace("×", "x").split(",")):
+        if not chunk:
+            continue
+        try:
+            col, row = (int(v) for v in chunk.lower().split("x"))
+        except ValueError:
+            die(f"--win {chunk!r}: expected COLxROW (1-based), e.g. 1x2,2x2,3x2")
+        if not (1 <= col <= cols and 1 <= row <= rows):
+            die(f"--win {chunk}: outside the {cols}x{rows} grid")
+        if (col - 1, row - 1) in cells:
+            die(f"--win {chunk}: listed twice")
+        cells.append((col - 1, row - 1))
+    if not cells:
+        die("--win named no cells")
+    return cells
+
+
+def expand_to_fit(base: Image.Image, box: tuple[int, int, int, int]):
+    """Grow a transparent canvas around `base` until `box` fits inside it.
+
+    Returns (canvas, dx, dy) — the offset everything already on the canvas moved
+    by, which is what a caller needs to place the thing that did not fit.
+    """
+    x0, y0, x1, y1 = box
+    dx, dy = max(0, -x0), max(0, -y0)
+    right, bottom = max(0, x1 - base.width), max(0, y1 - base.height)
+    if not (dx or dy or right or bottom):
+        return base, 0, 0
+    canvas = Image.new("RGBA", (base.width + dx + right, base.height + dy + bottom),
+                       (0, 0, 0, 0))
+    canvas.alpha_composite(base, (dx, dy))
+    return canvas, dx, dy
+
+
 def cmd_boardplate(args) -> None:
     """Build the play field out of the game's REAL assets, as a cutout.
 
@@ -2026,9 +2187,20 @@ def cmd_boardplate(args) -> None:
       --symbol     lay the shipped symbol PNGs into the real grid
     The result is a transparent PNG for `triptych --sprite plate.png@board`, so
     the mechanic in the key art is the mechanic in the app.
+
+    The next note on the same kit was about the panel this plate lands on: the
+    middle slide is boring. It was — a correct grid of correct symbols sitting
+    at rest is a contact sheet, not a gameplay example. So the plate can be
+    built at the moment the round PAYS: `--win` names the cells that hit, and
+    they get the payline, the ring and the glow while the rest of the field
+    falls back (`--dim`); `--lift` pops the middle winning symbol up out of its
+    cell with its own shadow on the board. None of that invents anything — the
+    symbols, the grid and the colours are still the game's own; it is the same
+    field, caught one frame later.
     """
     out = Path(args.out)
     radius_f = max(0.0, min(0.5, args.radius))
+    lift_plan = None
 
     if args.from_shot:
         if args.symbol:
@@ -2037,6 +2209,10 @@ def cmd_boardplate(args) -> None:
         if not args.rect:
             die("--from-shot needs --rect x,y,w,h (fractions of the frame, or pixels) "
                 "naming the play field inside it")
+        if args.win:
+            die("--win draws the win state onto a plate built from --symbol. A plate "
+                "lifted from a frame already has whatever state that frame was in — "
+                "capture the frame at the moment the round pays and lift that one.")
         shot = load_image(args.from_shot, "gameplay frame")
         x, y, w, h = parse_rect(args.rect, shot.width, shot.height)
         plate = shot.crop((x, y, x + w, y + h)).convert("RGBA")
@@ -2079,14 +2255,7 @@ def cmd_boardplate(args) -> None:
         if border_c:
             stroke = max(2, round(cell * max(0.0, args.border_width)))
             ring = Image.new("RGBA", (w, h), border_c)
-            edge = rr_mask((w, h), round(min(w, h) * radius_f))
-            inner = Image.new("L", (w, h), 0)
-            inner.paste(rr_mask((w - 2 * stroke, h - 2 * stroke),
-                                round(min(w, h) * radius_f) - stroke),
-                        (stroke, stroke))
-            ring.putalpha(Image.fromarray(
-                np.clip(np.asarray(edge, dtype=np.int16)
-                        - np.asarray(inner, dtype=np.int16), 0, 255).astype(np.uint8), "L"))
+            ring.putalpha(rr_ring((w, h), round(min(w, h) * radius_f), stroke))
             plate.alpha_composite(ring)
 
         tile_r = round(cell * max(0.0, min(0.5, args.tile_radius)))
@@ -2097,22 +2266,89 @@ def cmd_boardplate(args) -> None:
                 warn(f"{path} has no transparency — run "
                      f"`python3 tools/cutout.py {path} --type sprite` first, or the "
                      "plate shows the symbol's background box")
-        for r in range(rows):
-            for c in range(cols):
-                cx = pad + c * (cell + gap)
-                cy = pad + r * (cell + gap)
-                if tile_c:
-                    tile = Image.new("RGBA", (cell, cell), tile_c)
-                    tile.putalpha(rr_mask((cell, cell), tile_r))
-                    plate.alpha_composite(tile, (cx, cy))
-                # Staggered so a short symbol list does not produce identical
-                # columns — a real board is never a repeating stripe.
-                sym = symbols[(r * (cols + 1) + c) % len(symbols)]
-                fit = contain(sym, cell - 2 * inset, cell - 2 * inset)
-                plate.alpha_composite(
-                    fit, (cx + (cell - fit.width) // 2, cy + (cell - fit.height) // 2))
+        win = parse_cells(args.win, cols, rows) if args.win else []
+        dim = max(0.0, min(0.9, args.dim)) if win else 0.0
+        accent = (opt_rgba(args.win_color) or border_c or (255, 214, 122, 255))
+        stroke = max(3, round(cell * 0.055))
+        origin = {(c, r): (pad + c * (cell + gap), pad + r * (cell + gap))
+                  for r in range(rows) for c in range(cols)}
+        # Staggered so a short symbol list does not produce identical columns —
+        # a real board is never a repeating stripe.
+        drawn = {(c, r): symbols[(r * (cols + 1) + c) % len(symbols)]
+                 for r in range(rows) for c in range(cols)}
+
+        if tile_c:
+            for cx, cy in origin.values():
+                tile = Image.new("RGBA", (cell, cell), tile_c)
+                tile.putalpha(rr_mask((cell, cell), tile_r))
+                plate.alpha_composite(tile, (cx, cy))
+
+        if win:
+            # Under the symbols: the cells that pay light up and the payline runs
+            # between them, the way a real board draws it — behind the art, not
+            # across it.
+            under = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+            centres = [(origin[k][0] + cell // 2, origin[k][1] + cell // 2)
+                       for k in win]
+            if len(centres) > 1:
+                ImageDraw.Draw(under).line(centres, fill=accent[:3] + (150,),
+                                           width=stroke, joint="curve")
+            for c, r in win:
+                lit = Image.new("RGBA", (cell, cell), accent[:3] + (255,))
+                lit.putalpha(rr_mask((cell, cell), tile_r).point(lambda v: v // 4))
+                under.alpha_composite(lit, origin[(c, r)])
+            # One blurred copy beneath it: a hit on a real board throws light onto
+            # the panel around it, and that spill is most of what makes the frame
+            # read as a moment instead of a diagram.
+            spill = under.filter(ImageFilter.GaussianBlur(max(4, round(cell * 0.16))))
+            spill.putalpha(spill.getchannel("A").point(lambda v: int(v * 0.85)))
+            plate.alpha_composite(spill)
+            plate.alpha_composite(under)
+
+        for (c, r), (cx, cy) in origin.items():
+            fit = contain(drawn[(c, r)], cell - 2 * inset, cell - 2 * inset)
+            plate.alpha_composite(
+                fit, (cx + (cell - fit.width) // 2, cy + (cell - fit.height) // 2))
+            if dim and (c, r) not in win:
+                # The losing cells fall back so the paying line is the first thing
+                # read. Without this the win is a ring on a wall of equally loud
+                # symbols, which is where "boring" came from.
+                veil = Image.new("RGBA", (cell, cell), (5, 7, 16, 255))
+                veil.putalpha(rr_mask((cell, cell), tile_r)
+                              .point(lambda v: int(v * dim)))
+                plate.alpha_composite(veil, (cx, cy))
+
         info(f"built a {cols}×{rows} field from {len(symbols)} real symbol "
              f"{'file' if len(symbols) == 1 else 'files'}")
+
+        if win:
+            # Over the symbols: only the cell's own frame, which is what the game
+            # itself draws on top when a cell pays.
+            for c, r in win:
+                ring = Image.new("RGBA", (cell, cell), accent[:3] + (255,))
+                ring.putalpha(rr_ring((cell, cell), tile_r, stroke))
+                plate.alpha_composite(ring, origin[(c, r)])
+            info(f"win state: {len(win)} cells pay "
+                 f"({', '.join(f'{c + 1}x{r + 1}' for c, r in win)})"
+                 + (f", the other cells dimmed {dim:.0%}" if dim else ""))
+            if args.lift > 1.0:
+                # The middle paying cell, so the symbol that rises sits on the
+                # line rather than at one end of it. Planned here, composited
+                # after the perspective: it is leaving the board's plane, so it
+                # must not be warped into it.
+                # Scaled against the symbol as the cell draws it, not against
+                # the cell, so `--lift 1.45` means half again as big as the one
+                # on the board — which is what a reader of the flag expects.
+                c, r = win[len(win) // 2]
+                lift_plan = (drawn[(c, r)], origin[(c, r)][0] + cell // 2,
+                             origin[(c, r)][1] + cell // 2, cell,
+                             min(3.0, args.lift) * (cell - 2 * inset) / cell, accent)
+        else:
+            warn("no --win: the plate is the field at rest, and the middle panel is "
+                 "the listing's gameplay example. A correct grid with nothing "
+                 "happening in it is what came back as 'boring' — name the cells that "
+                 "pay (--win 1x2,2x2,3x2) so the panel shows the round resolving, and "
+                 "--lift rides on it to pop the paying symbol out of the board.")
 
     if radius_f > 0:
         corner = rr_mask(plate.size, round(min(plate.size) * radius_f))
@@ -2134,7 +2370,43 @@ def cmd_boardplate(args) -> None:
              ).astype(np.uint8), "L"))
         plate.alpha_composite(glass)
 
+    flat_w, flat_h = plate.size
     plate = to_perspective(plate, args.yaw, args.pitch, max(0.0, args.depth))
+
+    if lift_plan is not None:
+        # A board where one symbol has broken its own plane is the difference
+        # between a picture of a field and a picture of a round being won. It
+        # is composited in the canvas the warp produced, at the cell's own
+        # projected centre and the cell's own projected size, so it stays welded
+        # to the board it came out of.
+        sym, px, py, cell_px, scale, accent = lift_plan
+        depth = max(0.0, args.depth)
+        cx, cy = plate_point(flat_w, flat_h, args.yaw, args.pitch, depth, px, py)
+        ex, ey = plate_point(flat_w, flat_h, args.yaw, args.pitch, depth,
+                             px + cell_px / 2, py)
+        span = max(16, round(2 * math.hypot(ex - cx, ey - cy)))
+        art = contain(sym, round(span * scale), round(span * scale))
+        node, _ = drop_shadow(art, blur=max(4, round(span * 0.06)),
+                              dy=round(span * 0.10), opacity=0.55)
+        halo_pad = max(round(span * 0.35), (node.width - art.width) // 2 + 2)
+        layer = Image.new("RGBA", (art.width + 2 * halo_pad, art.height + 2 * halo_pad),
+                          (0, 0, 0, 0))
+        seed = Image.new("L", layer.size, 0)
+        seed.paste(art.getchannel("A"), (halo_pad, halo_pad))
+        halo = Image.new("RGBA", layer.size, accent[:3] + (255,))
+        halo.putalpha(seed.filter(ImageFilter.GaussianBlur(max(2, halo_pad * 0.5)))
+                      .point(lambda v: int(v * 0.6)))
+        layer.alpha_composite(halo)
+        layer.alpha_composite(node, ((layer.width - node.width) // 2,
+                                     (layer.height - node.height) // 2))
+        x0 = round(cx - layer.width / 2)
+        y0 = round(cy - span * 0.34 - layer.height / 2)
+        plate, dx, dy = expand_to_fit(
+            plate, (x0, y0, x0 + layer.width, y0 + layer.height))
+        plate.alpha_composite(layer, (x0 + dx, y0 + dy))
+        info(f"lifted the paying symbol {args.lift:.2f}× out of its cell — the field "
+             "is caught mid-round instead of standing at rest")
+
     if args.tilt:
         plate = plate.rotate(args.tilt, resample=Image.BICUBIC, expand=True)
     if not (args.yaw or args.pitch or args.depth):
@@ -2572,11 +2844,14 @@ def main() -> None:
                         "assets/images/) into the concept art, so the panels advertise "
                         "objects the app actually contains. Repeatable, and the FIRST "
                         "one is the hero unless a role flag says otherwise: it takes "
-                        f"panel 1 at ~{HERO_W:.2f}× the panel width, because that is "
-                        "the screenshot the store shows at full size. Flags: hero, "
+                        f"panel 1 at ~{HERO_H:.0%} of the panel HEIGHT (capped at "
+                        f"{HERO_W:.2f}× its width), because that is the screenshot the "
+                        "store shows at full size and the note was that the figure on "
+                        "it has to be big. Flags: hero, "
                         "prop, board (a `boardplate` play field — the middle panel at "
                         f"~{BOARD_W:.2f}× the panel width, standing inside the frame). "
-                        "Keys: x,y (0..1 of the panorama), w (fraction of one panel), "
+                        "Keys: x,y (0..1 of the panorama), w and h (fractions of one "
+                        "panel — for the hero w is the cap and h is the target), "
                         "panel (1-based), rot, bleed (how far the foot runs past the "
                         "bottom edge), glow, shadow, contact, light, occlude (how much "
                         "of the object's height the scene's foreground closes back over "
@@ -2658,6 +2933,26 @@ def main() -> None:
     bp.add_argument("--tilt", type=float, default=0.0, metavar="DEG",
                     help="roll the finished plate in the picture plane, after the "
                          "perspective, to match the stage it is standing on")
+    bp.add_argument("--win", default="", metavar="CxR,CxR,...",
+                    help="the cells that PAY, 1-based COLxROW in the order they pay "
+                         "(e.g. 1x2,2x2,3x2). They get the payline, an accent ring and "
+                         "the light it spills onto the panel, and the rest of the field "
+                         "falls back (--dim). The middle panel of the listing is the "
+                         "gameplay example: a correct grid at rest is the slide that "
+                         "came back as boring, and this is what makes it a moment "
+                         "without inventing anything the app does not have")
+    bp.add_argument("--win-color", default="", metavar="HEX",
+                    help="the game's own win/accent colour for the payline, rings and "
+                         "glow (default: --border, then a warm gold)")
+    bp.add_argument("--dim", type=float, default=0.35, metavar="F",
+                    help="0..0.9 — how far the non-paying cells fall back, so the win "
+                         "reads first. Only applies with --win")
+    bp.add_argument("--lift", type=float, default=1.45, metavar="F",
+                    help="scale of the paying symbol as it rises out of its cell, with "
+                         "its own shadow landing on the board — the cue that says the "
+                         "round is resolving, not posed. Composited after the "
+                         "perspective, because it is leaving the board's plane. 1 or "
+                         "less to keep the field flat; needs --win")
     bp.set_defaults(func=cmd_boardplate)
 
     s = sub.add_parser("showcase", help="real game frame in a phone on a themed background")
