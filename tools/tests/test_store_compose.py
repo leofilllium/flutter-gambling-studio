@@ -370,13 +370,13 @@ class DetailReportTests(unittest.TestCase):
         self.assertTrue(all(share > store_compose.FLAT_SHARE for share in shares), shares)
         self.assertTrue(any("empty ground" in m for m in messages), messages)
 
-    def test_a_populated_illustration_passes(self) -> None:
+    def test_evenly_populated_art_still_needs_a_bottom_foreground(self) -> None:
         rng = np.random.default_rng(7)
         noise = rng.integers(30, 220, (self.PANEL_H, self.PANEL_W * 2, 3), dtype=np.uint8)
         pano = Image.fromarray(noise, "RGB").convert("RGBA")
         shares, messages = self._measure(pano)
         self.assertTrue(all(share < store_compose.FLAT_SHARE for share in shares), shares)
-        self.assertEqual(messages, [])
+        self.assertTrue(any("not framed from below" in m for m in messages), messages)
 
 
 class ReferenceBriefReportTests(unittest.TestCase):
@@ -465,6 +465,10 @@ class FinalArtGateTests(unittest.TestCase):
             (self.PANEL_W * self.PANELS, self.PANEL_H),
             [(0.0, (35, 105, 235, 255)), (1.0, (245, 120, 190, 255))])
         draw = ImageDraw.Draw(pano)
+        # A warm protagonist against panel 1's cool broad background: saturated
+        # does not mean painting every plane with the same yellow grade.
+        draw.rounded_rectangle([18, 44, 160, 302], radius=45,
+                               fill=(242, 74, 62, 255))
         draw.ellipse([250, 20, 330, 100], fill=(255, 255, 255, 255))
         rng = np.random.default_rng(83)
         objects = Image.fromarray(rng.integers(
@@ -475,6 +479,47 @@ class FinalArtGateTests(unittest.TestCase):
             pano, self._spans(), (0.03, 0.12, 0.27, 0.72))
 
         self.assertEqual(issues, [])
+
+    def test_a_saturated_yellow_wash_is_not_mistaken_for_colourfulness(self) -> None:
+        pano = store_compose.gradient(
+            (self.PANEL_W * self.PANELS, self.PANEL_H),
+            [(0.0, (245, 184, 36, 255)), (1.0, (228, 126, 22, 255))])
+        draw = ImageDraw.Draw(pano)
+        draw.rounded_rectangle([18, 44, 160, 302], radius=45,
+                               fill=(246, 157, 24, 255))
+        draw.ellipse([250, 20, 330, 100], fill=(255, 255, 255, 255))
+        rng = np.random.default_rng(89)
+        objects = np.empty((126, pano.width, 3), dtype=np.uint8)
+        objects[..., 0] = rng.integers(210, 255, objects.shape[:2], dtype=np.uint8)
+        objects[..., 1] = rng.integers(115, 205, objects.shape[:2], dtype=np.uint8)
+        objects[..., 2] = rng.integers(8, 42, objects.shape[:2], dtype=np.uint8)
+        pano.paste(Image.fromarray(objects, "RGB").convert("RGBA"),
+                   (0, pano.height - objects.shape[0]))
+
+        issues = store_compose.final_art_issues(
+            pano, self._spans(), (0.03, 0.12, 0.27, 0.72))
+        joined = "\n".join(issues)
+
+        self.assertIn("effectively monochrome", joined)
+        self.assertIn("same hue family", joined)
+
+    def test_every_panel_needs_its_own_bottom_object_hill(self) -> None:
+        pano = store_compose.gradient(
+            (self.PANEL_W * self.PANELS, self.PANEL_H),
+            [(0.0, (35, 105, 235, 255)), (1.0, (245, 120, 190, 255))])
+        draw = ImageDraw.Draw(pano)
+        draw.rounded_rectangle([18, 44, 160, 302], radius=45,
+                               fill=(242, 74, 62, 255))
+        draw.ellipse([250, 20, 330, 100], fill=(255, 255, 255, 255))
+        rng = np.random.default_rng(91)
+        objects = Image.fromarray(rng.integers(
+            10, 245, (126, self.PANEL_W, 3), dtype=np.uint8), "RGB").convert("RGBA")
+        pano.paste(objects, (0, pano.height - objects.height))
+
+        issues = store_compose.final_art_issues(
+            pano, self._spans(), (0.03, 0.12, 0.27, 0.72))
+
+        self.assertTrue(any("panel(s) 2, 3" in issue for issue in issues), issues)
 
     def test_the_dark_busy_missing_floor_failure_is_blocked(self) -> None:
         rng = np.random.default_rng(97)

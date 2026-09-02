@@ -1,6 +1,6 @@
 ---
 name: store-screenshots
-description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama sliced into panels that reassemble into that exact picture, real gameplay screenshots in device frames, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 leads with a large protagonist wholly inside the frame; a dense, cropped band of real game objects frames the bottom edge and the remaining objects fall through the full picture with motion. The background stays bright, broad and deliberately smooth so the hero and objects lead, while the complete image is saturated and carries a controlled blown light source. The middle panel recreates an actual resolving gameplay frame as scene-matched 3D art. Every shipped sprite remains recognizable and physically integrated. The key art and the app share one world in both directions. Output is a downloadable ZIP under project_zip/."
+description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama sliced into panels that reassemble into that exact picture, real gameplay screenshots in device frames, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 leads with a large protagonist wholly inside the frame; a distinct, cropped hill of real game objects frames the bottom edge as the nearest plane and the remaining objects fall through the full picture with readable motion. The background stays bright, broad and deliberately smooth in a visibly different hue family from the hero, while the hero and foreground preserve the game's varied colours instead of receiving one yellow/gold wash. The middle panel recreates an actual resolving gameplay frame as scene-matched 3D art. Every shipped sprite remains recognizable, colour-separated, and physically integrated. The key art and the app share one world in both directions. Output is a downloadable ZIP under project_zip/."
 argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 0|100] [--seam-snap auto|off] [--pop blaze|vivid|soft|max|off] [--hero hero.png] [--hero-height 0.72] [--sprite-dir assets/images/sprites] [--object-frame auto|N|off] [--no-falling] [--fall-trail 1.0] [--props a.png,b.png] [--board auto|rest|off] [--sprite-light 0.35] [--occlude 0.14] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -162,6 +162,16 @@ The band must be recognizably made from the game's inventoried objects. Generic 
 drapery, gold spheres, posts, stage trim, confetti, or particles may support the composition, but
 they do not count toward the bottom frame or the fall and cannot replace either population.
 
+"Built in" never means **painted into the background**. The frame is the closest depth plane: a
+small irregular hill or spill of large objects rises from and is cropped by the lower canvas edge,
+individual silhouettes overlap one another, contact shadows close the gaps, and rim/bounce light
+separates their top edges from the middle plane. At least one object crosses in front of the hero's
+feet or the field's non-critical edge. The fall is a second spatial population: identifiable whole
+objects pass in front of and behind middle-plane subjects at upper, middle and lower heights, with
+different scale, rotation and selective trails. A mural, floor pattern, shallow relief, repeated
+wall ornament, same-colour texture, particle cloud, or objects submerged in haze is background
+decoration and fails even when the correct silhouettes can be found in it.
+
 **4. The middle panel is gameplay created with the scene, not a screenshot mounted in it.** Panel
 1 sells the world; the middle panel answers *what do I actually do*. Use an actual resolving/win
 frame as authoritative visual context, then ask the integration model to rebuild that play field
@@ -205,6 +215,17 @@ rewards emerging from a mechanism, fitted ornaments, physical hazards, or scene-
 Each remains individually recognizable at final panel size, but not every asset competes at hero
 scale. When the reference-image limit cannot carry the full manifest in one render, use the staged
 high-fidelity integration process in Phase 2b and prove that earlier assets survived every pass.
+
+**7. Colour separates the planes; saturation alone is not colour.** A yellow character against a
+yellow sky above yellow objects can measure highly saturated and still read as one muddy layer.
+Assign the far background a hue family that is visibly different from the protagonist's dominant
+colour, then preserve the real sprites' own varied hues in the middle and foreground. Use light to
+connect the planes, not a global amber/gold tint to recolour them. The first-panel hero must be
+readable by colour at thumbnail size before rim light is considered, and the bottom hill must keep
+several distinct object colours instead of becoming same-colour gold furniture. A warm hero can
+sit on teal, blue, violet, green or another Design-DNA-compatible cool mass; a cool hero can sit on
+a warm coral, cream, magenta or sunset mass. Choose deliberately from the game's palette—do not
+default every game to those examples and do not turn the palette into rainbow noise.
 
 The target is one finished picture — the hero standing at full height in a place the art built and
 decorated for it at one end, gameplay recreated from the real win frame as a readable physical
@@ -261,6 +282,13 @@ the same: *make it richer and brighter*. So:
 - Ask the image model for the vivid end of the game's own palette: saturated colour, luminous rim
   and key light, glowing highlights, deep contrast, rich material response. Not a pastel and not a
   haze; never a grey, washed midtone field.
+- **Saturation is not hue diversity.** Reject a picture where the background, character, field,
+  bottom hill and falling objects are all yellow/orange/gold under one colour wash. Define three
+  palette jobs in `STORE_BRIEF.md`: a broad background hue family, the protagonist's preserved
+  source colours, and varied foreground/game-object accents. The background and protagonist must
+  use visibly different hue families; lighting may cast a local warm edge, but it may not recolour
+  every plane into amber. The strict gate measures both a secondary-hue share and hero/background
+  separation, because high saturation by itself lets the all-yellow failure pass.
 - Every compositor art path then applies a colour grade on top (`--pop`, default `blaze`: vibrance
   + midtone lift + contrast + a wider highlight bloom, none of which can clip). The eight supplied
   references measure 0.47–0.89 mean saturation (0.71 average), so this is a material lift rather
@@ -288,6 +316,12 @@ objects stand out. Hold both requirements by moving density into the foreground 
   background establishes a place through broad simplified silhouettes, large colour masses, soft
   atmosphere and light. It is not a blank gradient, but it is not textured architecture, a crowd,
   dense foliage or a star field competing with the subjects either.
+- **The nearest plane has an edge, not a texture.** Form a shallow uneven mound along the lower
+  edge from large overlapping game objects, with clean readable top silhouettes, contact-dark
+  gaps, selective rim light and some objects cropped by the canvas. Falling objects stay whole and
+  cross the scene at several depths. Do not embed either population into the floor/wall, soften it
+  into the haze, repeat it as wallpaper, or tint it to match the background; that is exactly the
+  "objects in the background" result the references reject.
 - **Ornament at three scales—on the subjects and their constructions.** Keep the silhouette that
   survives a thumbnail, mid detail in the object's frame/trim/material, and micro texture on the
   hero, field and foreground objects. Do not spend that texture across the sky or far wall.
@@ -385,7 +419,13 @@ PLAY_DIR="$STORE_DIR/store-play"
 mkdir -p "$RAW_DIR" "$ART_DIR" "$OUT_DIR" "$PLAY_DIR" assets/branding
 ```
 
-Write `$STORE_DIR/STORE_BRIEF.md` with the English title, compliant tagline (42 characters or fewer), category, archetype, virtual stake object, outcome mechanic, peak-tension moment, virtual reward, hero, palette, mood, render style, background color, typography mood, and game currency name.
+Write `$STORE_DIR/STORE_BRIEF.md` with the English title, compliant tagline (42 characters or
+fewer), category, archetype, virtual stake object, outcome mechanic, peak-tension moment, virtual
+reward, hero, palette, mood, render style, typography mood, and game currency name. The palette is
+a plan, not one swatch: record the background hue family, the protagonist's dominant/source hues,
+the field and foreground-object hues, the deliberate background↔hero contrast pair, and which
+colours must survive unchanged from the sprite files. If every row says yellow/gold/amber, choose a
+contrasting Design-DNA-compatible background before generating anything.
 
 Then inventory **all** of the game's sprite art. The manifest is exhaustive, not a shortlist:
 
@@ -469,12 +509,14 @@ Use image generation for three sources:
    distant forms, soft atmosphere, no busy texture—so the hero and objects remain the detail.
    Begin the actual image prompt with this hierarchy as a short, numbered **non-negotiable
    composition block**, before theme prose or material detail. Long prompts dilute late
-   constraints; these five remain first in both Phase 1 and every Phase 2 integration pass:
+   constraints; these six remain first in both Phase 1 and every Phase 2 integration pass:
    1. a large complete protagonist wholly inside the left panel, including held props;
    2. real game objects forming the cropped bottom frame;
    3. other real game objects visibly falling through upper, middle and lower space;
-   4. a bright, broad, smooth, low-detail far background; and
-   5. saturated colour with one controlled blown light source behind a focal subject.
+   4. a bright, broad, smooth, low-detail far background;
+   5. saturated colour with one controlled blown light source behind a focal subject; and
+   6. a background in a clearly different hue family from the protagonist, with the game's varied
+      object colours preserved—no global yellow/gold/amber wash.
    - **The leftmost 1/P of the width is the hero berth** — the slice that becomes panel 1. Ask for
      a place built for a character to stand: a stage, ledge, throne, balcony, doorway or pool of
      light, with the scene's perspective converging on it, the brightest key light falling there,
@@ -518,11 +560,15 @@ Use image generation for three sources:
    - Describe the exhaustive sprite manifest explicitly, grouped by panel and physical function.
      Reserve up to 60% of the supporting set for a **continuous bottom frame**: three large,
      overlapping objects per panel when inventory permits, deliberately crossing the lower canvas
-     edge. Give the remainder airborne roles across the full height at varied scales and rotations,
-     with selective motion trails. The hero is the exception: it stays wholly inside the canvas
-     while the bottom band overlaps its feet. Every third gets part of the full manifest. Name the
-     asset identities explicitly: generic stage rails, scrolls, posts, drapery, gold balls, sparks,
-     or confetti do not count as the bottom band or as falling game objects.
+     edge. State the silhouette, not just the inventory: **a small uneven hill/spill in the nearest
+     foreground**, with readable top contours, mutual overlap, contact-dark gaps, selective rim
+     light and several original object colours; it is not printed on the floor or dissolved into
+     the background. Give the remainder airborne roles across the full height at varied scales,
+     rotations and front/behind relationships, with selective motion trails. The hero is the
+     exception: it stays wholly inside the canvas while the bottom hill overlaps its feet. Every
+     third gets part of the full manifest. Name the asset identities explicitly: generic stage
+     rails, scrolls, posts, drapery, gold balls, sparks, confetti, wall reliefs and same-colour floor
+     patterns do not count as the bottom band or as falling game objects.
    - **Ask for a subject-dense picture on a smooth background, panel by panel.** Name each third's
      hero/mechanic/reward subject, event and physical construction. Spend ornament, micro texture,
      secondary lights and differentiated materials on those constructions and the real objects.
@@ -535,16 +581,21 @@ Use image generation for three sources:
      reassemble into the whole picture, so nothing can be discarded at a cut and the slicer can
      only slide the tiling as a whole to find quiet ground; if the art is busy edge to edge, some
      cut lands on a subject and the only fix left is regenerating the art. Ask for the vivid end of
-     the palette: saturated colour, luminous key and rim light, deep contrast, glowing highlights,
-     and a deliberate overexposed sun/burst/portal/reward flare behind—not over—the hero or field.
+     the **planned multi-hue palette**: preserve the protagonist and game objects' source colours,
+     put a clearly different broad hue family behind the hero, then add luminous key and rim light,
+     deep contrast, glowing highlights, and a deliberate overexposed sun/burst/portal/reward flare
+     behind—not over—the hero or field. A colour grade connects the scene locally; it may not turn
+     the background, hero and every object yellow/gold/amber.
    - **The negative list is part of the prompt, not a nicety.** No text, logo, letters, numbers,
      device frame or panel dividers — and no invented game board, reel grid, cells, symbol tiles,
      icon frames, HUD, balance, meter or multiplier in this first base-art pass. The gameplay field
      is generated only in Phase 2, where the actual gameplay frame is present as visual context.
      Also prohibit a dark theatrical/cathedral stage, black or brown far wall, dense repeating
      arches/columns/pipes, all-over filigree, and generic gold furniture masquerading as game
-     objects. "Bright background" means broad high-value colour and light behind the subjects, not
-     tiny orange highlights painted onto a mostly black scene.
+     objects. Prohibit game objects drawn as part of the wall/floor/background texture too.
+     "Bright background" means broad high-value contrasting colour and light behind the subjects,
+     not tiny orange highlights painted onto a mostly black scene and not a yellow wash across
+     every plane.
    - Inspect the returned image against that list before going on. A grid, a symbol frame or a
      stray HUD in the source is a defect: regenerate. Do not crop it out, do not cover it with the
      board plate, and do not accept it because the rest of the picture is good.
@@ -678,12 +729,13 @@ python3 tools/gpt_image.py edit \
   earlier sprite changes identity, disappears or becomes a pasted badge, rerun with a smaller batch;
   never solve an input limit by dropping it. Keep `--fidelity high` on every pass and retain the pass
   manifest in `STORE_INFO.md`.
-- **The integration prompt begins with the same five-line priority block as Phase 1.** Put it
+- **The integration prompt begins with the same six-line priority block as Phase 1.** Put it
   before "render this in the game's style", before materials, and before the exhaustive asset
   list: complete hero inside panel 1; real game-object frame at the bottom; real game objects
   falling through the height; bright smooth low-detail far plane; saturated colour plus one
-  controlled blown source. Repeating it only near the end is not enforcement. Every staged batch
-  starts with the block again and says that these relationships outrank added ornament.
+  controlled blown source; contrasting background/hero hue families with original object colours
+  preserved. Repeating it only near the end is not enforcement. Every staged batch starts with the
+  block again and says that these relationships outrank added ornament.
 - The prompt asks for a *render*, not a retouch. Say, in the game's own art language:
   - Reproduce the layout of the first reference image exactly — same subject in the same place at
     the same size, same panorama proportions, nothing added and nothing moved.
@@ -721,10 +773,14 @@ python3 tools/gpt_image.py edit \
     "Wholly inside" includes the entire hat, hair, hands, book/weapon, cape, clothing, and held
     reward. None may cross the first panel seam or touch an outer canvas edge.
   - Preserve the draft's two supporting-object populations. The lower edge is crowded by large,
-    overlapping, partly cropped game objects that make a continuous foreground frame. The remaining
-    objects fall through the full image at varied scale and rotation, with selective directional
-    blur behind them. They are recognizable referenced game objects in motion, not generic gold
-    spheres, rails, scrollwork, confetti, sparks, or a cloud of identical floating badges.
+    overlapping, partly cropped game objects that form a **small uneven hill in the nearest
+    foreground**, with readable top silhouettes, contact-dark gaps, mutual overlap and rim/bounce
+    separation from the scene behind. It crosses in front of the hero's feet; it is not painted
+    into the floor, wall, haze or ornament. The remaining objects fall through the full image at
+    varied scale and rotation, with selective directional blur behind them and explicit front/behind
+    relationships to middle-plane subjects. They are recognizable referenced game objects in
+    motion, not generic gold spheres, rails, scrollwork, confetti, sparks, wall reliefs, floor
+    patterns, or a cloud of identical floating badges.
   - Finish it as one painting — no cutout edges, no drop shadows, no sticker outlines, nothing that
     looks composited.
   - Keep every plane of the draft populated and **add** the finish a render can give that a
@@ -736,8 +792,11 @@ python3 tools/gpt_image.py edit \
     Brightness is a value structure: retain a broad luminous far plane. Do not translate the
     concept into a mostly black/brown theatre where only gold trim is bright, and do not cover all
     three upper bands with architecture, filigree, pipes, repeating columns, or tiny lamps.
-  - Hold the reference kit's colour and light: saturated palette, luminous contrast, and one
-    controlled overexposed source behind a focal subject. Do not wash out the hero or the field.
+  - Hold the reference kit's colour and light: a saturated **multi-hue** palette, luminous contrast,
+    and one controlled overexposed source behind a focal subject. Preserve the hero and sprites'
+    defining source colours; move the broad far background to the contrasting hue family recorded
+    in the brief. Do not put one yellow/gold/amber filter over the background, hero, board and
+    foreground, and do not wash out the hero or the field.
   - No text, letters, numbers, logo, app chrome, HUD, device frame, screenshot border or panel
     dividers, and no invented game symbols beyond the ones supplied. The gameplay reference informs
     the field; it does not import the phone screen surrounding it.
@@ -777,6 +836,11 @@ advertises, so it is verified before anything downstream reads the file. Open
   as one overlapping frame of real game objects; supporting objects fall through upper and middle
   space with credible motion; and the far background remains smoother and quieter than the
   subjects. Record saturation and blown-highlight shares from the compositor as part of this gate.
+- Check colour separation as a fourth axis: the panel-1 background and protagonist occupy visibly
+  different hue families, the hero remains readable without relying only on a rim light, and the
+  bottom hill retains the real objects' varied colours. Record the strict gate's secondary-hue
+  share and hero/background hue (or neutral-value) gap. An all-yellow/gold/amber render returns to
+  Phase 2b even when its saturation number is high.
 - Measure the hero **again on the integrated render**, around the complete silhouette including
   attached/held forms, and record normalized `x,y,w,h` separately for each final store crop. The
   draft sprite's old bounds are not evidence: integration may have grown the hat, arm, book,
@@ -916,9 +980,10 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
 
 Do not copy diagnostic outputs into `store/` or `store-play/`; they have not passed. The strict
 gate refuses to write panels when mean luma/deep-shadow share says the picture is dark, the upper
-plane remains over-detailed, the lower/upper detail ratio says the bottom is not framed by game
-objects, saturation or controlled glare misses the reference band, or the measured complete hero
-leaves panel 1. The rejected jester preview would fail four of those machine checks before the
+plane remains over-detailed, the whole-picture or per-panel lower/upper detail ratios say the
+bottom is not framed by a distinct game-object hill, saturation/hue diversity or controlled glare
+misses the reference band, the hero and panel-1 background collapse into one colour family, or the
+measured complete hero leaves panel 1. The rejected jester preview would fail four of those machine checks before the
 vision gate: luma `0.20`, all upper panels above `30` detail, bottom/upper `0.83×`, and glare
 `0.4%`. Its book crossing the first seam is the separate `--hero-bounds` failure.
 
@@ -1022,6 +1087,19 @@ Vision-check both previews — `_panorama-preview.png` for whether the panels ar
   carved walls, pipes, tiny lamps, and generic sparks across all three upper bands do not satisfy
   "smooth". The actual detail lives on the hero, field, bottom game objects, and falling game
   objects.
+- **The far plane is a different colour from the protagonist.** Squint or inspect at thumbnail
+  size: the complete hero silhouette must separate as one shape before its rim light is counted.
+  A yellow hero on yellow/orange/gold scenery is a fail, not a warm palette. Keep the hero's source
+  colours, shift the broad smooth background to the planned contrasting hue family, and let only
+  local reflected light cross between them. The strict report must retain at least 14% of coloured
+  pixels outside the dominant hue family and a clear hero/background hue gap (or value gap for a
+  neutral subject).
+- **The lower edge is a foreground hill, not decorated background.** Across every panel, large
+  recognizable game objects overlap into a shallow uneven mound, some leave the canvas at the
+  bottom, contact-dark gaps separate them from one another, and their upper silhouettes/rim light
+  separate them from the middle plane. The fall carries identifiable whole objects through upper,
+  middle and lower heights, in front of and behind subjects. Objects embossed into a wall/floor,
+  reduced to a repeated pattern, matched to the background colour, or buried in haze do not count.
 - Density did not cost the hierarchy: the hero on panel 1 and the play field are still the first
   things the eye lands on, held apart from the detail by focus, value or a calmer surround.
 - No letters, fake glyphs, captions, UI, HUD, meters, balances, or panel borders appear.
@@ -1144,8 +1222,15 @@ scene, or crowned by empty sky is a blocker.
 
 Record the two supporting-object populations too: the `bottom object frame:` total and per-panel
 distribution, the `falling objects:` total, which falling assets carry motion trails, and whether
-their centres span the upper, middle and lower parts of the image. A bare panel bottom when enough
-sprites exist, or an airborne cluster confined to one row, is a blocker.
+their centres span the upper, middle and lower parts of the image. Record each panel's lower/upper
+detail ratio and answer whether the lower objects form a separately silhouetted nearest-plane hill
+or have merged into background decoration. A bare panel bottom when enough sprites exist, a hill
+missing from even one panel, or an airborne cluster confined to one row is a blocker.
+
+Record the colour-separation gate too: overall saturation, percentage of coloured pixels outside
+the dominant hue family, panel-1 hero/background hue gap (or value gap for a neutral hero), the
+brief's intended contrast pair, and a vision yes/no that the bottom hill preserves multiple source
+colours. High saturation does not override a failed hue split.
 
 Record the field row separately too, and answer it by looking at the two images rather than at the
 command line:
@@ -1193,13 +1278,16 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
   ratio. If an explicit `--gutter` was used instead, say so, give the width, and say who asked
   for it.
 - The base-art upper-band detail by panel, the finished per-panel detail and empty-ground figures,
-  the lower/upper detail ratio, the saturation and blown-highlight share, with a note on any plate
-  regenerated for being too busy or any finished panel regenerated for being too sparse.
+  every panel's lower/upper detail ratio, the saturation, secondary-hue share,
+  hero/background hue or neutral-value gap, and blown-highlight share, with a note on any plate
+  regenerated for being too busy, monochrome, or any finished panel regenerated for being too sparse.
 - The strict final-art gate result for both aspect ratios: mean luma, deep-shadow share, mean upper
-  detail, panorama lower/upper detail ratio, saturation, glare, complete-hero bounds, and an explicit
-  `PASS`. A diagnostic `warn` run is not the verdict.
+  detail, panorama and per-panel lower/upper detail ratios, saturation, secondary-hue share,
+  hero/background separation, glare, complete-hero bounds, and an explicit `PASS`. A diagnostic
+  `warn` run is not the verdict.
 - The bottom object-frame total and per-panel counts, the falling-object total and height spread,
-  and which objects use motion trails.
+  which objects use motion trails, and the vision verdict that the lower objects form a distinct
+  nearest-plane hill rather than background texture.
 - Exactly what branding was applied to the project — icon, emblem, and every background file the
   key art was wired into, with the screens that now use them.
 - The continuity audit table.
@@ -1222,7 +1310,7 @@ Verify the archive contains numbered PNGs in both `store/` and `store-play/` unl
 
 ## Phase 12 — final report
 
-Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, base-backdrop and finished per-panel detail figures, lower/upper detail ratios, saturation and glare figures, whether the panorama was rendered from the draft or shipped as the composite, the exhaustive sprite-manifest counts and per-panel distribution, bottom-frame and falling-object distributions, any staged high-fidelity integration passes, the one-row-per-sprite identity/integration verdict, the real anchor on **each** split panel and the physical/decorative construction it completes, the hero on panel 1 (its share of the panel's width and height, that it is wholly inside the frame, what crowns the band above its head, and that the bottom object frame overlaps its feet), the actual gameplay frame used as context for the middle field, how that field preserved the mechanic/state while being recreated as scene-matched 3D art, confirmation that no screenshot layer or rectangular edge survived, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row and the per-panel anchor audit, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
+Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, base-backdrop and finished per-panel detail figures, panorama/per-panel lower-to-upper ratios, saturation, secondary-hue share, hero/background separation and glare figures, whether the bottom objects read as a distinct foreground hill, whether the falling objects span upper/middle/lower depth, whether the panorama was rendered from the draft or shipped as the composite, the exhaustive sprite-manifest counts and per-panel distribution, bottom-frame and falling-object distributions, any staged high-fidelity integration passes, the one-row-per-sprite identity/integration verdict, the real anchor on **each** split panel and the physical/decorative construction it completes, the hero on panel 1 (its share of the panel's width and height, that it is wholly inside the frame, what crowns the band above its head, and that the bottom object frame overlaps its feet), the actual gameplay frame used as context for the middle field, how that field preserved the mechanic/state while being recreated as scene-matched 3D art, confirmation that no screenshot layer or rectangular edge survived, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row and the per-panel anchor audit, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
 
 ## Quality gates
 
@@ -1243,8 +1331,10 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   `--hero-bounds` around the complete post-integration silhouette. Hat, hands, book/weapon, cape,
   clothing, held reward, and feet all clear panel 1's safe rectangle and the outer canvas.
 - The bottom object frame reaches every panel when the manifest is large enough, overlaps the
-  hero's feet, and remains the nearest painted depth plane. Remaining sprites fall through varied
-  heights and selected objects carry directional motion trails.
+  hero's feet, and reads as a distinct uneven nearest-plane hill with overlapping silhouettes,
+  contact-dark gaps and preserved source colours—not as floor/wall/background texture. Remaining
+  sprites fall through varied heights and depths, and selected objects carry directional motion
+  trails.
 - Panel 1 was composed as a berth for the hero: covering the figure leaves a stage waiting for
   someone, not a finished picture with a character laid on it.
 - The band above the hero's head is ornament — arch, canopy, crest, banner, halo, flanking
@@ -1287,14 +1377,18 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - The bare staging plate passes the smooth-background ceiling before sprites land: broad bright
   colour and simplified far forms, no busy texture competing with the subject.
 - The finished panorama passes the brightness/smoothness gate too: mean luma ≥0.25, deep shadow
-  ≤55%, mean upper-plane detail ≤29, panorama lower/upper detail ≥0.90×, saturation ≥0.45,
-  and controlled blown highlights at 0.6–20%. These are blockers, not advisory metrics.
+  ≤55%, mean upper-plane detail ≤29, panorama lower/upper detail ≥1.10×, saturation ≥0.45,
+  secondary hues ≥14% outside the dominant hue family, hero/background hue gap ≥45° (or neutral
+  value gap ≥0.18), and controlled blown highlights at 0.6–20%. These are blockers, not advisory
+  metrics.
 - Every finished panel passes the density check because the real objects occupy its planes: the
-  lower band is at least 0.95× the upper-band detail, no panel is left flagged as empty ground, and
+  lower band is at least 1.05× the upper-band detail and contains real object detail, no panel is
+  left flagged as empty ground, and
   added density did not come from making the distant background busy.
 - The added density did not bury the focal points: the hero and the play field still lead.
-- Colour and brightness hold up at thumbnail size in both sets: saturation is at least 0.45 and
-  controlled blown highlights occupy 0.6–20% of the picture.
+- Colour and brightness hold up at thumbnail size in both sets: saturation is at least 0.45,
+  background and hero remain different hue families, the foreground retains multiple source
+  colours, and controlled blown highlights occupy 0.6–20% of the picture.
 - Showcase captions are readable, correctly spelled, and rendered with full glyph coverage.
 - Compliance grep and vision checks pass with no exceptions.
 - `check --store appstore` and `check --store play` both pass.
@@ -1353,8 +1447,15 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   carved walls, pipes, filigree, tiny lamps, or all-over sparks remain a failure even when their
   gold/orange highlights are vivid. Bright means a broad luminous far plane; smooth means the
   subject and game objects carry the detail.
+- Shipping a saturated but monochrome yellow/orange/gold panorama. The broad background must use a
+  visibly different hue family from the hero, and the foreground must preserve the real objects'
+  varied colours; one amber grade over every plane is explicitly forbidden.
 - Treating generic rails, scrollwork, drapery, posts, gold spheres, confetti, or sparks as the
   required bottom frame or fall. Only recognizable inventoried game objects count.
+- Treating correct game objects painted into a wall, floor, mural, shallow relief, repeated
+  pattern, same-colour texture or haze as the required frame/fall. The frame is a separately
+  silhouetted uneven hill at the lower canvas edge; the fall is made of identifiable whole objects
+  crossing upper, middle and lower space at distinct depths.
 - Shipping output from `--art-gate warn`, using `--art-gate off` outside compositor tests, omitting
   the final `--hero-bounds`, or copying diagnostic panels into a store directory after `strict`
   refused them.

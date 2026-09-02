@@ -1421,7 +1421,7 @@ THIN_DETAIL = 4.0    # mean activity below this = nothing is going on at all
 BACKDROP_BUSY = 20.0  # base-art upper band above this competes with the subject
 UPPER_BAND = 0.55    # of the panel's height, measured from the top
 LOWER_BAND = 0.65    # the frame band starts here
-FRAME_RATIO_MIN = 0.95  # lower/upper detail below this = no object frame below
+FRAME_RATIO_MIN = 1.05  # lower/upper detail below this = no clear object hill below
 
 
 def _activity(pano: Image.Image) -> tuple[np.ndarray, float]:
@@ -1523,6 +1523,100 @@ def detail_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[float
 SAT_FLOOR = 0.45     # below this the picture is grey beside the references
 GLARE_MIN = 0.006    # no blown highlight at all = no light source in the scene
 GLARE_MAX = 0.20     # past this the picture is washing out, not glowing
+HUE_BINS = 12
+HUE_MIN_SAT = 0.25
+HUE_OUTSIDE_FAMILY_MIN = 0.14
+HERO_BG_HUE_GAP_MIN = 45.0
+HERO_BG_VALUE_GAP_MIN = 0.18
+
+
+def _hsv_arrays(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Vectorised HSV for an RGB float array, with hue in turns (0..1)."""
+    mx, mn = rgb.max(axis=-1), rgb.min(axis=-1)
+    delta = mx - mn
+    sat = np.where(mx > 1e-6, delta / np.maximum(mx, 1e-6), 0.0)
+    hue = np.zeros_like(mx)
+    active = delta > 1e-6
+    red = active & (mx == rgb[..., 0])
+    green = active & (mx == rgb[..., 1]) & ~red
+    blue = active & ~(red | green)
+    hue[red] = ((rgb[..., 1][red] - rgb[..., 2][red]) / delta[red]) % 6.0
+    hue[green] = ((rgb[..., 2][green] - rgb[..., 0][green]) / delta[green]) + 2.0
+    hue[blue] = ((rgb[..., 0][blue] - rgb[..., 1][blue]) / delta[blue]) + 4.0
+    return (hue / 6.0) % 1.0, sat, mx
+
+
+def _hue_summary(rgb: np.ndarray) -> tuple[int | None, float, float, float]:
+    """Dominant hue bin, share outside its neighbours, saturation and value."""
+    hue, sat, value = _hsv_arrays(rgb)
+    valid = (sat >= HUE_MIN_SAT) & (value >= 0.10) & (value <= 0.98)
+    mean_sat, mean_value = float(sat.mean()), float(value.mean())
+    if not valid.any():
+        return None, 0.0, mean_sat, mean_value
+    hist, _ = np.histogram(hue[valid], bins=HUE_BINS, range=(0.0, 1.0))
+    dominant = int(hist.argmax())
+    family = {dominant, (dominant - 1) % HUE_BINS, (dominant + 1) % HUE_BINS}
+    outside = 1.0 - float(sum(hist[i] for i in family)) / float(hist.sum())
+    return dominant, outside, mean_sat, mean_value
+
+
+def _hue_distance_degrees(a: int, b: int) -> float:
+    bins = abs(a - b)
+    return min(bins, HUE_BINS - bins) * (360.0 / HUE_BINS)
+
+
+def colour_separation_metrics(
+        pano: Image.Image,
+        span: tuple[int, int],
+        hero_bounds: tuple[float, float, float, float] | None,
+        ) -> tuple[float, float | None, float | None]:
+    """Measure palette variety and whether panel 1 separates hero from backdrop.
+
+    Saturation alone cannot distinguish a colourful picture from a monochrome
+    yellow/orange wash. The overall score requires a second hue family. When a
+    measured hero is available, its tight box is also compared with the smooth
+    panel-1 far plane outside that box.
+    """
+    # Hue distributions do not need full store resolution. Keeping this sample
+    # small avoids a second 100+ MB float array while the luma/detail gate is
+    # already holding the panorama at full size.
+    sample = pano.convert("RGB")
+    if sample.width > 720:
+        sample = sample.resize(
+            (720, max(1, round(sample.height * 720 / sample.width))), LANCZOS)
+    arr = np.asarray(sample, dtype=np.float32) / 255.0
+    _, outside, _, _ = _hue_summary(arr)
+    if hero_bounds is None:
+        return outside, None, None
+
+    x, y, w, h = hero_bounds
+    hx0 = max(0, min(sample.width - 1, int(round(x * sample.width))))
+    hy0 = max(0, min(sample.height - 1, int(round(y * sample.height))))
+    hx1 = max(hx0 + 1, min(sample.width, int(round((x + w) * sample.width))))
+    hy1 = max(hy0 + 1, min(sample.height, int(round((y + h) * sample.height))))
+    hero = arr[hy0:hy1, hx0:hx1]
+
+    left = max(0, min(sample.width - 1,
+                      int(round(span[0] * sample.width / pano.width))))
+    right = max(left + 1, min(sample.width,
+                              int(round(span[1] * sample.width / pano.width))))
+    far_bottom = max(1, int(round(sample.height * LOWER_BAND)))
+    far = arr[:far_bottom, left:right]
+    mask = np.ones(far.shape[:2], dtype=bool)
+    ex0, ex1 = max(left, hx0) - left, min(right, hx1) - left
+    ey0, ey1 = max(0, hy0), min(far_bottom, hy1)
+    if ex1 > ex0 and ey1 > ey0:
+        mask[ey0:ey1, ex0:ex1] = False
+    background = far[mask]
+    if background.size == 0:
+        return outside, None, None
+
+    hero_hue, _, hero_sat, hero_value = _hue_summary(hero)
+    bg_hue, _, bg_sat, bg_value = _hue_summary(background.reshape(-1, 1, 3))
+    value_gap = abs(hero_value - bg_value)
+    if hero_hue is None or bg_hue is None or min(hero_sat, bg_sat) < HUE_MIN_SAT:
+        return outside, None, value_gap
+    return outside, _hue_distance_degrees(hero_hue, bg_hue), value_gap
 
 
 def glare_report(pano: Image.Image) -> tuple[float, float]:
@@ -1728,11 +1822,16 @@ _AUTO_ROLES = ("frame", "fall")
 # was blown out. The eight supplied target references establish the safe side of
 # each boundary: mean luma 0.27-0.71, shadow share at most 0.47, mean upper-band
 # detail at most 27.0, lower/upper detail at least 0.91, and glare at least 1%.
-# Leave a little measurement tolerance while still refusing that exact failure.
+# The latest review tightens the foreground beyond that lowest reference: it has
+# to read as a distinct object hill on every panel, not merely make the lower
+# pixels as busy as the upper ones. It also rejects the saturated all-yellow
+# failure, which the old saturation-only gate could not see.
 FINAL_LUMA_MIN = 0.25
 FINAL_SHADOW_MAX = 0.55
 FINAL_UPPER_DETAIL_MAX = 29.0
-FINAL_FRAME_RATIO_MIN = 0.90
+FINAL_FRAME_RATIO_MIN = 1.10
+FINAL_PANEL_FRAME_RATIO_MIN = 1.05
+FINAL_PANEL_LOWER_DETAIL_MIN = 4.0
 HERO_SAFE_X = 0.015               # of panel 1 width, on both sides
 HERO_SAFE_Y = 0.005               # of panorama height, top and bottom
 
@@ -1753,10 +1852,16 @@ def final_art_issues(
     issues: list[str] = []
     activity, scale = _activity(pano)
     upper_details: list[float] = []
+    panel_frame_ratios: list[float] = []
+    panel_lower_details: list[float] = []
     for span in spans:
         panel = _panel_slice(activity, span, scale)
         upper = panel[:max(1, int(panel.shape[0] * UPPER_BAND))]
         upper_details.append(float(upper.mean()))
+        lower = panel[int(panel.shape[0] * LOWER_BAND):]
+        lower_mean = float(lower.mean())
+        panel_lower_details.append(lower_mean)
+        panel_frame_ratios.append(lower_mean / max(float(upper.mean()), 1e-6))
     upper_mean = float(np.mean(upper_details))
     rows = activity.shape[0]
     upper = float(activity[:max(1, int(rows * UPPER_BAND))].mean())
@@ -1771,10 +1876,20 @@ def final_art_issues(
     saturation = float(np.where(
         mx > 1e-6, (mx - mn) / np.maximum(mx, 1e-6), 0.0).mean())
     blown = float((luma > 0.95).mean())
+    hue_outside, hero_bg_hue_gap, hero_bg_value_gap = colour_separation_metrics(
+        pano, spans[0], hero_bounds)
 
     info(f"art gate: luma {mean_luma:.2f}, deep shadow {shadow_share * 100:.0f}%, "
          f"upper detail {upper_mean:.1f}, bottom/upper {frame_ratio:.2f}×, "
-         f"saturation {saturation:.2f}, glare {blown * 100:.1f}%")
+         f"panel floors {'/'.join(f'{v:.2f}×' for v in panel_frame_ratios)}, "
+         f"saturation {saturation:.2f}, secondary hues {hue_outside * 100:.0f}%, "
+         f"glare {blown * 100:.1f}%")
+    if hero_bg_hue_gap is not None:
+        info(f"art gate colour separation: hero/background hue gap "
+             f"{hero_bg_hue_gap:.0f}°, value gap {hero_bg_value_gap:.2f}")
+    elif hero_bg_value_gap is not None:
+        info(f"art gate colour separation: neutral hero/background value gap "
+             f"{hero_bg_value_gap:.2f}")
     if mean_luma < FINAL_LUMA_MIN or shadow_share > FINAL_SHADOW_MAX:
         issues.append(
             f"the panorama is too dark (luma {mean_luma:.2f}, deep shadow "
@@ -1792,14 +1907,47 @@ def final_art_issues(
             f"the bottom edge does not carry the game's object frame ({frame_ratio:.2f}× "
             f"the upper detail; need ≥{FINAL_FRAME_RATIO_MIN:.2f}×). Generic rails, "
             "scrollwork, drapery, and stage furniture do not count as game objects")
+    weak_panels = [
+        str(i + 1) for i, (ratio, lower_detail) in enumerate(
+            zip(panel_frame_ratios, panel_lower_details))
+        if (ratio < FINAL_PANEL_FRAME_RATIO_MIN or
+            lower_detail < FINAL_PANEL_LOWER_DETAIL_MIN)
+    ]
+    if weak_panels:
+        issues.append(
+            f"the foreground object hill is missing or visually merged into the background "
+            f"on panel(s) {', '.join(weak_panels)} (each lower band must be ≥"
+            f"{FINAL_PANEL_FRAME_RATIO_MIN:.2f}× its upper band and carry real object detail). "
+            "Keep recognizable game items large, overlapping, separately silhouetted and "
+            "cropped by the bottom edge")
     if saturation < SAT_FLOOR:
         issues.append(
             f"the panorama is undersaturated ({saturation:.2f}; need ≥{SAT_FLOOR:.2f})")
+    if hue_outside < HUE_OUTSIDE_FAMILY_MIN:
+        issues.append(
+            f"the panorama is saturated but effectively monochrome ({hue_outside * 100:.0f}% "
+            f"of coloured pixels leave the dominant hue family; need ≥"
+            f"{HUE_OUTSIDE_FAMILY_MIN * 100:.0f}%). A yellow/gold wash is not colourfulness: "
+            "give the smooth background a clearly different hue family and preserve the "
+            "game objects' own varied colours")
     if blown < GLARE_MIN or blown > GLARE_MAX:
         issues.append(
             f"controlled overexposure is outside the allowed band ({blown * 100:.1f}%; "
             f"need {GLARE_MIN * 100:.1f}-{GLARE_MAX * 100:.0f}%). Put a real blown "
             "light source behind a focal subject; do not wash over that subject")
+
+    if hero_bg_hue_gap is not None and hero_bg_hue_gap < HERO_BG_HUE_GAP_MIN:
+        issues.append(
+            f"the hero and panel-1 background share the same hue family "
+            f"({hero_bg_hue_gap:.0f}° apart; need ≥{HERO_BG_HUE_GAP_MIN:.0f}°). "
+            "Move the broad background mass to a contrasting colour instead of "
+            "covering character and scenery with one yellow/amber grade")
+    elif (hero_bg_hue_gap is None and hero_bg_value_gap is not None and
+          hero_bg_value_gap < HERO_BG_VALUE_GAP_MIN):
+        issues.append(
+            f"the neutral hero and panel-1 background do not separate in value "
+            f"({hero_bg_value_gap:.2f}; need ≥{HERO_BG_VALUE_GAP_MIN:.2f}). "
+            "Change the background colour/value so the full silhouette reads instantly")
 
     if hero_bounds is None:
         if require_hero_bounds:
