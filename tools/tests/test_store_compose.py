@@ -55,6 +55,7 @@ class ReassemblyTests(unittest.TestCase):
             sprite_light=store_compose.DEFAULT_SPRITE_LIGHT,
             hero_height=store_compose.HERO_H, object_frame="auto",
             no_falling=False, fall_trail=store_compose.DEFAULT_FALL_TRAIL,
+            hero_bounds=None, art_gate="off",
             save_pano=str(pano_path), pano_only=False, pop="off", vibrance=None,
             lift=None, contrast=None, bloom=None, title=None, tagline=None,
             logo=None, title_panel=None, title_pos=None)
@@ -154,6 +155,19 @@ class SpriteSpecTests(unittest.TestCase):
         for bad in ("a.png@z=4", "a.png@x=left", "@x=0.5", "a.png@villain"):
             with self.subTest(bad=bad), self.assertRaises(SystemExit):
                 store_compose.parse_sprite_spec(bad)
+
+
+class UnitBoxTests(unittest.TestCase):
+    def test_a_normalized_hero_box_is_preserved_exactly(self) -> None:
+        self.assertEqual(
+            store_compose.parse_unit_box("0.04,0.12,0.25,0.72"),
+            (0.04, 0.12, 0.25, 0.72))
+
+    def test_invalid_or_clipped_hero_boxes_are_refused(self) -> None:
+        for bad in ("0.1,0.2,0.3", "left,0.2,0.3,0.7", "0.1,0.2,0,0.7",
+                    "0.8,0.2,0.3,0.7", "0.1,0.6,0.2,0.5"):
+            with self.subTest(bad=bad), self.assertRaises(SystemExit):
+                store_compose.parse_unit_box(bad)
 
 
 class SpriteInventoryTests(unittest.TestCase):
@@ -431,6 +445,65 @@ class ReferenceBriefReportTests(unittest.TestCase):
         messages = self._messages(
             lambda: store_compose.glare_report(vivid.convert("RGBA")))
         self.assertEqual(messages, [])
+
+
+class FinalArtGateTests(unittest.TestCase):
+    """A bad integrated render must stop before it becomes store panels."""
+
+    PANEL_W, PANEL_H, PANELS = 180, 360, 3
+
+    def setUp(self) -> None:
+        original = store_compose.info
+        store_compose.info = lambda *_: None
+        self.addCleanup(setattr, store_compose, "info", original)
+
+    def _spans(self) -> list[tuple[int, int]]:
+        return store_compose.uniform_spans(self.PANELS, self.PANEL_W, 0)
+
+    def test_bright_smooth_art_with_a_game_object_floor_and_glare_passes(self) -> None:
+        pano = store_compose.gradient(
+            (self.PANEL_W * self.PANELS, self.PANEL_H),
+            [(0.0, (35, 105, 235, 255)), (1.0, (245, 120, 190, 255))])
+        draw = ImageDraw.Draw(pano)
+        draw.ellipse([250, 20, 330, 100], fill=(255, 255, 255, 255))
+        rng = np.random.default_rng(83)
+        objects = Image.fromarray(rng.integers(
+            10, 245, (126, pano.width, 3), dtype=np.uint8), "RGB").convert("RGBA")
+        pano.paste(objects, (0, pano.height - objects.height))
+
+        issues = store_compose.final_art_issues(
+            pano, self._spans(), (0.03, 0.12, 0.27, 0.72))
+
+        self.assertEqual(issues, [])
+
+    def test_the_dark_busy_missing_floor_failure_is_blocked(self) -> None:
+        rng = np.random.default_rng(97)
+        pano = Image.new(
+            "RGBA", (self.PANEL_W * self.PANELS, self.PANEL_H),
+            (20, 16, 28, 255))
+        noise = Image.fromarray(rng.integers(
+            0, 105, (234, pano.width, 3), dtype=np.uint8), "RGB").convert("RGBA")
+        pano.paste(noise, (0, 0))
+
+        issues = store_compose.final_art_issues(
+            pano, self._spans(), (0.04, 0.0, 0.36, 0.78))
+
+        joined = "\n".join(issues)
+        self.assertIn("too dark", joined)
+        self.assertIn("too detailed", joined)
+        self.assertIn("bottom edge", joined)
+        self.assertIn("controlled overexposure", joined)
+        self.assertIn("complete hero silhouette", joined)
+
+    def test_final_art_requires_a_measured_complete_hero(self) -> None:
+        pano = Image.new(
+            "RGBA", (self.PANEL_W * self.PANELS, self.PANEL_H),
+            (35, 105, 235, 255))
+
+        issues = store_compose.final_art_issues(pano, self._spans(), None)
+
+        self.assertTrue(any("--hero-bounds is required" in issue for issue in issues),
+                        issues)
 
 
 class ObjectFrameParsingTests(unittest.TestCase):

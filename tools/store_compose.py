@@ -24,8 +24,10 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             varied rotation and selective motion trails. The large hero stays
             wholly inside panel 1 while that foreground band overlaps its feet.
             The bare background is measured to stay bright and smooth, and the
-            finished art is measured for bottom weight, saturation and controlled
-            overexposure. The inlaid result is a generation reference,
+            finished art is blocked when it is dark, busy across the far plane,
+            weak at the bottom, missing controlled overexposure, or when the
+            measured hero silhouette (including held props) leaves panel 1. The
+            inlaid result is a generation reference,
             never the final paste-up: the finished panorama is rendered as one
             scene from this context. It carries NO TEXT: lettering across a
             panel boundary is cut by the store's gutters, and a lockup inside
@@ -274,6 +276,24 @@ def parse_size(text: str) -> tuple[int, int]:
     if size[0] < 16 or size[1] < 16:
         die(f"--size {text!r} is too small")
     return size
+
+
+def parse_unit_box(text: str, flag: str = "--hero-bounds") -> tuple[float, float, float, float]:
+    """Parse a normalized ``x,y,w,h`` box without clipping mistakes away."""
+    parts = [part.strip() for part in str(text).split(",")]
+    if len(parts) != 4:
+        die(f"{flag} {text!r}: expected normalized x,y,w,h")
+    try:
+        x, y, w, h = (float(part) for part in parts)
+    except ValueError:
+        die(f"{flag} {text!r}: every value must be a number")
+    if not all(math.isfinite(value) for value in (x, y, w, h)):
+        die(f"{flag} {text!r}: every value must be finite")
+    if w <= 0 or h <= 0:
+        die(f"{flag} {text!r}: width and height must be positive")
+    if x < 0 or y < 0 or x + w > 1 or y + h > 1:
+        die(f"{flag} {text!r}: the box must stay inside the normalized 0..1 canvas")
+    return x, y, w, h
 
 
 def store_verdict(w: int, h: int) -> tuple[bool, bool, str]:
@@ -1701,6 +1721,114 @@ _SPRITE_KEYS = ("x", "y", "w", "h", "rot", "glow", "shadow", "opacity", "panel",
 _SPRITE_FLAGS = ("hero", "prop", "board", "frame", "fall")
 _AUTO_ROLES = ("frame", "fall")
 
+# The final panorama needs a blocking gate, not another advisory sentence. The
+# rejected preview that prompted this check was saturated, but its mean luma was
+# 0.20, 63% of its pixels were deep shadow, all three upper bands measured above
+# 30 detail, its lower/upper detail ratio was 0.83, and only 0.4% of the picture
+# was blown out. The eight supplied target references establish the safe side of
+# each boundary: mean luma 0.27-0.71, shadow share at most 0.47, mean upper-band
+# detail at most 27.0, lower/upper detail at least 0.91, and glare at least 1%.
+# Leave a little measurement tolerance while still refusing that exact failure.
+FINAL_LUMA_MIN = 0.25
+FINAL_SHADOW_MAX = 0.55
+FINAL_UPPER_DETAIL_MAX = 29.0
+FINAL_FRAME_RATIO_MIN = 0.90
+HERO_SAFE_X = 0.015               # of panel 1 width, on both sides
+HERO_SAFE_Y = 0.005               # of panorama height, top and bottom
+
+
+def final_art_issues(
+        pano: Image.Image,
+        spans: list[tuple[int, int]],
+        hero_bounds: tuple[float, float, float, float] | None,
+        *,
+        require_hero_bounds: bool = True) -> list[str]:
+    """Return the blockers from the supplied panorama-feedback contract.
+
+    ``hero_bounds`` is the tight normalized box around the complete protagonist,
+    including anything held, worn, or visually attached. Requiring a human/vision
+    measurement after integration closes the hole left by checking only the draft
+    sprite: an image model can grow a hat, book, weapon, or hand across the seam.
+    """
+    issues: list[str] = []
+    activity, scale = _activity(pano)
+    upper_details: list[float] = []
+    for span in spans:
+        panel = _panel_slice(activity, span, scale)
+        upper = panel[:max(1, int(panel.shape[0] * UPPER_BAND))]
+        upper_details.append(float(upper.mean()))
+    upper_mean = float(np.mean(upper_details))
+    rows = activity.shape[0]
+    upper = float(activity[:max(1, int(rows * UPPER_BAND))].mean())
+    lower = float(activity[int(rows * LOWER_BAND):].mean())
+    frame_ratio = lower / max(upper, 1e-6)
+
+    arr = np.asarray(pano.convert("RGB"), dtype=np.float32) / 255.0
+    luma = (arr * LUMA).sum(axis=-1)
+    mean_luma = float(luma.mean())
+    shadow_share = float((luma < 0.15).mean())
+    mx, mn = arr.max(axis=-1), arr.min(axis=-1)
+    saturation = float(np.where(
+        mx > 1e-6, (mx - mn) / np.maximum(mx, 1e-6), 0.0).mean())
+    blown = float((luma > 0.95).mean())
+
+    info(f"art gate: luma {mean_luma:.2f}, deep shadow {shadow_share * 100:.0f}%, "
+         f"upper detail {upper_mean:.1f}, bottom/upper {frame_ratio:.2f}×, "
+         f"saturation {saturation:.2f}, glare {blown * 100:.1f}%")
+    if mean_luma < FINAL_LUMA_MIN or shadow_share > FINAL_SHADOW_MAX:
+        issues.append(
+            f"the panorama is too dark (luma {mean_luma:.2f}, deep shadow "
+            f"{shadow_share * 100:.0f}%; need luma ≥{FINAL_LUMA_MIN:.2f} and "
+            f"shadow ≤{FINAL_SHADOW_MAX * 100:.0f}%). The far background must be "
+            "bright and broad; saturation alone does not make a dark stage bright")
+    if upper_mean > FINAL_UPPER_DETAIL_MAX:
+        issues.append(
+            f"the final upper plane is too detailed ({upper_mean:.1f}, maximum "
+            f"{FINAL_UPPER_DETAIL_MAX:.1f}). Replace dense architecture, filigree, "
+            "crowds, foliage, and all-over particles with broad color, simplified "
+            "far silhouettes, soft atmosphere, and one luminous source")
+    if frame_ratio < FINAL_FRAME_RATIO_MIN:
+        issues.append(
+            f"the bottom edge does not carry the game's object frame ({frame_ratio:.2f}× "
+            f"the upper detail; need ≥{FINAL_FRAME_RATIO_MIN:.2f}×). Generic rails, "
+            "scrollwork, drapery, and stage furniture do not count as game objects")
+    if saturation < SAT_FLOOR:
+        issues.append(
+            f"the panorama is undersaturated ({saturation:.2f}; need ≥{SAT_FLOOR:.2f})")
+    if blown < GLARE_MIN or blown > GLARE_MAX:
+        issues.append(
+            f"controlled overexposure is outside the allowed band ({blown * 100:.1f}%; "
+            f"need {GLARE_MIN * 100:.1f}-{GLARE_MAX * 100:.0f}%). Put a real blown "
+            "light source behind a focal subject; do not wash over that subject")
+
+    if hero_bounds is None:
+        if require_hero_bounds:
+            issues.append(
+                "--hero-bounds is required for final art: measure the tight x,y,w,h "
+                "around the complete protagonist, including held/worn/attached props, "
+                "after the integration render")
+        return issues
+
+    x, y, w, h = hero_bounds
+    hx0, hy0 = x * pano.width, y * pano.height
+    hx1, hy1 = (x + w) * pano.width, (y + h) * pano.height
+    left, right = spans[0]
+    margin_x = (right - left) * HERO_SAFE_X
+    margin_y = pano.height * HERO_SAFE_Y
+    info(f"art gate hero: {w:.0%} of panorama width × {h:.0%} of panel height; "
+         f"panel 1 safe x={left / pano.width:.3f}..{right / pano.width:.3f}")
+    if h < HERO_MIN_H:
+        issues.append(
+            f"the hero is too small ({h:.0%} of panel height; need ≥{HERO_MIN_H:.0%})")
+    if (hx0 < left + margin_x or hx1 > right - margin_x or
+            hy0 < margin_y or hy1 > pano.height - margin_y):
+        issues.append(
+            "the complete hero silhouette does not stay safely inside panel 1. "
+            "Move or regenerate the character so its hat, hands, book/weapon, clothing, "
+            "and feet all clear the canvas and the first carousel seam; foreground "
+            "objects may overlap the feet inside the frame, but cropping may not")
+    return issues
+
 
 def parse_sprite_spec(spec: str) -> dict:
     """`path[@hero|prop|frame|fall,x=0.3,y=0.6,w=0.34,rot=-8,contact=0.6,...]`."""
@@ -2388,6 +2516,9 @@ def cmd_triptych(args) -> None:
     falling = not getattr(args, "no_falling", False)
     fall_trail = float(getattr(args, "fall_trail", DEFAULT_FALL_TRAIL))
     hero_height = float(getattr(args, "hero_height", HERO_H))
+    art_gate = getattr(args, "art_gate", "strict")
+    hero_bounds = (parse_unit_box(args.hero_bounds)
+                   if getattr(args, "hero_bounds", None) else None)
     if not 0.10 <= hero_height <= 0.90:
         die(f"--hero-height {hero_height}: expected a fraction from 0.10 to 0.90")
     if not 0.0 <= fall_trail <= 2.0:
@@ -2426,12 +2557,13 @@ def cmd_triptych(args) -> None:
     spans = plan_panel_spans(pano, n, w, gutter, snap)
     sprite_specs = expand_sprite_specs(getattr(args, "sprite", []),
                                        getattr(args, "sprite_dir", []))
+    backdrop_details: list[float] = []
     if sprite_specs:
         # This is the only stage at which the bare plate can be distinguished
         # from the finished picture. Once the integration render paints the
         # objects in, `triptych` receives a single image and correctly treats it
         # as the finished panorama instead.
-        backdrop_report(pano, spans)
+        backdrop_details = backdrop_report(pano, spans)
     inlay_sprites(pano, sprite_specs, n, w, h, gutter,
                   glow_color=args.sprite_glow_color, light=args.sprite_light,
                   spans=spans, frame_target=frame_target, falling=falling,
@@ -2439,6 +2571,27 @@ def cmd_triptych(args) -> None:
     seam_report(pano, spans)
     detail_report(pano, spans)
     glare_report(pano)
+
+    if art_gate != "off":
+        issues = final_art_issues(
+            pano, spans, hero_bounds,
+            require_hero_bounds=not args.pano_only)
+        if backdrop_details and any(detail > BACKDROP_BUSY
+                                    for detail in backdrop_details):
+            busy = ", ".join(
+                f"panel {i + 1} {detail:.1f}"
+                for i, detail in enumerate(backdrop_details)
+                if detail > BACKDROP_BUSY)
+            issues.insert(
+                0,
+                f"the bare staging plate is already too busy ({busy}; maximum "
+                f"{BACKDROP_BUSY:.1f}) before the hero and game objects land")
+        for issue in issues:
+            warn(f"ART GATE: {issue}")
+        if issues and art_gate == "strict":
+            die(f"concept-art gate failed with {len(issues)} blocker(s); no store "
+                "panels were written. Regenerate the panorama, or use "
+                "--art-gate warn only for a diagnostic preview that cannot ship")
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -3398,6 +3551,17 @@ def main() -> None:
                    help="target height of the hero as a fraction of panel 1. The "
                         "character stays wholly inside the canvas; the bottom object "
                         f"band hides its feet. Default {HERO_H}.")
+    t.add_argument("--hero-bounds", metavar="X,Y,W,H",
+                   help="tight normalized box around the COMPLETE hero in the final "
+                        "render, including held/worn/attached props. Required by the "
+                        "strict final-art gate so a book, hat, hand, or weapon cannot "
+                        "cross panel 1's edges after integration.")
+    t.add_argument("--art-gate", choices=("strict", "warn", "off"), default="strict",
+                   help="validate the panorama against the supplied composition brief. "
+                        "`strict` (default) writes no panels when the art is dark, busy "
+                        "in the far plane, weak at the bottom, missing controlled glare, "
+                        "or the measured hero leaves panel 1. `warn` is only for a "
+                        "diagnostic preview; `off` is for compositor unit tests.")
     t.add_argument("--object-frame", default="auto", metavar="auto|N|off",
                    help="how many unassigned sprites form the dense cropped band "
                         "along the bottom edge. `auto` uses up to 60%% of the manifest "

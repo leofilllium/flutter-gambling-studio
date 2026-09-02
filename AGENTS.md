@@ -25,7 +25,9 @@ current game's Design DNA. Never use cropping or device chrome to hide a weak ga
 Concept panoramas lead with a large protagonist wholly inside the left panel, use real game objects
 as a cropped bottom frame and as falling motion through the picture, and keep the bright far
 background broad and smooth so those subjects lead. Saturation and a controlled blown light source
-are measured requirements, not optional post-processing taste.
+are measured requirements, not optional post-processing taste. The complete hero silhouette,
+including held props, must clear the first panel seam; generic stage furniture does not count as
+game objects; and a saturated dark, hyper-detailed far plane still fails the brightness contract.
 
 All agent responses must be in English, and every artifact the pipeline writes — design documents, concepts, reports, session state and commit messages — must be in English as well. Dart/Flutter code, file paths, class names and CLI commands are English by definition.
 
