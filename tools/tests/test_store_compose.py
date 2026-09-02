@@ -53,6 +53,8 @@ class ReassemblyTests(unittest.TestCase):
             offset=0.0, gutter=store_compose.DEFAULT_GUTTER, seam_snap="auto",
             sprite=[], sprite_glow_color="#FFFFFF",
             sprite_light=store_compose.DEFAULT_SPRITE_LIGHT,
+            hero_height=store_compose.HERO_H, object_frame="auto",
+            no_falling=False, fall_trail=store_compose.DEFAULT_FALL_TRAIL,
             save_pano=str(pano_path), pano_only=False, pop="off", vibrance=None,
             lift=None, contrast=None, bloom=None, title=None, tagline=None,
             logo=None, title_panel=None, title_pos=None)
@@ -142,6 +144,11 @@ class SpriteSpecTests(unittest.TestCase):
         spec = store_compose.parse_sprite_spec("a/gem.png@prop,w=0.3,bleed=0.06")
         self.assertEqual(spec["role"], "prop")
         self.assertAlmostEqual(spec["bleed"], 0.06)
+        self.assertEqual(store_compose.parse_sprite_spec("a/coin.png@frame")["role"],
+                         "frame")
+        falling = store_compose.parse_sprite_spec("a/gem.png@fall,trail=0.4")
+        self.assertEqual(falling["role"], "fall")
+        self.assertAlmostEqual(falling["trail"], 0.4)
 
     def test_unknown_or_non_numeric_keys_are_refused(self) -> None:
         for bad in ("a.png@z=4", "a.png@x=left", "@x=0.5", "a.png@villain"):
@@ -199,15 +206,22 @@ class PopGradeTests(unittest.TestCase):
     def test_presets_are_monotonic(self) -> None:
         src = self._ramp()
         lumas = [self._stats(store_compose.pop_grade(src, p))[0]
-                 for p in ("off", "soft", "vivid", "max")]
+                 for p in ("off", "soft", "vivid", "blaze", "max")]
         self.assertEqual(lumas, sorted(lumas))
 
     def test_no_preset_blows_the_highlights_out(self) -> None:
         # A flat white patch is what a naive saturate+brighten destroys first.
         src = self._ramp()
-        for preset in ("soft", "vivid", "max"):
+        for preset in ("soft", "vivid", "blaze", "max"):
             with self.subTest(preset=preset):
                 self.assertLess(self._stats(store_compose.pop_grade(src, preset))[2], 0.02)
+
+    def test_reference_calibrated_blaze_is_the_default(self) -> None:
+        self.assertEqual(store_compose.DEFAULT_POP, "blaze")
+        src = self._ramp()
+        np.testing.assert_array_equal(
+            np.asarray(store_compose.pop_grade(src)),
+            np.asarray(store_compose.pop_grade(src, "blaze")))
 
     def test_off_is_a_no_op_and_alpha_survives(self) -> None:
         src = self._ramp()
@@ -351,6 +365,86 @@ class DetailReportTests(unittest.TestCase):
         self.assertEqual(messages, [])
 
 
+class ReferenceBriefReportTests(unittest.TestCase):
+    """The newest reference kit: smooth plate, object-heavy floor, vivid glare."""
+
+    PANEL_W, PANEL_H = 200, 400
+
+    def _messages(self, callback) -> list[str]:
+        messages: list[str] = []
+        original_warn, original_info = store_compose.warn, store_compose.info
+        store_compose.warn = messages.append  # type: ignore[assignment]
+        store_compose.info = lambda *_: None  # type: ignore[assignment]
+        try:
+            callback()
+        finally:
+            store_compose.warn = original_warn  # type: ignore[assignment]
+            store_compose.info = original_info  # type: ignore[assignment]
+        return messages
+
+    def _spans(self) -> list[tuple[int, int]]:
+        return store_compose.uniform_spans(2, self.PANEL_W, 0)
+
+    def test_a_smooth_bright_plate_passes_the_backdrop_ceiling(self) -> None:
+        pano = store_compose.gradient(
+            (self.PANEL_W * 2, self.PANEL_H),
+            [(0.0, (30, 90, 220, 255)), (1.0, (250, 150, 210, 255))])
+        messages = self._messages(lambda: store_compose.backdrop_report(
+            pano, self._spans()))
+        self.assertFalse([m for m in messages if "background is busy" in m], messages)
+
+    def test_a_noisy_plate_is_rejected_before_objects_land(self) -> None:
+        rng = np.random.default_rng(31)
+        pano = Image.fromarray(rng.integers(
+            0, 255, (self.PANEL_H, self.PANEL_W * 2, 3), dtype=np.uint8),
+            "RGB").convert("RGBA")
+        messages = self._messages(lambda: store_compose.backdrop_report(
+            pano, self._spans()))
+        self.assertTrue(any("background is busy" in m for m in messages), messages)
+
+    def test_detail_must_be_heavier_in_the_bottom_object_band(self) -> None:
+        rng = np.random.default_rng(47)
+        pano = Image.new("RGBA", (self.PANEL_W * 2, self.PANEL_H),
+                         (50, 80, 180, 255))
+        noise = Image.fromarray(rng.integers(
+            0, 255, (140, self.PANEL_W * 2, 3), dtype=np.uint8),
+            "RGB").convert("RGBA")
+        pano.paste(noise, (0, self.PANEL_H - noise.height))
+        messages = self._messages(lambda: store_compose.detail_report(
+            pano, self._spans()))
+        self.assertFalse([m for m in messages if "not framed from below" in m], messages)
+
+        flipped = pano.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        messages = self._messages(lambda: store_compose.detail_report(
+            flipped, self._spans()))
+        self.assertTrue(any("not framed from below" in m for m in messages), messages)
+
+    def test_colour_and_overexposure_are_both_measured(self) -> None:
+        dull = Image.new("RGB", (100, 100), (110, 110, 110)).convert("RGBA")
+        messages = self._messages(lambda: store_compose.glare_report(dull))
+        self.assertTrue(any("undersaturated" in m for m in messages), messages)
+        self.assertTrue(any("nothing in the picture is blown out" in m for m in messages),
+                        messages)
+
+        vivid = Image.new("RGB", (100, 100), (20, 40, 230))
+        ImageDraw.Draw(vivid).rectangle([0, 0, 9, 99], fill=(255, 255, 255))
+        messages = self._messages(
+            lambda: store_compose.glare_report(vivid.convert("RGBA")))
+        self.assertEqual(messages, [])
+
+
+class ObjectFrameParsingTests(unittest.TestCase):
+    def test_auto_off_and_counts_are_accepted(self) -> None:
+        self.assertEqual(store_compose.parse_object_frame("auto"), "auto")
+        self.assertEqual(store_compose.parse_object_frame("off"), "off")
+        self.assertEqual(store_compose.parse_object_frame("4"), 4)
+
+    def test_negative_or_non_numeric_counts_are_refused(self) -> None:
+        for bad in ("many", "-1"):
+            with self.subTest(bad=bad), self.assertRaises(SystemExit):
+                store_compose.parse_object_frame(bad)
+
+
 class InlayTests(unittest.TestCase):
     """The designer's two notes: hero on the first screen, objects built in.
 
@@ -384,10 +478,10 @@ class InlayTests(unittest.TestCase):
         w = self.PANEL_W * self.PANELS + self.GUTTER * (self.PANELS - 1)
         return Image.new("RGBA", (w, self.PANEL_H), (30, 90, 140, 255))
 
-    def _inlay(self, *specs: str) -> list[str]:
+    def _inlay(self, *specs: str, **kwargs) -> list[str]:
         return store_compose.inlay_sprites(
             self._pano(), list(specs), self.PANELS, self.PANEL_W, self.PANEL_H,
-            self.GUTTER)
+            self.GUTTER, **kwargs)
 
     def test_the_first_object_leads_on_panel_one_as_the_hero(self) -> None:
         # Screenshot 1 is the only one the store shows at full size, so an
@@ -445,9 +539,52 @@ class InlayTests(unittest.TestCase):
 
     def test_supporting_objects_are_tucked_behind_the_scene_by_default(self) -> None:
         lines = self._inlay(self._sprite("hero.png", (200, 420)),
-                            self._sprite("gem.png", (160, 160)))
+                            self._sprite("gem.png", (160, 160)) + "@prop")
         prop = next(line for line in lines if line.startswith("prop"))
         self.assertIn("occluded by the foreground", prop, lines)
+
+    def test_the_bottom_band_reaches_every_panel_before_it_doubles_up(self) -> None:
+        lines = self._inlay(self._sprite("hero.png", (200, 420)),
+                            self._sprite("board.png", (360, 360)) + "@board",
+                            *(self._sprite(f"frame{i}.png", (160, 160))
+                              for i in range(3)),
+                            falling=False)
+        frames = [line for line in lines if line.startswith("frame")]
+        self.assertEqual({int(line.split("panel ")[1].split()[0]) for line in frames},
+                         {1, 2, 3}, frames)
+        self.assertTrue(all(int(line.split("@")[1].split(",")[1].split()[0])
+                            > self.PANEL_H * 0.8 for line in frames), frames)
+
+    def test_the_remaining_objects_fall_through_the_picture(self) -> None:
+        lines = self._inlay(*(self._sprite(f"o{i}.png", (160, 160))
+                              for i in range(11)))
+        falling = [line for line in lines if line.startswith("fall")]
+        self.assertTrue(falling, lines)
+        self.assertEqual({int(line.split("panel ")[1].split()[0]) for line in falling},
+                         {1, 2, 3}, falling)
+        self.assertTrue(any("motion trail" in line for line in falling), falling)
+        centres = [int(line.split("@")[1].split(",")[1].split()[0])
+                   for line in falling]
+        self.assertLess(min(centres), self.PANEL_H * 0.25)
+        self.assertGreater(max(centres), self.PANEL_H * 0.45)
+
+    def test_disabling_both_new_populations_keeps_the_legacy_prop_layout(self) -> None:
+        lines = self._inlay(self._sprite("hero.png", (200, 420)),
+                            self._sprite("gem.png", (160, 160)),
+                            frame_target="off", falling=False)
+        self.assertTrue(any(line.startswith("prop") for line in lines), lines)
+
+    def test_the_hero_is_reported_when_an_override_pushes_it_outside(self) -> None:
+        self._inlay(self._sprite("hero.png", (200, 420)) + "@hero,y=1.1")
+        self.assertTrue(any("hero runs past the bottom" in m
+                            for m in self.quiet_warnings), self.quiet_warnings)
+
+    def test_the_bottom_frame_is_painted_in_front_of_the_hero(self) -> None:
+        lines = self._inlay(self._sprite("hero.png", (200, 420)),
+                            self._sprite("coin.png", (160, 160)))
+        hero_i = next(i for i, line in enumerate(lines) if line.startswith("hero"))
+        frame_i = next(i for i, line in enumerate(lines) if line.startswith("frame"))
+        self.assertLess(hero_i, frame_i, lines)
 
     def test_the_hero_is_sized_by_the_panel_s_height_not_its_width(self) -> None:
         # "the player on the first slide should be bigger — full height, but not
@@ -799,8 +936,8 @@ class OcclusionTests(unittest.TestCase):
         self.assertGreater(alpha[-1].mean(), 240)
 
     def test_art_off_the_canvas_is_never_smeared_back(self) -> None:
-        # The hero's feet run past the bottom edge on purpose. Edge-extended
-        # rows would paint a band of the last visible pixel row over its shins.
+        # Explicit y=/bleed= overrides can still run an object past the edge.
+        # Edge-extended rows must never paint the last pixel row over its shins.
         pano = self._pano()
         layer, _, y = store_compose.scene_front(pano, 40, 100, 120, 140, 0.3)
         self.assertLessEqual(y + layer.height, pano.height)

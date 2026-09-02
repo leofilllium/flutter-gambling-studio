@@ -19,8 +19,13 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             layout draft — hero on panel 1, the real field on panel 2, and ALL
             shipped sprite assets distributed across the slides — so every
             split panel belongs unmistakably to the game. Auto-placement fills
-            uncovered panels first and supporting props are tucked behind the
-            scene's foreground. The inlaid result is a generation reference,
+            uncovered panels first; supporting objects form a cropped band
+            across the bottom and then fall through the full picture with
+            varied rotation and selective motion trails. The large hero stays
+            wholly inside panel 1 while that foreground band overlaps its feet.
+            The bare background is measured to stay bright and smooth, and the
+            finished art is measured for bottom weight, saturation and controlled
+            overexposure. The inlaid result is a generation reference,
             never the final paste-up: the finished panorama is rendered as one
             scene from this context. It carries NO TEXT: lettering across a
             panel boundary is cut by the store's gutters, and a lockup inside
@@ -59,9 +64,9 @@ fractional-alpha shadows and display typography are exactly the steps that
 silently degrade when written as one-off `convert` incantations. Here they are
 deterministic, testable and identical across every game.
 
-Every generated-art path is colour graded on the way out (`--pop`): a listing is
-reviewed as a strip of thumbnails beside nine competitors, and ungraded model
-output reads washed out there. Real gameplay frames are never graded — a store
+Every generated-art path is colour graded on the way out (`--pop`, default
+`blaze`): a listing is reviewed as a strip of thumbnails beside nine competitors,
+and ungraded model output reads washed out there. Real gameplay frames are never graded — a store
 screenshot must show what the app renders, so a dull frame is fixed by giving
 the game the key art as its background, not in post.
 
@@ -1006,30 +1011,43 @@ def treat_background(bg: Image.Image, treatment: str) -> Image.Image:
 # Contrast is a smoothstep blend, which cannot crush a shadow to black. The
 # bloom — a screen-blended blur of the highlights — is what actually reads as
 # "brighter" once the image is thumbnail-sized.
+#
+# The reference kits the user sent back as "do it like these" measure a mean
+# pixel saturation of 0.71 (0.47-0.89 across the eight) and carry 1.0-12.2% of
+# their area at fully blown luma — so the ask is not a nudge, and the blown
+# light is deliberate ("можно использовать пересвет"). The default preset is
+# therefore `blaze`: vivid's saturation pushed up and, more importantly, a wider
+# bloom knee, which is what spreads a light source into the glare those
+# references have. The grade still cannot clip on its own — the blow-out has to
+# be a light in the picture, drawn in Phase 1 — because a grade that clipped
+# would flatten the objects the same note wants standing out.
 
 LUMA = np.asarray([0.2126, 0.7152, 0.0722], dtype=np.float32)
 
-POP_PRESETS: dict[str, tuple[float, float, float, float]] = {
-    # name:  vibrance, lift, contrast, bloom
-    "off":   (0.00, 0.00, 0.00, 0.00),
-    "soft":  (0.14, 0.03, 0.06, 0.10),
-    "vivid": (0.30, 0.07, 0.12, 0.22),
-    "max":   (0.48, 0.12, 0.18, 0.36),
+POP_PRESETS: dict[str, tuple[float, float, float, float, float]] = {
+    # name:  vibrance, lift, contrast, bloom, knee (where the bloom starts)
+    "off":   (0.00, 0.00, 0.00, 0.00, 0.72),
+    "soft":  (0.14, 0.03, 0.06, 0.10, 0.78),
+    "vivid": (0.30, 0.07, 0.12, 0.22, 0.72),
+    "blaze": (0.38, 0.09, 0.13, 0.32, 0.62),
+    "max":   (0.48, 0.12, 0.18, 0.36, 0.58),
 }
-DEFAULT_POP = "vivid"
+DEFAULT_POP = "blaze"
 
 
 def pop_grade(img: Image.Image, preset: str = DEFAULT_POP, *,
               vibrance: float | None = None, lift: float | None = None,
-              contrast: float | None = None, bloom: float | None = None) -> Image.Image:
+              contrast: float | None = None, bloom: float | None = None,
+              knee: float | None = None) -> Image.Image:
     """Saturate and brighten generated art so it survives thumbnail review."""
     if preset not in POP_PRESETS:
         die(f"--pop {preset}: choose one of {', '.join(POP_PRESETS)}")
-    p_vib, p_lift, p_con, p_bloom = POP_PRESETS[preset]
+    p_vib, p_lift, p_con, p_bloom, p_knee = POP_PRESETS[preset]
     vib = p_vib if vibrance is None else vibrance
     lft = p_lift if lift is None else lift
     con = p_con if contrast is None else contrast
     blm = p_bloom if bloom is None else bloom
+    knee = p_knee if knee is None else max(0.05, min(0.95, float(knee)))
     if max(abs(vib), abs(lft), abs(con), abs(blm)) < 1e-4:
         return img
 
@@ -1046,13 +1064,14 @@ def pop_grade(img: Image.Image, preset: str = DEFAULT_POP, *,
         sat = rgb.max(axis=-1, keepdims=True) - rgb.min(axis=-1, keepdims=True)
         rgb = np.clip(luma + (rgb - luma) * (1.0 + vib * (1.0 - sat)), 0.0, 1.0)
     if blm:
-        knee = 0.72
         luma = (rgb * LUMA).sum(axis=-1, keepdims=True)
         highlights = np.clip((luma - knee) / (1.0 - knee), 0.0, 1.0)
         halo = Image.fromarray(
             (np.clip(rgb * highlights, 0.0, 1.0) * 255 + 0.5).astype(np.uint8), "RGB")
+        # The stronger the bloom, the wider it spreads: a tight halo reads as a
+        # rim light, a wide one as the glare the reference art actually has.
         halo = halo.filter(ImageFilter.GaussianBlur(
-            max(2.0, min(img.width, img.height) * 0.012)))
+            max(2.0, min(img.width, img.height) * (0.012 + 0.012 * blm))))
         h = np.asarray(halo, dtype=np.float32) / 255.0
         rgb = 1.0 - (1.0 - rgb) * (1.0 - np.clip(h * blm, 0.0, 1.0))
 
@@ -1359,46 +1378,160 @@ def seam_report(pano: Image.Image, spans: list[tuple[int, int]]) -> None:
 # not — so it is measured here rather than left to a vision pass that has
 # already accepted it once.
 
+# The round that followed refined WHERE that detail belongs, and the two notes
+# have to be held together or each one undoes the other: "фон яркий, НЕ
+# детализированный, больше гладкий, чтобы персонаж и объекты выделялись". The
+# picture still may not be a gradient with one object on it — but the density
+# now lives in the game's own objects and the character, not in the backdrop's
+# texture. So the same measurement runs at two stages against opposite targets:
+#
+#   the base art, before any object lands  →  must be SMOOTH (a ceiling)
+#   the finished panorama, objects and all →  must be DENSE  (the floors below)
+#
+# and the finished picture has to be bottom-heavy, because the objects frame it
+# from below. Every threshold here was measured on the eight reference pictures
+# the user sent, cover-cropped to this exact 3-panel panorama geometry:
+# per-panel detail ran 10.2-37.6 (mean 23.4), empty share 0-49% (mean 13%), the
+# upper 55% of a panel 7.8-36.7 (mean 20.3), and the lower third carried
+# 1.58x the upper half's detail on average (0.84-3.95, and above 1.0 in 20 of
+# the 24 panels).
 FLAT_LEVEL = 3.0     # local activity below this reads as empty ground
 FLAT_SHARE = 0.55    # more of the panel than this being empty = a backdrop
 THIN_DETAIL = 4.0    # mean activity below this = nothing is going on at all
+BACKDROP_BUSY = 20.0  # base-art upper band above this competes with the subject
+UPPER_BAND = 0.55    # of the panel's height, measured from the top
+LOWER_BAND = 0.65    # the frame band starts here
+FRAME_RATIO_MIN = 0.95  # lower/upper detail below this = no object frame below
+
+
+def _activity(pano: Image.Image) -> tuple[np.ndarray, float]:
+    """Local visual activity of the picture, plus the downscale factor.
+
+    Local activity, not per-pixel edges: a smooth gradient scores zero either
+    way, but ornament, texture, particles and material breakup survive the blur,
+    which is exactly the difference between an illustration and a wash.
+    """
+    energy, scale = _edge_map(pano, 360)
+    return np.asarray(
+        Image.fromarray(energy.clip(0, 255).astype(np.uint8))
+        .filter(ImageFilter.BoxBlur(4)), dtype=np.float32), scale
+
+
+def _panel_slice(activity: np.ndarray, span: tuple[int, int],
+                 scale: float) -> np.ndarray:
+    a = max(0, int(round(span[0] * scale)))
+    b = min(activity.shape[1], max(a + 1, int(round(span[1] * scale))))
+    return activity[:, a:b]
+
+
+def backdrop_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[float]:
+    """Is the BASE art smooth enough for the objects to stand out on it?
+
+    Run before any object is composited. A background that is already as busy as
+    a finished picture leaves the hero and the game's objects nothing to read
+    against — which is the complaint this measures, in the user's own words:
+    the background should be bright and smooth *so that* the character and the
+    objects stand out. The ceiling is the reference art's own upper-band detail
+    (mean 20.3) — and those references already have their falling objects in
+    them, so a bare plate measuring that much is over budget before it starts.
+    """
+    activity, scale = _activity(pano)
+    means: list[float] = []
+    for i, span in enumerate(spans):
+        panel = _panel_slice(activity, span, scale)
+        upper = float(panel[:max(1, int(panel.shape[0] * UPPER_BAND))].mean())
+        means.append(upper)
+        info(f"panel {i + 1} backdrop: detail {upper:.1f} in its upper "
+             f"{UPPER_BAND:.0%} before any object lands")
+        if upper > BACKDROP_BUSY:
+            warn(f"panel {i + 1}'s background is busy ({upper:.1f}, over {BACKDROP_BUSY:.0f}) "
+                 "— it will compete with the hero and the game's objects instead of "
+                 "letting them stand out. The brief asks for a bright, saturated, "
+                 "deliberately smooth backdrop: broad colour, a blown light source, "
+                 "soft atmosphere and simplified far shapes, with the detail spent "
+                 "on the objects in front of it. Regenerate the base art simpler — "
+                 "do not blur it in post, which only makes it look out of focus.")
+    return means
 
 
 def detail_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[float]:
-    """Per-panel richness: how much of each panel carries any detail at all."""
-    energy, scale = _edge_map(pano, 360)
-    small_w = energy.shape[1]
-    # Local activity, not per-pixel edges: a smooth gradient scores zero either
-    # way, but ornament, texture, particles and material breakup survive the
-    # blur, which is exactly the difference between an illustration and a wash.
-    activity = np.asarray(
-        Image.fromarray(energy.clip(0, 255).astype(np.uint8))
-        .filter(ImageFilter.BoxBlur(4)), dtype=np.float32)
+    """Per-panel richness of the FINISHED picture, objects and all."""
+    activity, scale = _activity(pano)
 
     shares: list[float] = []
-    for i, (left, right) in enumerate(spans):
-        a = max(0, int(round(left * scale)))
-        b = min(small_w, max(a + 1, int(round(right * scale))))
-        panel = activity[:, a:b]
+    for i, span in enumerate(spans):
+        panel = _panel_slice(activity, span, scale)
+        rows = panel.shape[0]
         flat = float((panel < FLAT_LEVEL).mean())
         mean = float(panel.mean())
+        upper = float(panel[:max(1, int(rows * UPPER_BAND))].mean())
+        lower = float(panel[int(rows * LOWER_BAND):].mean())
+        ratio = lower / max(upper, 1e-6)
         shares.append(flat)
-        info(f"panel {i + 1}: detail {mean:.1f}, {flat * 100:.0f}% of it empty ground")
+        info(f"panel {i + 1}: detail {mean:.1f}, {flat * 100:.0f}% of it empty ground, "
+             f"lower band {ratio:.2f}× the upper")
+        if ratio < FRAME_RATIO_MIN:
+            warn(f"panel {i + 1} is not framed from below ({ratio:.2f}× — the reference "
+                 f"art averages 1.58×). The game's objects are supposed to crowd the "
+                 "picture's bottom edge and be cropped by it, which is what gives every "
+                 "slide a foreground. Add sprites to the band (--object-frame), or ask "
+                 "the integration render to keep the band it was given.")
         if flat > FLAT_SHARE:
             reason = (f"{flat * 100:.0f}% of it is empty ground — a subject on a wash, "
-                      "with no background place and nothing carrying the quiet areas")
+                      "with nothing crossing the frame and nothing in the air")
         elif mean < THIN_DETAIL:
             reason = (f"its detail measures {mean:.1f} — the shapes are there but they "
-                      "are flat fills: no material texture, ornament or secondary light "
-                      "anywhere in the frame")
+                      "are flat fills: no material response, no ornament on the objects "
+                      "and no secondary light anywhere in the frame")
         else:
             continue
         warn(f"panel {i + 1} reads as a backdrop, not a finished illustration: {reason}. "
-             "Beside a competitor's listing that reads as a placeholder. Regenerate the "
-             "art with three occupied depth planes, ornament at more than one scale, a "
-             "second light source, differentiated materials, and atmosphere through the "
-             "empty region — do not grade or crop it into looking finished.")
+             "Beside a competitor's listing that reads as a placeholder. The fix is "
+             "more of the GAME in the picture — the bottom object frame, more objects "
+             "falling through the full height, ornament and material on the objects "
+             "themselves and a second light on them — not more texture in the "
+             "background, which the same round of notes asked to keep smooth. Never "
+             "grade or crop a thin panel into looking finished.")
     return shares
+
+
+# "Вся картинка насыщенная… можно использовать пересвет." Both halves measured
+# on the eight references: mean pixel saturation 0.71 (0.47-0.89), and 1.0-12.2%
+# of each picture sitting at fully blown luma. The blow-out is a light source
+# drawn into the art, not something the grade does — `pop_grade` is built so it
+# cannot clip — so this checks the art came back with one.
+SAT_FLOOR = 0.45     # below this the picture is grey beside the references
+GLARE_MIN = 0.006    # no blown highlight at all = no light source in the scene
+GLARE_MAX = 0.20     # past this the picture is washing out, not glowing
+
+
+def glare_report(pano: Image.Image) -> tuple[float, float]:
+    """Saturation and blown-highlight share of the finished picture."""
+    arr = np.asarray(pano.convert("RGB"), dtype=np.float32) / 255.0
+    mx, mn = arr.max(axis=-1), arr.min(axis=-1)
+    sat = float(np.where(mx > 1e-6, (mx - mn) / np.maximum(mx, 1e-6), 0.0).mean())
+    luma = (arr * LUMA).sum(axis=-1)
+    blown = float((luma > 0.95).mean())
+    info(f"colour: saturation {sat:.2f} (reference art 0.47-0.89, mean 0.71), "
+         f"{blown * 100:.1f}% of the picture blown out "
+         f"({GLARE_MIN * 100:.1f}-{GLARE_MAX * 100:.0f}% is the reference band)")
+    if sat < SAT_FLOOR:
+        warn(f"the picture is undersaturated ({sat:.2f}) — beside the reference kit it "
+             "will read as grey. Ask the image model for the vivid end of the game's "
+             "palette and raise the grade (--pop max), and check the art itself is not "
+             "a pastel wash the grade is being asked to rescue.")
+    if blown < GLARE_MIN:
+        warn(f"nothing in the picture is blown out ({blown * 100:.1f}%) — the note "
+             "explicitly allows overexposure, and every reference has a light source "
+             "burning out somewhere: a sun behind the hero, a burst off the payout, a "
+             "rim eating into the silhouette. Ask Phase 1 for one. It cannot be added "
+             "in the grade, which is built not to clip.")
+    elif blown > GLARE_MAX:
+        warn(f"{blown * 100:.1f}% of the picture is blown out — past the reference band, "
+             "so the glare is now eating the hero and the objects instead of lighting "
+             "them. Drop to --pop vivid, or regenerate with the light source smaller "
+             "and further behind the subject.")
+    return sat, blown
 
 
 def crown_report(pano: Image.Image, span: tuple[int, int], hero_top: int,
@@ -1477,10 +1610,19 @@ def crown_report(pano: Image.Image, span: tuple[int, int], hero_top: int,
 # the note: it is where the berth's ornament lives (arch, crest, banner, the
 # light burst behind the head), and it is what keeps "bigger" from becoming
 # "cropped at the neck".
+#
+# The round after *that* arrived with eight reference pictures and one sentence
+# about the character: "слева крупный персонаж, НЕ выходящий за края
+# изображения" — large, on the left, and not running off the edges. The feet
+# past the bottom edge were the previous round's own idea of "full height", and
+# they are what that note overturns: in all eight references the figure is whole
+# inside the frame, and what hides its feet is the *band of game objects along
+# the bottom*, not the canvas edge. So the hero now lands its feet just inside
+# the panel and the frame band closes over them.
 HERO_H = 0.72                     # of the panel's HEIGHT — the driver
 HERO_W = 0.86                     # of the panel's WIDTH — a cap, not a target
 HERO_MIN_H = 0.60                 # below this the figure is scenery again
-HERO_X, HERO_FOOT = 0.47, 1.04    # foot past the frame: the hero stands in front
+HERO_X, HERO_FOOT = 0.47, 0.97    # inside the frame: the object band hides the feet
 HERO_OCCLUDE = 0.14               # of its height, taken back by the foreground
 PROP_H = 0.42                     # height cap for a supporting object
 PROP_OCCLUDE = 0.08               # props also sit behind scene furniture, not on it
@@ -1492,6 +1634,53 @@ _PROP_X = (0.34, 0.66, 0.50, 0.24, 0.76, 0.42, 0.58, 0.16,
            0.84, 0.31, 0.69, 0.50)
 _PROP_FOOT = (1.02, 0.88, 0.97, 0.84, 1.00, 0.78, 0.74, 0.92,
               0.86, 0.68, 0.72, 0.62)
+
+# ── the bottom object frame and the fall ────────────────────────────────────
+#
+# The same eight references gave the supporting objects a shape the old single
+# "prop" role could not express: "объекты из игры снизу обрамляют картинку,
+# можно сделать их падающими по всему изображению". Two populations, not one.
+#
+#   frame — a dense row of the game's own objects along the BOTTOM edge, big,
+#           overlapping each other, deliberately cropped by the edge. It is the
+#           picture's border and its closest depth plane, so it paints over
+#           everything including the hero's feet. Measured on the references:
+#           the lower third of a panel carries 1.58× the detail of its upper
+#           half, and that band is where the difference lives.
+#   fall  — the same kind of object airborne across the WHOLE canvas: smaller,
+#           rotated, ungrounded (no contact shadow — nothing is under them),
+#           some with a motion smear behind them. This is what fills the quiet
+#           middle of the picture without making the background busy.
+#
+# Between them they answer "the background should be smooth so the character
+# and the objects stand out" without giving anything back to the round-4 note
+# that a near-empty panel reads as a placeholder: the density moves from the
+# backdrop's texture into the game's own objects, which is where it sells.
+# Sized against the panel's WIDTH, with the height only a cap — the same way
+# the references scale: measured on them, a bottom-band object stands about
+# 0.30x the width of a panel-sized third, and the band it forms is the busiest
+# region of the picture. Cycled so the border has a rhythm instead of a row of
+# equal tiles.
+# Three across a panel is what it takes for the band to read as continuous at
+# these widths; the gap it leaves at each panel edge is deliberate and doubles
+# as the calm vertical corridor the seam contract asks the art for.
+FRAME_PER_PANEL = 3               # bottom-band objects per panel
+FRAME_SHARE = 0.60                # at most this much of the sprite set frames
+FRAME_H_CAP = 0.30                # of the panel's height — a ceiling, not a target
+_FRAME_W = (0.46, 0.36, 0.42, 0.32, 0.39, 0.29, 0.34)   # of the panel's width
+_FRAME_X = (0.26, 0.74, 0.50, 0.38, 0.62, 0.16, 0.84)   # across the panel
+_FRAME_FOOT = (1.17, 1.09, 1.21, 1.05, 1.13, 1.02, 1.07)  # past the bottom edge
+_FRAME_ROT = (-6, 5, -3, 9, -8, 4, -5)
+# Airborne objects. `y` is the CENTRE as a fraction of the panorama's height,
+# spread from just under the top edge down to the frame band, so the fall
+# crosses the whole picture instead of hovering in one row.
+_FALL_W = (0.26, 0.17, 0.22, 0.13, 0.20, 0.15, 0.24, 0.11, 0.19, 0.14)
+_FALL_X = (0.30, 0.72, 0.18, 0.58, 0.86, 0.44, 0.12, 0.66, 0.38, 0.80)
+_FALL_Y = (0.17, 0.35, 0.53, 0.11, 0.27, 0.45, 0.61, 0.21, 0.39, 0.31)
+_FALL_ROT = (-18, 12, 24, -9, 15, -27, 8, 20, -14, 6)
+_FALL_TRAIL = (0.6, 0.0, 0.4, 0.0, 0.7, 0.0, 0.3, 0.5, 0.0, 0.35)
+FALL_FRONT_W = 0.20               # at or above this it falls IN FRONT of the hero
+DEFAULT_FALL_TRAIL = 1.0          # multiplier on the per-object smear above
 # The play field built out of the game's REAL symbols (`boardplate`). It is the
 # picture's mechanic, so it takes the middle panel at nearly full width and
 # stands inside the frame instead of bleeding off the bottom like a foreground
@@ -1504,12 +1693,17 @@ BOARD_X, BOARD_FOOT = 0.50, 0.88
 DEFAULT_SPRITE_LIGHT = 0.35       # how hard an object is pulled into the scene
 SPRITE_EXTENSIONS = frozenset((".png", ".webp", ".jpg", ".jpeg"))
 _SPRITE_KEYS = ("x", "y", "w", "h", "rot", "glow", "shadow", "opacity", "panel",
-                "bleed", "contact", "light", "occlude")
-_SPRITE_FLAGS = ("hero", "prop", "board")
+                "bleed", "contact", "light", "occlude", "trail")
+# `prop` is the legacy standing object — kept so an explicit assignment still
+# does exactly what it used to. An untagged sprite is now sorted into `frame`
+# (the bottom border) or `fall` (airborne) instead, which is the composition the
+# reference art uses.
+_SPRITE_FLAGS = ("hero", "prop", "board", "frame", "fall")
+_AUTO_ROLES = ("frame", "fall")
 
 
 def parse_sprite_spec(spec: str) -> dict:
-    """`path[@hero|prop,x=0.3,y=0.6,w=0.34,rot=-8,bleed=0.05,contact=0.6,...]`."""
+    """`path[@hero|prop|frame|fall,x=0.3,y=0.6,w=0.34,rot=-8,contact=0.6,...]`."""
     path, _, tail = str(spec).partition("@")
     path = path.strip()
     if not path:
@@ -1672,6 +1866,40 @@ def scene_front(pano: Image.Image, x0: int, y0: int, w: int, h: int,
     return front, bx0, top
 
 
+def motion_trail(art: Image.Image, lean: float, strength: float) -> Image.Image:
+    """Smear a falling object along its travel, the way the reference art does.
+
+    An airborne object with a hard edge and no trail reads as pasted; the same
+    object with a short streak behind it reads as *falling through the picture*,
+    which is what "можно сделать их падающими по всему изображению" asks for.
+
+    The streak is built by stacking blurred, fading copies behind the crisp
+    sprite along its travel direction (down, leaning with its rotation), so the
+    object itself stays sharp and only its wake softens. The canvas is padded
+    symmetrically, so the caller's centre alignment is unchanged.
+    """
+    s = max(0.0, min(2.0, strength))
+    if s <= 0.01:
+        return art
+    length = max(2.0, art.height * 0.55 * min(1.0, s))
+    pad = int(math.ceil(length)) + 2
+    out = Image.new("RGBA", (art.width + 2 * pad, art.height + 2 * pad), (0, 0, 0, 0))
+    steps = 6
+    rad = math.radians(lean)
+    for i in range(steps, 0, -1):
+        t = i / steps
+        # Behind the object means back up its path: the fall is downward, tilted
+        # by however far the sprite itself is rotated.
+        dx = -math.sin(rad) * length * t
+        dy = -math.cos(rad) * length * t
+        ghost = art.filter(ImageFilter.GaussianBlur(max(1.0, art.width * 0.02 * t)))
+        fade = (1.0 - t) ** 1.5 * 0.55 * min(1.0, s)
+        ghost.putalpha(ghost.getchannel("A").point(lambda v, f=fade: int(v * f)))
+        out.alpha_composite(ghost, (pad + round(dx), pad + round(dy)))
+    out.alpha_composite(art, (pad, pad))
+    return out
+
+
 def contact_shadow(pano: Image.Image, cx: int, foot_y: int, width: int,
                    strength: float) -> None:
     """Ground the object where it meets the floor of the scene.
@@ -1694,10 +1922,64 @@ def contact_shadow(pano: Image.Image, cx: int, foot_y: int, width: int,
     paste_clipped(pano, layer, cx - layer.width // 2, foot_y - layer.height // 2)
 
 
+def parse_object_frame(spec: str | int) -> str | int:
+    """`auto` | `off` | a non-negative object count."""
+    text = str(spec).strip().lower()
+    if text in ("", "auto"):
+        return "auto"
+    if text in ("off", "none"):
+        return "off"
+    try:
+        count = int(text)
+    except ValueError:
+        die(f"--object-frame {spec}: expected auto, off, or an object count")
+    if count < 0:
+        die(f"--object-frame {spec}: the object count cannot be negative")
+    return count
+
+
+def assign_object_roles(parsed, panels: int, frame_target: str | int,
+                        falling: bool) -> None:
+    """Sort the supporting sprites into the bottom frame band and the fall.
+
+    The hero and the board keep their reserved roles; anything the caller tagged
+    explicitly is left alone. Everything else — which, with `--sprite-dir`, is
+    the whole shipped sprite library — is split so the bottom border is built
+    first and only then does the remainder go airborne. The border is the note
+    that came with the references ("объекты из игры снизу обрамляют картинку");
+    the fall is the option offered in the same sentence, and it is what carries
+    the middle of the picture while the background stays smooth.
+    """
+    frame_target = parse_object_frame(frame_target)
+    supporting = [s for s in parsed
+                  if s.get("role") not in ("hero", "board", "prop", "frame", "fall")]
+    if not supporting:
+        return
+    if frame_target == "off":
+        want = 0
+    elif frame_target == "auto":
+        # Enough to build a continuous border, but never so much of the library
+        # that nothing is left to fall through the middle of the picture — the
+        # note offered both and the references use both.
+        want = max(panels, min(panels * FRAME_PER_PANEL,
+                               round(len(supporting) * FRAME_SHARE)))
+    else:
+        want = max(0, int(frame_target))
+    if not falling and frame_target != "off":
+        want = len(supporting)
+    want = min(want, len(supporting))
+    for i, spec in enumerate(supporting):
+        spec["role"] = ("frame" if i < want else
+                        "fall" if falling else "prop")
+
+
 def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                   panel_h: int, gutter: int, glow_color: str = "#FFFFFF",
                   light: float = DEFAULT_SPRITE_LIGHT,
-                  spans: list[tuple[int, int]] | None = None) -> list[str]:
+                  spans: list[tuple[int, int]] | None = None,
+                  frame_target: str | int = "auto", falling: bool = True,
+                  fall_trail: float = DEFAULT_FALL_TRAIL,
+                  hero_height: float = HERO_H) -> list[str]:
     """Composite the game's OWN objects into the concept art.
 
     Stores reject listings whose first panels advertise a world the app does not
@@ -1729,6 +2011,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         lead = next((spec for spec in parsed if spec.get("role") != "board"), None)
         if lead is not None:
             lead["role"] = "hero"
+    assign_object_roles(parsed, panels, frame_target, falling)
 
     # Fixed placements claim their panels before auto props are distributed.
     # Without that look-ahead, `hero, prop, board` puts both of the latter on
@@ -1736,6 +2019,10 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
     # a three-slide story, so a real game anchor belongs on every slide before
     # any one slide receives a second prop.
     fixed_load = [0] * panels
+    reserved_role_load = {
+        "frame": [0] * panels,
+        "fall": [0] * panels,
+    }
     for spec in parsed:
         role = spec.get("role")
         if "x" in spec:
@@ -1751,22 +2038,36 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             continue
         fixed_panel = max(0, min(panels - 1, fixed_panel))
         fixed_load[fixed_panel] += 1
+        if role in reserved_role_load:
+            reserved_role_load[role][fixed_panel] += 1
 
     auto_load = fixed_load[:]
+    placed_role_load = {
+        "frame": [0] * panels,
+        "fall": [0] * panels,
+    }
 
     placements: list[dict] = []
-    prop_i = 0
+    prop_i = frame_i = fall_i = 0
     for spec in parsed:
         role = spec.get("role")
         hero, board = role == "hero", role == "board"
+        framed, falls = role == "frame", role == "fall"
         art = load_image(spec["path"], "game object")
         if art.getchannel("A").getextrema()[0] == 255:
             warn(f"{spec['path']} has no transparency — run "
                  f"`python3 tools/cutout.py {spec['path']} --type sprite` first, or the "
                  "key art will show the sprite's background box")
-        default_w = (HERO_W if hero else BOARD_W if board
-                     else _PROP_W[prop_i % len(_PROP_W)])
-        max_h = HERO_H if hero else BOARD_H if board else PROP_H
+        if framed:
+            default_w = _FRAME_W[frame_i % len(_FRAME_W)]
+            max_h = FRAME_H_CAP
+        elif falls:
+            default_w = _FALL_W[fall_i % len(_FALL_W)]
+            max_h = default_w * 1.6
+        else:
+            default_w = (HERO_W if hero else BOARD_W if board
+                         else _PROP_W[prop_i % len(_PROP_W)])
+            max_h = hero_height if hero else BOARD_H if board else PROP_H
         w_frac = float(spec.get("w", default_w))
         h_frac = float(spec.get("h", max_h))
         source_w = art.width
@@ -1785,7 +2086,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                  f"({w_frac:.2f}× the panel) binds first on a cutout this wide. "
                  "Export the hero as a tall full-body figure, crop its empty "
                  "margins, or raise the cap with w= — the first slide wants the "
-                 f"character at ~{HERO_H:.0%} of the panel height.")
+                 f"character at ~{hero_height:.0%} of the panel height.")
         if art.width > source_w * 2:
             # Foreground scale is the whole point now, so a small in-game sprite
             # gets blown up much harder than it used to. Say so before it lands
@@ -1794,7 +2095,9 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                  f"upscaled {art.width / source_w:.1f}× to {art.width}px — export the "
                  "asset larger, or draw this object into the panorama in Phase 1 "
                  "instead of compositing it")
-        rotation = float(spec.get("rot", 0.0))
+        rotation = float(spec.get("rot", _FRAME_ROT[frame_i % len(_FRAME_ROT)] if framed
+                                  else _FALL_ROT[fall_i % len(_FALL_ROT)] if falls
+                                  else 0.0))
         if rotation:
             art = art.rotate(rotation, resample=Image.BICUBIC, expand=True)
         opacity = max(0.0, min(1.0, float(spec.get("opacity", 1.0))))
@@ -1817,6 +2120,21 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                 # hero's panel, and never on the last one, which the store
                 # crops first on a narrow carousel.
                 panel = panels // 2
+            elif framed or falls:
+                # First fill any panel that does not yet have a real game
+                # anchor. Then give every panel this role before doubling up,
+                # while keeping the complete manifest balanced. This preserves
+                # the older hero/field/reward contract and still makes the
+                # bottom frame continuous once enough sprites exist.
+                role_name = "frame" if framed else "fall"
+                role_load = reserved_role_load[role_name]
+                order = list(range(1, panels)) + [0]
+                uncovered = [i for i in order if auto_load[i] == 0]
+                pool = uncovered or order
+                panel = min(pool, key=lambda i: (
+                    role_load[i], auto_load[i], order.index(i)))
+                role_load[panel] += 1
+                auto_load[panel] += 1
             else:
                 # Fill every split slide with a real game anchor before any
                 # panel gets another prop. Prefer panels after the hero's in
@@ -1826,21 +2144,40 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                 panel = min(order, key=lambda i: (auto_load[i], order.index(i)))
                 auto_load[panel] += 1
             panel = max(0, min(panels - 1, panel))
+            role_slot = (placed_role_load["frame"][panel] if framed else
+                         placed_role_load["fall"][panel] if falls else 0)
             frac = (HERO_X if hero else BOARD_X if board
+                    else _FRAME_X[role_slot % len(_FRAME_X)] if framed
+                    else _FALL_X[fall_i % len(_FALL_X)] if falls
                     else _PROP_X[prop_i % len(_PROP_X)])
             cx = round(cuts[panel][0] + frac * panel_w)
 
+        role_slot = (placed_role_load["frame"][panel] if framed else
+                     placed_role_load["fall"][panel] if falls else 0)
+
         # Objects are anchored by the foot, not the centre: that is what makes
-        # them stand on the scene's ground plane instead of floating in it.
+        # them stand on the scene's ground plane instead of floating in it. The
+        # exception is a falling object, which has no ground plane at all — it
+        # is placed by its centre, anywhere in the picture's height.
         if "y" in spec:
             cy = round(float(spec["y"]) * pano.height)
+        elif falls:
+            cy = round(pano.height * _FALL_Y[fall_i % len(_FALL_Y)])
         else:
             foot = (pano.height + float(spec["bleed"]) * art.height
                     if "bleed" in spec
-                    else pano.height * (HERO_FOOT if hero else BOARD_FOOT if board
-                                        else _PROP_FOOT[prop_i % len(_PROP_FOOT)]))
+                    else pano.height * (
+                        HERO_FOOT if hero else BOARD_FOOT if board
+                        else _FRAME_FOOT[role_slot % len(_FRAME_FOOT)]
+                        if framed else _PROP_FOOT[prop_i % len(_PROP_FOOT)]))
             cy = round(foot - art.height / 2)
-        if not hero and not board:
+        if framed:
+            placed_role_load["frame"][panel] += 1
+            frame_i += 1
+        elif falls:
+            placed_role_load["fall"][panel] += 1
+            fall_i += 1
+        elif not hero and not board:
             prop_i += 1
 
         left, right = cuts[panel]
@@ -1859,7 +2196,23 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
 
         placements.append({
             "art": art, "cx": cx, "cy": cy, "panel": panel, "hero": hero,
-            "board": board, "name": Path(spec["path"]).name,
+            "board": board, "framed": framed, "falls": falls,
+            "name": Path(spec["path"]).name,
+            # Painting order. The bottom band is the picture's closest plane, so
+            # it goes over everything — including the hero's feet, which is what
+            # replaces the old "feet past the bottom edge" now that the hero has
+            # to stay inside the frame. Big falling objects pass in front of the
+            # hero; small ones fall behind it.
+            "depth": (5 if framed else
+                      4 if falls and w_frac >= FALL_FRONT_W else
+                      3 if hero else 2 if board else 1 if not falls else 0),
+            # Only something standing on the scene's floor gets a contact
+            # shadow. An airborne object with an ellipse under it is a sticker
+            # with a bug.
+            "grounded": not falls,
+            "trail": (0.0 if not falls else max(0.0, min(2.0, float(spec.get(
+                "trail", _FALL_TRAIL[(fall_i - 1) % len(_FALL_TRAIL)])) * fall_trail))),
+            "lean": rotation,
             "glow": max(0.0, float(spec.get("glow", 0.22 if board else 0.28))),
             "shadow": max(0.0, min(1.0, float(spec.get("shadow", 0.42)))),
             "contact": max(0.0, min(1.0, float(spec.get("contact", 0.62)))),
@@ -1867,10 +2220,11 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             # The hero gets the deepest foreground overlap, but props also sit
             # behind a small amount of scene furniture. Otherwise a correctly
             # lit prop still reads as an icon pasted onto the illustration.
-            # The board stays unobscured because its cells must remain legible.
+            # The board stays unobscured because its cells must remain legible,
+            # and the frame band and the fall are foreground by definition.
             "occlude": max(0.0, min(0.5, float(
                 spec.get("occlude", HERO_OCCLUDE if hero else
-                         0.0 if board else PROP_OCCLUDE)))),
+                         0.0 if board or framed or falls else PROP_OCCLUDE)))),
         })
 
     anchors: list[list[str]] = [[] for _ in range(panels)]
@@ -1888,10 +2242,11 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
              "game continuity.")
 
     placed: list[str] = []
-    # Farthest first: the smaller an object is the deeper it sits, so painting in
-    # ascending size order lets the foreground overlap the midground the way a
-    # drawn scene does, instead of whichever order the caller typed.
-    for p in sorted(placements, key=lambda p: p["art"].width):
+    # Farthest first, by the depth plane each role belongs to and then by size,
+    # so the foreground overlaps the midground the way a drawn scene does
+    # instead of following whichever order the caller typed. The bottom band
+    # closes over the hero's feet last: that is the picture's own frame.
+    for p in sorted(placements, key=lambda p: (p["depth"], p["art"].width)):
         art, cx, cy = p["art"], p["cx"], p["cy"]
         x0, y0 = cx - art.width // 2, cy - art.height // 2
         art = seat_in_scene(art, plate_patch(pano, x0, y0, art.width, art.height),
@@ -1910,9 +2265,10 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             paste_clipped(pano, halo, cx - padded.width // 2, cy - padded.height // 2)
 
         foot = cy + art.height // 2
-        if foot < pano.height:
+        if foot < pano.height and p["grounded"]:
             # An object cropped by the bottom edge has no visible floor to
-            # shadow; one standing inside the frame does, and needs it.
+            # shadow; one standing inside the frame does, and needs it. One in
+            # mid-air has no floor under it at all.
             contact_shadow(pano, cx, foot, art.width, p["contact"])
 
         # Lifted BEFORE the paste, composited AFTER it: the object ends up
@@ -1921,10 +2277,15 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         # around the character and a character dropped onto a picture.
         front = scene_front(pano, x0, y0, art.width, art.height, p["occlude"])
 
-        node, pad = ((art, 0) if p["shadow"] <= 0 else
-                     drop_shadow(art, blur=max(4, round(art.width * 0.05)),
+        # The smear goes on last, so it is built from the object as it is
+        # actually lit and only widens the pasted node — never the geometry the
+        # panel/seam arithmetic above was done with.
+        node = motion_trail(art, p["lean"], p["trail"]) if p["trail"] else art
+        node, pad = ((node, 0) if p["shadow"] <= 0 else
+                     drop_shadow(node, blur=max(4, round(art.width * 0.05)),
                                  dy=round(art.width * 0.02), opacity=p["shadow"]))
-        paste_clipped(pano, node, cx - art.width // 2 - pad, cy - art.height // 2 - pad)
+        paste_clipped(pano, node, cx - node.width // 2 - pad,
+                      cy - node.height // 2 - pad)
         if front is not None:
             layer, fx, fy = front
             paste_clipped(pano, layer, fx, fy)
@@ -1933,15 +2294,64 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                  "lowest band to close over it — it will read as a layer in front of "
                  "the picture. Move it up (y=/bleed=) or draw a foreground into the "
                  "panorama at that spot")
-        role = "hero  " if p["hero"] else "board " if p["board"] else "prop  "
+        role = ("hero  " if p["hero"] else "board " if p["board"] else
+                "frame " if p["framed"] else "fall  " if p["falls"] else "prop  ")
         seating = " + occluded by the foreground" if front is not None else ""
+        if p["trail"]:
+            seating += f" + motion trail {p['trail']:.2f}"
         placed.append(f"{role}{p['name']} → panel "
                       f"{p['panel'] + 1} @ {cx},{cy} ({art.width}px, "
                       f"{art.width / panel_w:.0%} of the panel, "
                       f"{art.height / panel_h:.0%} of its height){seating}")
     for line in placed:
         info(f"inlay  {line}")
+
+    # "Слева крупный персонаж, НЕ выходящий за края изображения." The hero is
+    # the one object the store shows at full size, and a figure cropped by the
+    # canvas is what the note is about — so it is checked rather than trusted,
+    # because `bleed=`, `y=` and an over-tall `h=` can all still push it out.
     hero_p = next((p for p in placements if p["hero"]), None)
+    if hero_p is not None:
+        art = hero_p["art"]
+        hx0, hy0 = hero_p["cx"] - art.width // 2, hero_p["cy"] - art.height // 2
+        hx1, hy1 = hx0 + art.width, hy0 + art.height
+        pl, pr = cuts[hero_p["panel"]]
+        over = [name for name, past in (
+            ("the top of the frame", hy0 < 0),
+            ("the bottom of the frame", hy1 > pano.height),
+            ("its panel's left edge", hx0 < pl),
+            ("its panel's right edge", hx1 > pr)) if past]
+        if over:
+            warn(f"the hero runs past {', '.join(over)} — the note with the reference "
+                 "art was explicit that the character is large but stays inside the "
+                 "picture, and what hides its feet there is the band of game objects "
+                 f"along the bottom, not the canvas edge. Lower --hero-height (now "
+                 f"{art.height / panel_h:.2f} of the panel) or drop the bleed=/y= "
+                 "override rather than accepting the crop.")
+        else:
+            info(f"hero inside the frame: {hy0 / panel_h:.0%}–{hy1 / panel_h:.0%} of "
+                 f"panel {hero_p['panel'] + 1}'s height, clear of every edge")
+
+    band = [p for p in placements if p["framed"]]
+    if band:
+        by_panel = [sum(1 for p in band if p["panel"] == i) for i in range(panels)]
+        info(f"bottom object frame: {len(band)} object(s) along the picture's lower "
+             f"edge, {'/'.join(map(str, by_panel))} per panel")
+        bare = [str(i + 1) for i, c in enumerate(by_panel) if not c]
+        if bare:
+            warn(f"panel{'s' if len(bare) > 1 else ''} {', '.join(bare)} "
+                 "have no object in the bottom band — the reference art frames every "
+                 "slide from below with the game's own objects. Raise --object-frame "
+                 "or supply more sprites.")
+    elif frame_target != "off":
+        warn("no object frames the picture from below. The reference kit's whole "
+             "lower edge is game objects, cropped by the frame — that band is what "
+             "separates a finished listing from art with a subject on it. Pass more "
+             "sprites, or --object-frame off if this game genuinely has none.")
+    fell = sum(1 for p in placements if p["falls"])
+    if fell:
+        info(f"falling objects: {fell} airborne across the full height of the picture")
+
     if hero_p is not None:
         crown_report(pano, cuts[hero_p["panel"]],
                      hero_p["cy"] - hero_p["art"].height // 2,
@@ -1974,6 +2384,14 @@ def cmd_triptych(args) -> None:
 
     gutter = parse_gutter(args.gutter, w)
     snap = parse_snap(args.seam_snap, w)
+    frame_target = parse_object_frame(getattr(args, "object_frame", "auto"))
+    falling = not getattr(args, "no_falling", False)
+    fall_trail = float(getattr(args, "fall_trail", DEFAULT_FALL_TRAIL))
+    hero_height = float(getattr(args, "hero_height", HERO_H))
+    if not 0.10 <= hero_height <= 0.90:
+        die(f"--hero-height {hero_height}: expected a fraction from 0.10 to 0.90")
+    if not 0.0 <= fall_trail <= 2.0:
+        die(f"--fall-trail {fall_trail}: expected a multiplier from 0 to 2")
     src = load_image(args.src, "key art")
 
     # The panorama is composed WIDER than the panels it produces: the extra
@@ -2008,11 +2426,19 @@ def cmd_triptych(args) -> None:
     spans = plan_panel_spans(pano, n, w, gutter, snap)
     sprite_specs = expand_sprite_specs(getattr(args, "sprite", []),
                                        getattr(args, "sprite_dir", []))
+    if sprite_specs:
+        # This is the only stage at which the bare plate can be distinguished
+        # from the finished picture. Once the integration render paints the
+        # objects in, `triptych` receives a single image and correctly treats it
+        # as the finished panorama instead.
+        backdrop_report(pano, spans)
     inlay_sprites(pano, sprite_specs, n, w, h, gutter,
                   glow_color=args.sprite_glow_color, light=args.sprite_light,
-                  spans=spans)
+                  spans=spans, frame_target=frame_target, falling=falling,
+                  fall_trail=fall_trail, hero_height=hero_height)
     seam_report(pano, spans)
     detail_report(pano, spans)
+    glare_report(pano)
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -2948,8 +3374,8 @@ def main() -> None:
                         f"panel 1 at ~{HERO_H * 100:.0f}%% of the panel HEIGHT (capped at "
                         f"{HERO_W:.2f}× its width), because that is the screenshot the "
                         "store shows at full size and the note was that the figure on "
-                        "it has to be big. Flags: hero, "
-                        "prop, board (a `boardplate` play field — the middle panel at "
+                        "it has to be big. Flags: hero, prop, frame (bottom edge), "
+                        "fall (airborne), board (a `boardplate` play field — the middle panel at "
                         f"~{BOARD_W:.2f}× the panel width, standing inside the frame). "
                         "Keys: x,y (0..1 of the panorama), w and h (fractions of one "
                         "panel — for the hero w is the cap and h is the target), "
@@ -2957,7 +3383,7 @@ def main() -> None:
                         "bottom edge), glow, shadow, contact, light, occlude (how much "
                         "of the object's height the scene's foreground closes back over "
                         f"— {HERO_OCCLUDE} for the hero, {PROP_OCCLUDE} for props, 0 for "
-                        "the legible board), opacity. Omit x "
+                        "the legible board), trail (falling-object motion smear), opacity. Omit x "
                         "and objects are auto-placed at graded depths, standing on the "
                         "ground plane and always clear of the seams. Never ship this "
                         "draft as a pasted composite.")
@@ -2968,6 +3394,22 @@ def main() -> None:
                         "pass the hero with @hero before its directory. Assets are "
                         "distributed across panels; this remains a generation draft, "
                         "never a shippable sprite paste-up.")
+    t.add_argument("--hero-height", type=float, default=HERO_H, metavar="F",
+                   help="target height of the hero as a fraction of panel 1. The "
+                        "character stays wholly inside the canvas; the bottom object "
+                        f"band hides its feet. Default {HERO_H}.")
+    t.add_argument("--object-frame", default="auto", metavar="auto|N|off",
+                   help="how many unassigned sprites form the dense cropped band "
+                        "along the bottom edge. `auto` uses up to 60%% of the manifest "
+                        "while leaving objects to fall through the picture; `off` "
+                        "sends them all into the fall. Default auto.")
+    t.add_argument("--no-falling", action="store_true",
+                   help="keep unassigned sprites out of the air. With the default "
+                        "object frame they all join the bottom band; with "
+                        "--object-frame off they retain the legacy standing-prop layout.")
+    t.add_argument("--fall-trail", type=float, default=DEFAULT_FALL_TRAIL, metavar="F",
+                   help="0..2 multiplier for motion smears behind auto falling objects. "
+                        f"Default {DEFAULT_FALL_TRAIL}; 0 keeps every object crisp.")
     t.add_argument("--sprite-glow-color", default="#FFFFFF", metavar="HEX",
                    help="halo colour behind inlaid objects — pass the game's accent so "
                         "they sit in the art instead of on top of it")

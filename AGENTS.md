@@ -22,6 +22,10 @@ wager/reveal/drop/collect moment, premium depth and tactility, controlled antici
 focus, with real active gameplay large and readable. This is composition—not a mandatory
 black/neon/gold skin; every palette, material, character and type choice still comes from the
 current game's Design DNA. Never use cropping or device chrome to hide a weak gameplay layout.
+Concept panoramas lead with a large protagonist wholly inside the left panel, use real game objects
+as a cropped bottom frame and as falling motion through the picture, and keep the bright far
+background broad and smooth so those subjects lead. Saturation and a controlled blown light source
+are measured requirements, not optional post-processing taste.
 
 All agent responses must be in English, and every artifact the pipeline writes — design documents, concepts, reports, session state and commit messages — must be in English as well. Dart/Flutter code, file paths, class names and CLI commands are English by definition.
 

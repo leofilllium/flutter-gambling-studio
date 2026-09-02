@@ -1,7 +1,7 @@
 ---
 name: store-screenshots
-description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama, dense enough to stand beside a real listing, sliced into panels that reassemble into that exact picture — nothing discarded between them, no panel ending mid-object, the cuts placed on the quietest columns the picture has, real gameplay screenshots in device frames with compliant English marketing typography, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 is composed *for* the protagonist: the art draws it an ornamental berth, the figure fills about three quarters of the panel's height with the ornament crowning the headroom above it, and the scene's own foreground closes back over its feet. The middle panel is a generated 3D gameplay scene, not a pasted screenshot: an actual resolving gameplay frame is supplied as authoritative visual context, then the field is created together with the scene so its real mechanic, grid, symbols and state remain recognizable while perspective, material, lighting, shadow, ornament and foreground interaction make it belong to the same world. Every shipped sprite asset is inventoried, assigned across the split slides, supplied as visual context, and visibly recreated inside a natural physical role — held, mounted, emerging, nested, embedded in machinery or architecture, or partly occluded — as part of the same rendered scene. No sprite is omitted, pasted as an icon, arranged as a contact sheet, or repeated merely to fill space. The key art and the app share one world in both directions — the panorama carries the game's real objects and the game wears the panorama as its background. Every set uses high-stakes casino storefront composition while its palette, materials, characters, and typography follow the game's C1-C6 category, archetype, and Design DNA. Output is a downloadable ZIP under project_zip/."
-argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 0|100] [--seam-snap auto|off] [--pop vivid|soft|max|off] [--hero hero.png] [--hero-height 0.72] [--sprite-dir assets/images/sprites] [--props a.png,b.png] [--board auto|rest|off] [--sprite-light 0.35] [--occlude 0.14] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
+description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a text-free concept panorama sliced into panels that reassemble into that exact picture, real gameplay screenshots in device frames, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 leads with a large protagonist wholly inside the frame; a dense, cropped band of real game objects frames the bottom edge and the remaining objects fall through the full picture with motion. The background stays bright, broad and deliberately smooth so the hero and objects lead, while the complete image is saturated and carries a controlled blown light source. The middle panel recreates an actual resolving gameplay frame as scene-matched 3D art. Every shipped sprite remains recognizable and physically integrated. The key art and the app share one world in both directions. Output is a downloadable ZIP under project_zip/."
+argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 0|100] [--seam-snap auto|off] [--pop blaze|vivid|soft|max|off] [--hero hero.png] [--hero-height 0.72] [--sprite-dir assets/images/sprites] [--object-frame auto|N|off] [--no-falling] [--fall-trail 1.0] [--props a.png,b.png] [--board auto|rest|off] [--sprite-light 0.35] [--occlude 0.14] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
@@ -99,7 +99,7 @@ The gameplay reference has no special permission to remain as pixels: it informs
 field, then disappears into the same 3D render as everything else. Every rule below describes what
 that draft has to establish and what the render has to preserve.
 
-**1. The protagonist owns panel 1, at the panel's own scale.** Screenshot 1 is the only one the
+**1. The protagonist owns panel 1, at the panel's own scale, wholly inside the picture.** Screenshot 1 is the only one the
 store shows at full size; everything after it is a thumbnail in a strip. Whatever stops the scroll
 has to be there and has to be big, and it is the hero — not a logo, not an establishing shot, not
 whichever slice of the panorama happens to be prettiest. The latest note is about how big:
@@ -107,9 +107,11 @@ whichever slice of the panorama happens to be prettiest. The latest note is abou
 by the panel's **width** is what made it small: 0.58× the width of a 1320×2868 panel is a hero
 barely 40% of the panel's height, standing in a landscape. So the hero is sized by **height**:
 `triptych` treats the first `--sprite` as the hero, fills ≈0.72 of the panel's height with it
-(width capped at 0.86× the panel), and stands it with its feet past the bottom edge. The
+(width capped at 0.86× the panel), and stands it just inside the bottom edge. The
 compositor prints both numbers — `hero.png → panel 1 … (1135px, 86% of the panel, 68% of its
-height)` — and warns when a squat cutout hits the width cap before it reaches full height. The fix
+height)` — plus `hero inside the frame`; it warns when an override crops any edge or when a squat
+cutout hits the width cap before it reaches full height. The bottom object band may overlap the
+feet, but the canvas may not cut them off. The fix
 for that is a taller export or a tighter crop of the sprite's empty margins, never a shrug.
 
 **2. Panel 1 is drawn *for* the character, and the picture is decorated *around* it.** The
@@ -119,10 +121,11 @@ that test if the picture behind it would be complete without it. So the slice th
 is composed as a **hero berth**: a stage, ledge, throne, doorway or pool of light with the
 perspective converging on it, the brightest key light falling there, and foreground furniture — a
 rail, rocks, chips, foliage — drawn along its bottom edge for the character to stand behind.
-Phase 1 draws that berth **empty**; Phase 2 seats the real hero in it and the compositor closes the
-scene's own foreground back over its feet (`occlude`, default 0.14 of the hero's height). Light
-says *lit by the picture*; occlusion says *inside the picture*, and it is the cue a designer reads
-first.
+Phase 1 draws that berth **empty**; Phase 2 seats the real hero in it and the compositor lays the
+dense bottom band of real game objects back over its feet. The hero's own `occlude` remains useful
+for a rail, ledge or foliage already painted into the berth, but it is the object band that creates
+the reference kit's unmistakable foreground frame. Light says *lit by the picture*; overlap says
+*inside the picture*, and it is the cue a designer reads first.
 
 The same note asked for one thing more: *more decorative*. A berth is a place to stand; what makes
 the slide read as a poster instead of a photograph of a character is the **ornament around and
@@ -136,13 +139,18 @@ easiest way to spend the extra height on nothing. The answer to a flat crown is 
 berth with the ornament in it, never scaling the hero up until its head fills the gap: a figure
 cropped at the crown is not decoration.
 
-**3. Objects are built into the design, not laid on top of it.** A game symbol shrunk to a fifth of
+**3. Objects frame the bottom and fall through the picture — they are built in, not laid on top.** A game symbol shrunk to a fifth of
 a panel and dropped onto the background reads as a sticker — which is worse than no inlay at all,
 because it also makes the whole picture look assembled. Real objects belong in the foreground at a
 third of a panel or more, standing on the scene's ground plane, casting a contact shadow, tinted by
-the light they are standing in, with the nearest ones cropped by the frame edge. The compositor does
-the seating — foot anchoring, contact shadow, edge light-wrap and colour cast (`--sprite-light`) —
-but it can only seat an object into a scene that has somewhere to stand, so Phase 1 has to draw one.
+the light they are standing in. By default, `--object-frame auto` assigns enough of the exhaustive
+manifest to a dense overlapping band across the bottom of every panel. Those objects are the
+nearest plane, deliberately cropped by the canvas and painted after the hero so they close over its
+feet. The remaining sprites become `fall` objects: smaller, rotated, spread from the top down to the
+lower third, ungrounded, and selectively trailed so they read as motion rather than pasted icons.
+The compositor does the seating — foot anchoring, contact shadow, edge light-wrap and colour cast
+(`--sprite-light`) — but it can only seat an object into a scene that has somewhere to stand, so
+Phase 1 has to draw one. Airborne objects get no contact shadow because they have no ground plane.
 
 **4. The middle panel is gameplay created with the scene, not a screenshot mounted in it.** Panel
 1 sells the world; the middle panel answers *what do I actually do*. Use an actual resolving/win
@@ -243,52 +251,63 @@ the same: *make it richer and brighter*. So:
 - Ask the image model for the vivid end of the game's own palette: saturated colour, luminous rim
   and key light, glowing highlights, deep contrast, rich material response. Not a pastel and not a
   haze; never a grey, washed midtone field.
-- Every compositor art path then applies a colour grade on top (`--pop`, default `vivid`: vibrance
-  + midtone lift + contrast + highlight bloom, none of which can clip). Raise it to `--pop max`
-  when the art is still soft; drop to `soft` only when the art already screams.
+- Every compositor art path then applies a colour grade on top (`--pop`, default `blaze`: vibrance
+  + midtone lift + contrast + a wider highlight bloom, none of which can clip). The eight supplied
+  references measure 0.47–0.89 mean saturation (0.71 average), so this is a material lift rather
+  than a nudge. Raise it to `--pop max` when the art is still soft; drop to `vivid` or `soft` only
+  when the source already screams.
+- Put one controlled overexposed light source into the generated art: a sun, burst, portal, reward
+  flare or rim that burns into the nearby silhouette. The references carry roughly 1–12% blown
+  luma. The grade deliberately cannot manufacture clipping, so `triptych` reports saturation and
+  blown-highlight share and sends art with no glare back to generation.
 - **Do not grade the real gameplay frames.** Both stores require a screenshot to represent what the
   app renders. If the captured frames look dull, the *game* is dull — fix it with the key-art
   backdrop, in-game lighting, and juice, then re-capture. Never brighten a frame in post.
 
-### Density is the other half of the brief
+### Density belongs to the hero and game objects; the background stays smooth
 
 The complaint that arrives beside "make it brighter" is "it is too simple, too boring". Raw
 image-model output tends to a poster: one object, one glow, a gradient, and acres of nothing.
 Standing in a strip beside nine finished listings, that reads as a placeholder — and no colour
-grade rescues an empty picture. A storefront panorama is a **finished illustration**, so ask for
-one and check that one came back:
+grade rescues an empty picture. The newest reference note adds an equally strict constraint: the
+background must be bright and **not detailed**, more smooth, so the protagonist and the game's
+objects stand out. Hold both requirements by moving density into the foreground subjects:
 
-- **Three planes, all of them occupied.** A foreground that crops on the frame edge (rail, rocks,
-  spilled chips, foliage, a shoulder), a midground carrying the hero berth and the field stage, and
-  a background that is a *place* — architecture, landscape, crowd, machinery, weather — not a
-  gradient behind the subject.
-- **Ornament at three scales.** The silhouette that survives a thumbnail; the mid detail that
-  appears when the reviewer taps to full size — panelling, trim, plating, embroidery, carved edges;
-  and micro texture — grain, wear, scratches, engraving, condensation. A shape with one flat fill
-  and a bevel is the look being complained about.
+- **Three planes, with detail budgeted deliberately.** The nearest plane is the cropped bottom
+  frame of game objects; the middle carries the hero, the real field and falling objects; the far
+  background establishes a place through broad simplified silhouettes, large colour masses, soft
+  atmosphere and light. It is not a blank gradient, but it is not textured architecture, a crowd,
+  dense foliage or a star field competing with the subjects either.
+- **Ornament at three scales—on the subjects and their constructions.** Keep the silhouette that
+  survives a thumbnail, mid detail in the object's frame/trim/material, and micro texture on the
+  hero, field and foreground objects. Do not spend that texture across the sky or far wall.
 - **More than one light.** The scene's key from the top left, plus practical lights that belong to
   the world (lanterns, signage, screens, embers, the glow off the reward itself) and a rim or
   bounce separating the subject from the background. One flat key light is what makes a render look
   like clip art.
 - **Three distinguishable materials**, each responding differently: metal with a tight specular,
   cloth or paper with none, stone or wood with grain, glass or liquid with transmission.
-- **Atmosphere that carries the empty areas.** Volumetric shafts, haze with depth, drifting
-  particulate — dust, sparks, spray, petals, coins in flight. Empty sky or a plain wall is where
-  a panel dies.
-- **Something is happening.** A moment mid-event: a reaction, a spill, a trail, a crowd turning to
-  look. A static product arrangement of correct objects is still boring.
+- **Atmosphere stays broad; motion stays concrete.** Use soft volumetric shafts, haze and glow in
+  the far plane. Use the real sprites—coins, cards, capsules, balls, modifiers, rewards—as falling
+  objects with varied scale, rotation and selective motion trails. Fine generic particulate over
+  the whole background merely makes the smooth plate noisy.
+- **Something is happening.** A moment mid-event: the field resolves, the bottom objects spill
+  toward the viewer, and selected objects fall through the full height. A static product
+  arrangement of correct objects is still boring.
 - **Every panel is its own slide.** Each of the P panels must have a subject and an event of its
   own. One good panel plus two panels of background is a three-screenshot listing with one
   screenshot in it.
 
-The opposite failure is real too, so hold the hierarchy while adding the density: depth of field,
-value grouping and a calmer halo around the hero and the play field keep them the first things the
-eye lands on. Detail everywhere with no focal point is noise, which reads as cheap for a different
-reason.
+The opposite failure is real too, so hold the hierarchy while adding the density: the smooth far
+plate, depth of field, value grouping and a calmer halo around the hero and play field keep them the
+first things the eye lands on. Detail everywhere with no focal point is the exact rejection this
+round is designed to stop.
 
-`triptych` measures this and prints it per panel — `panel 2: detail 6.4, 31% of it empty ground`.
-Above 55% empty, or a detail figure under 4, it says so: that panel is a backdrop, and the fix is
-to regenerate the art from a fuller brief, never to grade or crop it.
+`triptych` measures the two stages separately. Before inlay it reports upper-band backdrop detail
+and warns when the plate is already too busy. After inlay it reports total detail, empty ground and
+the lower-band/upper-band ratio; the reference average is 1.58×. The fix for a busy base is simpler
+generated art. The fix for a thin finished panel is more real objects in the bottom frame and fall,
+not background texture, grading or cropping.
 
 ## Arguments and defaults
 
@@ -299,11 +318,14 @@ to regenerate the art from a fuller brief, never to grade or crop it.
 | `--size` | `1320x2868` | Main set; also supports `iphone-6.9`, `iphone-6.9-alt`, `iphone-6.5`, and `play` |
 | `--gutter` | `0` | Nothing is discarded between panels: they reassemble into the picture. An explicit width (`100`, `auto`) throws that strip away instead, for a publisher who asks the panels to line up across the store's carousel gap — it costs the picture |
 | `--seam-snap` | `auto` (12% of a panel) | How far the tiling may slide so the cuts land on the picture's quietest columns. With a lossless cut this is the only lever there is. `off` restores the content-blind even split |
-| `--pop` | `vivid` | Colour grade applied to generated art (`off`, `soft`, `vivid`, `max`) |
+| `--pop` | `blaze` | Reference-calibrated colour grade applied to generated art (`off`, `soft`, `vivid`, `blaze`, `max`) |
 | `--hero` | first manifest entry marked hero | The protagonist PNG that leads panel 1; pass it explicitly before `--sprite-dir` so its role overrides directory discovery |
-| `--hero-height` | `0.72` | The hero's share of panel 1's **height** — the panel is sized by it, the width is only a cap. Below ≈0.6 the figure is scenery again; above ≈0.8 there is no crown left for the berth's ornament. Passed through as `h=` on the hero sprite |
+| `--hero-height` | `0.72` | The hero's share of panel 1's **height** — the panel is sized by it, the width is only a cap. It stands just inside the canvas; the bottom object band, not the crop, hides its feet. Below ≈0.6 the figure is scenery again; above ≈0.8 there is no crown left for the berth's ornament. An explicit sprite `h=` still overrides it |
 | `--props` | auto | Legacy explicit comma-separated sprite list; use only for precise assignments that are then completed by `--sprite-dir`, never to select a subset of shipped sprites |
 | `--sprite-dir` | required sprite roots | Repeatable directory whose PNG, WebP and JPEG files are recursively added to the exhaustive draft manifest; explicit `--sprite` entries win duplicate roles/placement |
+| `--object-frame` | `auto` | Number of unassigned sprites placed into the cropped bottom band. `auto` uses up to 60% of the supporting manifest, targets three per panel when enough exist, and preserves the rest for the fall. `off` sends them all airborne unless `--no-falling` is also set |
+| `--no-falling` | off | Disable airborne auto-placement. Supporting sprites join the bottom band; with `--object-frame off`, they use the legacy standing-prop layout |
+| `--fall-trail` | `1.0` | 0–2 multiplier for selective falling-object motion trails; 0 keeps the airborne objects crisp |
 | `--board` | `auto` | Prefer a real resolving gameplay crop (`boardplate --from-shot`) as the field reference, stand the draft plate in the scene's perspective, and place it in the middle. A symbol-built plate is provisional context only until a frame exists. `rest` is only for a mechanic with no resolving state; `off` for a game with no readable field |
 | `--integrate` | `on` | Generate the finished panorama from the draft, actual gameplay frame and real assets as reference images (`gpt_image.py edit`). The field is recreated with the 3D scene, never pasted afterward. `off` may retain a layout draft for debugging but cannot produce a shippable concept panorama |
 | `--sprite-light` | `0.35` | How hard inlaid objects are pulled into the scene's light (colour cast + edge light-wrap). `0` pastes them flat |
@@ -420,17 +442,19 @@ Run the compositor's font probe and select a display/body pair that covers every
 Use image generation for three sources:
 
 1. **Concept panorama:** one continuous text-free scene wide enough for P panels **plus the seam
-   allowance** — ask for the widest the model will produce. Ask for a *finished illustration*, not
-   a backdrop: this is the world the whole kit is cut from. Phase 2 places the game's real objects
-   into it and renders the result as one picture, so what matters most here is that the scene has
-   depth, a light direction, a ground plane and somewhere for those objects to stand — a flat
-   backdrop gives the render nothing to integrate them into.
+   allowance** — ask for the widest the model will produce. Ask for a *finished staging plate*, not
+   an empty gradient and not a detailed environment: this is the world the whole kit is cut from.
+   Phase 2 places the game's real objects into it and renders the result as one picture, so the
+   plate needs depth, a light direction, a ground plane and somewhere for those objects to stand.
+   Its far background stays bright, broad and deliberately smooth—large colour masses, simplified
+   distant forms, soft atmosphere, no busy texture—so the hero and objects remain the detail.
    - **The leftmost 1/P of the width is the hero berth** — the slice that becomes panel 1. Ask for
      a place built for a character to stand: a stage, ledge, throne, balcony, doorway or pool of
      light, with the scene's perspective converging on it, the brightest key light falling there,
      and foreground furniture along its bottom edge — a rail, steps, rocks, chips, foliage — for
      the figure to stand behind. Size it for a figure that will fill about **three quarters of the
-     panel's height**, standing with its feet past the bottom edge. **Ask for it empty:** no
+     panel's height**, standing wholly inside the frame with its feet just above the bottom edge.
+     Leave the lowest band ready for game objects to overlap the feet. **Ask for it empty:** no
      character, no silhouette, no mannequin. The real hero is composited into it in Phase 2, and a
      drawn one there means two protagonists on the one screenshot the store shows at full size.
      Everything else in the picture is composed around that berth.
@@ -450,7 +474,8 @@ Use image generation for three sources:
      thrown into the air and crossing the stage's near edge, a crowd, a machine or the sky
      reacting, the reward resolving above it. This is what stops the middle panel — the listing's
      gameplay example — from being a board on a table. The *drama* of the mechanic is the model's
-     job; the mechanic's own hardware is not.
+     job; the mechanic's own hardware is not. Keep the surrounding far plane smooth: concrete
+     motion comes from the real falling objects added in Phase 2, not a field of generic particles.
    - **Build the rightmost panel for a real game object too.** Name the exact object assigned to
      panel 3 in the brief, but ask the model to draw its *empty physical home*, not a substitute:
      a fitted shrine whose opening follows its silhouette, a machine socket with the right contact
@@ -460,26 +485,25 @@ Use image generation for three sources:
      scene rather than laying an icon on it. The final third may not be generic scenery and may not
      contain a model-drawn version of the object.
    - Describe the exhaustive sprite manifest explicitly, grouped by panel and physical function.
-     Ask for the hero and primary mechanic/reward anchors **large in the foreground, standing on a
-     readable ground plane**, with some cropped by the bottom edge. Give every secondary sprite an
-     identifiable home at another depth — mounted in architecture, nested in machinery, emerging
-     from the resolution, carried through a trail, or functioning as a world-scale effect. The base
-     scene must contain enough coherent constructions to receive every assigned file without
-     becoming a contact sheet. Every third gets part of the full manifest.
-   - **Ask for a dense picture, panel by panel.** Name what fills each third: its subject, its
-     event, its real-game anchor, the physical construction waiting for that anchor, and its
-     background place. Spell out the three planes, the ornament scales, the second and third light
-     sources, the materials and the atmosphere from "Density is the other half of the brief" — an
-     image model that is not told to populate the frame will hand back one object on a gradient
-     every time. Say explicitly that the empty regions carry haze, particulate and structure
-     rather than flat colour.
+     Reserve up to 60% of the supporting set for a **continuous bottom frame**: three large,
+     overlapping objects per panel when inventory permits, deliberately crossing the lower canvas
+     edge. Give the remainder airborne roles across the full height at varied scales and rotations,
+     with selective motion trails. The hero is the exception: it stays wholly inside the canvas
+     while the bottom band overlaps its feet. Every third gets part of the full manifest.
+   - **Ask for a subject-dense picture on a smooth background, panel by panel.** Name each third's
+     hero/mechanic/reward subject, event and physical construction. Spend ornament, micro texture,
+     secondary lights and differentiated materials on those constructions and the real objects.
+     Keep the far plane to simplified silhouettes, broad colour, soft haze and one controlled blown
+     light source. A blank gradient fails, but so does intricate architecture, foliage, crowds,
+     star noise or all-over particulate that competes with the game's objects.
    - Keep important objects away from the panel seams — at 3 panels they sit at 1/3 and 2/3 of the
      width — and ask for a **calm vertical corridor** at each of them: sky, wall, haze, floor,
      roughly an eighth of a panel wide. This is the only protection a seam has. The panels must
      reassemble into the whole picture, so nothing can be discarded at a cut and the slicer can
      only slide the tiling as a whole to find quiet ground; if the art is busy edge to edge, some
      cut lands on a subject and the only fix left is regenerating the art. Ask for the vivid end of
-     the palette: saturated colour, luminous key and rim light, deep contrast, glowing highlights.
+     the palette: saturated colour, luminous key and rim light, deep contrast, glowing highlights,
+     and a deliberate overexposed sun/burst/portal/reward flare behind—not over—the hero or field.
    - **The negative list is part of the prompt, not a nicety.** No text, logo, letters, numbers,
      device frame or panel dividers — and no invented game board, reel grid, cells, symbol tiles,
      icon frames, HUD, balance, meter or multiplier in this first base-art pass. The gameplay field
@@ -487,11 +511,10 @@ Use image generation for three sources:
    - Inspect the returned image against that list before going on. A grid, a symbol frame or a
      stray HUD in the source is a defect: regenerate. Do not crop it out, do not cover it with the
      board plate, and do not accept it because the rest of the picture is good.
-   - Inspect it for **emptiness** in the same pass, thirds first: a third that is a gradient with
-     one shape on it is a defect too, and it is the one most easily mistaken for "clean". Regenerate
-     with the missing plane named — usually the background place and the atmosphere. The berth and
-     the stage are empty of a *subject*, not empty of a *picture*: both are built, lit, ornamented
-     surfaces.
+   - Inspect it for both **emptiness and busyness** in the same pass, thirds first. A flat gradient
+     with one shape has no staging; a detailed far plane has already spent the hierarchy before the
+     hero arrives. Run the compositor's backdrop report on the draft pass. The berth and stage are
+     empty of a *subject*, not empty of structure, but their distant surround stays smooth.
 2. **Icon art:** one bold central mechanic/hero silhouette, readable at 48 px, no text, no thin border, and no transparent holes.
 3. **Game emblem:** a distinctive symbol/crest derived from the mechanic and world, with no letters or words, generated on a flat removable background.
 
@@ -528,12 +551,13 @@ python3 tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
 
 python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
   --out "$ART_DIR/draft" --pano-only --save-pano "$ART_DIR/keyart-draft.png" \
-  --panels 3 --size 1320x2868 --pop vivid \
+  --panels 3 --size 1320x2868 --pop blaze \
   --sprite assets/images/sprites/sprite_eagle.png@hero \
   --sprite "$ART_DIR/board-plate.png@board,light=0.15" \
   --sprite assets/images/sprites/sprite_bolt.png@panel=3,rot=-8,occlude=0.10 \
   --sprite assets/images/sprites/sprite_shield.png@panel=1,rot=6 \
   --sprite-dir assets/images/sprites \
+  --object-frame auto --fall-trail 1.0 \
   --sprite-glow-color "#F0B34A"
 ```
 
@@ -554,12 +578,17 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
 - `--pano-only` writes the draft and nothing else. It is a reference image, never an upload asset,
   and it does not go in the kit's `store/` directory.
 - Everything the earlier phases established still holds here: hero on panel 1 at ≈0.72 of the panel
-  *height* under an ornamented crown, the field on the middle panel and paying, all manifest assets
-  distributed at purposeful scales/depths, and nothing important on a seam. `--hero-height` rides
-  through as the hero sprite's `h=` key (`--sprite hero.png@hero,h=0.68`); `w=` is the width cap,
-  and it is the one to raise for a broad-shouldered cutout that hits it before reaching full
-  height. The draft is composed against the same cuts the final slice will use, so an object placed
-  clear of a seam here stays clear of it there.
+  *height* under an ornamented crown and wholly inside the canvas, the field on the middle panel and
+  paying, all manifest assets distributed at purposeful scales/depths, and nothing important on a
+  seam. `--hero-height` sets the default target; a hero sprite's explicit `h=` still overrides it,
+  while `w=` is the width cap to raise for a broad-shouldered cutout that binds early. Read the
+  `hero inside the frame` line and resolve any edge warning. The draft is composed against the same
+  cuts the final slice will use, so an object placed clear of a seam here stays clear of it there.
+- Read the `bottom object frame:` and `falling objects:` lines. With enough supporting inventory,
+  every panel must carry bottom-band objects and the remainder must be visibly distributed through
+  the full height. If a game deliberately has too few sprites, record that limitation; never clone
+  one asset merely to hit a count. Use `@frame`/`@fall` or an explicit `--object-frame N` to correct
+  role assignment without changing the exhaustive manifest.
 - Read the `panel N game anchors:` lines before moving on. Every panel must name at least one real
   file and none may print `NONE`. Fixed hero/board placements are reserved first, so an unassigned
   supporting prop automatically fills the uncovered panel; explicit `panel=` remains available
@@ -643,16 +672,23 @@ python3 tools/gpt_image.py edit \
     depth between the near objects and the far ones.
   - The character stands **in** the world: something in the foreground crosses in front of it, the
     ground takes its shadow, the scene's light wraps its silhouette. It keeps the size the draft
-    gives it — about three quarters of the panel's height — and the ornament crowning the band
-    above its head stays, gaining the render's depth: the arch or canopy in front of and behind the
-    figure, the light burst reading as air, the drifting particles catching the key light.
+    gives it — about three quarters of the panel's height, wholly inside the canvas — and the
+    ornament crowning the band above its head stays. The bottom object band crosses in front of the
+    feet without cropping the figure; the arch or canopy and blown light remain behind the head.
+  - Preserve the draft's two supporting-object populations. The lower edge is crowded by large,
+    overlapping, partly cropped game objects that make a continuous foreground frame. The remaining
+    objects fall through the full image at varied scale and rotation, with selective directional
+    blur behind them. They are objects in motion, not a cloud of identical floating badges.
   - Finish it as one painting — no cutout edges, no drop shadows, no sticker outlines, nothing that
     looks composited.
   - Keep every plane of the draft populated and **add** the finish a render can give that a
-    composite cannot: micro texture and wear on the materials, the secondary lights and their
-    spill, volumetric haze between the planes, particulate in the air. The render must not
+    composite cannot: micro texture and wear on the hero, field and foreground objects, secondary
+    lights and their spill, and broad volumetric haze between the planes. Keep the distant plate
+    smooth and simplified rather than adding all-over texture or particulate. The render must not
     simplify the picture into a cleaner, emptier version of itself — that is the most common way
     an integration pass makes the art worse, and `triptych`'s per-panel detail figures catch it.
+  - Hold the reference kit's colour and light: saturated palette, luminous contrast, and one
+    controlled overexposed source behind a focal subject. Do not wash out the hero or the field.
   - No text, letters, numbers, logo, app chrome, HUD, device frame, screenshot border or panel
     dividers, and no invented game symbols beyond the ones supplied. The gameplay reference informs
     the field; it does not import the phone screen surrounding it.
@@ -688,6 +724,10 @@ advertises, so it is verified before anything downstream reads the file. Open
 - Check coverage as a second axis: every manifest row has an unmistakable primary appearance and
   panel 1, panel 2, and panel 3 each contain assigned rows. An empty panel, a missing secondary
   sprite, or the same floating icon repeated to fill one is a failed integration pass.
+- Check composition as a third axis: the large hero is fully inside panel 1; the bottom edge reads
+  as one overlapping frame of real game objects; supporting objects fall through upper and middle
+  space with credible motion; and the far background remains smoother and quieter than the
+  subjects. Record saturation and blown-highlight shares from the compositor as part of this gate.
 - One object drifting is fixed by re-running with a tighter prompt naming that object, or with
   fewer references on the call. Repeated drift means the concept-art portion is blocked: neither a
   redesigned symbol nor the composited placement draft is an acceptable deliverable.
@@ -845,8 +885,8 @@ Vision-check both previews — `_panorama-preview.png` for whether the panels ar
   `0px discarded` line says the arithmetic is right; this says the eye agrees.
 - Adjacent panels still read together in `_carousel-preview.png`, where the store's gaps are drawn
   in — nothing important straddles a cut.
-- **Panel 1 opens on the protagonist**, at full height — roughly three quarters of the panel, feet
-  past the bottom edge, head about a third of the way down — and recognizable as a character rather
+- **Panel 1 opens on the protagonist**, at full height — roughly three quarters of the panel, wholly
+  inside the canvas, feet overlapped by the bottom object band, head about a third of the way down — and recognizable as a character rather
   than a decorative shape. The compositor's `hero … % of its height` figure says the arithmetic is
   right; this says the eye agrees. If the hero is absent, small, or upstaged on panel 1, that panel
   is wrong no matter how good the rest of the strip is.
@@ -885,9 +925,10 @@ Vision-check both previews — `_panorama-preview.png` for whether the panels ar
   Check it on `_carousel-preview.png`: every one of them sits whole inside a single panel, so the
   store's gap falls on background.
 - **Every panel is a finished illustration, not a backdrop.** Three occupied depth planes, ornament
-  at more than one scale, more than one light, materials that respond differently, and atmosphere
-  carrying the areas with no subject in them. A panel that is a gradient with one shape on it fails
-  even if the shape is the right one — and the compositor's `% empty ground` line already said so.
+  at more than one scale on the hero/game objects, more than one light, materials that respond
+  differently, and the real sprites carrying the upper, middle and bottom action. A panel that is a
+  gradient with one shape still fails; a busy textured background fails too. The compositor's base
+  backdrop detail and finished lower-band ratio expose the two errors separately.
 - Density did not cost the hierarchy: the hero on panel 1 and the play field are still the first
   things the eye lands on, held apart from the detail by focus, value or a calmer surround.
 - No letters, fake glyphs, captions, UI, HUD, meters, balances, or panel borders appear.
@@ -902,7 +943,9 @@ Vision-check both previews — `_panorama-preview.png` for whether the panels ar
   read as one world with clear focal hierarchy, never an icon row, inventory grid or contact sheet.
 - The panorama uses casino-grade tension, depth, tactility, and reward focus while remaining
   unmistakably specific to this game's Design DNA.
-- Colour is rich and the image is bright enough to hold up at thumbnail size.
+- Colour is rich and the image is bright enough to hold up at thumbnail size. The compositor's
+  saturation is at least 0.45, and a controlled 0.6–20% of the image is blown highlight rather than
+  no glare at all or a washed-out frame.
 
 Both previews are verification artifacts and must not be listed for store upload.
 
@@ -1001,9 +1044,15 @@ free-floating icon copied between panels is a no. For `P` other than three, add 
 and apply the same gate.
 
 Record the hero row separately, with the fractions of panel 1 it occupies — **width and height
-both** — the compositor's own `inlay hero …` line, its `panel 1 crown` line, and whether the inlay
-line ends in `+ occluded by the foreground`. Under 0.6 of the panel's height, absent from panel 1,
-standing in front of the whole scene, or crowned by empty sky is a blocker.
+both** — the compositor's own `inlay hero …` line, its `hero inside the frame` line, its
+`panel 1 crown` line, and whether the bottom object band visibly overlaps its feet. Under 0.6 of
+the panel's height, absent from panel 1, cropped by any canvas edge, standing in front of the whole
+scene, or crowned by empty sky is a blocker.
+
+Record the two supporting-object populations too: the `bottom object frame:` total and per-panel
+distribution, the `falling objects:` total, which falling assets carry motion trails, and whether
+their centres span the upper, middle and lower parts of the image. A bare panel bottom when enough
+sprites exist, or an airborne cluster confined to one row, is a blocker.
 
 Record the field row separately too, and answer it by looking at the two images rather than at the
 command line:
@@ -1026,10 +1075,10 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
 - An inventory of both screenshot sets, feature graphic, icons, emblem, and the two
   verification-only previews.
 - Ordered caption mapping.
-- The hero object, its size on panel 1 as fractions of the panel's width **and height**, what the
-  `panel 1 crown` line measured above its head and what ornament fills that band, whether the
-  scene's foreground was closed back over it, and the supporting objects with the panels they were
-  seated into.
+- The hero object, its size on panel 1 as fractions of the panel's width **and height**, the
+  `hero inside the frame` result, what the `panel 1 crown` line measured above its head and what
+  ornament fills that band, whether the bottom object frame overlaps its feet, and the supporting
+  objects with their `frame`/`fall` roles and assigned panels.
 - Which actual gameplay frame and field rectangle supplied the integration context; how the board
   plate was derived; its yaw/pitch/depth; the resolving state it carried; and which panel it landed
   on. Record explicitly that the gameplay frame was used as a reference and was not pasted into the
@@ -1049,8 +1098,11 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
   `0px discarded` line), how far the tiling slid inside its slack, and each seam's final detail
   ratio. If an explicit `--gutter` was used instead, say so, give the width, and say who asked
   for it.
-- The per-panel detail figures and empty-ground percentages, with a note on any panel that
-  was regenerated for being too sparse.
+- The base-art upper-band detail by panel, the finished per-panel detail and empty-ground figures,
+  the lower/upper detail ratio, the saturation and blown-highlight share, with a note on any plate
+  regenerated for being too busy or any finished panel regenerated for being too sparse.
+- The bottom object-frame total and per-panel counts, the falling-object total and height spread,
+  and which objects use motion trails.
 - Exactly what branding was applied to the project — icon, emblem, and every background file the
   key art was wired into, with the screens that now use them.
 - The continuity audit table.
@@ -1073,7 +1125,7 @@ Verify the archive contains numbered PNGs in both `store/` and `store-play/` unl
 
 ## Phase 12 — final report
 
-Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, the per-panel detail figures, whether the panorama was rendered from the draft or shipped as the composite, the exhaustive sprite-manifest counts and per-panel distribution, any staged high-fidelity integration passes, the one-row-per-sprite identity/integration verdict, the real anchor on **each** split panel and the physical/decorative construction it completes, the hero on panel 1 (its share of the panel's width and height, what crowns the band above its head, and that the scene closes in front of it), the actual gameplay frame used as context for the middle field, how that field preserved the mechanic/state while being recreated as scene-matched 3D art, confirmation that no screenshot layer or rectangular edge survived, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row and the per-panel anchor audit, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
+Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, base-backdrop and finished per-panel detail figures, lower/upper detail ratios, saturation and glare figures, whether the panorama was rendered from the draft or shipped as the composite, the exhaustive sprite-manifest counts and per-panel distribution, bottom-frame and falling-object distributions, any staged high-fidelity integration passes, the one-row-per-sprite identity/integration verdict, the real anchor on **each** split panel and the physical/decorative construction it completes, the hero on panel 1 (its share of the panel's width and height, that it is wholly inside the frame, what crowns the band above its head, and that the bottom object frame overlaps its feet), the actual gameplay frame used as context for the middle field, how that field preserved the mechanic/state while being recreated as scene-matched 3D art, confirmation that no screenshot layer or rectangular edge survived, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row and the per-panel anchor audit, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
 
 ## Quality gates
 
@@ -1089,7 +1141,10 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - The ordered set passes the casino-style storefront grammar: mechanic-first tension, depth,
   tactility, outcome focus, and active/reveal/celebration coverage.
 - Panel 1 leads with the hero at no less than 0.6 of the panel's height, and the compositor
-  reported it as `inlay hero … → panel 1 … + occluded by the foreground`.
+  reported both `inlay hero … → panel 1` and `hero inside the frame`; no edge crops the figure.
+- The bottom object frame reaches every panel when the manifest is large enough, overlaps the
+  hero's feet, and remains the nearest painted depth plane. Remaining sprites fall through varied
+  heights and selected objects carry directional motion trails.
 - Panel 1 was composed as a berth for the hero: covering the figure leaves a stage waiting for
   someone, not a finished picture with a character laid on it.
 - The band above the hero's head is ornament — arch, canopy, crest, banner, halo, flanking
@@ -1129,11 +1184,14 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - The cuts were placed by the picture, not by arithmetic: `--seam-snap` was left on, and every seam
   either measures calm or was resolved by regenerating the art. No panel ends mid-object.
 - No seam warning above 1.35× is left unresolved, and none was answered with `--gutter`.
-- Every panel passes the density check: three occupied depth planes, ornament at more than one
-  scale, more than one light source, differentiated materials, atmosphere through the quiet areas —
-  and no panel left flagged as empty ground by the compositor.
+- The bare staging plate passes the smooth-background ceiling before sprites land: broad bright
+  colour and simplified far forms, no busy texture competing with the subject.
+- Every finished panel passes the density check because the real objects occupy its planes: the
+  lower band is at least 0.95× the upper-band detail, no panel is left flagged as empty ground, and
+  added density did not come from making the distant background busy.
 - The added density did not bury the focal points: the hero and the play field still lead.
-- Colour and brightness hold up at thumbnail size in both sets.
+- Colour and brightness hold up at thumbnail size in both sets: saturation is at least 0.45 and
+  controlled blown highlights occupy 0.6–20% of the picture.
 - Showcase captions are readable, correctly spelled, and rendered with full glyph coverage.
 - Compliance grep and vision checks pass with no exceptions.
 - `check --store appstore` and `check --store play` both pass.
@@ -1185,6 +1243,9 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   colour grade — or accepting one because the compositor's empty-ground warning was "only a
   warning". Sparse art is regenerated from a fuller brief, not graded, cropped or captioned into
   looking finished.
+- Answering that sparse-art warning with detailed scenery, all-over texture, dense foliage,
+  architecture, crowds, stars or generic particles in the far plane. The background stays bright
+  and smooth; density comes from the hero, field, bottom object frame and falling game objects.
 - Letting the integration pass hand back a cleaner, emptier version of the draft and shipping it
   because it renders nicely.
 - Colour-grading, relighting, or retouching a real gameplay frame instead of fixing the game.
@@ -1199,6 +1260,8 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   world and must have natural physical jobs inside it.
 - Opening the listing on anything other than the protagonist: a logo panel, an empty establishing
   shot, or a first panel where the hero is small, cropped out, or upstaged.
+- Letting the large hero run past the top, bottom or side of panel 1. The reference band overlaps
+  its feet inside the picture; the canvas itself never amputates the figure.
 - Sizing the hero by the panel's width and shipping the 40%-of-the-height figure that produces, or
   answering an empty crown band by scaling the hero up until its head fills it — the band is
   ornament the art owes the slide, not spare room for a bigger sprite.
