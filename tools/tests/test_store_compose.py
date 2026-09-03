@@ -20,6 +20,20 @@ store_compose = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(store_compose)
 
 
+class StoreScreenshotRunbookSafetyTests(unittest.TestCase):
+    def test_runtime_background_replacement_is_opt_in(self) -> None:
+        runbook = (
+            SCRIPT.parents[1] / ".claude/skills/store-screenshots/SKILL.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("| `--apply-backdrop` | off |", runbook)
+        self.assertIn("preserves every existing runtime background", runbook)
+        self.assertIn("--confirm-game-background-replacement", runbook)
+        self.assertIn("controlled chaos", runbook)
+        self.assertIn("roughly 72%", runbook)
+        self.assertNotIn("Unless `--no-backdrop`", runbook)
+
+
 class ReassemblyTests(unittest.TestCase):
     """The contract: lay the panels side by side and the picture comes back.
 
@@ -225,7 +239,10 @@ class SpriteAssetGateTests(unittest.TestCase):
         path = self.dir / "gem.webp"
         image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
         ImageDraw.Draw(image).ellipse([8, 8, 55, 55], fill=(40, 190, 230, 255))
-        image.save(path)
+        # The suffix, rather than the payload codec, is what this gate rejects.
+        # Saving PNG bytes keeps the test portable to Pillow builds without a
+        # WebP encoder.
+        image.save(path, format="PNG")
 
         self.assertIn("not a PNG", "\n".join(
             store_compose.sprite_asset_issues(path)))
@@ -267,6 +284,11 @@ class PopGradeTests(unittest.TestCase):
         blown = float((a >= 0.999).all(axis=-1).mean())
         return luma, sat, blown
 
+    @staticmethod
+    def _hsv_saturation(img: Image.Image) -> float:
+        rgb = np.asarray(img.convert("RGB"), dtype=np.float32) / 255.0
+        return store_compose._mean_hsv_saturation(rgb)
+
     def test_default_preset_lifts_light_and_colour(self) -> None:
         src = self._ramp()
         base_luma, base_sat, _ = self._stats(src)
@@ -294,13 +316,47 @@ class PopGradeTests(unittest.TestCase):
             np.asarray(store_compose.pop_grade(src)),
             np.asarray(store_compose.pop_grade(src, "max")))
 
+    def test_max_grade_materially_raises_carousel_saturation(self) -> None:
+        src = self._ramp()
+        blaze = self._hsv_saturation(store_compose.pop_grade(src, "blaze"))
+        maximum = self._hsv_saturation(store_compose.pop_grade(src, "max"))
+
+        self.assertGreaterEqual(
+            maximum,
+            store_compose.MAX_POP_SATURATION_TARGET - 0.01,
+        )
+        self.assertGreater(maximum, blaze + 0.15)
+
+    def test_saturation_finish_preserves_brightness_and_neutral_pixels(self) -> None:
+        rgb = np.asarray(self._ramp().convert("RGB"), dtype=np.float32) / 255.0
+        neutral = np.full((rgb.shape[0], 8, 3), 0.42, dtype=np.float32)
+        source = np.concatenate([rgb, neutral], axis=1)
+        source_image = Image.fromarray(
+            (source * 255 + 0.5).astype(np.uint8),
+            "RGB",
+        ).convert("RGBA")
+        before_luma = float((source * store_compose.LUMA).sum(axis=-1).mean())
+
+        result = store_compose._finish_saturation(source_image, 0.80, 2.25)
+        result_rgb = np.asarray(result.convert("RGB"), dtype=np.float32) / 255.0
+        after_luma = float(
+            (result_rgb * store_compose.LUMA).sum(axis=-1).mean()
+        )
+
+        self.assertAlmostEqual(after_luma, before_luma, delta=0.02)
+        np.testing.assert_allclose(
+            result_rgb[:, -8:],
+            np.full_like(result_rgb[:, -8:], 0.42),
+            atol=0.005,
+        )
+
     def test_off_is_a_no_op_and_alpha_survives(self) -> None:
         src = self._ramp()
         np.testing.assert_array_equal(np.asarray(store_compose.pop_grade(src, "off")),
                                       np.asarray(src))
         translucent = src.copy()
         translucent.putalpha(128)
-        self.assertEqual(store_compose.pop_grade(translucent, "vivid").getchannel("A")
+        self.assertEqual(store_compose.pop_grade(translucent, "max").getchannel("A")
                          .getextrema(), (128, 128))
 
 
@@ -531,6 +587,7 @@ class FinalArtGateTests(unittest.TestCase):
         objects = Image.fromarray(rng.integers(
             10, 245, (126, pano.width, 3), dtype=np.uint8), "RGB").convert("RGBA")
         pano.paste(objects, (0, pano.height - objects.height))
+        pano = store_compose.pop_grade(pano, "max")
 
         issues = store_compose.final_art_issues(
             pano, self._spans(), (0.03, 0.12, 0.27, 0.78))
@@ -747,6 +804,31 @@ class InlayTests(unittest.TestCase):
                    for line in falling]
         self.assertLess(min(centres), self.PANEL_H * 0.25)
         self.assertGreater(max(centres), self.PANEL_H * 0.45)
+
+    def test_auto_layout_makes_the_bottom_a_staggered_object_spill(self) -> None:
+        lines = self._inlay(
+            self._sprite("hero.png", (200, 420)),
+            self._sprite("board.png", (360, 360)) + "@board",
+            *(self._sprite(f"object{i}.png", (160, 160)) for i in range(12)),
+        )
+        frames = [line for line in lines if line.startswith("frame")]
+        falling = [line for line in lines if line.startswith("fall")]
+
+        self.assertEqual(len(frames), self.PANELS * store_compose.FRAME_PER_PANEL)
+        self.assertTrue(falling)
+
+        normalized_centres: dict[int, list[float]] = {}
+        for line in frames:
+            panel = int(line.split("panel ")[1].split()[0])
+            cx = int(line.split("@")[1].split(",")[0])
+            left, _ = store_compose.panel_span(
+                panel - 1, self.PANEL_W, self.GUTTER
+            )
+            normalized_centres.setdefault(panel, []).append(
+                round((cx - left) / self.PANEL_W, 2)
+            )
+        patterns = {tuple(values) for values in normalized_centres.values()}
+        self.assertGreater(len(patterns), 1, normalized_centres)
 
     def test_disabling_both_new_populations_keeps_the_legacy_prop_layout(self) -> None:
         lines = self._inlay(self._sprite("hero.png", (200, 420)),
@@ -967,8 +1049,11 @@ class BoardRoleTests(unittest.TestCase):
                               self._png("gem.png", (160, 160)))
         gem = next(l for l in with_board if "gem.png" in l)
         plain = next(l for l in without if "gem.png" in l)
-        self.assertEqual(gem.split("@")[1].split(",", 1)[1],
-                         plain.split("@")[1].split(",", 1)[1])
+        # Its foreground pattern may shift with the panel so the lower spill is
+        # not repeated mechanically; the board must not change its size/depth
+        # role within that pattern.
+        self.assertTrue(gem.startswith("frame") and plain.startswith("frame"))
+        self.assertEqual(gem.split("(", 1)[1], plain.split("(", 1)[1])
 
     def test_a_plate_is_built_from_the_real_symbol_files(self) -> None:
         red, green = (220, 40, 60), (40, 200, 90)
@@ -1249,7 +1334,7 @@ class HeroBustGateTests(unittest.TestCase):
         objects = Image.fromarray(rng.integers(
             10, 245, (126, pano.width, 3), dtype=np.uint8), "RGB").convert("RGBA")
         pano.paste(objects, (0, pano.height - objects.height))
-        return pano
+        return store_compose.pop_grade(pano, "max")
 
     def test_a_bust_touching_the_left_and_bottom_edges_passes(self) -> None:
         issues = store_compose.final_art_issues(
@@ -1373,6 +1458,54 @@ class BannerZoneTests(unittest.TestCase):
 
         self.assertTrue(any("--hero-bounds is required" in issue for issue in issues),
                         issues)
+
+
+class BackdropCommandSafetyTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dir = Path(self._tmp.name)
+        self.source = self.dir / "keyart.png"
+        Image.new("RGB", (120, 80), (30, 120, 220)).save(self.source)
+        for name in ("info", "ok", "warn"):
+            original = getattr(store_compose, name)
+            setattr(store_compose, name, lambda *_: None)
+            self.addCleanup(setattr, store_compose, name, original)
+
+    def _args(self, confirmed: bool) -> argparse.Namespace:
+        return argparse.Namespace(
+            src=str(self.source),
+            out_dir=str(self.dir / "backgrounds"),
+            prefix="bg_keyart",
+            size="108x192",
+            variants="menu,game",
+            calm=0.45,
+            vignette=0.18,
+            zoom=1.0,
+            offset=0.0,
+            pop="off",
+            vibrance=None,
+            lift=None,
+            contrast=None,
+            bloom=None,
+            confirm_game_background_replacement=confirmed,
+        )
+
+    def test_backdrop_export_refuses_implicit_game_background_changes(self) -> None:
+        args = self._args(confirmed=False)
+
+        with self.assertRaises(SystemExit):
+            store_compose.cmd_backdrop(args)
+
+        self.assertFalse(Path(args.out_dir).exists())
+
+    def test_backdrop_export_requires_explicit_confirmation(self) -> None:
+        args = self._args(confirmed=True)
+
+        store_compose.cmd_backdrop(args)
+
+        self.assertTrue((Path(args.out_dir) / "bg_keyart_menu.png").is_file())
+        self.assertTrue((Path(args.out_dir) / "bg_keyart_game.png").is_file())
 
 
 class BannerCommandTests(unittest.TestCase):

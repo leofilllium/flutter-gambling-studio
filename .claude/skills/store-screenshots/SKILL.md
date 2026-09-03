@@ -1,7 +1,7 @@
 ---
 name: store-screenshots
-description: "Build a casino-grade App Store and Google Play kit: aggressively saturated concept panels, real gameplay screenshots, a dedicated long-banner scene and feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 leads with a large left-anchored waist-up protagonist; only its left/lower edges may crop, while the complete head keeps safe top margin and every attached form clears the first seam. Real-alpha game objects form a cropped lower frame and fall through a bright, broad, smooth world with controlled blown light. The long banner keeps action in the left 3/5 and a calmer populated continuation in the right 2/5, never a reserved device zone. Real gameplay is recreated as scene-matched 3D art and shipped sprites stay recognizable. Output is a ZIP under project_zip/."
-argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 0|100] [--seam-snap auto|off] [--pop max|blaze|vivid|soft|off] [--hero hero.png] [--hero-height 0.80] [--hero-bounds x,y,w,h] [--sprite-dir assets/images/sprites] [--object-frame auto|N|off] [--no-falling] [--fall-trail 1.0] [--board auto|rest|off] [--banner-gate strict|warn|off] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
+description: "Build a casino-grade App Store and Google Play kit: intensely saturated concept panels, real gameplay screenshots, a dedicated long-banner scene and feature graphic, an applied launcher icon, and an in-game emblem—while preserving the game's existing runtime backgrounds. Panel 1 leads with a large left-anchored waist-up protagonist; only its left/lower edges may crop, while the complete head keeps safe top margin and every attached form clears the first seam. Real-alpha game objects form a cropped lower frame and fall through a bright, broad, smooth world with controlled blown light. The long banner keeps action in the left 3/5 and a calmer populated continuation in the right 2/5, never a reserved device zone. Real gameplay is recreated as scene-matched 3D art and shipped sprites stay recognizable. Output is a ZIP under project_zip/."
+argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 0|100] [--seam-snap auto|off] [--pop max|blaze|vivid|soft|off] [--hero hero.png] [--hero-height 0.80] [--hero-bounds x,y,w,h] [--sprite-dir assets/images/sprites] [--object-frame auto|N|off] [--no-falling] [--fall-trail 1.0] [--board auto|rest|off] [--banner-gate strict|warn|off] [--apply-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
@@ -15,7 +15,6 @@ Create everything needed to present the game in App Store Connect and Google Pla
 | Panels 1…P: one wide concept illustration composed around the hero bust on panel 1 and visibly integrating every shipped sprite asset across the split panels, sliced into adjacent panels that lay back down into the whole picture | GPT Images 2.0 → `store_compose.py triptych --sprite-dir … --seam-snap` |
 | The layout draft the finished picture is rendered from — real hero at full panel height under the berth's ornament, the real field caught mid-payout, and a real reward/prop in a decorated physical home on the final panel | actual gameplay win frame → `store_compose.py boardplate --from-shot` + `triptych --pano-only` |
 | One integrated illustration: the draft, actual gameplay frame, and exhaustive sprite manifest used as references to generate a single three-dimensional scene | `gpt_image.py edit --image draft --image gameplay --image <every sprite> --fidelity high` |
-| The same key art wired into the app as its own background | `store_compose.py backdrop` → `assets/images/backgrounds/` |
 | Panels P+1…N: real gameplay frames in a device mockup with marketing captions | `web_verify.mjs` → `store_compose.py showcase` |
 | Dedicated text/device-free long-banner art: active left 3/5, calmer continuous right 2/5, large waist-up hero left, real-object frame across the full bottom | GPT Images 2.0 high-fidelity edit from the integrated key art + primary game assets |
 | Google Play feature graphic, 1024×500 | dedicated long-banner art → `store_compose.py banner --banner-gate strict --base-out …` |
@@ -34,7 +33,11 @@ Captions, titles and taglines are rendered by the compositor, never by the image
 panels carry no words, no logo and no marketing copy — the one thing the image model may letter is a
 **multiplier badge the game actually pays** (see "Casino markers" below).
 
-This skill creates local artifacts only. It does not publish, commit, change game balance, or build release binaries. It does apply branding — icon, emblem, and the key-art backdrop — to the project.
+This skill creates local artifacts only. It does not publish, commit, change game balance, or build
+release binaries. Unless `--no-apply` is used, it may apply the launcher icon and emblem. It
+preserves every existing runtime background asset and background reference by default.
+`--apply-backdrop` is an exceptional opt-in and is valid only when the user explicitly asks to
+redesign the game's background; never infer it from a request for store screenshots.
 
 ## Storefront ↔ game continuity — the blocking contract
 
@@ -43,11 +46,12 @@ pixel size. It is this: the first panels advertise a world — a god, a machine,
 screenshot 4 opens the app and none of it is there. Reviewers read that as artwork bought for a
 different product, and it has cost real submissions.
 
-Continuity runs in **both** directions, and both are mandatory:
+The existing game is authoritative. Continuity runs from the game into the storefront; the normal
+storefront workflow does not rewrite the game to match newly generated marketing art:
 
 | Direction | Requirement | How it is enforced |
 |---|---|---|
-| Key art → app | The concept panels' world, hero, palette, materials, and light must be visible on the game's own screens | `store_compose.py backdrop` exports the panorama as the game's menu and gameplay background, and Phase 3 wires it in **before** the final storefront frames are captured |
+| App world → key art | The concept panels must preserve the existing game's background world, palette, materials, and light | Existing menu/gameplay backgrounds and real runtime frames are visual references for generation; Phase 3 verifies their files and code references are unchanged |
 | App → key art (objects) | **Every shipped sprite asset** must appear visibly somewhere across the concept panels, with every panel carrying part of the set | `--sprite-dir` inventories and distributes all raster sprites in the draft; the exhaustive manifest is passed to the integration render at high fidelity and audited one row per file |
 | App → key art (the field) | Where the art shows the game being *played* — a grid, reels, a board, a track, a peg field — it must clearly derive from the actual game while being created as part of the same 3D scene | a real resolving gameplay frame is the authoritative context image; `boardplate --from-shot` supplies layout/perspective guidance, and both go into the integration render as references rather than being pasted into the final art |
 
@@ -72,9 +76,10 @@ If it becomes a decorative fantasy board or a flat rectangular screen, regenerat
 
 **Phase order is part of the contract.** A reference-only gameplay frame is read or captured first
 so the integration model knows what the game truly looks like; it is an input, never an upload.
-Then art → apply to the game → capture the final storefront frames. Reusing the pre-branding
-reference as a showcase screenshot is exactly the bug that ships a listing whose two halves show
-different products.
+Then art → apply icon/emblem only → capture the final storefront frames against the game's
+unchanged background. Reusing a stale reference as a showcase screenshot is exactly the bug that
+ships a listing whose two halves show different products; replacing the runtime background to hide
+the mismatch is also a bug. Regenerate the storefront from the game instead.
 
 **The exhaustive sprite manifest.** In Phase 0, inventory every shipped sprite below the game's
 sprite directories. None are optional merely because they are secondary symbols, collectibles,
@@ -320,6 +325,21 @@ several clearly different hues in the foreground, everything important dead shar
 badges among the objects. Two are high-key (cyan sky, cream light) and two are dark-ground with a
 blazing subject — the brief is *bright and light*, not *pale*, and the floors below allow both.
 
+Their shared composition is the default visual spine for both the carousel panorama and the
+dedicated long banner:
+
+- **Left:** the large readable waist-up protagonist, cropped only by the left/lower canvas edges.
+- **Middle:** the decisive live gameplay moment, recreated from a real resolving frame as a sharp,
+  readable physical mechanism inside the scene—not an unrelated vista and not a pasted screenshot.
+- **Bottom, full width:** many real sprite assets in **controlled chaos**—large edge-cropped forms,
+  medium central forms, varied height/scale/rotation, strong overlap and depth, with no tidy row or
+  lower-left pile. A smaller population falls through the upper and middle space.
+- **Everywhere behind them:** a broad bright, smooth world and controlled blown light that lets the
+  hero, gameplay and colorful sprite spill dominate. The image stays intensely saturated and
+  multi-hue, never pale and never covered by one global gold tint.
+
+The long banner adds its format-specific 3/5–2/5 density gradient; it does not replace this spine.
+
 ### Saturation and light are a requirement, not a taste
 
 A listing is reviewed as a strip of thumbnails standing beside nine competitors, and raw
@@ -338,10 +358,11 @@ the same: *make it richer and brighter*. So:
   separation, because high saturation by itself lets the all-yellow failure pass.
 - Every compositor art path applies the strongest safe colour grade by default (`--pop max`:
   weighted vibrance + midtone lift + contrast + highlight bloom, none of which can manufacture
-  clipped white). The slider delivery floor is **0.60 mean saturation**, with **0.68–0.82** the
-  intended working band. The supplied references measure 0.58–0.83; the new direction is to push
-  the carousel aggressively toward their vivid end. A lower preset is diagnostic, not a reason to
-  ship soft panels.
+  clipped white). The slider delivery floor is **0.68 mean saturation**, with **0.78–0.88** the
+  intended working band. The default `max` grade finishes toward 0.80 after lift and bloom, so it
+  cannot silently become less saturated while making the image brighter. The supplied references
+  measure 0.58–0.83; the new direction is to push the carousel materially beyond their soft end.
+  A lower preset is diagnostic, not a reason to ship soft panels.
 - **Bright means light, not merely vivid.** *«Они яркие и светлые.»* The far plane carries broad
   high-value colour — sky, sunlight, a burst, a lit interior — and the strict gate holds mean luma
   ≥0.33 with deep shadow ≤0.38, just under the weakest reference on each axis. A saturated picture
@@ -349,8 +370,8 @@ the same: *make it richer and brighter*. So:
 - Put one or more controlled overexposed light sources into the generated art: a sun, burst,
   portal, reward flare or rim that burns into the nearby silhouette. *«С разными пересветами и
   бликами»* — the references carry 1.7–6.1% blown luma, and the gate's band is 1.2–20%. The grade
-  deliberately cannot manufacture clipping, so `triptych` reports saturation and blown-highlight
-  share and sends art with no glare back to generation.
+  deliberately cannot manufacture the required broad white glare, so `triptych` reports saturation
+  and blown-highlight share and sends art with no glare back to generation.
 - **Nothing that matters is blurred.** The protagonist and every real game object stay sharp, with
   clean readable edges. Depth of field is allowed on *a few* secondary objects near the front or
   back plane and nowhere else — it is a depth cue, never a way to simplify a busy picture or to
@@ -362,8 +383,9 @@ the same: *make it richer and brighter*. So:
   below (secondary hue share, hero/background hue gap); the drafting requirement is to choose the
   background's hue family against the hero's, and to keep the game's own object colours.
 - **Do not grade the real gameplay frames.** Both stores require a screenshot to represent what the
-  app renders. If the captured frames look dull, the *game* is dull — fix it with the key-art
-  backdrop, in-game lighting, and juice, then re-capture. Never brighten a frame in post.
+  app renders. If the captured frames look dull, treat in-game lighting and juice as a separate,
+  explicitly requested game change, then re-capture. Never brighten a frame in post and never
+  replace a runtime background as a side effect of this workflow.
 
 ### Density belongs to the hero and game objects; the background stays smooth
 
@@ -483,7 +505,7 @@ added only afterward by `store_compose.py banner`; `--base-out` retains the clea
   draw the very slot the negative instruction is trying to prevent.
 
 `banner --banner-gate strict` measures the clean source before overlays and writes nothing on a
-failure. It requires measured `--hero-bounds`, ≥0.60 saturation, controlled glare, a large
+failure. It requires measured `--hero-bounds`, ≥0.68 saturation, controlled glare, a large
 left-anchored hero at ≥70% of banner height with safe headroom, a right-side density of 0.35–0.95× the scene side, continuous
 brightness, and a separately readable lower object frame through the right 2/5.
 
@@ -496,14 +518,14 @@ brightness, and a separately readable lower object frame through the right 2/5.
 | `--size` | `1320x2868` | Main set; also supports `iphone-6.9`, `iphone-6.9-alt`, `iphone-6.5`, and `play` |
 | `--gutter` | `0` | Nothing is discarded between panels: they reassemble into the picture. An explicit width (`100`, `auto`) throws that strip away instead, for a publisher who asks the panels to line up across the store's carousel gap — it costs the picture |
 | `--seam-snap` | `auto` (12% of a panel) | How far the tiling may slide so the cuts land on the picture's quietest columns. With a lossless cut this is the only lever there is. `off` restores the content-blind even split |
-| `--pop` | `max` | Aggressive slider-grade preset applied to generated art (`off`, `soft`, `vivid`, `blaze`, `max`). Final concept panels must still measure ≥0.60 mean saturation; aim for 0.68–0.82 |
+| `--pop` | `max` | Intense slider-grade preset applied to generated art (`off`, `soft`, `vivid`, `blaze`, `max`). The `max` finish adaptively targets 0.80; final concept panels must still measure ≥0.68 mean saturation and should land at 0.78–0.88 |
 | `--hero` | first manifest entry marked hero | The protagonist PNG that leads panel 1; pass it explicitly before `--sprite-dir` so its role overrides directory discovery |
 | `--hero-height` | `0.80` | How much of panel 1's **height** the hero fills *visibly*. The art itself is taller: it is anchored just below the top edge and cropped by the bottom, and when it comes out wider than the panel the surplus leaves by the **left** edge (up to 20% of its width). Below 0.75 the figure is scenery again. An explicit sprite `h=` still overrides it |
 | `--hero-bounds` | required on final slices and the long-banner base | Tight normalized `x,y,w,h` around the protagonist as the **final render/crop** shows it, including every held/worn/attached form. Concept-panel strict mode requires a ≥2% top margin above the complete head/headwear, a large left-anchored waist-up crop, and every attached shape clear of the first carousel seam. Banner strict mode applies the same head protection to the active left scene. Measure it separately for every output geometry |
 | `--art-gate` | `strict` | `strict` writes no final panels when the art is dark, over-detailed in the upper plane, weak at the object-framed bottom, outside saturation/glare targets, or the measured hero drifts off the left, loses its head to the top edge or crosses the first seam. `warn` is only for diagnostic previews under `art/`; `off` is only for compositor unit tests |
 | `--props` | auto | Legacy explicit comma-separated sprite list; use only for precise assignments that are then completed by `--sprite-dir`, never to select a subset of shipped sprites |
 | `--sprite-dir` | required sprite roots | Repeatable discovery directory. Every discovered WebP/JPEG/SVG is converted first; only standalone real-alpha PNG references may reach the draft/integration gate. Explicit `--sprite` entries win duplicate roles/placement |
-| `--object-frame` | `auto` | Number of unassigned sprites placed into the cropped bottom band. `auto` uses up to 60% of the supporting manifest, targets three per panel when enough exist, and preserves the rest for the fall. `off` sends them all airborne unless `--no-falling` is also set |
+| `--object-frame` | `auto` | Number of unassigned sprites placed into the cropped bottom band. `auto` commits roughly 72% of the supporting manifest, up to three per panel, to a staggered overlapping foreground spill and preserves the smaller remainder for the fall. `off` sends them all airborne unless `--no-falling` is also set |
 | `--no-falling` | off | Disable airborne auto-placement. Supporting sprites join the bottom band; with `--object-frame off`, they use the legacy standing-prop layout |
 | `--fall-trail` | `1.0` | 0–2 multiplier for selective falling-object motion trails; 0 keeps the airborne objects crisp |
 | `--board` | `auto` | Prefer a real resolving gameplay crop (`boardplate --from-shot`) as the field reference, stand the draft plate in the scene's perspective, and place it in the middle. A symbol-built plate is provisional context only until a frame exists. `rest` is only for a mechanic with no resolving state; `off` for a game with no readable field |
@@ -512,7 +534,7 @@ brightness, and a separately readable lower object frame through the right 2/5.
 | `--occlude` | hero `0.14`, props `0.08`, board `0` | How much of an object's height the scene's foreground closes back over, so heroes and supporting props sit *in* the picture. On a bust cropped by the bottom edge this applies to the part still on the canvas. The board stays unobscured for legibility; `0` leaves an object in front of everything |
 | `banner --banner-gate` | `strict` | Blocks the feature graphic before any overlay is drawn unless its clean long-banner source passes saturation/light/glare, large left hero + ≥2% headroom, continuous calmer right 2/5, and full-width lower object-frame checks. `warn` writes diagnostics only; `off` is for tests |
 | `banner --base-out` | unset | Save the audited text/device-free long-banner crop before optional store typography/device overlays; the runbook always supplies this under `art/` |
-| `--no-backdrop` | off | Do not wire the key art into the game as its background |
+| `--apply-backdrop` | off | Exceptional opt-in to redesign the game's runtime background. Honor it only when the user explicitly requested that separate change; ordinary store-screenshot runs preserve every existing background |
 | `--no-play-set` | off | Skip the separate 9:16 Play set |
 | `--lang` | `en` | Caption/title language; change only on explicit request |
 | `--frame` | `ios` | `ios`, `android`, or `none` |
@@ -670,7 +692,7 @@ Use image generation for three sources:
    2. real game objects forming the cropped bottom frame across the full width;
    3. other real game objects visibly falling through upper, middle and lower space;
    4. a bright, light, broad, smooth, low-detail far background;
-   5. aggressively saturated colour (target mean 0.68–0.82, never below 0.60) with controlled
+   5. intensely saturated colour (target mean 0.78–0.88, never below 0.68) with controlled
       blown light behind a focal subject;
    6. a background in a clearly different hue family from the protagonist, with the game's varied
       object colours preserved—no global yellow/gold/amber wash and no two-neighbouring-colour
@@ -722,7 +744,7 @@ Use image generation for three sources:
      scene rather than laying an icon on it. The final third may not be generic scenery and may not
      contain a model-drawn version of the object.
    - Describe the exhaustive sprite manifest explicitly, grouped by panel and physical function.
-     Reserve up to 60% of the supporting set for a **continuous bottom frame**: three large,
+     Reserve roughly 72% of the supporting set for a **continuous bottom frame**, up to three large,
      overlapping objects per panel when inventory permits, deliberately crossing the lower canvas
      edge. State the silhouette, not just the inventory: **a small uneven hill/spill in the nearest
      foreground**, with readable top contours, mutual overlap, contact-dark gaps, selective rim
@@ -908,8 +930,8 @@ python3 tools/gpt_image.py edit \
 - **The integration prompt begins with the same eight-line priority block as Phase 1.** Put it
   before "render this in the game's style", before materials, and before the exhaustive asset
   list: complete hero inside panel 1; real game-object frame at the bottom; real game objects
-  falling through the height; bright smooth low-detail far plane; aggressively saturated colour
-  (target 0.68–0.82, hard floor 0.60) plus one
+  falling through the height; bright smooth low-detail far plane; intensely saturated colour
+  (target 0.78–0.88, hard floor 0.68) plus one
   controlled blown source; contrasting background/hero hue families with original object colours
   preserved. Repeating it only near the end is not enforcement. Every staged batch starts with the
   block again and says that these relationships outrank added ornament.
@@ -1053,7 +1075,7 @@ mention any future overlay or the thing that will eventually be placed over the 
 4. FULL-WIDTH FOREGROUND: real referenced game objects form a shallow irregular overlapping hill
    across the entire lower edge, denser/higher left and centre, lower/sparser right; large objects
    crop at the edges, medium objects occupy the middle, small whole objects fall above.
-5. AGGRESSIVE MULTI-HUE COLOUR: target 0.68–0.82 mean saturation; preserve distinct red, yellow,
+5. INTENSE MULTI-HUE COLOUR: target 0.78–0.88 mean saturation; preserve distinct red, yellow,
    green and cyan/blue asset colours and silhouettes; no global gold/amber wash and no scene made
    from two neighbouring colours.
 6. BRIGHT LIGHT AND DEPTH: broad smooth luminous far plane, top-left key, strong glossy highlights,
@@ -1101,14 +1123,37 @@ python3 tools/store_compose.py banner \
 Reject and regenerate when the right 2/5 is empty, equally busy, abruptly dark/bright, shaped like
 a reserved slot, or missing the lower object frame; when the hero is not large and waist-up on the
 left; when the head/hair/headwear is clipped; when objects collect only in the lower-left corner;
-when important objects blur; or when saturation is below 0.60. Cropping and grading cannot repair
+when important objects blur; or when saturation is below 0.68. Cropping and grading cannot repair
 those composition defects. Record the measured bounds for Phase 7.
 
-## Phase 3 — apply the storefront to the game
+## Phase 3 — apply branding without replacing the game's backgrounds
 
-This is the direction that gets listings rejected, and it must happen **before** any final
-storefront gameplay frame is captured. The reference-only context frame from preflight remains an
-input to the artwork and is never part of the upload set.
+The reference-only context frame from preflight remains an input to the artwork and is never part
+of the upload set. The icon and emblem may be applied before final capture, but ordinary
+`/store-screenshots` runs do **not** replace, rewire, recolour, blur, or regenerate a menu,
+gameplay, splash, or shared runtime background.
+
+Before any project edit, record a background guard under `$ART_DIR`:
+
+```bash
+{
+  rg --files assets 2>/dev/null \
+    | rg -i '(^|/)(backgrounds?|backdrops?)(/|$)|(^|/)(background|bg)_[^/]+\.(png|webp|jpe?g|svg)$' \
+    || true
+} | sort -u > "$ART_DIR/runtime-background-assets.txt"
+
+while IFS= read -r background_path; do
+  [[ -z "$background_path" ]] || shasum -a 256 "$background_path"
+done < "$ART_DIR/runtime-background-assets.txt" \
+  > "$ART_DIR/runtime-background-assets-before.sha256"
+
+rg -n -i 'background|backdrop|bg_' lib pubspec.yaml 2>/dev/null \
+  | sed -E 's/^([^:]+):[0-9]+:/\1:/' \
+  > "$ART_DIR/runtime-background-references-before.txt" || true
+```
+
+These files establish both halves of the invariant: the existing image bytes and the code/config
+references that select them.
 
 **Launcher icon.** Use `store_compose.py icon` to create the 1024 master, 512 listing icon, and adaptive foreground. Add/configure `flutter_launcher_icons` in `pubspec.yaml`, then run:
 
@@ -1120,35 +1165,64 @@ Verify generated Android mipmaps, adaptive icon resources, iOS AppIcon entries, 
 
 **Emblem.** Copy the emblem to `assets/images/ui/ui_game_logo.png`, register it in `pubspec.yaml` or the shared asset registry, and—unless `--no-wire-logo`—add one responsive `Image.asset` to the main menu. Do not rewrite the screen.
 
-**Key-art backdrop.** Unless `--no-backdrop`, export the same panorama as the game's own background and wire it in:
+**Runtime backgrounds.** Leave the files and their wiring alone. A mismatch between storefront art
+and the existing game is fixed by regenerating storefront art from the existing backgrounds,
+runtime frames, field, hero, and sprites. It is never fixed by silently replacing the game.
+
+Only when the user explicitly requested a runtime-background redesign and supplied
+`--apply-backdrop` may this separate operation run:
 
 ```bash
 python3 tools/store_compose.py backdrop --src "$ART_DIR/keyart-integrated.png" \
   --out-dir assets/images/backgrounds --prefix bg_keyart \
-  --variants menu,game --size 1080x1920 --offset -0.55 --pop vivid --calm 0.45
+  --variants menu,game --size 1080x1920 --offset -0.55 --pop max --calm 0.45 \
+  --confirm-game-background-replacement
 ```
 
-- Use the panorama Phase 2 saved with `--save-pano`, not the raw generation: the app's own
-  background should carry the same hero and the same seated objects the panels do.
-- Choose `--offset` (with `--zoom` for slack) so the crop contains the **hero and the mechanic**,
-  not empty sky. That slice is the world the player will live inside; make it the same slice the
-  first panel sells.
-- `bg_keyart_menu.png` goes behind the main menu / lobby at full strength.
-- `bg_keyart_game.png` is the same picture, blurred, dimmed, and slightly desaturated by `--calm`
-  so the live field, HUD, and buttons keep the eye. Raise `--calm` if any control loses contrast.
-- Register both in `pubspec.yaml`, then point the existing menu and gameplay scaffolds at them with
-  a `BoxDecoration`/`DecorationImage` (`fit: BoxFit.cover`) or a Flame background component, behind
-  the existing layers. Do not restructure the screens.
+`store_compose.py backdrop` refuses to write without the long confirmation flag. The presence of
+`--apply-backdrop` alone is not permission: the user's request must explicitly mention changing
+the actual game's background. Record that request and every affected file in `STORE_INFO.md`.
 
 Run formatting and analysis after these targeted edits. Revert any wiring that introduces an error,
 an overflow, or a contrast regression, and say so in the final report — a broken screen is worse
-than a missing background.
+than a missing emblem.
+
+Unless the explicit backdrop opt-in was valid, recompute the background hashes/references and
+compare them before continuing:
+
+```bash
+{
+  rg --files assets 2>/dev/null \
+    | rg -i '(^|/)(backgrounds?|backdrops?)(/|$)|(^|/)(background|bg)_[^/]+\.(png|webp|jpe?g|svg)$' \
+    || true
+} | sort -u > "$ART_DIR/runtime-background-assets-after.txt"
+
+while IFS= read -r background_path; do
+  [[ -z "$background_path" ]] || shasum -a 256 "$background_path"
+done < "$ART_DIR/runtime-background-assets-after.txt" \
+  > "$ART_DIR/runtime-background-assets-after.sha256"
+
+rg -n -i 'background|backdrop|bg_' lib pubspec.yaml 2>/dev/null \
+  | sed -E 's/^([^:]+):[0-9]+:/\1:/' \
+  > "$ART_DIR/runtime-background-references-after.txt" || true
+
+cmp "$ART_DIR/runtime-background-assets.txt" \
+    "$ART_DIR/runtime-background-assets-after.txt" \
+  || { echo "BLOCKER: store screenshots added or removed a runtime background asset"; exit 1; }
+cmp "$ART_DIR/runtime-background-assets-before.sha256" \
+    "$ART_DIR/runtime-background-assets-after.sha256" \
+  || { echo "BLOCKER: store screenshots changed a runtime background asset"; exit 1; }
+cmp "$ART_DIR/runtime-background-references-before.txt" \
+    "$ART_DIR/runtime-background-references-after.txt" \
+  || { echo "BLOCKER: store screenshots changed runtime background wiring"; exit 1; }
+```
 
 ## Phase 4 — capture real gameplay frames
 
-Capture only after Phase 3, so the frames show the applied emblem and the key-art background. Reuse
-existing runtime frames **only** if they were captured after this run's branding was applied and are
-valid portrait phone images with `h/w` between 1.9 and 2.35. Otherwise capture a new Chrome/CDP tour:
+Capture only after Phase 3, so the frames show the applied emblem while retaining the game's
+original background. Reuse existing runtime frames **only** if they were captured after this run's
+branding was applied, show the same preserved background, and are valid portrait phone images with
+`h/w` between 1.9 and 2.35. Otherwise capture a new Chrome/CDP tour:
 
 ```bash
 flutter run -d web-server --web-port=0 > .claude/runtime-logs/flutter-run.log 2>&1 &
@@ -1166,12 +1240,13 @@ scrolling, a large information card competes with the mechanic, or buttons are c
 clipped, off-screen, or disconnected. Store composition must never crop, enlarge, or cover a weak
 gameplay layout to make it look acceptable.
 
-Then run the continuity read: the captured frames must visibly share the panorama's world, and the
-primary hero/mechanic/reward anchors must be findable in them. Every remaining manifest sprite must
-have its recorded in-app evidence: a selected gameplay frame where practical, otherwise its actual
-asset-registry/code reference and state. If the backdrop did not survive a screen, if the hero never
-appears in the app, or if the symbols on screen look nothing like the ones in the panels, fix the
-game and re-capture. Do not proceed and compensate in composition.
+Then run the continuity read: the panorama must visibly derive from the captured game's existing
+world, and the primary hero/mechanic/reward anchors must be findable in both. Every remaining
+manifest sprite must have its recorded in-app evidence: a selected gameplay frame where practical,
+otherwise its actual asset-registry/code reference and state. If the generated panorama does not
+match the existing background, if the hero is absent from the storefront, or if panel symbols look
+nothing like the real ones, regenerate the storefront and re-capture. Do not modify the game's
+background to compensate.
 
 **The captured win frame now becomes the authoritative integration context.** Put it next to panel
 2 and check that they show the same game: the same mechanic topology, recognizable symbols,
@@ -1191,9 +1266,9 @@ rerun, substitute `$RAW_DIR/04-win.png` for the provisional
 `$RAW_DIR/gameplay-reference-win.png` input in the Phase 2b command. Do not composite either image
 after generation; they remain references only.
 
-Re-running Phase 2 also means re-exporting the backdrop (Phase 3), re-rendering the dedicated long
-banner from the corrected panorama (Phase 2d), and rebuilding the feature graphic (Phase 7). Do all
-three rather than leaving mismatched versions of the visual world in one kit.
+Re-running Phase 2 also means re-rendering the dedicated long banner from the corrected panorama
+(Phase 2d) and rebuilding the feature graphic (Phase 7). Do both rather than leaving mismatched
+versions of the visual world in one kit. The runtime background remains unchanged.
 
 ## Phase 5 — compose the concept panels
 
@@ -1205,8 +1280,9 @@ numbered `store-01.png` through `store-0P.png` plus `_panorama-preview.png` and
 
 The draft was graded before the render, but the integration pass can soften it. Slice at
 `--pop max`: the operation uses weighted vibrance, so it pushes muted pixels without flattening
-already-saturated game objects. The strict gate still decides the result; **0.60 is the blocking
-floor and 0.68–0.82 is the intended slider band**. Never slice the Phase 2a composite as a fallback;
+already-saturated game objects. The `max` preset now adds a luma-aware saturation finish
+toward 0.80 after lift and bloom. The strict gate still decides the result; **0.68 is the blocking
+floor and 0.78–0.88 is the intended slider band**. Never slice the Phase 2a composite as a fallback;
 it contains placement references rather than finished scene art.
 
 The compositor's art gate is **blocking by default**. Use `warn` only to create a disposable
@@ -1373,7 +1449,7 @@ Vision-check both previews — `_panorama-preview.png` for whether the panels ar
 - The panorama uses casino-grade tension, depth, tactility, and reward focus while remaining
   unmistakably specific to this game's Design DNA.
 - Colour is rich and the image is bright *and light* enough to hold up at thumbnail size. The
-  compositor's saturation is at least 0.60 (target 0.68–0.82), a controlled 1.2–20% of the image is blown highlight
+  compositor's saturation is at least 0.68 (target 0.78–0.88), a controlled 1.2–20% of the image is blown highlight
   rather than no glare at all or a washed-out frame, and the picture is not built from two
   neighbouring colours.
 - The protagonist and the game objects are sharp. Any blur is on a few secondary objects at the
@@ -1584,8 +1660,10 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
 - The bottom object-frame total and per-panel counts, the falling-object total and height spread,
   which objects use motion trails, and the vision verdict that the lower objects form a distinct
   nearest-plane hill rather than background texture.
-- Exactly what branding was applied to the project — icon, emblem, and every background file the
-  key art was wired into, with the screens that now use them.
+- Exactly what branding was applied to the project — icon and emblem — plus the before/after
+  runtime-background asset and reference guard result. The normal result is `UNCHANGED`. If the
+  user explicitly requested `--apply-backdrop`, quote that request and list every affected file
+  and screen instead.
 - The continuity audit table.
 - Compliance profile, ratings, simulated-gambling answer, disclaimer, odds disclosure, and grep/vision results.
 - Exact Google Play and App Store upload order. Emphasize that neither `_panorama-preview.png` nor
@@ -1606,7 +1684,7 @@ Verify the archive contains numbered PNGs in both `store/` and `store-play/` unl
 
 ## Phase 12 — final report
 
-Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, base-backdrop and finished per-panel detail figures, panorama/per-panel lower-to-upper ratios, saturation, secondary-hue share, hero/background separation and glare figures, whether the bottom objects read as a distinct foreground hill, whether the falling objects span upper/middle/lower depth, whether the panorama was rendered from the draft or shipped as the composite, the exhaustive sprite-manifest counts and per-panel distribution, bottom-frame and falling-object distributions, any staged high-fidelity integration passes, the one-row-per-sprite identity/integration verdict, the real anchor on **each** split panel and the physical/decorative construction it completes, the hero on panel 1 (its share of the panel's width and visible height, its left bleed and bottom crop, ≥2% complete-head margin, its silhouette clear of the first seam, what ornament flanks and haloes the head, and that the bottom object frame crosses its lower body), the actual gameplay frame used as context for the middle field, how that field preserved the mechanic/state while being recreated as scene-matched 3D art, confirmation that no screenshot layer or rectangular edge survived, gameplay-frame range, the dedicated long-banner source and its strict 3/5–2/5 metrics (aggressive saturation, large waist-up left hero/headroom, right-side density/value continuity, full-width lower object frame, no reserved zone), feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row and the per-panel anchor audit, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
+Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, base-backdrop and finished per-panel detail figures, panorama/per-panel lower-to-upper ratios, saturation, secondary-hue share, hero/background separation and glare figures, whether the bottom objects read as a distinct foreground hill, whether the falling objects span upper/middle/lower depth, whether the panorama was rendered from the draft or shipped as the composite, the exhaustive sprite-manifest counts and per-panel distribution, bottom-frame and falling-object distributions, any staged high-fidelity integration passes, the one-row-per-sprite identity/integration verdict, the real anchor on **each** split panel and the physical/decorative construction it completes, the hero on panel 1 (its share of the panel's width and visible height, its left bleed and bottom crop, ≥2% complete-head margin, its silhouette clear of the first seam, what ornament flanks and haloes the head, and that the bottom object frame crosses its lower body), the actual gameplay frame used as context for the middle field, how that field preserved the mechanic/state while being recreated as scene-matched 3D art, confirmation that no screenshot layer or rectangular edge survived, gameplay-frame range, the dedicated long-banner source and its strict 3/5–2/5 metrics (intense saturation, large waist-up left hero/headroom, right-side density/value continuity, full-width lower object frame, no reserved zone), feature graphic, icon application status, emblem wiring status, and the runtime-background guard status (`UNCHANGED` by default), the continuity audit verdict including the field row and the per-panel anchor audit, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
 
 ## Quality gates
 
@@ -1619,7 +1697,8 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   visible object—never an opaque white/colour/checker background. The principal set has distinct
   silhouettes/dominant colours and visibly separate red, yellow, green and cyan/blue anchors.
 - At least one valid phone-aspect raw frame exists; the final selection includes active play and a win/reward state.
-- Gameplay frames were captured **after** branding and the backdrop were applied.
+- Gameplay frames were captured **after** icon/emblem branding while the existing runtime
+  backgrounds remained unchanged.
 - Every selected gameplay frame passes the full-viewport gameplay-screen contract; no thumbnail
   field, nested window, core-loop scrolling, disconnected controls, or poor button proportions.
 - The ordered set passes the casino-style storefront grammar: mechanic-first tension, depth,
@@ -1669,8 +1748,9 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   growing from that relationship — never pasted or grouped as a contact sheet.
 - Panorama, icon, and emblem share one visual world and pass vision review.
 - Launcher icons are applied unless `--no-apply` was requested.
-- The key art is wired into the game as its background unless `--no-backdrop` was requested, and
-  `flutter analyze` is clean afterwards.
+- The runtime-background asset hashes and code/config reference snapshots match before and after
+  the ordinary store-screenshot run. Any mismatch is a blocker. The sole exception is an explicit
+  user-requested `--apply-backdrop` redesign, recorded file by file.
 - The continuity audit is complete with one row per sprite: every row appears in a concept panel
   and has specific in-app evidence; the primary anchors also appear in captured gameplay frames.
 - **The panels reassemble into the whole picture in both sets**: the compositor reported `0px
@@ -1684,7 +1764,7 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - The bare staging plate passes the smooth-background ceiling before sprites land: broad bright
   colour and simplified far forms, no busy texture competing with the subject.
 - The finished panorama passes the brightness/smoothness gate too: mean luma ≥0.33, deep shadow
-  ≤38%, mean upper-plane detail ≤29, panorama lower/upper detail ≥1.10×, saturation ≥0.60,
+  ≤38%, mean upper-plane detail ≤29, panorama lower/upper detail ≥1.10×, saturation ≥0.68,
   secondary hues ≥14% outside the dominant hue family, hero/background hue gap ≥45° (or neutral
   value gap ≥0.18), and controlled blown highlights at 1.2–20%. These are blockers, not advisory
   metrics, and they sit just under the weakest of the four reference banners on every axis.
@@ -1693,15 +1773,15 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   left flagged as empty ground, and
   added density did not come from making the distant background busy.
 - The added density did not bury the focal points: the hero and the play field still lead.
-- Colour and brightness hold up at thumbnail size in both sets: saturation is at least 0.60 and
-  normally lands in the aggressive 0.68–0.82 target band,
+- Colour and brightness hold up at thumbnail size in both sets: saturation is at least 0.68 and
+  normally lands in the intense 0.78–0.88 target band,
   background and hero remain different hue families, the scene is not built from two neighbouring
   colours, the foreground retains multiple source colours, and controlled blown highlights occupy
   1.2–20% of the picture.
 - The feature graphic is built from a dedicated long-banner render, not a panorama crop, and passed
   `banner --banner-gate strict` before overlays: the hero is a large left-anchored waist-up subject
-  occupying at least 70% of banner height with ≥2% headroom; saturation is ≥0.60 (target
-  0.68–0.82); the right 2/5 measures 0.35–0.95× the
+  occupying at least 70% of banner height with ≥2% headroom; saturation is ≥0.68 (target
+  0.78–0.88); the right 2/5 measures 0.35–0.95× the
   scene side's density and continues naturally in value; the real-object lower frame remains
   separately readable across the right; and no reserved band, niche, podium, halo, darkening or
   blur marks an overlay position.
@@ -1714,11 +1794,14 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 
 ## Forbidden
 
-- Changing gameplay logic, state, configuration, balance, or economy. Applying the icon, emblem,
-  and key-art backdrop is the only project modification this skill makes.
-- Shipping gameplay frames captured before the branding and backdrop were applied, or reusing them
-  in the upload set. One pre-branding resolving frame is allowed only as reference context for the
+- Changing gameplay logic, state, configuration, balance, economy, runtime background assets, or
+  runtime background wiring. Applying the icon and emblem is the only default project modification.
+  A background redesign requires a separate explicit user request plus `--apply-backdrop`.
+- Shipping gameplay frames captured before icon/emblem branding was applied, or reusing them in the
+  upload set. One pre-branding resolving frame is allowed only as reference context for the
   integration generation and must never be exported as a storefront screenshot.
+- Replacing the game's background to make it resemble generated marketing art. The existing game
+  is the source of truth; regenerate the storefront from it.
 - Shipping concept panels that show objects, characters, or a world the app does not contain.
 - Omitting any shipped gameplay sprite from the concept panorama, passing only a curated selection
   of primary anchors to the integration render, or accepting manifest/reference/audit counts that

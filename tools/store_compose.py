@@ -53,9 +53,8 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             its left 3/5 carries a large waist-up hero and action, its right 2/5
             remains a quieter continuation rather than a reserved slot, and its
             real-game-object foreground continues across the full lower edge.
-  backdrop  the same key art exported as the GAME's background (menu / gameplay
-            / splash treatments), which is what stops the listing and the app
-            from looking like two different products.
+  backdrop  EXPLICIT-OPT-IN export of store key art as the game's background.
+            Store screenshot generation never invokes this command by default.
   icon      launcher/store icon set derived from generated art: 1024 master,
             1024 adaptive foreground (subject inside Android's 66% safe zone),
             512 store icon.
@@ -76,8 +75,8 @@ deterministic, testable and identical across every game.
 Every generated-art path is colour graded on the way out (`--pop`, default
 `max`): a listing is reviewed as a strip of thumbnails beside nine competitors,
 and ungraded model output reads washed out there. Real gameplay frames are never graded — a store
-screenshot must show what the app renders, so a dull frame is fixed by giving
-the game the key art as its background, not in post.
+screenshot must show what the app renders, so any runtime visual correction is made in the game
+itself as a separate task. Store composition preserves the game's existing backgrounds.
 
 Typography is treated as display type, not UI labels: the face is chosen by
 mood (or taken from the game's own assets/fonts via --font-dir), letter spacing
@@ -95,8 +94,10 @@ Examples:
       --sprite-dir assets/images/sprites \\
       --sprite assets/images/sprites/lightning.png@panel=2 \\
       --sprite-glow-color "#F0B34A"
+  # Explicit standalone operation; never part of /store-screenshots by default.
   python3 tools/store_compose.py backdrop --src art/keyart-integrated.png \\
-      --out-dir assets/images/backgrounds --variants menu,game --offset -0.6
+      --out-dir assets/images/backgrounds --variants menu,game --offset -0.6 \\
+      --confirm-game-background-replacement
   python3 tools/store_compose.py showcase --shot raw/02-menu.png \\
       --bg art/keyart-integrated.png \\
       --out store/store-04.png --size 1320x2868 --caption "Every Spin Counts" \\
@@ -122,7 +123,7 @@ from pathlib import Path
 
 try:
     import numpy as np
-    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 except ImportError as exc:  # pragma: no cover - environment problem, not logic
     sys.stderr.write(
         f"❌ store_compose.py requires Pillow + numpy ({exc}).\n"
@@ -1042,12 +1043,13 @@ def treat_background(bg: Image.Image, treatment: str) -> Image.Image:
 #
 # The supplied long-banner references measure 0.58-0.83 mean saturation and
 # 1.7-6.1% blown luma. The follow-up direction for the carousel was explicit:
-# make the sliders *aggressively* saturated. The default therefore uses the
-# strongest safe preset, `max`; its vibrance is weighted toward muted pixels and
-# still preserves already-saturated object colour. The grade cannot manufacture
-# clipping — the deliberate blown light still has to be drawn into the art —
-# because a grade that clipped would flatten the hero and symbols the same brief
-# requires to stay sharp.
+# make the sliders *materially more saturated*. The default therefore uses the
+# strongest safe preset, `max`, followed by a luma-aware saturation finish
+# toward 0.80. That final pass matters: gamma lift and white bloom can
+# otherwise make a preset called "max" measure less saturated than its input.
+# The grade cannot manufacture broad white glare — the deliberate blown light
+# still has to be drawn into the art — because a grade that washed out the
+# picture would flatten the hero and symbols the same brief requires to stay sharp.
 
 LUMA = np.asarray([0.2126, 0.7152, 0.0722], dtype=np.float32)
 
@@ -1060,6 +1062,64 @@ POP_PRESETS: dict[str, tuple[float, float, float, float, float]] = {
     "max":   (0.48, 0.12, 0.18, 0.36, 0.58),
 }
 DEFAULT_POP = "max"
+MAX_POP_SATURATION_TARGET = 0.80
+MAX_POP_SATURATION_FACTOR_CAP = 2.25
+
+
+def _mean_hsv_saturation(rgb: np.ndarray) -> float:
+    """Return mean HSV saturation for an RGB float array in the 0..1 range."""
+    maximum = rgb.max(axis=-1)
+    minimum = rgb.min(axis=-1)
+    return float(np.where(
+        maximum > 1e-6,
+        (maximum - minimum) / np.maximum(maximum, 1e-6),
+        0.0,
+    ).mean())
+
+
+def _finish_saturation(
+        img: Image.Image,
+        target: float,
+        factor_cap: float,
+        ) -> Image.Image:
+    """Raise mean saturation with a luma-aware, neutral-preserving colour pass."""
+    target = max(0.0, min(1.0, target))
+    factor_cap = max(1.0, factor_cap)
+    source = img.convert("RGBA")
+
+    # Pick the factor on a small representative sample, then apply it to the
+    # full image once. ImageEnhance.Color blends away from luminance, which
+    # leaves greys neutral and keeps brightness far steadier than HSV-value
+    # scaling on blue/cyan-heavy art.
+    sample = source.convert("RGB")
+    sample_long_side = max(sample.size)
+    if sample_long_side > 512:
+        scale = 512 / sample_long_side
+        sample = sample.resize(
+            (
+                max(1, round(sample.width * scale)),
+                max(1, round(sample.height * scale)),
+            ),
+            RES,
+        )
+    sample_rgb = np.asarray(sample, dtype=np.float32) / 255.0
+    if _mean_hsv_saturation(sample_rgb) >= target:
+        return source
+
+    low, high = 1.0, factor_cap
+    for _ in range(12):
+        middle = (low + high) / 2.0
+        candidate = ImageEnhance.Color(sample).enhance(middle)
+        candidate_rgb = np.asarray(candidate, dtype=np.float32) / 255.0
+        if _mean_hsv_saturation(candidate_rgb) < target:
+            low = middle
+        else:
+            high = middle
+
+    colour = ImageEnhance.Color(source.convert("RGB")).enhance(high)
+    result = colour.convert("RGBA")
+    result.putalpha(source.getchannel("A"))
+    return result
 
 
 def pop_grade(img: Image.Image, preset: str = DEFAULT_POP, *,
@@ -1103,7 +1163,14 @@ def pop_grade(img: Image.Image, preset: str = DEFAULT_POP, *,
         rgb = 1.0 - (1.0 - rgb) * (1.0 - np.clip(h * blm, 0.0, 1.0))
 
     out = np.concatenate([np.clip(rgb, 0.0, 1.0), alpha], axis=-1)
-    return Image.fromarray((out * 255 + 0.5).astype(np.uint8), "RGBA")
+    result = Image.fromarray((out * 255 + 0.5).astype(np.uint8), "RGBA")
+    if preset == "max" and vibrance is None:
+        result = _finish_saturation(
+            result,
+            MAX_POP_SATURATION_TARGET,
+            MAX_POP_SATURATION_FACTOR_CAP,
+        )
+    return result
 
 
 def desaturate(img: Image.Image, amount: float) -> Image.Image:
@@ -1524,11 +1591,12 @@ def detail_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[float
 
 # "Вся картинка насыщенная… можно использовать пересвет." The four supplied
 # banners span 0.58-0.83 mean saturation and 1.7-6.1% blown luma. Slider art now
-# targets the aggressive end of that range: 0.60 is a hard delivery floor, not
-# the creative target (aim around 0.68-0.82). The blow-out is a light source
-# drawn into the art, not something the grade does — `pop_grade` is built so it
-# cannot clip — so this checks the art came back with one.
-SAT_FLOOR = 0.60     # aggressively saturated carousel art; aim materially higher
+# targets the vivid end and slightly beyond it: 0.68 is the hard delivery floor,
+# 0.78-0.88 is the creative target, and the default grade finishes toward 0.80.
+# The blow-out is a light source drawn into the art, not something the grade
+# does — `pop_grade` cannot manufacture the required broad white glare — so
+# this checks that the generated art came back with one.
+SAT_FLOOR = 0.68     # blocking floor; MAX_POP_SATURATION_TARGET is the default aim
 GLARE_MIN = 0.012    # no blown highlight at all = no light source in the scene
 GLARE_MAX = 0.20     # past this the picture is washing out, not glowing
 HUE_BINS = 12
@@ -1557,7 +1625,10 @@ def _hsv_arrays(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 def _hue_summary(rgb: np.ndarray) -> tuple[int | None, float, float, float]:
     """Dominant hue bin, share outside its neighbours, saturation and value."""
     hue, sat, value = _hsv_arrays(rgb)
-    valid = (sat >= HUE_MIN_SAT) & (value >= 0.10) & (value <= 0.98)
+    # A deliberately vivid highlight often has one channel at 1.0. It is still
+    # useful hue evidence; white glare is already excluded by the saturation
+    # floor and measured independently by the glare gate.
+    valid = (sat >= HUE_MIN_SAT) & (value >= 0.10)
     mean_sat, mean_value = float(sat.mean()), float(value.mean())
     if not valid.any():
         return None, 0.0, mean_sat, mean_value
@@ -1630,18 +1701,17 @@ def colour_separation_metrics(
 def glare_report(pano: Image.Image) -> tuple[float, float]:
     """Saturation and blown-highlight share of the finished picture."""
     arr = np.asarray(pano.convert("RGB"), dtype=np.float32) / 255.0
-    mx, mn = arr.max(axis=-1), arr.min(axis=-1)
-    sat = float(np.where(mx > 1e-6, (mx - mn) / np.maximum(mx, 1e-6), 0.0).mean())
+    sat = _mean_hsv_saturation(arr)
     luma = (arr * LUMA).sum(axis=-1)
     blown = float((luma > 0.95).mean())
     info(f"colour: saturation {sat:.2f} (supplied banners 0.58-0.83; "
-         "slider target 0.68-0.82), "
+         "slider target 0.78-0.88), "
          f"{blown * 100:.1f}% of the picture blown out "
          f"({GLARE_MIN * 100:.1f}-{GLARE_MAX * 100:.0f}% is the reference band)")
     if sat < SAT_FLOOR:
         warn(f"the picture is undersaturated ({sat:.2f}) — beside the reference kit it "
-             "will read soft. Ask the image model for the aggressively saturated end "
-             "of the game's palette, keep --pop max, and check the art itself is not "
+             "will read soft. Ask the image model for vivid multi-hue colour at the "
+             "0.78-0.88 target, keep --pop max, and check the art itself is not "
              "a pastel wash the grade is being asked to rescue.")
     if blown < GLARE_MIN:
         warn(f"nothing in the picture is blown out ({blown * 100:.1f}%) — the note "
@@ -1820,7 +1890,7 @@ _PROP_FOOT = (1.02, 0.88, 0.97, 0.84, 1.00, 0.78, 0.74, 0.92,
 # these widths; the gap it leaves at each panel edge is deliberate and doubles
 # as the calm vertical corridor the seam contract asks the art for.
 FRAME_PER_PANEL = 3               # bottom-band objects per panel
-FRAME_SHARE = 0.60                # at most this much of the sprite set frames
+FRAME_SHARE = 0.72                # foreground dominates; a smaller set still falls
 FRAME_H_CAP = 0.30                # of the panel's height — a ceiling, not a target
 _FRAME_W = (0.46, 0.36, 0.42, 0.32, 0.39, 0.29, 0.34)   # of the panel's width
 _FRAME_X = (0.26, 0.74, 0.50, 0.38, 0.62, 0.16, 0.84)   # across the panel
@@ -1942,7 +2012,7 @@ def validate_sprite_assets(specs: list[dict]) -> None:
 #
 # Light/shadow/glare floors stay just outside the supplied range. Saturation is
 # intentionally stricter now: the follow-up asks for aggressively saturated
-# sliders, so 0.60 is the delivery floor (target 0.68-0.82), rather than a line
+# sliders, so 0.68 is the delivery floor (target 0.78-0.88), rather than a line
 # below the weakest 0.58 reference. Luma remains 0.33 (weakest 0.39), shadow
 # 0.38 (worst 0.29), and glare 1.2% (weakest 1.7%).
 # The foreground rule is unchanged: a distinct object hill on every panel, not
@@ -2377,9 +2447,9 @@ def assign_object_roles(parsed, panels: int, frame_target: str | int,
     if frame_target == "off":
         want = 0
     elif frame_target == "auto":
-        # Enough to build a continuous border, but never so much of the library
-        # that nothing is left to fall through the middle of the picture — the
-        # note offered both and the references use both.
+        # The references put most of their object population into a crowded,
+        # overlapping lower spill and retain a smaller airborne population for
+        # motion. Build that foreground first without consuming every asset.
         want = max(panels, min(panels * FRAME_PER_PANEL,
                                round(len(supporting) * FRAME_SHARE)))
     else:
@@ -2572,13 +2642,16 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             # 0.5 is a placeholder for the hero: its x is re-anchored to the
             # panel's left edge below, once the seam margin is known.
             frac = (0.5 if hero else BOARD_X if board
-                    else _FRAME_X[role_slot % len(_FRAME_X)] if framed
+                    else _FRAME_X[(role_slot + panel * 2) % len(_FRAME_X)] if framed
                     else _FALL_X[fall_i % len(_FALL_X)] if falls
                     else _PROP_X[prop_i % len(_PROP_X)])
             cx = round(cuts[panel][0] + frac * panel_w)
 
         role_slot = (placed_role_load["frame"][panel] if framed else
                      placed_role_load["fall"][panel] if falls else 0)
+        # Offset each panel's lower-band pattern so the foreground reads as an
+        # irregular spill, not three copies of the same evenly spaced row.
+        frame_pattern_slot = role_slot + panel * 2
 
         # Objects are anchored by the foot, not the centre: that is what makes
         # them stand on the scene's ground plane instead of floating in it. The
@@ -2598,7 +2671,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                     if "bleed" in spec
                     else pano.height * (
                         BOARD_FOOT if board
-                        else _FRAME_FOOT[role_slot % len(_FRAME_FOOT)]
+                        else _FRAME_FOOT[frame_pattern_slot % len(_FRAME_FOOT)]
                         if framed else _PROP_FOOT[prop_i % len(_PROP_FOOT)]))
             cy = round(foot - art.height / 2)
         if framed:
@@ -2928,9 +3001,9 @@ def cmd_triptych(args) -> None:
         ok(f"{path.name}  {w}×{h}")
 
     # The integrated panorama — graded, with the game's real objects seated into
-    # it — is the picture the whole kit should share. Save it so the feature
-    # graphic and the in-app backdrop are cut from the same art the panels are,
-    # instead of from the bare model output that has none of the objects in it.
+    # it — is the picture the storefront kit should share. Save it so panels,
+    # showcase backgrounds and the feature graphic all use the finished art,
+    # instead of the bare model output that has none of the objects in it.
     if args.save_pano:
         pano_path = Path(args.save_pano)
         if pano_path.parent.resolve() == out_dir.resolve():
@@ -2939,9 +3012,9 @@ def cmd_triptych(args) -> None:
         save_png(pano, Path(args.save_pano))
         ok(f"{Path(args.save_pano).name}  {pano_w}×{pano_h}  "
            + ("layout draft (reference image for `gpt_image.py edit` — not an "
-              "upload asset, and not what `backdrop`/`banner` should read)"
+              "upload asset, and not what `banner` should read)"
               if args.pano_only else
-              "integrated panorama (feed this to `banner --keyart` and `backdrop --src`)"))
+              "integrated panorama (feed this to `banner --keyart` and showcase `--bg`)"))
 
     # Stitched preview — a cheap vision check that nothing important (a face,
     # the hero, a coin) is cut by a panel boundary. The gutters are painted in
@@ -3426,9 +3499,9 @@ def cmd_boardplate(args) -> None:
 def cmd_showcase(args) -> None:
     w, h = parse_size(args.size)
     # Grade the ART, then push it back. The real game frame is never graded:
-    # both stores require a screenshot to represent what the app actually
-    # renders, so a dull gameplay frame is fixed in the game (see the
-    # `backdrop` subcommand), never in post.
+    # Both stores require a screenshot to represent what the app actually
+    # renders, so a dull gameplay frame is fixed as a separate game-design task,
+    # never in store post-production.
     backdrop = pop_grade(cover(load_image(args.bg, "background"), w, h), args.pop,
                          vibrance=args.vibrance, lift=args.lift,
                          contrast=args.contrast, bloom=args.bloom)
@@ -3778,19 +3851,20 @@ BACKDROP_VARIANTS = {
 
 
 def cmd_backdrop(args) -> None:
-    """Turn the store key art into the app's OWN background.
+    """Explicitly export store key art for a separately requested app redesign.
 
-    This is the fix for the most expensive storefront rejection: the first
-    panels advertise a world (a god, a machine, a vault) that never appears once
-    the app opens, so the listing reads as art bought for a different product.
-    Exporting a portrait crop of the very same panorama as the game's background
-    makes the two halves of the listing the same picture — and it costs one
-    crop instead of one more art commission.
-
-    Two treatments, because a background has two jobs: the menu wants the art at
-    full strength, the gameplay screen wants it recognisable but behind the
-    mechanic.
+    The store-screenshot workflow preserves the app's existing backgrounds.
+    This command is retained for users who deliberately request a matching
+    runtime backdrop, and requires an unmistakable confirmation flag because
+    wiring its output changes the actual game.
     """
+    if not getattr(args, "confirm_game_background_replacement", False):
+        die(
+            "backdrop changes the actual game's visual background and is never "
+            "part of /store-screenshots by default. Re-run only after an explicit "
+            "user request, with --confirm-game-background-replacement."
+        )
+
     w, h = parse_size(args.size)
     variants = [v.strip().lower() for v in args.variants.split(",") if v.strip()]
     unknown = [v for v in variants if v not in BACKDROP_VARIANTS]
@@ -3823,8 +3897,8 @@ def cmd_backdrop(args) -> None:
         if size > 1_400_000:
             warn(f"{path.name} is {size // 1024} KB — a phone background this heavy "
                  "costs load time; re-run with --size 1080x1920")
-    info("register the files in pubspec.yaml and point the menu/gameplay screens at "
-         "them, or the storefront and the app still show different worlds")
+    info("explicit backdrop export complete; wiring these files into Flutter is a "
+         "separate, user-requested game redesign")
 
 
 def cmd_icon(args) -> None:
@@ -3995,7 +4069,8 @@ def add_pop_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--pop", choices=tuple(POP_PRESETS), default=DEFAULT_POP,
                    help="colour grade for GENERATED art: a listing is judged as a "
                         "strip of thumbnails and raw model output reads flat there, "
-                        f"so a grade is applied by default ({DEFAULT_POP}). Use "
+                        f"so a grade is applied by default ({DEFAULT_POP}, finishing "
+                        f"toward {MAX_POP_SATURATION_TARGET:.2f} mean saturation). Use "
                         "`off` only when the art was already graded upstream.")
     p.add_argument("--vibrance", type=float, default=None, metavar="F",
                    help="override the preset's saturation lift (weighted toward the "
@@ -4100,8 +4175,9 @@ def main() -> None:
                         "diagnostic preview; `off` is for compositor unit tests.")
     t.add_argument("--object-frame", default="auto", metavar="auto|N|off",
                    help="how many unassigned sprites form the dense cropped band "
-                        "along the bottom edge. `auto` uses up to 60%% of the manifest "
-                        "while leaving objects to fall through the picture; `off` "
+                        "along the bottom edge. `auto` uses roughly 72%% of the "
+                        "supporting manifest (up to three per panel) in a staggered, "
+                        "overlapping spill and leaves the rest airborne; `off` "
                         "sends them all into the fall. Default auto.")
     t.add_argument("--no-falling", action="store_true",
                    help="keep unassigned sprites out of the air. With the default "
@@ -4121,7 +4197,8 @@ def main() -> None:
                         "sprite flat, which is what reads as a sticker.")
     t.add_argument("--save-pano", metavar="PNG",
                    help="also write the full graded panorama WITH the objects inlaid, "
-                        "so `banner` and `backdrop` can reuse the same integrated art")
+                        "so `banner` and showcase backgrounds can reuse the same "
+                        "integrated art")
     t.add_argument("--pano-only", action="store_true",
                    help="write only --save-pano: no panels, no preview. This is the "
                         "layout DRAFT pass, whose output is a reference image for "
@@ -4261,9 +4338,10 @@ def main() -> None:
     add_text_args(b)
     b.set_defaults(func=cmd_banner)
 
-    d = sub.add_parser("backdrop",
-                       help="export the key art as the GAME's own background so the "
-                            "listing and the app show one world")
+    d = sub.add_parser(
+        "backdrop",
+        help="explicit opt-in export of store key art as the game's background",
+    )
     d.add_argument("--src", required=True, help="the same key art the panels are cut from")
     d.add_argument("--out-dir", required=True, metavar="DIR",
                    help="normally assets/images/backgrounds")
@@ -4283,6 +4361,13 @@ def main() -> None:
     d.add_argument("--offset", type=float, default=0.0,
                    help="-1..1 horizontal crop bias — which slice of a wide panorama "
                         "becomes the app's background")
+    d.add_argument(
+        "--confirm-game-background-replacement",
+        action="store_true",
+        help="required acknowledgement that this standalone command prepares assets "
+             "for an intentional runtime-background redesign; /store-screenshots "
+             "never supplies it automatically",
+    )
     add_pop_args(d)
     d.set_defaults(func=cmd_backdrop)
 
