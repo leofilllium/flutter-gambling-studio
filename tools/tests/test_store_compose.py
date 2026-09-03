@@ -538,7 +538,10 @@ class FinalArtGateTests(unittest.TestCase):
         self.assertIn("too detailed", joined)
         self.assertIn("bottom edge", joined)
         self.assertIn("controlled overexposure", joined)
-        self.assertIn("complete hero silhouette", joined)
+        # y=0 crops the head, and the box runs from 0.04 to 0.40 of a panorama
+        # whose first panel ends at 0.333 — straight through the first seam.
+        self.assertIn("the top of the frame crops the hero", joined)
+        self.assertIn("crosses the first carousel seam", joined)
 
     def test_final_art_requires_a_measured_complete_hero(self) -> None:
         pano = Image.new(
@@ -578,7 +581,9 @@ class InlayTests(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.dir = Path(self._tmp.name)
         self.quiet_warnings: list[str] = []
-        for name, replacement in (("info", lambda *_: None), ("ok", lambda *_: None),
+        self.quiet_info: list[str] = []
+        for name, replacement in (("info", self.quiet_info.append),
+                                  ("ok", lambda *_: None),
                                   ("warn", self.quiet_warnings.append)):
             original = getattr(store_compose, name)
             setattr(store_compose, name, replacement)
@@ -692,10 +697,34 @@ class InlayTests(unittest.TestCase):
                             frame_target="off", falling=False)
         self.assertTrue(any(line.startswith("prop") for line in lines), lines)
 
-    def test_the_hero_is_reported_when_an_override_pushes_it_outside(self) -> None:
-        self._inlay(self._sprite("hero.png", (200, 420)) + "@hero,y=1.1")
-        self.assertTrue(any("hero runs past the bottom" in m
+    def test_a_bottom_crop_is_the_intended_framing_not_a_warning(self) -> None:
+        # «Персонаж может частично выходить за левый и нижний края.»
+        self._inlay(self._sprite("hero.png", (200, 420)))
+        self.assertFalse([m for m in self.quiet_warnings if "hero runs past" in m],
+                         self.quiet_warnings)
+        self.assertTrue(any("cropped by the bottom" in m for m in self.quiet_info),
+                        self.quiet_info)
+
+    def test_an_override_that_crops_the_hero_s_head_is_reported(self) -> None:
+        # The other two edges are not negotiable: the face has to survive the
+        # thumbnail strip, and the seam is where the store cuts.
+        self._inlay(self._sprite("hero.png", (200, 420)) + "@hero,y=0.05")
+        self.assertTrue(any("hero runs past the top of the frame" in m
                             for m in self.quiet_warnings), self.quiet_warnings)
+
+    def test_the_bust_leaves_the_picture_by_the_left_edge_only(self) -> None:
+        line = self._inlay(self._sprite("hero.png", (200, 420)))[0]
+        cx = int(line.split("@")[1].split(",")[0])
+        width = int(line.split("(")[1].split("px")[0])
+        left, right = store_compose.panel_span(0, self.PANEL_W, self.GUTTER)
+        margin = round(self.PANEL_W * 0.04)
+        self.assertLess(cx - width // 2, left, line)            # bleeds left
+        self.assertLessEqual(cx + width // 2, right - margin, line)  # clear of the seam
+
+    def test_a_bust_wide_enough_to_lose_an_arm_off_the_left_is_called_out(self) -> None:
+        self._inlay(self._sprite("hero.png", (420, 420)) + "@hero,w=1.5")
+        self.assertTrue(any("past the left edge" in m for m in self.quiet_warnings),
+                        self.quiet_warnings)
 
     def test_the_bottom_frame_is_painted_in_front_of_the_hero(self) -> None:
         lines = self._inlay(self._sprite("hero.png", (200, 420)),
@@ -705,23 +734,27 @@ class InlayTests(unittest.TestCase):
         self.assertLess(hero_i, frame_i, lines)
 
     def test_the_hero_is_sized_by_the_panel_s_height_not_its_width(self) -> None:
-        # "the player on the first slide should be bigger — full height, but not
-        # too much". A width-driven hero on a 300x640 panel came out barely 40%
-        # of its height; the target is now the height itself.
+        # "крупным по пояс слева": the art is deliberately taller than the panel
+        # so the waist runs off the bottom, and what has to be big is the part
+        # that stays on the canvas.
         line = self._inlay(self._sprite("hero.png", (200, 420)))[0]
         share = int(line.split("of its height")[0].split(",")[-1].strip().rstrip("%"))
-        self.assertGreaterEqual(share, 65, line)
-        self.assertLessEqual(share, 80, line)   # the "not too much" half
+        self.assertGreaterEqual(share, 95, line)
+        bust = next(m for m in self.quiet_info if m.startswith("hero bust:"))
+        visible = int(bust.split("%")[0].split()[-1])
+        self.assertGreaterEqual(visible, int(store_compose.HERO_MIN_H * 100), bust)
 
-    def test_the_hero_keeps_headroom_for_the_berth_s_ornament(self) -> None:
-        # The band the note calls "decorative" is above the head: the hero may
-        # not grow into it, and the picture may not leave it empty.
+    def test_the_hero_bust_is_anchored_just_below_the_top_edge(self) -> None:
+        # The face is the thing that has to read at carousel size, so the head
+        # sits near the upper edge — with a margin, never cropped by it.
         line = self._inlay(self._sprite("hero.png", (200, 420)))[0]
         height = round(self.PANEL_H
                        * int(line.split("of its height")[0].split(",")[-1]
                              .strip().rstrip("%")) / 100)
         cy = int(line.split("@")[1].split(",")[1].split()[0])
-        self.assertGreater(cy - height // 2, self.PANEL_H * 0.15, line)
+        top = cy - height // 2
+        self.assertGreater(top, 0, line)
+        self.assertLess(top, self.PANEL_H * 0.10, line)
 
     def test_a_squat_cutout_that_cannot_reach_full_height_is_called_out(self) -> None:
         self._inlay(self._sprite("hero.png", (420, 200)))
@@ -733,9 +766,19 @@ class InlayTests(unittest.TestCase):
         share = int(line.split("of its height")[0].split(",")[-1].strip().rstrip("%"))
         self.assertLessEqual(share, 42, line)
 
-    def test_empty_sky_above_the_hero_s_head_is_called_out(self) -> None:
-        # A flat panorama: the berth is a place to stand, not an ornament.
+    def test_a_bust_reaching_the_top_edge_has_no_crown_band_to_judge(self) -> None:
+        # Not silence: the ornament requirement moved to the objects and light
+        # around the figure, and the report has to say so.
         self._inlay(self._sprite("hero.png", (200, 420)))
+        self.assertFalse([m for m in self.quiet_warnings if "empty sky" in m],
+                         self.quiet_warnings)
+        self.assertTrue(any("no band above the head" in m for m in self.quiet_info),
+                        self.quiet_info)
+
+    def test_empty_sky_above_a_lowered_hero_is_still_called_out(self) -> None:
+        # A flat panorama with the figure pushed down the panel: that band is
+        # back, and it is still ornament the art owes the slide.
+        self._inlay(self._sprite("hero.png", (200, 420)) + "@hero,y=0.62")
         self.assertTrue(any("empty sky" in m for m in self.quiet_warnings),
                         self.quiet_warnings)
 
@@ -745,16 +788,20 @@ class InlayTests(unittest.TestCase):
         pano = Image.fromarray(
             rng.integers(20, 235, (self.PANEL_H, w, 3), dtype=np.uint8),
             "RGB").convert("RGBA")
-        store_compose.inlay_sprites(pano, [self._sprite("hero.png", (200, 420))],
-                                    self.PANELS, self.PANEL_W, self.PANEL_H,
-                                    self.GUTTER)
+        store_compose.inlay_sprites(
+            pano, [self._sprite("hero.png", (200, 420)) + "@hero,y=0.62"],
+            self.PANELS, self.PANEL_W, self.PANEL_H, self.GUTTER)
         self.assertFalse([m for m in self.quiet_warnings if "empty sky" in m],
                          self.quiet_warnings)
 
     def test_objects_stand_on_the_ground_instead_of_floating_mid_panel(self) -> None:
-        line = self._inlay(self._sprite("hero.png", (200, 320)))[0]
-        cy = int(line.split("@")[1].split(",")[1].split()[0])
-        self.assertGreater(cy, self.PANEL_H * 0.5)
+        # The hero is anchored by its top now, because its bottom is the crop.
+        # Everything that does stand in the scene is still anchored by its foot.
+        lines = self._inlay(self._sprite("hero.png", (200, 320)),
+                            self._sprite("gem.png", (160, 160)) + "@prop")
+        prop = next(line for line in lines if line.startswith("prop"))
+        cy = int(prop.split("@")[1].split(",")[1].split()[0])
+        self.assertGreater(cy, self.PANEL_H * 0.5, prop)
 
     def test_all_sprite_assets_are_accepted_and_distributed(self) -> None:
         lines = self._inlay(*(self._sprite(f"o{i}.png", (160, 160))
@@ -797,7 +844,9 @@ class BoardRoleTests(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.dir = Path(self._tmp.name)
         self.quiet_warnings: list[str] = []
-        for name, replacement in (("info", lambda *_: None), ("ok", lambda *_: None),
+        self.quiet_info: list[str] = []
+        for name, replacement in (("info", self.quiet_info.append),
+                                  ("ok", lambda *_: None),
                                   ("warn", self.quiet_warnings.append)):
             original = getattr(store_compose, name)
             setattr(store_compose, name, replacement)
@@ -1110,6 +1159,92 @@ class SeatingTests(unittest.TestCase):
         self.assertLess(arr.mean(), before)
         # Darkest at the contact point, not spread over the whole panel.
         self.assertLess(arr[140, 100].mean(), arr[40, 100].mean() - 20)
+
+
+class HeroBustGateTests(unittest.TestCase):
+    """«Персонаж может частично выходить за левый и нижний края.»
+
+    Two edges are the intended crop and two are still blockers, so both halves
+    are pinned: a bust reaching the left and bottom edges passes, and a figure
+    that drifts off the left, loses its head to the top edge, or grows across
+    the first carousel seam does not.
+    """
+
+    PANEL_W, PANEL_H, PANELS = 180, 360, 3
+
+    def setUp(self) -> None:
+        original = store_compose.info
+        store_compose.info = lambda *_: None
+        self.addCleanup(setattr, store_compose, "info", original)
+
+    def _spans(self) -> list[tuple[int, int]]:
+        return store_compose.uniform_spans(self.PANELS, self.PANEL_W, 0)
+
+    def _pano(self) -> Image.Image:
+        pano = store_compose.gradient(
+            (self.PANEL_W * self.PANELS, self.PANEL_H),
+            [(0.0, (35, 105, 235, 255)), (1.0, (245, 120, 190, 255))])
+        draw = ImageDraw.Draw(pano)
+        draw.rounded_rectangle([0, 8, 160, 359], radius=45, fill=(242, 74, 62, 255))
+        draw.ellipse([250, 20, 330, 100], fill=(255, 255, 255, 255))
+        rng = np.random.default_rng(83)
+        objects = Image.fromarray(rng.integers(
+            10, 245, (126, pano.width, 3), dtype=np.uint8), "RGB").convert("RGBA")
+        pano.paste(objects, (0, pano.height - objects.height))
+        return pano
+
+    def test_a_bust_touching_the_left_and_bottom_edges_passes(self) -> None:
+        issues = store_compose.final_art_issues(
+            self._pano(), self._spans(), (0.0, 0.02, 0.30, 0.98))
+
+        self.assertEqual(issues, [])
+
+    def test_a_hero_that_is_not_on_the_left_is_blocked(self) -> None:
+        issues = store_compose.final_art_issues(
+            self._pano(), self._spans(), (0.20, 0.02, 0.12, 0.90))
+
+        self.assertTrue(any("not on the left" in issue for issue in issues), issues)
+
+    def test_a_bust_that_is_too_small_is_still_blocked(self) -> None:
+        issues = store_compose.final_art_issues(
+            self._pano(), self._spans(), (0.01, 0.30, 0.20, 0.40))
+
+        self.assertTrue(any("too small" in issue for issue in issues), issues)
+
+
+class BannerZoneTests(unittest.TestCase):
+    """The long banner's right side continues the scene; it is not a phone slot."""
+
+    W, H = 1024, 500
+
+    def setUp(self) -> None:
+        self.messages: list[str] = []
+        for name in ("info", "warn"):
+            original = getattr(store_compose, name)
+            setattr(store_compose, name, self.messages.append)
+            self.addCleanup(setattr, store_compose, name, original)
+
+    def _canvas(self, right_amplitude: float) -> Image.Image:
+        rng = np.random.default_rng(7)
+        arr = rng.integers(0, 255, (self.H, self.W, 3)).astype(np.float32)
+        split = int(self.W * store_compose.BANNER_SCENE_SHARE)
+        arr[:, split:] = 128 + (arr[:, split:] - 128) * right_amplitude
+        return Image.fromarray(arr.astype(np.uint8), "RGB").convert("RGBA")
+
+    def test_a_right_side_as_busy_as_the_scene_is_called_out(self) -> None:
+        store_compose.banner_zone_report(self._canvas(1.0))
+        self.assertTrue(any("as busy as the scene side" in m for m in self.messages),
+                        self.messages)
+
+    def test_a_reserved_phone_zone_is_called_out(self) -> None:
+        store_compose.banner_zone_report(self._canvas(0.0))
+        self.assertTrue(any("a hole, not a continuation" in m for m in self.messages),
+                        self.messages)
+
+    def test_a_quieter_but_continuous_right_side_passes(self) -> None:
+        store_compose.banner_zone_report(self._canvas(0.6))
+        self.assertFalse([m for m in self.messages if m.startswith("the right")],
+                         self.messages)
 
 
 if __name__ == "__main__":

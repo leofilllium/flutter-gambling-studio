@@ -1520,8 +1520,8 @@ def detail_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[float
 # of each picture sitting at fully blown luma. The blow-out is a light source
 # drawn into the art, not something the grade does — `pop_grade` is built so it
 # cannot clip — so this checks the art came back with one.
-SAT_FLOOR = 0.45     # below this the picture is grey beside the references
-GLARE_MIN = 0.006    # no blown highlight at all = no light source in the scene
+SAT_FLOOR = 0.52     # below this the picture is grey beside the references
+GLARE_MIN = 0.012    # no blown highlight at all = no light source in the scene
 GLARE_MAX = 0.20     # past this the picture is washing out, not glowing
 HUE_BINS = 12
 HUE_MIN_SAT = 0.25
@@ -1583,7 +1583,7 @@ def colour_separation_metrics(
     sample = pano.convert("RGB")
     if sample.width > 720:
         sample = sample.resize(
-            (720, max(1, round(sample.height * 720 / sample.width))), LANCZOS)
+            (720, max(1, round(sample.height * 720 / sample.width))), RES)
     arr = np.asarray(sample, dtype=np.float32) / 255.0
     _, outside, _, _ = _hue_summary(arr)
     if hero_bounds is None:
@@ -1660,11 +1660,19 @@ def crown_report(pano: Image.Image, span: tuple[int, int], hero_top: int,
     difference is the whole distance between a screenshot and a poster, and it
     is measurable the same way panel emptiness is.
 
+    Round five's waist-up bust normally leaves no such band: the head sits just
+    inside the upper edge, and the decoration the note asked for moves to the
+    objects, badges and light *around* the figure. That is reported rather than
+    skipped in silence, so nobody reads a missing warning as a pass.
+
     Returns the band's empty share, or None when the hero is so tall there is no
     band left to judge.
     """
     left, right = span
     if hero_top <= pano.height * 0.06:
+        info(f"panel {panel} crown: the bust reaches the top edge — no band above "
+             "the head to decorate. The slide's ornament is the object hill, the "
+             "falling symbols and the blown light behind the head instead.")
         return None
     energy, scale = _edge_map(pano, 360)
     activity = np.asarray(
@@ -1727,16 +1735,39 @@ def crown_report(pano: Image.Image, span: tuple[int, int], hero_top: int,
 #
 # The round after *that* arrived with eight reference pictures and one sentence
 # about the character: "слева крупный персонаж, НЕ выходящий за края
-# изображения" — large, on the left, and not running off the edges. The feet
-# past the bottom edge were the previous round's own idea of "full height", and
-# they are what that note overturns: in all eight references the figure is whole
-# inside the frame, and what hides its feet is the *band of game objects along
-# the bottom*, not the canvas edge. So the hero now lands its feet just inside
-# the panel and the frame band closes over them.
-HERO_H = 0.72                     # of the panel's HEIGHT — the driver
-HERO_W = 0.86                     # of the panel's WIDTH — a cap, not a target
-HERO_MIN_H = 0.60                 # below this the figure is scenery again
-HERO_X, HERO_FOOT = 0.47, 0.97    # inside the frame: the object band hides the feet
+# изображения" — large, on the left, and not running off the edges. So the hero
+# landed its feet just inside the panel and the object band closed over them.
+#
+# Round five overturns that one sentence and keeps everything around it. It
+# arrived as four freshly generated long banners plus the author's own working
+# brief for them, and the brief is explicit in the other direction:
+#
+#   «Персонажа я делаю крупным по пояс слева.»
+#   «Персонаж может частично выходить за левый и нижний края.»
+#   «Персонаж должен быть крупным: лицо и верхняя часть тела хорошо читаются
+#    даже при уменьшении.»
+#
+# A large WAIST-UP bust on the left, allowed to leave the picture by the LEFT
+# and BOTTOM edges. All four references are cut exactly that way, and the reason
+# is the metric that actually decides a thumbnail strip: not how much of the
+# panel the figure's box fills, but how big its FACE is. A full-body figure at
+# 0.72 of the panel has a head about 0.09 of it; the same character cropped at
+# the waist has a head nearer 0.15 — closer, bigger, still readable at carousel
+# size. "Whole figure inside the frame" was buying box height with face size.
+#
+# So the hero is still driven by HEIGHT, but the height it is driven to is the
+# share of the panel it fills VISIBLY, and the art is deliberately taller than
+# that: HERO_KEEP of it stays on the canvas and the surplus is the bottom crop.
+# When the resulting bust is wider than the panel, the overflow leaves by the
+# LEFT edge — never the right one, which is the first carousel seam and the one
+# edge that still amputates a character.
+HERO_H = 0.80                     # VISIBLE share of the panel's HEIGHT
+HERO_KEEP = 0.78                  # of the art stays on canvas; the rest crops
+HERO_W_MAX = 1.18                 # of the panel's WIDTH — the surplus goes left
+HERO_BLEED_X = 0.20               # at most this share of the bust leaves the left
+HERO_INSET = 0.02                 # of the panel, when the bust is narrower than it
+HERO_TOP = 0.045                  # of the panel's height left above the head
+HERO_MIN_H = 0.65                 # below this the figure is scenery again
 HERO_OCCLUDE = 0.14               # of its height, taken back by the foreground
 PROP_H = 0.42                     # height cap for a supporting object
 PROP_OCCLUDE = 0.08               # props also sit behind scene furniture, not on it
@@ -1819,21 +1850,34 @@ _AUTO_ROLES = ("frame", "fall")
 # rejected preview that prompted this check was saturated, but its mean luma was
 # 0.20, 63% of its pixels were deep shadow, all three upper bands measured above
 # 30 detail, its lower/upper detail ratio was 0.83, and only 0.4% of the picture
-# was blown out. The eight supplied target references establish the safe side of
-# each boundary: mean luma 0.27-0.71, shadow share at most 0.47, mean upper-band
-# detail at most 27.0, lower/upper detail at least 0.91, and glare at least 1%.
-# The latest review tightens the foreground beyond that lowest reference: it has
-# to read as a distinct object hill on every panel, not merely make the lower
-# pixels as busy as the upper ones. It also rejects the saturated all-yellow
-# failure, which the old saturation-only gate could not see.
-FINAL_LUMA_MIN = 0.25
-FINAL_SHADOW_MAX = 0.55
+# was blown out.
+#
+# Round five re-cut the floors against the four long banners the author sent as
+# "these are what I generate". They are markedly brighter and more saturated
+# than the previous kit, and "яркие и светлые… с разными пересветами и бликами"
+# is the whole note:
+#
+#   file          saturation   mean luma   deep shadow   blown (>0.95)
+#   egypt              0.58        0.64          4.7%          6.1%
+#   royal reels        0.83        0.41         24.8%          2.1%
+#   joker              0.76        0.56          6.2%          1.7%
+#   lightning reels    0.77        0.39         29.4%          2.2%
+#
+# So the floors move to just below the weakest reference on each axis rather
+# than to the old "not obviously broken" line: saturation 0.52 (weakest 0.58),
+# luma 0.33 (weakest 0.39), shadow 0.38 (worst 0.29), glare 1.2% (weakest 1.7%).
+# The foreground rule is unchanged: a distinct object hill on every panel, not
+# merely lower pixels as busy as the upper ones. So is the all-yellow rejection,
+# which a saturation-only gate cannot see.
+FINAL_LUMA_MIN = 0.33
+FINAL_SHADOW_MAX = 0.38
 FINAL_UPPER_DETAIL_MAX = 29.0
 FINAL_FRAME_RATIO_MIN = 1.10
 FINAL_PANEL_FRAME_RATIO_MIN = 1.05
 FINAL_PANEL_LOWER_DETAIL_MIN = 4.0
-HERO_SAFE_X = 0.015               # of panel 1 width, on both sides
-HERO_SAFE_Y = 0.005               # of panorama height, top and bottom
+HERO_SAFE_X = 0.015               # of panel 1 width, on the seam side
+HERO_SAFE_Y = 0.005               # of panorama height, above the head
+HERO_LEFT_MAX = 0.12              # of panel 1: how far in the bust may start
 
 
 def final_art_issues(
@@ -1844,10 +1888,16 @@ def final_art_issues(
         require_hero_bounds: bool = True) -> list[str]:
     """Return the blockers from the supplied panorama-feedback contract.
 
-    ``hero_bounds`` is the tight normalized box around the complete protagonist,
-    including anything held, worn, or visually attached. Requiring a human/vision
-    measurement after integration closes the hole left by checking only the draft
-    sprite: an image model can grow a hat, book, weapon, or hand across the seam.
+    ``hero_bounds`` is the tight normalized box around the protagonist as the
+    integrated picture actually shows it, including anything held, worn, or
+    visually attached. Requiring a human/vision measurement after integration
+    closes the hole left by checking only the draft sprite: an image model can
+    grow a hat, book, weapon, or hand across the seam.
+
+    The bust is *expected* to reach the left and bottom edges — that is the crop
+    the reference banners take. What is checked is that it starts on the left,
+    stays large, keeps its head off the top edge and its silhouette off the first
+    carousel seam.
     """
     issues: list[str] = []
     activity, scale = _activity(pano)
@@ -1959,22 +2009,35 @@ def final_art_issues(
 
     x, y, w, h = hero_bounds
     hx0, hy0 = x * pano.width, y * pano.height
-    hx1, hy1 = (x + w) * pano.width, (y + h) * pano.height
+    hx1 = (x + w) * pano.width
     left, right = spans[0]
-    margin_x = (right - left) * HERO_SAFE_X
+    panel_w = right - left
+    margin_x = panel_w * HERO_SAFE_X
     margin_y = pano.height * HERO_SAFE_Y
-    info(f"art gate hero: {w:.0%} of panorama width × {h:.0%} of panel height; "
-         f"panel 1 safe x={left / pano.width:.3f}..{right / pano.width:.3f}")
+    info(f"art gate hero: {w:.0%} of panorama width × {h:.0%} of panel height, "
+         f"starting {(hx0 - left) / max(1.0, panel_w):.0%} into panel 1; "
+         f"panel 1 x={left / pano.width:.3f}..{right / pano.width:.3f}")
     if h < HERO_MIN_H:
         issues.append(
-            f"the hero is too small ({h:.0%} of panel height; need ≥{HERO_MIN_H:.0%})")
-    if (hx0 < left + margin_x or hx1 > right - margin_x or
-            hy0 < margin_y or hy1 > pano.height - margin_y):
+            f"the hero is too small ({h:.0%} of panel height; need ≥{HERO_MIN_H:.0%}). "
+            "The bust is the slide: crop it at the waist and bring it forward rather "
+            "than fitting a whole standing figure into the panel")
+    if hx0 > left + panel_w * HERO_LEFT_MAX:
         issues.append(
-            "the complete hero silhouette does not stay safely inside panel 1. "
-            "Move or regenerate the character so its hat, hands, book/weapon, clothing, "
-            "and feet all clear the canvas and the first carousel seam; foreground "
-            "objects may overlap the feet inside the frame, but cropping may not")
+            f"the hero is not on the left of panel 1 (it starts "
+            f"{(hx0 - left) / max(1.0, panel_w):.0%} in; need ≤{HERO_LEFT_MAX:.0%}). "
+            "The protagonist anchors the left edge and the picture is built to its "
+            "right — a centred figure reads as a poster subject, not as a berth")
+    if hy0 < margin_y:
+        issues.append(
+            "the top of the frame crops the hero. The bust may run off the left and "
+            "bottom edges, but the face and headwear are what has to survive the "
+            "thumbnail strip: leave them a margin at the top")
+    if hx1 > right - margin_x:
+        issues.append(
+            "the hero silhouette crosses the first carousel seam. Hat, hands, "
+            "book/weapon, cape and any held reward stay inside panel 1 — the store's "
+            "gutter cuts there, and it will cut through the character")
     return issues
 
 
@@ -2341,9 +2404,13 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             default_w = _FALL_W[fall_i % len(_FALL_W)]
             max_h = default_w * 1.6
         else:
-            default_w = (HERO_W if hero else BOARD_W if board
+            default_w = (HERO_W_MAX if hero else BOARD_W if board
                          else _PROP_W[prop_i % len(_PROP_W)])
-            max_h = hero_height if hero else BOARD_H if board else PROP_H
+            # The hero's target is the height it fills *visibly*; the art itself
+            # is taller, and the surplus is the waist-down crop the reference
+            # banners are cut with. Everything else sits whole in the frame.
+            max_h = (hero_height / HERO_KEEP if hero
+                     else BOARD_H if board else PROP_H)
         w_frac = float(spec.get("w", default_w))
         h_frac = float(spec.get("h", max_h))
         source_w = art.width
@@ -2353,16 +2420,19 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         # other way round.
         art = contain(art, max(8, round(panel_w * w_frac)),
                       max(8, round(panel_h * h_frac)))
-        if hero and art.height < panel_h * HERO_MIN_H and "h" not in spec:
+        if hero and "h" not in spec:
             # A squat or wide cutout hits the width cap before it reaches full
             # height, and then the one screenshot the store shows at full size
-            # is a landscape with a person in it again.
-            warn(f"{Path(spec['path']).name} fills only "
-                 f"{art.height / panel_h:.0%} of panel 1's height — the width cap "
-                 f"({w_frac:.2f}× the panel) binds first on a cutout this wide. "
-                 "Export the hero as a tall full-body figure, crop its empty "
-                 "margins, or raise the cap with w= — the first slide wants the "
-                 f"character at ~{hero_height:.0%} of the panel height.")
+            # is a landscape with a person in it again. What counts is the part
+            # that stays on the canvas — the rest is the intended bottom crop.
+            visible_h = min(art.height, panel_h - round(panel_h * HERO_TOP))
+            if visible_h < panel_h * HERO_MIN_H:
+                warn(f"{Path(spec['path']).name} fills only "
+                     f"{visible_h / panel_h:.0%} of panel 1's height — the width cap "
+                     f"({w_frac:.2f}× the panel) binds first on a cutout this wide. "
+                     "Export the hero as a tall waist-up bust, crop its empty "
+                     "margins, or raise the cap with w= — the first slide wants the "
+                     f"character at ~{hero_height:.0%} of the panel height.")
         if art.width > source_w * 2:
             # Foreground scale is the whole point now, so a small in-game sprite
             # gets blown up much harder than it used to. Say so before it lands
@@ -2422,7 +2492,9 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             panel = max(0, min(panels - 1, panel))
             role_slot = (placed_role_load["frame"][panel] if framed else
                          placed_role_load["fall"][panel] if falls else 0)
-            frac = (HERO_X if hero else BOARD_X if board
+            # 0.5 is a placeholder for the hero: its x is re-anchored to the
+            # panel's left edge below, once the seam margin is known.
+            frac = (0.5 if hero else BOARD_X if board
                     else _FRAME_X[role_slot % len(_FRAME_X)] if framed
                     else _FALL_X[fall_i % len(_FALL_X)] if falls
                     else _PROP_X[prop_i % len(_PROP_X)])
@@ -2439,11 +2511,16 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             cy = round(float(spec["y"]) * pano.height)
         elif falls:
             cy = round(pano.height * _FALL_Y[fall_i % len(_FALL_Y)])
+        elif hero and "bleed" not in spec:
+            # Anchored by the TOP: «лицо и верхняя часть тела хорошо читаются»
+            # is the requirement, so the head sits just inside the upper edge
+            # and the figure runs off the lower one.
+            cy = round(pano.height * HERO_TOP) + art.height // 2
         else:
             foot = (pano.height + float(spec["bleed"]) * art.height
                     if "bleed" in spec
                     else pano.height * (
-                        HERO_FOOT if hero else BOARD_FOOT if board
+                        BOARD_FOOT if board
                         else _FRAME_FOOT[role_slot % len(_FRAME_FOOT)]
                         if framed else _PROP_FOOT[prop_i % len(_PROP_FOOT)]))
             cy = round(foot - art.height / 2)
@@ -2458,17 +2535,35 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
 
         left, right = cuts[panel]
         margin = round(panel_w * 0.04)
-        if art.width > panel_w - 2 * margin:
-            warn(f"{Path(spec['path']).name} is {art.width}px wide — wider than one "
-                 f"{panel_w}px panel's safe band; scaling it down to fit")
-            art = contain(art, panel_w - 2 * margin, round(panel_h * h_frac))
-        half = art.width // 2
-        lo, hi = left + half + margin, right - half - margin
-        if not lo <= cx <= hi:
-            moved = min(hi, max(lo, cx))
-            warn(f"{Path(spec['path']).name} at x={cx}px overlapped a panel seam — "
-                 f"moved to x={moved}px so the store's gutter cannot cut it in half")
-            cx = moved
+        if hero and panel == 0 and "x" not in spec:
+            # «Персонаж может частично выходить за левый и нижний края.» The bust
+            # is anchored to panel 1's left edge and leaves the picture by that
+            # edge alone. The right edge is the first carousel seam, so it keeps
+            # its margin: a store gutter through the character's face is the one
+            # crop the reference banners never take.
+            safe_w = panel_w - margin
+            x0 = (left - (art.width - safe_w) if art.width > safe_w
+                  else left + round(panel_w * HERO_INSET))
+            cx = x0 + art.width // 2
+            bleed = max(0, left - x0)
+            if bleed > art.width * HERO_BLEED_X:
+                warn(f"{Path(spec['path']).name} loses {bleed / art.width:.0%} of its "
+                     f"width past the left edge (limit {HERO_BLEED_X:.0%}) — the bust "
+                     "may run off that edge, but not far enough to cut an arm or a "
+                     "held prop off the slide. Lower --hero-height or crop the "
+                     "sprite's empty margins.")
+        else:
+            if art.width > panel_w - 2 * margin:
+                warn(f"{Path(spec['path']).name} is {art.width}px wide — wider than one "
+                     f"{panel_w}px panel's safe band; scaling it down to fit")
+                art = contain(art, panel_w - 2 * margin, round(panel_h * h_frac))
+            half = art.width // 2
+            lo, hi = left + half + margin, right - half - margin
+            if not lo <= cx <= hi:
+                moved = min(hi, max(lo, cx))
+                warn(f"{Path(spec['path']).name} at x={cx}px overlapped a panel seam — "
+                     f"moved to x={moved}px so the store's gutter cannot cut it in half")
+                cx = moved
 
         placements.append({
             "art": art, "cx": cx, "cy": cy, "panel": panel, "hero": hero,
@@ -2582,31 +2677,34 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
     for line in placed:
         info(f"inlay  {line}")
 
-    # "Слева крупный персонаж, НЕ выходящий за края изображения." The hero is
-    # the one object the store shows at full size, and a figure cropped by the
-    # canvas is what the note is about — so it is checked rather than trusted,
-    # because `bleed=`, `y=` and an over-tall `h=` can all still push it out.
+    # "Персонажа я делаю крупным по пояс слева… может частично выходить за левый
+    # и нижний края." Two of the four edges are now deliberate crops and two are
+    # still blockers, so the placement is measured rather than trusted: `bleed=`,
+    # `y=` and an over-tall `h=` can all still push the head or the seam side out.
     hero_p = next((p for p in placements if p["hero"]), None)
     if hero_p is not None:
         art = hero_p["art"]
         hx0, hy0 = hero_p["cx"] - art.width // 2, hero_p["cy"] - art.height // 2
         hx1, hy1 = hx0 + art.width, hy0 + art.height
         pl, pr = cuts[hero_p["panel"]]
+        seam_margin = round(panel_w * 0.04)
+        visible_h = max(0, min(hy1, pano.height) - max(hy0, 0))
+        left_bleed = max(0, pl - hx0) / max(1, art.width)
+        bottom_crop = max(0, hy1 - pano.height) / max(1, art.height)
         over = [name for name, past in (
-            ("the top of the frame", hy0 < 0),
-            ("the bottom of the frame", hy1 > pano.height),
-            ("its panel's left edge", hx0 < pl),
-            ("its panel's right edge", hx1 > pr)) if past]
+            ("the top of the frame, cropping the head the whole slide is sized "
+             "around", hy0 < 0),
+            ("the first carousel seam", hx1 > pr - seam_margin),
+        ) if past]
+        info(f"hero bust: {visible_h / panel_h:.0%} of panel "
+             f"{hero_p['panel'] + 1}'s height visible, {left_bleed:.0%} of its width "
+             f"past the left edge, {bottom_crop:.0%} cropped by the bottom")
         if over:
-            warn(f"the hero runs past {', '.join(over)} — the note with the reference "
-                 "art was explicit that the character is large but stays inside the "
-                 "picture, and what hides its feet there is the band of game objects "
-                 f"along the bottom, not the canvas edge. Lower --hero-height (now "
-                 f"{art.height / panel_h:.2f} of the panel) or drop the bleed=/y= "
-                 "override rather than accepting the crop.")
-        else:
-            info(f"hero inside the frame: {hy0 / panel_h:.0%}–{hy1 / panel_h:.0%} of "
-                 f"panel {hero_p['panel'] + 1}'s height, clear of every edge")
+            warn(f"the hero runs past {', '.join(over)}. The bust may leave the "
+                 "picture by the left and bottom edges — those are the reference "
+                 "crops — but the face and the seam side stay clear. Lower "
+                 f"--hero-height (now {hero_height:.2f} of the panel visible) or "
+                 "drop the bleed=/y= override rather than accepting that crop.")
 
     band = [p for p in placements if p["framed"]]
     if band:
@@ -2667,8 +2765,8 @@ def cmd_triptych(args) -> None:
     art_gate = getattr(args, "art_gate", "strict")
     hero_bounds = (parse_unit_box(args.hero_bounds)
                    if getattr(args, "hero_bounds", None) else None)
-    if not 0.10 <= hero_height <= 0.90:
-        die(f"--hero-height {hero_height}: expected a fraction from 0.10 to 0.90")
+    if not 0.10 <= hero_height <= 0.95:
+        die(f"--hero-height {hero_height}: expected a fraction from 0.10 to 0.95")
     if not 0.0 <= fall_trail <= 2.0:
         die(f"--fall-trail {fall_trail}: expected a multiplier from 0 to 2")
     src = load_image(args.src, "key art")
@@ -3323,6 +3421,51 @@ def cmd_showcase(args) -> None:
        + (f'  «{caption}»' if caption else ""))
 
 
+# ── the long banner: 3/5 scene, 2/5 quieter, and no hole cut for the phone ──
+#
+# The feature graphic is this studio's long banner, and the author's brief for
+# that format is specific about a failure an image model produces on its own:
+#
+#   «Не резервировать и не обозначать специальную вертикальную зону под телефон…
+#    Не создавать справа пустой прямоугольник, вертикальную полосу, нишу, овал,
+#    арку, рамку, подиум, световое пятно, ореол, затемнение или размытие, которые
+#    визуально показывают место телефона.»
+#
+# Told that a phone will be placed on the right, the model helpfully draws the
+# slot for it — a plinth, an arch, a clean vertical band — and the finished
+# banner then has a phone-shaped hole in it whether or not a phone lands there.
+# The opposite failure is just as real: a right side as dense as the left, with
+# the device dropped onto clutter. Both are visible in the column energy, so
+# both are measured.
+BANNER_SCENE_SHARE = 0.60   # the left of the picture carries the scene
+BANNER_CALM_MAX = 0.95      # right/left energy: above this the right is not calmer
+BANNER_CALM_MIN = 0.35      # below this the right is a hole, not a continuation
+
+
+def banner_zone_report(canvas: Image.Image,
+                       scene_share: float = BANNER_SCENE_SHARE) -> float:
+    """Report how the long banner's right side relates to its scene side."""
+    column, scale = _column_energy(canvas)
+    split = max(1, min(column.size - 1, int(round(column.size * scene_share))))
+    scene = float(column[:split].mean())
+    quiet = float(column[split:].mean())
+    ratio = quiet / max(scene, 1e-6)
+    info(f"banner zones: scene side {scene:.1f}, right {1 - scene_share:.0%} "
+         f"{quiet:.1f} ({ratio:.2f}× the scene)")
+    if ratio > BANNER_CALM_MAX:
+        warn("the right of the banner is as busy as the scene side. A device, "
+             "title or badge placed there will land on clutter — ask the art for "
+             "the same world continuing at a lower density: fewer large objects, "
+             "more light and atmosphere, the bottom object band lower and sparser.")
+    elif ratio < BANNER_CALM_MIN:
+        warn("the right of the banner is a hole, not a continuation — an empty "
+             "band, niche, arch, podium, halo or blur where a phone is expected. "
+             "The brief forbids reserving that zone: the scene continues across "
+             "the full width and the device is composited on top of finished art. "
+             "Regenerate without naming a phone in the prompt.")
+    return ratio
+
+
 def cmd_banner(args) -> None:
     w, h = parse_size(args.size)
     # A 3-panel panorama cover-cropped to 1024×500 keeps only its middle — which
@@ -3332,6 +3475,7 @@ def cmd_banner(args) -> None:
                              bias_x=args.offset, zoom=args.zoom),
                        args.pop, vibrance=args.vibrance, lift=args.lift,
                        contrast=args.contrast, bloom=args.bloom)
+    banner_zone_report(canvas)
 
     if args.shot:
         # Build at working resolution, then fit by HEIGHT — a banner device sized
@@ -3672,10 +3816,12 @@ def main() -> None:
                         "split panel must carry part of the manifest; auto-placement "
                         "fills an empty panel before doubling up. Repeatable, and the FIRST "
                         "one is the hero unless a role flag says otherwise: it takes "
-                        f"panel 1 at ~{HERO_H * 100:.0f}%% of the panel HEIGHT (capped at "
-                        f"{HERO_W:.2f}× its width), because that is the screenshot the "
-                        "store shows at full size and the note was that the figure on "
-                        "it has to be big. Flags: hero, prop, frame (bottom edge), "
+                        f"panel 1 as a waist-up bust filling ~{HERO_H * 100:.0f}%% of the "
+                        "panel HEIGHT, anchored to its left edge and top and cropped by "
+                        f"the bottom (and, past {HERO_W_MAX:.2f}× the panel width, by the "
+                        "left). That is the screenshot the store shows at full size, and "
+                        "what has to read at carousel size is the face. Flags: hero, "
+                        "prop, frame (bottom edge), "
                         "fall (airborne), board (a `boardplate` play field — the middle panel at "
                         f"~{BOARD_W:.2f}× the panel width, standing inside the frame). "
                         "Keys: x,y (0..1 of the panorama), w and h (fractions of one "
@@ -3696,14 +3842,16 @@ def main() -> None:
                         "distributed across panels; this remains a generation draft, "
                         "never a shippable sprite paste-up.")
     t.add_argument("--hero-height", type=float, default=HERO_H, metavar="F",
-                   help="target height of the hero as a fraction of panel 1. The "
-                        "character stays wholly inside the canvas; the bottom object "
-                        f"band hides its feet. Default {HERO_H}.")
+                   help="how much of panel 1's height the hero fills VISIBLY. The "
+                        "bust is anchored to the panel's left edge and top, and is "
+                        "cropped by the bottom edge and (when it is wider than the "
+                        f"panel) the left one. Default {HERO_H}.")
     t.add_argument("--hero-bounds", metavar="X,Y,W,H",
-                   help="tight normalized box around the COMPLETE hero in the final "
-                        "render, including held/worn/attached props. Required by the "
-                        "strict final-art gate so a book, hat, hand, or weapon cannot "
-                        "cross panel 1's edges after integration.")
+                   help="tight normalized box around the hero as the FINAL render "
+                        "shows it, including held/worn/attached props. The strict "
+                        "gate uses it to prove the bust starts on the left, stays "
+                        "large, keeps its head off the top edge and its silhouette "
+                        "off the first carousel seam.")
     t.add_argument("--art-gate", choices=("strict", "warn", "off"), default="strict",
                    help="validate the panorama against the supplied composition brief. "
                         "`strict` (default) writes no panels when the art is dark, busy "
