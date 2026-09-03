@@ -191,6 +191,63 @@ class SpriteInventoryTests(unittest.TestCase):
                              coin)
 
 
+class SpriteAssetGateTests(unittest.TestCase):
+    """Store references must be standalone PNG objects with real alpha."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dir = Path(self._tmp.name)
+
+    def test_a_real_alpha_png_passes(self) -> None:
+        path = self.dir / "gem.png"
+        image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        ImageDraw.Draw(image).ellipse([8, 8, 55, 55], fill=(220, 40, 90, 255))
+        image.save(path)
+
+        self.assertEqual(store_compose.sprite_asset_issues(path), [])
+
+    def test_an_opaque_png_is_not_mistaken_for_transparency(self) -> None:
+        path = self.dir / "boxed.png"
+        Image.new("RGB", (64, 64), (255, 255, 255)).save(path)
+
+        self.assertIn("no alpha channel", "\n".join(
+            store_compose.sprite_asset_issues(path)))
+
+    def test_an_alpha_channel_with_no_transparent_canvas_fails(self) -> None:
+        path = self.dir / "rgba-but-boxed.png"
+        Image.new("RGBA", (64, 64), (20, 90, 180, 255)).save(path)
+
+        self.assertIn("transparent pixels", "\n".join(
+            store_compose.sprite_asset_issues(path)))
+
+    def test_non_png_references_are_blocked_until_converted(self) -> None:
+        path = self.dir / "gem.webp"
+        image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        ImageDraw.Draw(image).ellipse([8, 8, 55, 55], fill=(40, 190, 230, 255))
+        image.save(path)
+
+        self.assertIn("not a PNG", "\n".join(
+            store_compose.sprite_asset_issues(path)))
+
+    def test_a_board_plate_may_fill_the_canvas_but_still_needs_real_alpha(self) -> None:
+        path = self.dir / "board.png"
+        image = Image.new("RGBA", (64, 64), (30, 70, 130, 255))
+        ImageDraw.Draw(image).rectangle([0, 0, 2, 1], fill=(0, 0, 0, 0))
+        image.save(path)
+
+        self.assertTrue(store_compose.sprite_asset_issues(path))
+        store_compose.validate_sprite_assets(
+            [{"path": str(path), "role": "board"}])
+
+    def test_the_batch_gate_is_blocking(self) -> None:
+        path = self.dir / "boxed.png"
+        Image.new("RGB", (64, 64), (255, 0, 255)).save(path)
+
+        with self.assertRaises(SystemExit):
+            store_compose.validate_sprite_assets([{"path": str(path)}])
+
+
 class PopGradeTests(unittest.TestCase):
     """Saturate and brighten — without clipping, which is the usual failure."""
 
@@ -230,12 +287,12 @@ class PopGradeTests(unittest.TestCase):
             with self.subTest(preset=preset):
                 self.assertLess(self._stats(store_compose.pop_grade(src, preset))[2], 0.02)
 
-    def test_reference_calibrated_blaze_is_the_default(self) -> None:
-        self.assertEqual(store_compose.DEFAULT_POP, "blaze")
+    def test_aggressive_max_grade_is_the_store_art_default(self) -> None:
+        self.assertEqual(store_compose.DEFAULT_POP, "max")
         src = self._ramp()
         np.testing.assert_array_equal(
             np.asarray(store_compose.pop_grade(src)),
-            np.asarray(store_compose.pop_grade(src, "blaze")))
+            np.asarray(store_compose.pop_grade(src, "max")))
 
     def test_off_is_a_no_op_and_alpha_survives(self) -> None:
         src = self._ramp()
@@ -476,7 +533,7 @@ class FinalArtGateTests(unittest.TestCase):
         pano.paste(objects, (0, pano.height - objects.height))
 
         issues = store_compose.final_art_issues(
-            pano, self._spans(), (0.03, 0.12, 0.27, 0.72))
+            pano, self._spans(), (0.03, 0.12, 0.27, 0.78))
 
         self.assertEqual(issues, [])
 
@@ -497,7 +554,7 @@ class FinalArtGateTests(unittest.TestCase):
                    (0, pano.height - objects.shape[0]))
 
         issues = store_compose.final_art_issues(
-            pano, self._spans(), (0.03, 0.12, 0.27, 0.72))
+            pano, self._spans(), (0.03, 0.12, 0.27, 0.78))
         joined = "\n".join(issues)
 
         self.assertIn("effectively monochrome", joined)
@@ -517,7 +574,7 @@ class FinalArtGateTests(unittest.TestCase):
         pano.paste(objects, (0, pano.height - objects.height))
 
         issues = store_compose.final_art_issues(
-            pano, self._spans(), (0.03, 0.12, 0.27, 0.72))
+            pano, self._spans(), (0.03, 0.12, 0.27, 0.78))
 
         self.assertTrue(any("panel(s) 2, 3" in issue for issue in issues), issues)
 
@@ -540,7 +597,7 @@ class FinalArtGateTests(unittest.TestCase):
         self.assertIn("controlled overexposure", joined)
         # y=0 crops the head, and the box runs from 0.04 to 0.40 of a panorama
         # whose first panel ends at 0.333 — straight through the first seam.
-        self.assertIn("the top of the frame crops the hero", joined)
+        self.assertIn("the top of the frame crops or crowds the hero", joined)
         self.assertIn("crosses the first carousel seam", joined)
 
     def test_final_art_requires_a_measured_complete_hero(self) -> None:
@@ -709,7 +766,7 @@ class InlayTests(unittest.TestCase):
         # The other two edges are not negotiable: the face has to survive the
         # thumbnail strip, and the seam is where the store cuts.
         self._inlay(self._sprite("hero.png", (200, 420)) + "@hero,y=0.05")
-        self.assertTrue(any("hero runs past the top of the frame" in m
+        self.assertTrue(any("top safety margin around the complete head" in m
                             for m in self.quiet_warnings), self.quiet_warnings)
 
     def test_the_bust_leaves_the_picture_by_the_left_edge_only(self) -> None:
@@ -753,7 +810,7 @@ class InlayTests(unittest.TestCase):
                              .strip().rstrip("%")) / 100)
         cy = int(line.split("@")[1].split(",")[1].split()[0])
         top = cy - height // 2
-        self.assertGreater(top, 0, line)
+        self.assertGreaterEqual(top, self.PANEL_H * store_compose.HERO_SAFE_Y, line)
         self.assertLess(top, self.PANEL_H * 0.10, line)
 
     def test_a_squat_cutout_that_cannot_reach_full_height_is_called_out(self) -> None:
@@ -772,7 +829,8 @@ class InlayTests(unittest.TestCase):
         self._inlay(self._sprite("hero.png", (200, 420)))
         self.assertFalse([m for m in self.quiet_warnings if "empty sky" in m],
                          self.quiet_warnings)
-        self.assertTrue(any("no band above the head" in m for m in self.quiet_info),
+        self.assertTrue(any("no separate band above the head" in m
+                            for m in self.quiet_info),
                         self.quiet_info)
 
     def test_empty_sky_above_a_lowered_hero_is_still_called_out(self) -> None:
@@ -1205,6 +1263,13 @@ class HeroBustGateTests(unittest.TestCase):
 
         self.assertTrue(any("not on the left" in issue for issue in issues), issues)
 
+    def test_the_complete_head_keeps_a_real_top_safety_margin(self) -> None:
+        issues = store_compose.final_art_issues(
+            self._pano(), self._spans(), (0.0, 0.01, 0.30, 0.98))
+
+        self.assertTrue(any("top of the frame crops or crowds the hero" in issue
+                            for issue in issues), issues)
+
     def test_a_bust_that_is_too_small_is_still_blocked(self) -> None:
         issues = store_compose.final_art_issues(
             self._pano(), self._spans(), (0.01, 0.30, 0.20, 0.40))
@@ -1231,6 +1296,34 @@ class BannerZoneTests(unittest.TestCase):
         arr[:, split:] = 128 + (arr[:, split:] - 128) * right_amplitude
         return Image.fromarray(arr.astype(np.uint8), "RGB").convert("RGBA")
 
+    def _compliant_canvas(self) -> Image.Image:
+        canvas = store_compose.gradient(
+            (self.W, self.H),
+            [(0.0, (24, 106, 236, 255)), (1.0, (50, 210, 225, 255))],
+            horizontal=True)
+        draw = ImageDraw.Draw(canvas)
+        # Detailed warm waist-up hero against a broad cool background.
+        draw.rounded_rectangle([8, 20, 385, 499], radius=110,
+                               fill=(238, 52, 40, 255))
+        for y in range(45, 455, 22):
+            draw.line([45, y, 330, y + 35], fill=(255, 204, 38, 255), width=7)
+        # Deliberate local overexposure, not a wash over the subject.
+        draw.ellipse([420, 30, 505, 115], fill=(255, 255, 255, 255))
+        # Multi-hue real-object framing across the complete lower edge.
+        colours = ((232, 34, 54, 255), (250, 205, 28, 255),
+                   (36, 202, 78, 255), (24, 126, 244, 255))
+        for i, x in enumerate(range(-30, self.W, 72)):
+            top = 385 + (i % 3) * 18
+            draw.ellipse([x, top, x + 105, 535], fill=colours[i % len(colours)],
+                         outline=(255, 245, 190, 255), width=6)
+        # A few smaller falling objects keep the quieter right side alive.
+        for i, x in enumerate(range(650, 1000, 52)):
+            y = 65 + (i % 4) * 68
+            colour = colours[(i + 1) % len(colours)]
+            draw.line([x - 24, y - 20, x, y], fill=(255, 244, 180, 255), width=4)
+            draw.ellipse([x, y, x + 38, y + 38], fill=colour)
+        return canvas
+
     def test_a_right_side_as_busy_as_the_scene_is_called_out(self) -> None:
         store_compose.banner_zone_report(self._canvas(1.0))
         self.assertTrue(any("as busy as the scene side" in m for m in self.messages),
@@ -1245,6 +1338,87 @@ class BannerZoneTests(unittest.TestCase):
         store_compose.banner_zone_report(self._canvas(0.6))
         self.assertFalse([m for m in self.messages if m.startswith("the right")],
                          self.messages)
+
+    def test_the_complete_long_banner_contract_can_pass(self) -> None:
+        issues = store_compose.banner_art_issues(
+            self._compliant_canvas(), (0.01, 0.04, 0.38, 0.94))
+
+        self.assertEqual(issues, [])
+
+    def test_the_right_side_cannot_lose_the_bottom_object_frame(self) -> None:
+        canvas = self._compliant_canvas()
+        split = int(self.W * store_compose.BANNER_SCENE_SHARE)
+        ImageDraw.Draw(canvas).rectangle(
+            [split, int(self.H * store_compose.LOWER_BAND), self.W, self.H],
+            fill=(50, 210, 225, 255))
+
+        issues = store_compose.banner_art_issues(
+            canvas, (0.01, 0.04, 0.38, 0.94))
+
+        self.assertTrue(any("foreground does not continue" in issue
+                            for issue in issues), issues)
+
+    def test_a_small_or_top_clipped_banner_hero_is_blocked(self) -> None:
+        issues = store_compose.banner_art_issues(
+            self._compliant_canvas(), (0.20, 0.0, 0.18, 0.38))
+        joined = "\n".join(issues)
+
+        self.assertIn("hero is too small", joined)
+        self.assertIn("does not anchor the left edge", joined)
+        self.assertIn("head/headwear is cut", joined)
+
+    def test_final_banner_art_requires_measured_hero_bounds(self) -> None:
+        issues = store_compose.banner_art_issues(
+            self._compliant_canvas(), None)
+
+        self.assertTrue(any("--hero-bounds is required" in issue for issue in issues),
+                        issues)
+
+
+class BannerCommandTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dir = Path(self._tmp.name)
+        source = BannerZoneTests()._compliant_canvas()
+        self.source = self.dir / "long-banner.png"
+        source.save(self.source)
+        for name in ("info", "ok", "warn"):
+            original = getattr(store_compose, name)
+            setattr(store_compose, name, lambda *_: None)
+            self.addCleanup(setattr, store_compose, name, original)
+
+    def _args(self, **overrides) -> argparse.Namespace:
+        values = {
+            "keyart": str(self.source), "out": str(self.dir / "feature.png"),
+            "base_out": str(self.dir / "base.png"), "size": "1024x500",
+            "shot": None, "frame": "ios", "zoom": 1.0, "offset": 0.0,
+            "hero_bounds": "0.01,0.04,0.38,0.94", "banner_gate": "strict",
+            "title": "", "tagline": "", "pop": "off", "vibrance": None,
+            "lift": None, "contrast": None, "bloom": None,
+        }
+        values.update(overrides)
+        return argparse.Namespace(**values)
+
+    def test_strict_banner_writes_the_audited_base_before_overlays(self) -> None:
+        args = self._args()
+
+        store_compose.cmd_banner(args)
+
+        self.assertTrue(Path(args.base_out).is_file())
+        self.assertTrue(Path(args.out).is_file())
+        np.testing.assert_array_equal(
+            np.asarray(Image.open(args.base_out).convert("RGB")),
+            np.asarray(Image.open(args.out).convert("RGB")))
+
+    def test_strict_banner_writes_nothing_when_hero_framing_fails(self) -> None:
+        args = self._args(hero_bounds="0.20,0.00,0.15,0.35")
+
+        with self.assertRaises(SystemExit):
+            store_compose.cmd_banner(args)
+
+        self.assertFalse(Path(args.base_out).exists())
+        self.assertFalse(Path(args.out).exists())
 
 
 if __name__ == "__main__":

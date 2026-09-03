@@ -22,12 +22,16 @@ wager/reveal/drop/collect moment, premium depth and tactility, controlled antici
 focus, with real active gameplay large and readable. This is composition—not a mandatory
 black/neon/gold skin; every palette, material, character and type choice still comes from the
 current game's Design DNA. Never use cropping or device chrome to hide a weak gameplay layout.
-Concept panoramas lead with a large protagonist wholly inside the left panel, use real game objects
-as a cropped bottom frame and as falling motion through the picture, and keep the bright far
-background broad and smooth so those subjects lead. Saturation and a controlled blown light source
-are measured requirements, not optional post-processing taste. The complete hero silhouette,
-including held props, must clear the first panel seam; generic stage furniture does not count as
-game objects; and a saturated dark, hyper-detailed far plane still fails the brightness contract.
+Concept panoramas lead with a large waist-up protagonist on the left; only the left and lower edges
+may crop it, while the complete face, hair and headwear retain at least 2% top headroom and the full
+attached silhouette clears the first panel seam. Real game objects form the cropped bottom frame
+and fall through the picture, while the bright far background stays broad and smooth so those
+subjects lead. Slider saturation is deliberately aggressive: 0.60 mean saturation is the hard
+floor and 0.68–0.82 is the target band, alongside a measured controlled blown light source. Generic
+stage furniture does not count as game objects, and a saturated dark, hyper-detailed far plane still
+fails the brightness contract. The Google Play feature graphic uses its own horizontal render: an
+active left 3/5 with the large waist-up hero and a calmer but populated right 2/5, with the real
+object frame continuing across the full lower edge and no reserved device-shaped zone.
 
 All agent responses must be in English, and every artifact the pipeline writes — design documents, concepts, reports, session state and commit messages — must be in English as well. Dart/Flutter code, file paths, class names and CLI commands are English by definition.
 

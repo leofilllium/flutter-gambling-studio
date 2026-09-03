@@ -1,7 +1,7 @@
 ---
 name: store-screenshots
-description: "Build a casino-grade App Store and Google Play storefront kit for a gambling game: a concept panorama sliced into panels that reassemble into that exact picture, real gameplay screenshots in device frames, a feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 leads with a large waist-up protagonist on the left, cropped by the bottom edge and free to run off the left one, with its face and headwear clear of the top edge and the first carousel seam; a distinct, cropped hill of real game objects frames the bottom edge as the nearest plane and the remaining objects fall through the full picture with readable motion. The background stays bright, broad and deliberately smooth in a visibly different hue family from the hero, while the hero and foreground preserve the game's varied colours instead of receiving one yellow/gold wash. The middle panel recreates an actual resolving gameplay frame as scene-matched 3D art. Every shipped sprite remains recognizable, colour-separated, and physically integrated. The key art and the app share one world in both directions. Output is a downloadable ZIP under project_zip/."
-argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 0|100] [--seam-snap auto|off] [--pop blaze|vivid|soft|max|off] [--hero hero.png] [--hero-height 0.80] [--sprite-dir assets/images/sprites] [--object-frame auto|N|off] [--no-falling] [--fall-trail 1.0] [--props a.png,b.png] [--board auto|rest|off] [--sprite-light 0.35] [--occlude 0.14] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
+description: "Build a casino-grade App Store and Google Play kit: aggressively saturated concept panels, real gameplay screenshots, a dedicated long-banner scene and feature graphic, an applied launcher icon, and an in-game emblem. Panel 1 leads with a large left-anchored waist-up protagonist; only its left/lower edges may crop, while the complete head keeps safe top margin and every attached form clears the first seam. Real-alpha game objects form a cropped lower frame and fall through a bright, broad, smooth world with controlled blown light. The long banner keeps action in the left 3/5 and a calmer populated continuation in the right 2/5, never a reserved device zone. Real gameplay is recreated as scene-matched 3D art and shipped sprites stay recognizable. Output is a ZIP under project_zip/."
+argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 0|100] [--seam-snap auto|off] [--pop max|blaze|vivid|soft|off] [--hero hero.png] [--hero-height 0.80] [--hero-bounds x,y,w,h] [--sprite-dir assets/images/sprites] [--object-frame auto|N|off] [--no-falling] [--fall-trail 1.0] [--board auto|rest|off] [--banner-gate strict|warn|off] [--no-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 ---
@@ -17,7 +17,8 @@ Create everything needed to present the game in App Store Connect and Google Pla
 | One integrated illustration: the draft, actual gameplay frame, and exhaustive sprite manifest used as references to generate a single three-dimensional scene | `gpt_image.py edit --image draft --image gameplay --image <every sprite> --fidelity high` |
 | The same key art wired into the app as its own background | `store_compose.py backdrop` → `assets/images/backgrounds/` |
 | Panels P+1…N: real gameplay frames in a device mockup with marketing captions | `web_verify.mjs` → `store_compose.py showcase` |
-| Google Play feature graphic, 1024×500 | `store_compose.py banner` |
+| Dedicated text/device-free long-banner art: active left 3/5, calmer continuous right 2/5, large waist-up hero left, real-object frame across the full bottom | GPT Images 2.0 high-fidelity edit from the integrated key art + primary game assets |
+| Google Play feature graphic, 1024×500 | dedicated long-banner art → `store_compose.py banner --banner-gate strict --base-out …` |
 | Launcher icon for all Android/iOS/web densities | image generation → `store_compose.py icon` → `flutter_launcher_icons` |
 | In-game emblem/logo with transparent background | image generation → `tools/cutout.py` |
 
@@ -136,8 +137,9 @@ clothing, held reward. Keeping the torso in panel 1 while a book or hand crosses
 cut protagonist, and the store's gutter falls exactly there. The draft check cannot prove this
 because the integration render may grow or move those forms, so the final slice requires a measured
 `--hero-bounds x,y,w,h` around the whole silhouette; the strict gate uses it to prove the bust
-starts on the left (≤12% into panel 1), stays at least 0.65 of the panel's height, keeps its head
-below the top edge, and keeps every attached shape inside panel 1's safe rectangle.
+starts on the left (≤12% into panel 1), stays at least 0.75 of the panel's height, keeps **at least
+2% of the panel height above the complete head/headwear**, and keeps every attached shape inside
+panel 1's safe rectangle.
 
 **2. Panel 1 is drawn *for* the character, and the picture is decorated *around* it.** The
 follow-up note was precise: *don't merely insert a player — make it fit the slide; the slide itself
@@ -154,9 +156,10 @@ the reference kit's unmistakable foreground frame. Light says *lit by the pictur
 
 The same note asked for one thing more: *more decorative*. A berth is a place to stand; what makes
 the slide read as a poster instead of a photograph of a character is the **ornament around** the
-figure. With the bust reaching the upper edge there is usually no band left above the head, and the
-compositor says so rather than going quiet — `panel 1 crown: the bust reaches the top edge — no
-band above the head to decorate`. The decoration budget moves to where the references spend it:
+figure. With the bust sitting near the upper edge behind its safe head margin, there is usually no
+separate band left above the head, and the compositor says so rather than going quiet — `panel 1
+crown: the bust sits near the top with its safety margin`. The decoration budget moves to where
+the references spend it:
 flanking the shoulders and filling the space the figure does not occupy. Columns, lanterns,
 banners, foliage or architecture beside the head; a light burst or halo blazing **behind** it;
 embers, petals, coins and multiplier badges drifting through the air around it; the object hill
@@ -333,11 +336,12 @@ the same: *make it richer and brighter*. So:
   use visibly different hue families; lighting may cast a local warm edge, but it may not recolour
   every plane into amber. The strict gate measures both a secondary-hue share and hero/background
   separation, because high saturation by itself lets the all-yellow failure pass.
-- Every compositor art path then applies a colour grade on top (`--pop`, default `blaze`: vibrance
-  + midtone lift + contrast + a wider highlight bloom, none of which can clip). The references
-  measure 0.58–0.83 mean saturation, so this is a material lift rather than a nudge. Raise it to
-  `--pop max` when the art is still soft; drop to `vivid` or `soft` only when the source already
-  screams.
+- Every compositor art path applies the strongest safe colour grade by default (`--pop max`:
+  weighted vibrance + midtone lift + contrast + highlight bloom, none of which can manufacture
+  clipped white). The slider delivery floor is **0.60 mean saturation**, with **0.68–0.82** the
+  intended working band. The supplied references measure 0.58–0.83; the new direction is to push
+  the carousel aggressively toward their vivid end. A lower preset is diagnostic, not a reason to
+  ship soft panels.
 - **Bright means light, not merely vivid.** *«Они яркие и светлые.»* The far plane carries broad
   high-value colour — sky, sunlight, a burst, a lit interior — and the strict gate holds mean luma
   ≥0.33 with deep shadow ≤0.38, just under the weakest reference on each axis. A saturated picture
@@ -444,29 +448,44 @@ Two conditions, both blocking:
 Nothing else changes: the compositor still renders every caption and title, and a vision pass still
 rejects any other lettering the model hallucinates.
 
-### The long banner: 3/5 scene, 2/5 continuation, and no slot cut for the phone
+### The long banner: its own render, 3/5 scene, 2/5 continuation
 
-The Google Play feature graphic is this studio's long banner, and it is the one deliverable where a
-device gets composited over finished art. The brief for that format is specific, because image
-models fail it in a specific way — told a phone will sit on the right, the model helpfully draws
-the *slot* for it:
+The Google Play feature graphic is built from a **dedicated horizontal illustration**. Do not
+recycle a centre crop of the portrait-panel panorama: that crop was composed as three equally
+strong slides, while this format has a different hierarchy. The generated source contains no
+words, logo, screen, interface or device. Optional store typography and a real gameplay device are
+added only afterward by `store_compose.py banner`; `--base-out` retains the clean audited source.
 
-- The scene occupies roughly the **left 3/5**. The **right 2/5 is the same world continuing**, just
-  quieter: fewer large objects, lower detail density, more light, atmosphere and small falling
-  objects. The transition is gradual — no visible boundary, no sense of two pictures.
-- **Never reserve the phone's zone in the art.** No empty rectangle, vertical band, niche, oval,
-  arch, frame, podium, pool of light, halo, darkening or blur marking where a device will go. The
-  device is composited on top of a finished picture; a picture with a phone-shaped hole in it is
-  broken whether or not the phone lands there.
-- The bottom object band runs the **full width**, including the right 2/5, where it may sit lower
-  and thinner.
-- Do not name a phone, a mockup, a device or a UI in the prompt at all. That is what makes the
-  model draw one, or draw its socket.
+- Roughly the **left 3/5** carries the main visual scene. A large, sharp **waist-up protagonist**
+  anchors the left edge; its lower body may leave the lower canvas and its outer silhouette may
+  leave the left canvas, but the complete face, hair and headwear retain at least a 2% top margin.
+  A hero mechanic replaces the character only when the game genuinely has no character.
+- The **right 2/5 is the same world continuing**, only calmer: fewer large objects and a lower
+  detail density, but still background detail, glow, particles, coins, several thematic objects at
+  different scales, and readable falling motion. The transition is gradual, with no boundary or
+  sense of two pictures.
+- Never reserve a device zone in the source. No empty rectangle, vertical band, niche, oval, arch,
+  frame, podium, isolated pool of light, halo, darkening or blur may mark a future overlay position.
+  The source must look finished when viewed alone.
+- The foreground frame uses **real game objects across the full width**. It is highest and densest
+  on the left/centre and may become lower and sparser through the right 2/5, but it never vanishes.
+  Use large cropped objects on outer/lower edges, medium objects around the central action, and a
+  few smaller whole falling objects above and on the right. Do not pile everything into the lower
+  left corner.
+- Use the hero plus the primary unique asset set as high-fidelity references. Preserve distinct
+  red, yellow, green and cyan/blue objects, their silhouettes and their relative size character;
+  generic casino furniture does not substitute for them.
+- Keep the same aggressive saturation, broad luminous far plane, top-left key light, local blown
+  sources, glossy highlights, sparks and depth planes as the sliders. The hero and primary game
+  objects remain sharp; only a few secondary near/far objects may carry depth blur.
+- The generation prompt itself does **not** mention a future overlay, device, mockup, screen or UI.
+  It asks positively for one uninterrupted complete scene. This avoids teaching the image model to
+  draw the very slot the negative instruction is trying to prevent.
 
-`banner` measures both failures from the column energy and reports
-`banner zones: scene side … right 40% … (0.62× the scene)`. Above 0.95× the right side is as busy
-as the scene and the device will land on clutter; below 0.35× it is a hole rather than a
-continuation, and the art is regenerated.
+`banner --banner-gate strict` measures the clean source before overlays and writes nothing on a
+failure. It requires measured `--hero-bounds`, ≥0.60 saturation, controlled glare, a large
+left-anchored hero at ≥70% of banner height with safe headroom, a right-side density of 0.35–0.95× the scene side, continuous
+brightness, and a separately readable lower object frame through the right 2/5.
 
 ## Arguments and defaults
 
@@ -477,13 +496,13 @@ continuation, and the art is regenerated.
 | `--size` | `1320x2868` | Main set; also supports `iphone-6.9`, `iphone-6.9-alt`, `iphone-6.5`, and `play` |
 | `--gutter` | `0` | Nothing is discarded between panels: they reassemble into the picture. An explicit width (`100`, `auto`) throws that strip away instead, for a publisher who asks the panels to line up across the store's carousel gap — it costs the picture |
 | `--seam-snap` | `auto` (12% of a panel) | How far the tiling may slide so the cuts land on the picture's quietest columns. With a lossless cut this is the only lever there is. `off` restores the content-blind even split |
-| `--pop` | `blaze` | Reference-calibrated colour grade applied to generated art (`off`, `soft`, `vivid`, `blaze`, `max`) |
+| `--pop` | `max` | Aggressive slider-grade preset applied to generated art (`off`, `soft`, `vivid`, `blaze`, `max`). Final concept panels must still measure ≥0.60 mean saturation; aim for 0.68–0.82 |
 | `--hero` | first manifest entry marked hero | The protagonist PNG that leads panel 1; pass it explicitly before `--sprite-dir` so its role overrides directory discovery |
-| `--hero-height` | `0.80` | How much of panel 1's **height** the hero fills *visibly*. The art itself is taller: it is anchored just below the top edge and cropped by the bottom, and when it comes out wider than the panel the surplus leaves by the **left** edge (up to 20% of its width). Below ≈0.65 the figure is scenery again. An explicit sprite `h=` still overrides it |
-| `--hero-bounds` | required on final slices | Tight normalized `x,y,w,h` around the protagonist as the **final render** shows it, including every held/worn/attached form. The strict gate uses it to prove the bust starts on the left, stays large, keeps its head clear of the top edge and every attached shape clear of the first carousel seam; measure it separately after the App Store and Play cover-crops |
+| `--hero-height` | `0.80` | How much of panel 1's **height** the hero fills *visibly*. The art itself is taller: it is anchored just below the top edge and cropped by the bottom, and when it comes out wider than the panel the surplus leaves by the **left** edge (up to 20% of its width). Below 0.75 the figure is scenery again. An explicit sprite `h=` still overrides it |
+| `--hero-bounds` | required on final slices and the long-banner base | Tight normalized `x,y,w,h` around the protagonist as the **final render/crop** shows it, including every held/worn/attached form. Concept-panel strict mode requires a ≥2% top margin above the complete head/headwear, a large left-anchored waist-up crop, and every attached shape clear of the first carousel seam. Banner strict mode applies the same head protection to the active left scene. Measure it separately for every output geometry |
 | `--art-gate` | `strict` | `strict` writes no final panels when the art is dark, over-detailed in the upper plane, weak at the object-framed bottom, outside saturation/glare targets, or the measured hero drifts off the left, loses its head to the top edge or crosses the first seam. `warn` is only for diagnostic previews under `art/`; `off` is only for compositor unit tests |
 | `--props` | auto | Legacy explicit comma-separated sprite list; use only for precise assignments that are then completed by `--sprite-dir`, never to select a subset of shipped sprites |
-| `--sprite-dir` | required sprite roots | Repeatable directory whose PNG, WebP and JPEG files are recursively added to the exhaustive draft manifest; explicit `--sprite` entries win duplicate roles/placement |
+| `--sprite-dir` | required sprite roots | Repeatable discovery directory. Every discovered WebP/JPEG/SVG is converted first; only standalone real-alpha PNG references may reach the draft/integration gate. Explicit `--sprite` entries win duplicate roles/placement |
 | `--object-frame` | `auto` | Number of unassigned sprites placed into the cropped bottom band. `auto` uses up to 60% of the supporting manifest, targets three per panel when enough exist, and preserves the rest for the fall. `off` sends them all airborne unless `--no-falling` is also set |
 | `--no-falling` | off | Disable airborne auto-placement. Supporting sprites join the bottom band; with `--object-frame off`, they use the legacy standing-prop layout |
 | `--fall-trail` | `1.0` | 0–2 multiplier for selective falling-object motion trails; 0 keeps the airborne objects crisp |
@@ -491,6 +510,8 @@ continuation, and the art is regenerated.
 | `--integrate` | `on` | Generate the finished panorama from the draft, actual gameplay frame and real assets as reference images (`gpt_image.py edit`). The field is recreated with the 3D scene, never pasted afterward. `off` may retain a layout draft for debugging but cannot produce a shippable concept panorama |
 | `--sprite-light` | `0.35` | How hard inlaid objects are pulled into the scene's light (colour cast + edge light-wrap). `0` pastes them flat |
 | `--occlude` | hero `0.14`, props `0.08`, board `0` | How much of an object's height the scene's foreground closes back over, so heroes and supporting props sit *in* the picture. On a bust cropped by the bottom edge this applies to the part still on the canvas. The board stays unobscured for legibility; `0` leaves an object in front of everything |
+| `banner --banner-gate` | `strict` | Blocks the feature graphic before any overlay is drawn unless its clean long-banner source passes saturation/light/glare, large left hero + ≥2% headroom, continuous calmer right 2/5, and full-width lower object-frame checks. `warn` writes diagnostics only; `off` is for tests |
+| `banner --base-out` | unset | Save the audited text/device-free long-banner crop before optional store typography/device overlays; the runbook always supplies this under `art/` |
 | `--no-backdrop` | off | Do not wire the key art into the game as its background |
 | `--no-play-set` | off | Skip the separate 9:16 Play set |
 | `--lang` | `en` | Caption/title language; change only on explicit request |
@@ -542,7 +563,7 @@ rg --files assets/images/sprites assets/sprites 2>/dev/null \
   | rg -i '\.(png|webp|jpe?g|svg)$' | sort > "$ART_DIR/sprite-manifest-all.txt"
 [[ -s "$ART_DIR/sprite-manifest-all.txt" ]] \
   || { echo "BLOCKER: no sprite assets found"; exit 1; }
-rg -i '\.(png|webp|jpe?g)$' "$ART_DIR/sprite-manifest-all.txt" \
+rg -i '\.png$' "$ART_DIR/sprite-manifest-all.txt" \
   > "$ART_DIR/sprite-manifest-raster.txt" || true
 ```
 
@@ -550,10 +571,36 @@ If the app registers additional sprite roots in `pubspec.yaml` or its asset regi
 roots in the same command. Do not include generated store outputs, backgrounds, UI chrome, fonts,
 or launcher icons merely because they are raster files. Do include every shipped gameplay sprite,
 including secondary symbols, rewards, particles/effects, alternate states and nested files. Convert
-SVG sprite sources to lossless transparent PNG before `triptych`, write source → converted path in
-the manifest, append each converted path to `sprite-manifest-raster.txt`, and retain the original
-source as the identity reference. A vector file is not an excuse for omission. Before Phase 1,
-verify that the number of unique raster-reference paths equals the number of unique source paths.
+every WebP, JPEG and SVG source to a **standalone lossless PNG with a real alpha channel** before
+`triptych`, write source → converted path in the manifest, append each converted PNG path to
+`sprite-manifest-raster.txt`, and retain the original source as the identity reference. A non-PNG
+source is not an excuse for omission and is never passed directly to the integration model.
+
+The individual asset contract is blocking before any store art is generated:
+
+- One file contains one fully visible object. No object is clipped by its own source canvas.
+- The output is PNG with actual transparent pixels around the object. White, coloured, or drawn
+  checkerboard backgrounds do not count as transparency.
+- The principal gameplay objects are not recolour clones: each has a distinguishable silhouette,
+  scale character, and dominant colour. When the set has four or more principal symbols, it must
+  visibly include distinct red, yellow, green, and cyan/blue anchors. Several nearly identical
+  spiral sweets or badges in one colour family fail even if their filenames differ.
+- Alpha is verified technically, not inferred from the way a viewer displays the file:
+
+```bash
+while IFS= read -r sprite_path; do
+  [[ "$sprite_path" == *.png ]] \
+    || { echo "BLOCKER: non-PNG sprite reference: $sprite_path"; exit 1; }
+  python3 tools/cutout.py "$sprite_path" --check \
+    || { echo "BLOCKER: invalid transparent alpha: $sprite_path"; exit 1; }
+done < "$ART_DIR/sprite-manifest-raster.txt"
+```
+
+`triptych` repeats the PNG/alpha check and writes no draft if any reference is opaque. Before
+Phase 1, verify that the number of unique raster-reference paths equals the number of unique source
+paths, then vision-check the one-object framing, silhouette diversity, and red/yellow/green/blue
+set coverage. If those fail, return to asset generation; do not recolour or disguise weak sprites
+inside store composition.
 
 **List the hero first and mark it as the hero**: it leads panel 1, and every downstream phase reads
 that role. Record one row per discovered sprite in `STORE_BRIEF.md`: source path, raster reference
@@ -619,11 +666,12 @@ Use image generation for three sources:
    composition block**, before theme prose or material detail. Long prompts dilute late
    constraints; these eight remain first in both Phase 1 and every Phase 2 integration pass:
    1. a large waist-up protagonist on the left, cropped by the bottom edge, its face and headwear
-      complete and clear of the top edge, held props included in the silhouette;
+      complete with at least 2% clear headroom below the top edge, held props included in the silhouette;
    2. real game objects forming the cropped bottom frame across the full width;
    3. other real game objects visibly falling through upper, middle and lower space;
    4. a bright, light, broad, smooth, low-detail far background;
-   5. saturated colour with controlled blown light behind a focal subject;
+   5. aggressively saturated colour (target mean 0.68–0.82, never below 0.60) with controlled
+      blown light behind a focal subject;
    6. a background in a clearly different hue family from the protagonist, with the game's varied
       object colours preserved—no global yellow/gold/amber wash and no two-neighbouring-colour
       scene;
@@ -636,7 +684,8 @@ Use image generation for three sources:
      light, with the scene's perspective converging on it, the brightest key light falling there,
      and foreground furniture along its bottom edge — a rail, steps, rocks, chips, foliage — for
      the figure to stand behind. Size it for a **waist-up figure that fills about four fifths of
-     the panel's height**, its head just below the top edge, its body running off the bottom one,
+     the panel's height**, its complete head at least 2% below the top edge, its body running off
+     the bottom one,
      hard against the panel's left edge and free to be cropped by it. Leave the lowest band ready
      for game objects to cross in front of it. **Ask for it empty:** no character, no silhouette,
      no mannequin. The real hero is composited into it in Phase 2, and a drawn one there means two
@@ -764,7 +813,7 @@ python3 tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
 
 python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
   --out "$ART_DIR/draft" --pano-only --save-pano "$ART_DIR/keyart-draft.png" \
-  --panels 3 --size 1320x2868 --pop blaze \
+  --panels 3 --size 1320x2868 --pop max \
   --sprite assets/images/sprites/sprite_eagle.png@hero \
   --sprite "$ART_DIR/board-plate.png@board,light=0.15" \
   --sprite assets/images/sprites/sprite_bolt.png@panel=3,rot=-8,occlude=0.10 \
@@ -791,8 +840,9 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
 - `--pano-only` writes the draft and nothing else. It is a reference image, never an upload asset,
   and it does not go in the kit's `store/` directory.
 - Everything the earlier phases established still holds here: a waist-up hero on panel 1 filling
-  ≈0.80 of the panel *height* visibly, anchored left and cropped by the bottom, its head clear of
-  the top edge; the field on the middle panel and paying; all manifest assets distributed at
+  ≈0.80 of the panel *height* visibly, anchored left and cropped by the bottom, with at least 2%
+  clear space above its complete head/headwear; the field on the middle panel and paying; all
+  manifest assets distributed at
   purposeful scales/depths; nothing important on a seam. `--hero-height` sets the default target; a
   hero sprite's explicit `h=` still overrides it, while `w=` is the width cap to raise for a
   broad-shouldered cutout that binds early. Read the `hero bust:` line and resolve any
@@ -855,10 +905,11 @@ python3 tools/gpt_image.py edit \
   earlier sprite changes identity, disappears or becomes a pasted badge, rerun with a smaller batch;
   never solve an input limit by dropping it. Keep `--fidelity high` on every pass and retain the pass
   manifest in `STORE_INFO.md`.
-- **The integration prompt begins with the same six-line priority block as Phase 1.** Put it
+- **The integration prompt begins with the same eight-line priority block as Phase 1.** Put it
   before "render this in the game's style", before materials, and before the exhaustive asset
   list: complete hero inside panel 1; real game-object frame at the bottom; real game objects
-  falling through the height; bright smooth low-detail far plane; saturated colour plus one
+  falling through the height; bright smooth low-detail far plane; aggressively saturated colour
+  (target 0.68–0.82, hard floor 0.60) plus one
   controlled blown source; contrasting background/hero hue families with original object colours
   preserved. Repeating it only near the end is not enforcement. Every staged batch starts with the
   block again and says that these relationships outrank added ornament.
@@ -895,8 +946,9 @@ python3 tools/gpt_image.py edit \
     ground takes its shadow, the scene's light wraps its silhouette. It keeps the framing the draft
     gives it — a waist-up figure filling about four fifths of the panel's height, hard against
     **panel 1**'s left edge, cropped by the bottom one — and the ornament flanking and haloing its
-    head stays. The bottom object band crosses in front of its lower body. The head, hat and hair
-    stay clear of the top edge; the hands, book/weapon, cape, clothing and held reward stay inside
+    head stays. The bottom object band crosses in front of its lower body. The complete head, hat
+    and hair retain at least 2% of panel height as clear top margin; the hands, book/weapon, cape,
+    clothing and held reward stay inside
     panel 1 and clear of the first seam. Only the left and bottom edges may cut the figure.
   - Preserve the draft's two supporting-object populations. The lower edge is crowded by large,
     overlapping, partly cropped game objects that form a **small uneven hill in the nearest
@@ -958,7 +1010,8 @@ advertises, so it is verified before anything downstream reads the file. Open
 - Check coverage as a second axis: every manifest row has an unmistakable primary appearance and
   panel 1, panel 2, and panel 3 each contain assigned rows. An empty panel, a missing secondary
   sprite, or the same floating icon repeated to fill one is a failed integration pass.
-- Check composition as a third axis: the large hero is fully inside panel 1; the bottom edge reads
+- Check composition as a third axis: the large hero's complete attached silhouette clears the
+  first seam, its head keeps ≥2% top space, and only its left/lower edges crop; the bottom edge reads
   as one overlapping frame of real game objects; supporting objects fall through upper and middle
   space with credible motion; and the far background remains smoother and quieter than the
   subjects. Record saturation and blown-highlight shares from the compositor as part of this gate.
@@ -975,8 +1028,81 @@ advertises, so it is verified before anything downstream reads the file. Open
 - One object drifting is fixed by re-running with a tighter prompt naming that object, or with
   fewer references on the call. Repeated drift means the concept-art portion is blocked: neither a
   redesigned symbol nor the composited placement draft is an acceptable deliverable.
-- The picture that passes this gate becomes `$ART_DIR/keyart-integrated.png`, which Phases 3, 5 and
-  7 all read. There is only ever one integrated panorama in a kit.
+- The picture that passes this gate becomes `$ART_DIR/keyart-integrated.png`, which Phases 3 and 5
+  read and Phase 2d uses as the visual-world reference. There is only ever one integrated panorama
+  in a kit.
+
+### Phase 2d — render the dedicated long-banner source
+
+The feature graphic has its own composition. Render `$ART_DIR/long-banner-integrated.png` from the
+approved key art, the hero file, and the principal unique game objects; do not try to obtain it by
+centre-cropping the three-panel panorama. Use high-fidelity references for the hero and the
+red/yellow/green/cyan-blue anchor objects so their identities, silhouettes and colours survive.
+
+Write `$ART_DIR/long-banner-prompt.txt`. The **actual prompt** begins with this block and does not
+mention any future overlay or the thing that will eventually be placed over the right side:
+
+1. ONE COMPLETE CONTINUOUS HORIZONTAL ILLUSTRATION, one world across the full width, with a smooth
+   gradual density transition and no isolated geometric empty zone.
+2. ACTIVE LEFT THREE FIFTHS: a very large sharp waist-up protagonist hard against the left edge,
+   lower body allowed beyond the bottom, complete face/hair/headwear safely below the top; decisive
+   game action and the main unique objects through the left and centre.
+3. CALMER RIGHT TWO FIFTHS: the same background, light and ground continue naturally with fewer
+   large objects, but retain glow, particles, coins, several small thematic objects and readable
+   falling motion; never blank, darkened or separately blurred.
+4. FULL-WIDTH FOREGROUND: real referenced game objects form a shallow irregular overlapping hill
+   across the entire lower edge, denser/higher left and centre, lower/sparser right; large objects
+   crop at the edges, medium objects occupy the middle, small whole objects fall above.
+5. AGGRESSIVE MULTI-HUE COLOUR: target 0.68–0.82 mean saturation; preserve distinct red, yellow,
+   green and cyan/blue asset colours and silhouettes; no global gold/amber wash and no scene made
+   from two neighbouring colours.
+6. BRIGHT LIGHT AND DEPTH: broad smooth luminous far plane, top-left key, strong glossy highlights,
+   glows, sparks, rim/bounce light and one or more controlled locally blown sources; clear near,
+   middle and far planes.
+7. SHARPNESS: protagonist and primary game objects have clean readable edges; depth blur belongs
+   only to a few secondary extreme-near/extreme-far objects.
+8. NO WORDS, LETTERING, LOGO, BORDER OR PANEL DIVIDER—ONLY THE ILLUSTRATED WORLD AND ITS GAME
+   OBJECTS. Optional multiplier badges appear only when supplied as real game references and only
+   at values the game pays.
+
+Follow that block with the current game's theme, Design DNA, materials, exact hero identity, exact
+object names and the decisive action. The examples in `examples/` calibrate brightness,
+saturation, depth and composition only; do not pass them as visual references and do not copy their
+characters, symbols or worlds.
+
+Use the integrated panorama first as the world/style reference, followed by the actual hero and
+the principal unique object PNGs at high fidelity:
+
+```bash
+python3 tools/gpt_image.py edit \
+  --prompt-file "$ART_DIR/long-banner-prompt.txt" \
+  --image "$ART_DIR/keyart-integrated.png" \
+  --image assets/images/sprites/hero.png \
+  --image assets/images/sprites/primary_red.png \
+  --image assets/images/sprites/primary_yellow.png \
+  --image assets/images/sprites/primary_green.png \
+  --image assets/images/sprites/primary_blue.png \
+  --out "$ART_DIR/long-banner-integrated.png" \
+  --size 1536x1024 --quality high --fidelity high
+```
+
+Replace the illustrative paths with the manifest's real files. Include every main unique asset the
+composition needs; do not invent duplicates just to fill space. Then create a disposable 1024×500
+diagnostic crop, vision-measure the complete hero bounds on that exact crop, and inspect it before
+any typography or gameplay frame is added:
+
+```bash
+python3 tools/store_compose.py banner \
+  --keyart "$ART_DIR/long-banner-integrated.png" \
+  --out "$ART_DIR/long-banner-diagnostic.png" \
+  --size 1024x500 --pop max --banner-gate warn
+```
+
+Reject and regenerate when the right 2/5 is empty, equally busy, abruptly dark/bright, shaped like
+a reserved slot, or missing the lower object frame; when the hero is not large and waist-up on the
+left; when the head/hair/headwear is clipped; when objects collect only in the lower-left corner;
+when important objects blur; or when saturation is below 0.60. Cropping and grading cannot repair
+those composition defects. Record the measured bounds for Phase 7.
 
 ## Phase 3 — apply the storefront to the game
 
@@ -1065,8 +1191,9 @@ rerun, substitute `$RAW_DIR/04-win.png` for the provisional
 `$RAW_DIR/gameplay-reference-win.png` input in the Phase 2b command. Do not composite either image
 after generation; they remain references only.
 
-Re-running Phase 2 also re-exports the backdrop (Phase 3) and the feature graphic (Phase 7) from
-the corrected panorama, so do those again rather than leaving three versions of the art in one kit.
+Re-running Phase 2 also means re-exporting the backdrop (Phase 3), re-rendering the dedicated long
+banner from the corrected panorama (Phase 2d), and rebuilding the feature graphic (Phase 7). Do all
+three rather than leaving mismatched versions of the visual world in one kit.
 
 ## Phase 5 — compose the concept panels
 
@@ -1076,9 +1203,11 @@ already, and inlaying them a second time would put a flat copy on top of the ren
 numbered `store-01.png` through `store-0P.png` plus `_panorama-preview.png` and
 `_carousel-preview.png` for inspection.
 
-The draft was graded before the render, so the integrated art arrives with the grade already in it:
-slice at `--pop soft`, and only raise it if the returned picture is genuinely flat. Never slice the
-Phase 2a composite as a fallback; it contains placement references rather than finished scene art.
+The draft was graded before the render, but the integration pass can soften it. Slice at
+`--pop max`: the operation uses weighted vibrance, so it pushes muted pixels without flattening
+already-saturated game objects. The strict gate still decides the result; **0.60 is the blocking
+floor and 0.68–0.82 is the intended slider band**. Never slice the Phase 2a composite as a fallback;
+it contains placement references rather than finished scene art.
 
 The compositor's art gate is **blocking by default**. Use `warn` only to create a disposable
 diagnostic crop under `art/`, inspect that crop, and measure the tight normalized bounds around the
@@ -1088,19 +1217,19 @@ have different geometry, so each needs its own measured bounds:
 ```bash
 python3 tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
   --out "$ART_DIR/appstore-diagnostic" --panels 3 --size 1320x2868 \
-  --pop soft --art-gate warn
+  --pop max --art-gate warn
 # Vision-measure the complete protagonist in the diagnostic panorama, including held props.
 APP_HERO_BOUNDS="SET_AFTER_VISION_MEASUREMENT"  # replace with measured x,y,w,h
 python3 tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
-  --out "$OUT_DIR" --panels 3 --size 1320x2868 --pop soft \
+  --out "$OUT_DIR" --panels 3 --size 1320x2868 --pop max \
   --art-gate strict --hero-bounds "$APP_HERO_BOUNDS"
 
 python3 tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
   --out "$ART_DIR/play-diagnostic" --panels 3 --size play \
-  --pop soft --art-gate warn
+  --pop max --art-gate warn
 PLAY_HERO_BOUNDS="SET_AFTER_VISION_MEASUREMENT"  # replace with this crop's measured x,y,w,h
 python3 tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
-  --out "$PLAY_DIR" --panels 3 --size play --pop soft \
+  --out "$PLAY_DIR" --panels 3 --size play --pop max \
   --art-gate strict --hero-bounds "$PLAY_HERO_BOUNDS"
 ```
 
@@ -1244,7 +1373,7 @@ Vision-check both previews — `_panorama-preview.png` for whether the panels ar
 - The panorama uses casino-grade tension, depth, tactility, and reward focus while remaining
   unmistakably specific to this game's Design DNA.
 - Colour is rich and the image is bright *and light* enough to hold up at thumbnail size. The
-  compositor's saturation is at least 0.52, a controlled 1.2–20% of the image is blown highlight
+  compositor's saturation is at least 0.60 (target 0.68–0.82), a controlled 1.2–20% of the image is blown highlight
   rather than no glare at all or a washed-out frame, and the picture is not built from two
   neighbouring colours.
 - The protagonist and the game objects are sharp. Any blur is on a few secondary objects at the
@@ -1279,24 +1408,33 @@ Vision-check every composed file for clipping, misspellings, empty glyph boxes, 
 
 ## Phase 7 — feature graphic
 
-Create `feature-graphic-1024x500.png` with `store_compose.py banner`. Use the **integrated**
-panorama (`$ART_DIR/keyart-integrated.png`) as the image layer, so the graphic carries the hero and
-the seated objects rather than the bare generation. A centre crop of a 3-panel panorama misses panel
-1 entirely, so slide it with `--offset` (`--zoom` for slack) until the hero is in frame *and* clear
-of the furniture: the title lockup and its scrim own the left half, and `--shot` puts the device in
-the right third. Drop `--shot` if the hero needs that room. Render the English game title and
-tagline with the compositor; never ask the image model to draw them.
+Create `feature-graphic-1024x500.png` from Phase 2d's **dedicated**
+`$ART_DIR/long-banner-integrated.png`. Do not substitute the concept panorama. Use the complete hero
+bounds measured on the 1024×500 diagnostic crop and run the blocking gate before the compositor
+adds any optional store overlay:
 
-This is the studio's long banner, so the crop has to satisfy the 3/5–2/5 contract above. The
-compositor prints `banner zones: scene side … right 40% … (N× the scene)` before anything is
-composited on top:
+```bash
+BANNER_HERO_BOUNDS="SET_FROM_PHASE_2D_X,Y,W,H"
+python3 tools/store_compose.py banner \
+  --keyart "$ART_DIR/long-banner-integrated.png" \
+  --out "$STORE_DIR/feature-graphic-1024x500.png" \
+  --base-out "$ART_DIR/long-banner-source-1024x500.png" \
+  --size 1024x500 --pop max --banner-gate strict \
+  --hero-bounds "$BANNER_HERO_BOUNDS" \
+  --shot "$RAW_DIR/04-win.png" --frame android
+```
 
-- **above 0.95×** — the right side is as busy as the scene and the device, title or badge will land
-  on clutter. Re-offset onto a quieter stretch of the panorama, or regenerate the art with the
-  right side asked for as the same world at a lower density.
-- **below 0.35×** — the right side is a hole rather than a continuation: an empty band, niche,
-  arch, podium, halo or blur where a phone is expected. That zone is never reserved in the art;
-  regenerate without naming a phone, device, mockup or UI in the prompt.
+`long-banner-source-1024x500.png` is the proof of the art direction: a complete text/device-free
+scene with the large waist-up hero on the left, complete head/headwear and ≥2% top headroom,
+aggressively saturated multi-hue objects, a broad luminous background, real-object lower framing
+through the full width, and a calmer but populated right 2/5. The strict gate writes neither base
+nor feature graphic when any measured rule fails. `warn` is only for the Phase 2d diagnostic.
+
+The real gameplay device, title and tagline are optional compositor layers. Add them only when they
+do not cover the hero's face, decisive action or primary object silhouettes. Never ask the image
+model to draw them, and never weaken the source composition to make room for them. When typography
+is used, it remains compliant English compositor text; when the hero already owns the available
+space, omit the lockup rather than shrinking the character.
 
 The feature graphic is for Google Play and may also be included in the press kit.
 
@@ -1326,6 +1464,13 @@ python3 tools/store_compose.py check --dir "$PLAY_DIR" --store play
 ```
 
 Both checks must pass. Confirm readable RGB PNG files, consistent dimensions, no alpha in Play screenshots, file sizes within store limits, and correct aspect ratios.
+
+Confirm Phase 7's strict long-banner gate passed before overlays. Record the clean source's
+left/right density ratio, right-floor/left-floor ratio, right-floor/upper-right ratio, right/left
+luma ratio, overall luma/deep-shadow share, saturation, secondary-hue share, glare, and measured
+hero bounds. Vision-confirm that the protagonist is a large waist-up figure on the left with the
+complete head/headwear and ≥2% headroom, the right 2/5 is calmer but populated, and the cropped
+game-object foreground continues across the full width. The diagnostic `warn` run is not evidence.
 
 Then run the **exhaustive sprite continuity audit** across both ordered sets and write the result
 into `STORE_INFO.md` as a table with one row per source manifest entry:
@@ -1359,7 +1504,7 @@ and apply the same gate.
 
 Record the hero row separately, with the fractions of panel 1 it occupies — **width and visible
 height both** — the compositor's own `inlay hero …` and `hero bust:` lines, its `panel 1 crown`
-line, and whether the bottom object band visibly crosses its lower body. Under 0.65 of the panel's
+line, and whether the bottom object band visibly crosses its lower body. Under 0.75 of the panel's
 visible height, absent from panel 1, starting more than 12% into it, cut by the top edge, crossing
 the first seam, standing in front of the whole scene, or (on a lowered figure) crowned by empty sky
 is a blocker. Cropped by the left or bottom edge is the intended framing.
@@ -1395,7 +1540,8 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
 
 - Build timestamp, category, archetype, title, tagline, and dimensions.
 - An inventory of both screenshot sets, feature graphic, icons, emblem, and the two
-  verification-only previews.
+  verification-only panorama previews, plus `long-banner-integrated.png`, the audited
+  `long-banner-source-1024x500.png`, and the non-shipping long-banner diagnostic.
 - Ordered caption mapping.
 - The hero object, its size on panel 1 as fractions of the panel's width **and visible height**,
   the post-integration `--hero-bounds` measured for the App Store crop and for the Play crop, the
@@ -1413,7 +1559,9 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
 - The exhaustive sprite-manifest totals, source → raster mappings, per-panel distribution, every
   sprite's physical role and final identity/integration verdict, plus the ordered high-fidelity
   batch passes when the manifest required more than one call. The five completeness counts from
-  Phase 9 must match.
+  Phase 9 must match. Record that every integration reference passed the standalone-PNG/real-alpha
+  technical gate, plus the vision verdict for one-object framing, complete silhouettes, dominant
+  colour separation, and distinct red/yellow/green/cyan-blue principal anchors.
 - The per-panel anchor audit: the exact real asset anchoring every split slide, the physical
   construction it completes, its contact/overlap/shared-light evidence, and how decoration grows
   naturally from it. Explicitly record panel 3 rather than summarizing the triptych as a whole.
@@ -1429,6 +1577,10 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
   detail, panorama and per-panel lower/upper detail ratios, saturation, secondary-hue share,
   hero/background separation, glare, complete-hero bounds, and an explicit `PASS`. A diagnostic
   `warn` run is not the verdict.
+- The dedicated long-banner prompt/reference list and strict gate: measured hero bounds and top
+  margin; left/right density; right-floor continuity and relief; right/left luma continuity;
+  saturation, secondary hues and glare; and explicit vision verdicts for no reserved geometric
+  zone, full-width real-object framing, varied falling-object distribution and sharp primary forms.
 - The bottom object-frame total and per-panel counts, the falling-object total and height spread,
   which objects use motion trails, and the vision verdict that the lower objects form a distinct
   nearest-plane hill rather than background texture.
@@ -1454,7 +1606,7 @@ Verify the archive contains numbered PNGs in both `store/` and `store-play/` unl
 
 ## Phase 12 — final report
 
-Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, base-backdrop and finished per-panel detail figures, panorama/per-panel lower-to-upper ratios, saturation, secondary-hue share, hero/background separation and glare figures, whether the bottom objects read as a distinct foreground hill, whether the falling objects span upper/middle/lower depth, whether the panorama was rendered from the draft or shipped as the composite, the exhaustive sprite-manifest counts and per-panel distribution, bottom-frame and falling-object distributions, any staged high-fidelity integration passes, the one-row-per-sprite identity/integration verdict, the real anchor on **each** split panel and the physical/decorative construction it completes, the hero on panel 1 (its share of the panel's width and visible height, its left bleed and bottom crop, that its head clears the top edge and its silhouette clears the first seam, what ornament flanks and haloes the head, and that the bottom object frame crosses its lower body), the actual gameplay frame used as context for the middle field, how that field preserved the mechanic/state while being recreated as scene-matched 3D art, confirmation that no screenshot layer or rectangular edge survived, gameplay-frame range, feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row and the per-panel anchor audit, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
+Report the title/tagline, category/archetype, App Store and Play counts/dimensions, panorama panel range, that the panels reassemble into the whole picture with nothing discarded, the per-seam detail ratios, base-backdrop and finished per-panel detail figures, panorama/per-panel lower-to-upper ratios, saturation, secondary-hue share, hero/background separation and glare figures, whether the bottom objects read as a distinct foreground hill, whether the falling objects span upper/middle/lower depth, whether the panorama was rendered from the draft or shipped as the composite, the exhaustive sprite-manifest counts and per-panel distribution, bottom-frame and falling-object distributions, any staged high-fidelity integration passes, the one-row-per-sprite identity/integration verdict, the real anchor on **each** split panel and the physical/decorative construction it completes, the hero on panel 1 (its share of the panel's width and visible height, its left bleed and bottom crop, ≥2% complete-head margin, its silhouette clear of the first seam, what ornament flanks and haloes the head, and that the bottom object frame crosses its lower body), the actual gameplay frame used as context for the middle field, how that field preserved the mechanic/state while being recreated as scene-matched 3D art, confirmation that no screenshot layer or rectangular edge survived, gameplay-frame range, the dedicated long-banner source and its strict 3/5–2/5 metrics (aggressive saturation, large waist-up left hero/headroom, right-side density/value continuity, full-width lower object frame, no reserved zone), feature graphic, icon application status, emblem wiring status, backdrop wiring status (which files, which screens), the continuity audit verdict including the field row and the per-panel anchor audit, compliance verdict, ratings/disclaimer, archive path/size, and SHA-256. State the exact upload order for each store.
 
 ## Quality gates
 
@@ -1463,18 +1615,21 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   source, source → raster mappings, the hero first, all rows assigned across the concept panels,
   and a named physical/decorative construction for each. The discovered, raster-reference,
   integration-reference, visibly-present and audited counts are equal.
+- Every integration reference is a standalone PNG with real transparent alpha and one fully
+  visible object—never an opaque white/colour/checker background. The principal set has distinct
+  silhouettes/dominant colours and visibly separate red, yellow, green and cyan/blue anchors.
 - At least one valid phone-aspect raw frame exists; the final selection includes active play and a win/reward state.
 - Gameplay frames were captured **after** branding and the backdrop were applied.
 - Every selected gameplay frame passes the full-viewport gameplay-screen contract; no thumbnail
   field, nested window, core-loop scrolling, disconnected controls, or poor button proportions.
 - The ordered set passes the casino-style storefront grammar: mechanic-first tension, depth,
   tactility, outcome focus, and active/reveal/celebration coverage.
-- Panel 1 leads with a waist-up hero on the left at no less than 0.65 of the panel's visible
+- Panel 1 leads with a waist-up hero on the left at no less than 0.75 of the panel's visible
   height, and the compositor reported `inlay hero … → panel 1` and a `hero bust: …` line with no
   `hero runs past` warning beside it.
 - Both final aspect ratios passed `triptych --art-gate strict` with a separately measured
   `--hero-bounds` around the post-integration silhouette. The bust starts within 12% of panel 1's
-  left edge; its head and headwear clear the top edge; and hat, hands, book/weapon, cape, clothing
+  left edge; its complete head and headwear retain at least a 2% top margin; and hat, hands, book/weapon, cape, clothing
   and held reward all stay inside panel 1, clear of the first carousel seam. The left and bottom
   crops are the intended framing, not defects.
 - The bottom object frame reaches every panel when the manifest is large enough, overlaps the
@@ -1529,7 +1684,7 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - The bare staging plate passes the smooth-background ceiling before sprites land: broad bright
   colour and simplified far forms, no busy texture competing with the subject.
 - The finished panorama passes the brightness/smoothness gate too: mean luma ≥0.33, deep shadow
-  ≤38%, mean upper-plane detail ≤29, panorama lower/upper detail ≥1.10×, saturation ≥0.52,
+  ≤38%, mean upper-plane detail ≤29, panorama lower/upper detail ≥1.10×, saturation ≥0.60,
   secondary hues ≥14% outside the dominant hue family, hero/background hue gap ≥45° (or neutral
   value gap ≥0.18), and controlled blown highlights at 1.2–20%. These are blockers, not advisory
   metrics, and they sit just under the weakest of the four reference banners on every axis.
@@ -1538,13 +1693,18 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   left flagged as empty ground, and
   added density did not come from making the distant background busy.
 - The added density did not bury the focal points: the hero and the play field still lead.
-- Colour and brightness hold up at thumbnail size in both sets: saturation is at least 0.52,
+- Colour and brightness hold up at thumbnail size in both sets: saturation is at least 0.60 and
+  normally lands in the aggressive 0.68–0.82 target band,
   background and hero remain different hue families, the scene is not built from two neighbouring
   colours, the foreground retains multiple source colours, and controlled blown highlights occupy
   1.2–20% of the picture.
-- The feature graphic passes the long-banner zone report: the right 2/5 measures between 0.35× and
-  0.95× the scene side's density, with no reserved band, niche, podium, halo or blur marking where
-  the device sits.
+- The feature graphic is built from a dedicated long-banner render, not a panorama crop, and passed
+  `banner --banner-gate strict` before overlays: the hero is a large left-anchored waist-up subject
+  occupying at least 70% of banner height with ≥2% headroom; saturation is ≥0.60 (target
+  0.68–0.82); the right 2/5 measures 0.35–0.95× the
+  scene side's density and continues naturally in value; the real-object lower frame remains
+  separately readable across the right; and no reserved band, niche, podium, halo, darkening or
+  blur marks an overlay position.
 - The launcher icon is a full-bleed square: the art reaches every edge, with no drawn frame,
   rounded corners or plate, and the subject stays large at 48 px.
 - Showcase captions are readable, correctly spelled, and rendered with full glyph coverage.
@@ -1563,6 +1723,9 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - Omitting any shipped gameplay sprite from the concept panorama, passing only a curated selection
   of primary anchors to the integration render, or accepting manifest/reference/audit counts that
   do not match.
+- Passing WebP/JPEG or an opaque PNG as an integration asset, treating a white/colour/checker
+  background as transparency, or continuing after the technical alpha gate fails. Store art never
+  repairs an unfinished gameplay asset silently.
 - Shipping any split concept panel with no real game anchor because the panorama as a whole has
   enough assets, or filling that gap by repeating the same floating icon over generic scenery.
 - Letting the image model invent the game's board, reels, grid, cells, symbol tiles, icon frames,
@@ -1626,6 +1789,9 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
 - Reserving the phone's zone in a long banner: an empty rectangle, vertical band, niche, oval,
   arch, frame, podium, pool of light, halo, darkening or blur on the right side marking where a
   device will be composited. The scene continues across the full width, only quieter.
+- Reusing a centre crop of the three-panel panorama as the long-banner source. The slider and the
+  feature graphic have different hierarchies; the latter is rendered separately with an active
+  left 3/5 and a quieter continuous right 2/5.
 - Blurring the protagonist or a real game object. Depth of field belongs to a few secondary objects
   at the front or back plane; it is not a way to simplify a busy picture or to hide a weak asset.
 - Building the whole picture out of two neighbouring colours, or shipping a dark-ground panorama
@@ -1642,8 +1808,9 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   world and must have natural physical jobs inside it.
 - Opening the listing on anything other than the protagonist: a logo panel, an empty establishing
   shot, or a first panel where the hero is small, cropped out, or upstaged.
-- Letting the top of the frame cut the hero's head, or letting the figure drift toward the middle
-  of panel 1. The bust is anchored to the left edge, and the face is the whole reason it is a bust.
+- Letting the top of the frame cut or crowd the hero's head, or letting the figure drift toward the
+  middle of panel 1. The complete hair/headwear retains at least 2% headroom; the bust is anchored
+  to the left edge, and the face is the whole reason it is a bust.
 - Keeping only the torso inside panel 1 while an attached hat, hand, book/weapon, cape, clothing,
   or held reward crosses the first carousel seam. The post-integration silhouette is the boundary,
   and the store's gutter falls there.

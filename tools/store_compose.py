@@ -21,8 +21,11 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             split panel belongs unmistakably to the game. Auto-placement fills
             uncovered panels first; supporting objects form a cropped band
             across the bottom and then fall through the full picture with
-            varied rotation and selective motion trails. The large hero stays
-            wholly inside panel 1 while that foreground band overlaps its feet.
+            varied rotation and selective motion trails. The large waist-up
+            hero owns the left of panel 1: its source remains complete, while
+            the composition may crop only its left and lower edges. Its full
+            head/headwear stays clear of the top and its complete attached
+            silhouette stays clear of the first carousel seam.
             The bare background is measured to stay bright and smooth, and the
             finished art is blocked when it is dark, busy across the far plane,
             weak at the bottom, missing controlled overexposure, or when the
@@ -44,8 +47,12 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
   showcase  a real in-game frame placed inside a drawn phone (bezel, notch,
             home indicator, glass glare, drop shadow) over a themed background,
             with the caption typography that sells the frame.
-  banner    Google Play feature graphic (1024x500) — key art + optional device
-            mockup + title lockup, laid out inside Play's safe area.
+  banner    Google Play feature graphic (1024x500) — a separately generated,
+            text-free long-banner scene + optional device mockup + title lockup,
+            laid out inside Play's safe area. The source art is blocked unless
+            its left 3/5 carries a large waist-up hero and action, its right 2/5
+            remains a quieter continuation rather than a reserved slot, and its
+            real-game-object foreground continues across the full lower edge.
   backdrop  the same key art exported as the GAME's background (menu / gameplay
             / splash treatments), which is what stops the listing and the app
             from looking like two different products.
@@ -67,7 +74,7 @@ silently degrade when written as one-off `convert` incantations. Here they are
 deterministic, testable and identical across every game.
 
 Every generated-art path is colour graded on the way out (`--pop`, default
-`blaze`): a listing is reviewed as a strip of thumbnails beside nine competitors,
+`max`): a listing is reviewed as a strip of thumbnails beside nine competitors,
 and ungraded model output reads washed out there. Real gameplay frames are never graded — a store
 screenshot must show what the app renders, so a dull frame is fixed by giving
 the game the key art as its background, not in post.
@@ -95,8 +102,9 @@ Examples:
       --out store/store-04.png --size 1320x2868 --caption "Every Spin Counts" \\
       --type-mood epic --caption-color "#FFF6DC" --caption-color2 "#F0B34A"
   python3 tools/store_compose.py showcase ... --size play   # 9:16 set for Play
-  python3 tools/store_compose.py banner --keyart art/keyart-integrated.png \\
-      --shot raw/02-menu.png --offset -0.6 \\
+  python3 tools/store_compose.py banner --keyart art/long-banner-integrated.png \\
+      --shot raw/02-menu.png --hero-bounds 0.02,0.04,0.38,0.92 \\
+      --base-out art/long-banner-source.png \\
       --out store/feature-graphic-1024x500.png --title "Zeus Slots" \\
       --tagline "Match. Chain. Ascend." --type-mood epic --title-color2 "#F0B34A"
   python3 tools/store_compose.py icon --src icon_art.png --fg-src emblem.png \\
@@ -1032,15 +1040,14 @@ def treat_background(bg: Image.Image, treatment: str) -> Image.Image:
 # bloom — a screen-blended blur of the highlights — is what actually reads as
 # "brighter" once the image is thumbnail-sized.
 #
-# The reference kits the user sent back as "do it like these" measure a mean
-# pixel saturation of 0.71 (0.47-0.89 across the eight) and carry 1.0-12.2% of
-# their area at fully blown luma — so the ask is not a nudge, and the blown
-# light is deliberate ("можно использовать пересвет"). The default preset is
-# therefore `blaze`: vivid's saturation pushed up and, more importantly, a wider
-# bloom knee, which is what spreads a light source into the glare those
-# references have. The grade still cannot clip on its own — the blow-out has to
-# be a light in the picture, drawn in Phase 1 — because a grade that clipped
-# would flatten the objects the same note wants standing out.
+# The supplied long-banner references measure 0.58-0.83 mean saturation and
+# 1.7-6.1% blown luma. The follow-up direction for the carousel was explicit:
+# make the sliders *aggressively* saturated. The default therefore uses the
+# strongest safe preset, `max`; its vibrance is weighted toward muted pixels and
+# still preserves already-saturated object colour. The grade cannot manufacture
+# clipping — the deliberate blown light still has to be drawn into the art —
+# because a grade that clipped would flatten the hero and symbols the same brief
+# requires to stay sharp.
 
 LUMA = np.asarray([0.2126, 0.7152, 0.0722], dtype=np.float32)
 
@@ -1052,7 +1059,7 @@ POP_PRESETS: dict[str, tuple[float, float, float, float, float]] = {
     "blaze": (0.38, 0.09, 0.13, 0.32, 0.62),
     "max":   (0.48, 0.12, 0.18, 0.36, 0.58),
 }
-DEFAULT_POP = "blaze"
+DEFAULT_POP = "max"
 
 
 def pop_grade(img: Image.Image, preset: str = DEFAULT_POP, *,
@@ -1515,12 +1522,13 @@ def detail_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[float
     return shares
 
 
-# "Вся картинка насыщенная… можно использовать пересвет." Both halves measured
-# on the eight references: mean pixel saturation 0.71 (0.47-0.89), and 1.0-12.2%
-# of each picture sitting at fully blown luma. The blow-out is a light source
+# "Вся картинка насыщенная… можно использовать пересвет." The four supplied
+# banners span 0.58-0.83 mean saturation and 1.7-6.1% blown luma. Slider art now
+# targets the aggressive end of that range: 0.60 is a hard delivery floor, not
+# the creative target (aim around 0.68-0.82). The blow-out is a light source
 # drawn into the art, not something the grade does — `pop_grade` is built so it
 # cannot clip — so this checks the art came back with one.
-SAT_FLOOR = 0.52     # below this the picture is grey beside the references
+SAT_FLOOR = 0.60     # aggressively saturated carousel art; aim materially higher
 GLARE_MIN = 0.012    # no blown highlight at all = no light source in the scene
 GLARE_MAX = 0.20     # past this the picture is washing out, not glowing
 HUE_BINS = 12
@@ -1626,13 +1634,14 @@ def glare_report(pano: Image.Image) -> tuple[float, float]:
     sat = float(np.where(mx > 1e-6, (mx - mn) / np.maximum(mx, 1e-6), 0.0).mean())
     luma = (arr * LUMA).sum(axis=-1)
     blown = float((luma > 0.95).mean())
-    info(f"colour: saturation {sat:.2f} (reference art 0.47-0.89, mean 0.71), "
+    info(f"colour: saturation {sat:.2f} (supplied banners 0.58-0.83; "
+         "slider target 0.68-0.82), "
          f"{blown * 100:.1f}% of the picture blown out "
          f"({GLARE_MIN * 100:.1f}-{GLARE_MAX * 100:.0f}% is the reference band)")
     if sat < SAT_FLOOR:
         warn(f"the picture is undersaturated ({sat:.2f}) — beside the reference kit it "
-             "will read as grey. Ask the image model for the vivid end of the game's "
-             "palette and raise the grade (--pop max), and check the art itself is not "
+             "will read soft. Ask the image model for the aggressively saturated end "
+             "of the game's palette, keep --pop max, and check the art itself is not "
              "a pastel wash the grade is being asked to rescue.")
     if blown < GLARE_MIN:
         warn(f"nothing in the picture is blown out ({blown * 100:.1f}%) — the note "
@@ -1670,9 +1679,10 @@ def crown_report(pano: Image.Image, span: tuple[int, int], hero_top: int,
     """
     left, right = span
     if hero_top <= pano.height * 0.06:
-        info(f"panel {panel} crown: the bust reaches the top edge — no band above "
-             "the head to decorate. The slide's ornament is the object hill, the "
-             "falling symbols and the blown light behind the head instead.")
+        info(f"panel {panel} crown: the bust sits near the top with its safety "
+             "margin — no separate band above the head to decorate. The slide's "
+             "ornament is the object hill, falling symbols and blown light behind "
+             "the head instead.")
         return None
     energy, scale = _edge_map(pano, 360)
     activity = np.asarray(
@@ -1767,7 +1777,7 @@ HERO_W_MAX = 1.18                 # of the panel's WIDTH — the surplus goes le
 HERO_BLEED_X = 0.20               # at most this share of the bust leaves the left
 HERO_INSET = 0.02                 # of the panel, when the bust is narrower than it
 HERO_TOP = 0.045                  # of the panel's height left above the head
-HERO_MIN_H = 0.65                 # below this the figure is scenery again
+HERO_MIN_H = 0.75                 # a waist-up hero owns the first slider
 HERO_OCCLUDE = 0.14               # of its height, taken back by the foreground
 PROP_H = 0.42                     # height cap for a supporting object
 PROP_OCCLUDE = 0.08               # props also sit behind scene furniture, not on it
@@ -1845,6 +1855,73 @@ _SPRITE_KEYS = ("x", "y", "w", "h", "rot", "glow", "shadow", "opacity", "panel",
 # reference art uses.
 _SPRITE_FLAGS = ("hero", "prop", "board", "frame", "fall")
 _AUTO_ROLES = ("frame", "fall")
+SPRITE_TRANSPARENT_SHARE_MIN = 0.01
+BOARD_TRANSPARENT_SHARE_MIN = 0.001
+
+
+def sprite_asset_issues(
+        path: str | Path,
+        transparent_share_min: float = SPRITE_TRANSPARENT_SHARE_MIN) -> list[str]:
+    """Return technical blockers for a standalone gameplay asset.
+
+    Store art is rendered from the shipped object files. A coloured, white or
+    checkerboard background therefore becomes a literal rectangle in the layout
+    draft and poisons the integration reference. Converting such a file to RGBA
+    in memory does not create transparency, so inspect the source file before
+    ``load_image`` normalises it.
+    """
+    source_path = Path(path)
+    issues: list[str] = []
+    if source_path.suffix.lower() != ".png":
+        issues.append("not a PNG (convert the standalone object to lossless PNG)")
+    try:
+        with Image.open(source_path) as source:
+            if source.format != "PNG":
+                issues.append(f"file contents are {source.format or 'unknown'}, not PNG")
+            has_alpha = "A" in source.getbands() or "transparency" in source.info
+            if not has_alpha:
+                issues.append("no alpha channel")
+                return issues
+            alpha = np.asarray(source.convert("RGBA").getchannel("A"), dtype=np.uint8)
+    except (OSError, ValueError) as exc:
+        issues.append(f"cannot be decoded ({exc})")
+        return issues
+
+    visible = float((alpha > 8).mean())
+    transparent = float((alpha < 5).mean())
+    if visible <= 0.001:
+        issues.append("alpha canvas contains no visible object")
+    if transparent < transparent_share_min:
+        issues.append(
+            f"only {transparent * 100:.2f}% transparent pixels; need at least "
+            f"{transparent_share_min * 100:g}% real transparent canvas")
+    return issues
+
+
+def validate_sprite_assets(specs: list[dict]) -> None:
+    """Block a draft when any referenced game object is not a real-alpha PNG."""
+    failures: list[str] = []
+    for spec in specs:
+        # A generated board plate is a large rectangular physical object; its
+        # rounded/perspective corners still need true alpha, but legitimately
+        # occupy almost the whole canvas. Standalone characters/symbols keep the
+        # stronger padding floor.
+        minimum = (BOARD_TRANSPARENT_SHARE_MIN
+                   if spec.get("role") == "board"
+                   else SPRITE_TRANSPARENT_SHARE_MIN)
+        issues = sprite_asset_issues(spec["path"], minimum)
+        if issues:
+            failures.append(f"{spec['path']}: {'; '.join(issues)}")
+    if failures:
+        lines = "\n   ".join(failures)
+        die(
+            "sprite asset gate failed; no panorama draft was written. Every "
+            "reference must be one fully visible object in a PNG with a real "
+            "transparent alpha canvas (no white/colour/checker background):\n"
+            f"   {lines}\n"
+            "   Regenerate or cut out the source, then verify it with "
+            "`python3 tools/cutout.py FILE.png --check`.")
+    info(f"sprite asset gate: {len(specs)} standalone PNG object(s) have real alpha")
 
 # The final panorama needs a blocking gate, not another advisory sentence. The
 # rejected preview that prompted this check was saturated, but its mean luma was
@@ -1863,9 +1940,11 @@ _AUTO_ROLES = ("frame", "fall")
 #   joker              0.76        0.56          6.2%          1.7%
 #   lightning reels    0.77        0.39         29.4%          2.2%
 #
-# So the floors move to just below the weakest reference on each axis rather
-# than to the old "not obviously broken" line: saturation 0.52 (weakest 0.58),
-# luma 0.33 (weakest 0.39), shadow 0.38 (worst 0.29), glare 1.2% (weakest 1.7%).
+# Light/shadow/glare floors stay just outside the supplied range. Saturation is
+# intentionally stricter now: the follow-up asks for aggressively saturated
+# sliders, so 0.60 is the delivery floor (target 0.68-0.82), rather than a line
+# below the weakest 0.58 reference. Luma remains 0.33 (weakest 0.39), shadow
+# 0.38 (worst 0.29), and glare 1.2% (weakest 1.7%).
 # The foreground rule is unchanged: a distinct object hill on every panel, not
 # merely lower pixels as busy as the upper ones. So is the all-yellow rejection,
 # which a saturation-only gate cannot see.
@@ -1876,7 +1955,7 @@ FINAL_FRAME_RATIO_MIN = 1.10
 FINAL_PANEL_FRAME_RATIO_MIN = 1.05
 FINAL_PANEL_LOWER_DETAIL_MIN = 4.0
 HERO_SAFE_X = 0.015               # of panel 1 width, on the seam side
-HERO_SAFE_Y = 0.005               # of panorama height, above the head
+HERO_SAFE_Y = 0.02                # real breathing room above the complete head
 HERO_LEFT_MAX = 0.12              # of panel 1: how far in the bust may start
 
 
@@ -1896,8 +1975,8 @@ def final_art_issues(
 
     The bust is *expected* to reach the left and bottom edges — that is the crop
     the reference banners take. What is checked is that it starts on the left,
-    stays large, keeps its head off the top edge and its silhouette off the first
-    carousel seam.
+    stays large, keeps at least 2% clear space above the complete head/headwear,
+    and keeps its silhouette off the first carousel seam.
     """
     issues: list[str] = []
     activity, scale = _activity(pano)
@@ -2030,9 +2109,10 @@ def final_art_issues(
             "right — a centred figure reads as a poster subject, not as a berth")
     if hy0 < margin_y:
         issues.append(
-            "the top of the frame crops the hero. The bust may run off the left and "
-            "bottom edges, but the face and headwear are what has to survive the "
-            "thumbnail strip: leave them a margin at the top")
+            f"the top of the frame crops or crowds the hero (need at least "
+            f"{HERO_SAFE_Y:.0%} clear headroom). The bust may run off the left and "
+            "bottom edges, but the complete face, hair and headwear must survive the "
+            "thumbnail strip")
     if hx1 > right - margin_x:
         issues.append(
             "the hero silhouette crosses the first carousel seam. Hat, hands, "
@@ -2336,6 +2416,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
     parsed = [parse_sprite_spec(raw) for raw in (specs or [])]
     if not parsed:
         return []
+    validate_sprite_assets(parsed)
     cuts = list(spans) if spans else uniform_spans(panels, panel_w, gutter)
     if len(parsed) > panels:
         info(f"exhaustive sprite coverage: {len(parsed)} objects distributed across "
@@ -2393,10 +2474,6 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         hero, board = role == "hero", role == "board"
         framed, falls = role == "frame", role == "fall"
         art = load_image(spec["path"], "game object")
-        if art.getchannel("A").getextrema()[0] == 255:
-            warn(f"{spec['path']} has no transparency — run "
-                 f"`python3 tools/cutout.py {spec['path']} --type sprite` first, or the "
-                 "key art will show the sprite's background box")
         if framed:
             default_w = _FRAME_W[frame_i % len(_FRAME_W)]
             max_h = FRAME_H_CAP
@@ -2692,8 +2769,8 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         left_bleed = max(0, pl - hx0) / max(1, art.width)
         bottom_crop = max(0, hy1 - pano.height) / max(1, art.height)
         over = [name for name, past in (
-            ("the top of the frame, cropping the head the whole slide is sized "
-             "around", hy0 < 0),
+            (f"the {HERO_SAFE_Y:.0%} top safety margin around the complete head",
+             hy0 < pano.height * HERO_SAFE_Y),
             ("the first carousel seam", hx1 > pr - seam_margin),
         ) if past]
         info(f"hero bust: {visible_h / panel_h:.0%} of panel "
@@ -2702,7 +2779,8 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         if over:
             warn(f"the hero runs past {', '.join(over)}. The bust may leave the "
                  "picture by the left and bottom edges — those are the reference "
-                 "crops — but the face and the seam side stay clear. Lower "
+                 "crops — but the complete head keeps safe top space and the seam "
+                 "side stays clear. Lower "
                  f"--hero-height (now {hero_height:.2f} of the panel visible) or "
                  "drop the bleed=/y= override rather than accepting that crop.")
 
@@ -3440,42 +3518,201 @@ def cmd_showcase(args) -> None:
 BANNER_SCENE_SHARE = 0.60   # the left of the picture carries the scene
 BANNER_CALM_MAX = 0.95      # right/left energy: above this the right is not calmer
 BANNER_CALM_MIN = 0.35      # below this the right is a hole, not a continuation
+BANNER_RIGHT_FLOOR_SHARE_MIN = 0.35
+BANNER_RIGHT_FLOOR_RELIEF_MIN = 1.05
+BANNER_LUMA_ZONE_MIN = 0.65
+BANNER_LUMA_ZONE_MAX = 1.45
+BANNER_HERO_MIN_H = 0.70
+BANNER_HERO_LEFT_MAX = 0.12
+BANNER_HERO_RIGHT_MAX = 0.68
+BANNER_HERO_TOP_MIN = 0.02
+
+
+def banner_art_metrics(canvas: Image.Image,
+                       scene_share: float = BANNER_SCENE_SHARE) -> dict[str, float]:
+    """Measure the text/device-free long-banner art before overlays land."""
+    column, _ = _column_energy(canvas)
+    split = max(1, min(column.size - 1, round(column.size * scene_share)))
+    scene_energy = float(column[:split].mean())
+    quiet_energy = float(column[split:].mean())
+
+    activity, _ = _activity(canvas)
+    activity_split = max(
+        1, min(activity.shape[1] - 1, round(activity.shape[1] * scene_share)))
+    upper_end = max(1, round(activity.shape[0] * UPPER_BAND))
+    lower_start = min(activity.shape[0] - 1,
+                      round(activity.shape[0] * LOWER_BAND))
+    scene_lower = float(activity[lower_start:, :activity_split].mean())
+    quiet_lower = float(activity[lower_start:, activity_split:].mean())
+    quiet_upper = float(activity[:upper_end, activity_split:].mean())
+
+    rgb = np.asarray(canvas.convert("RGB"), dtype=np.float32) / 255.0
+    luma = (rgb * LUMA).sum(axis=-1)
+    pixel_split = max(1, min(rgb.shape[1] - 1,
+                             round(rgb.shape[1] * scene_share)))
+    mx, mn = rgb.max(axis=-1), rgb.min(axis=-1)
+    saturation = float(np.where(
+        mx > 1e-6, (mx - mn) / np.maximum(mx, 1e-6), 0.0).mean())
+    _, outside_hues, _, _ = _hue_summary(rgb)
+    return {
+        "density_ratio": quiet_energy / max(scene_energy, 1e-6),
+        "scene_energy": scene_energy,
+        "quiet_energy": quiet_energy,
+        "right_floor_share": quiet_lower / max(scene_lower, 1e-6),
+        "right_floor_relief": quiet_lower / max(quiet_upper, 1e-6),
+        "mean_luma": float(luma.mean()),
+        "shadow_share": float((luma < 0.15).mean()),
+        "right_luma_ratio": (
+            float(luma[:, pixel_split:].mean()) /
+            max(float(luma[:, :pixel_split].mean()), 1e-6)),
+        "saturation": saturation,
+        "secondary_hues": outside_hues,
+        "glare": float((luma > 0.95).mean()),
+    }
+
+
+def banner_art_issues(
+        canvas: Image.Image,
+        hero_bounds: tuple[float, float, float, float] | None,
+        *,
+        require_hero_bounds: bool = True,
+        scene_share: float = BANNER_SCENE_SHARE) -> list[str]:
+    """Return blockers from the supplied long-banner composition contract."""
+    metrics = banner_art_metrics(canvas, scene_share)
+    density = metrics["density_ratio"]
+    info(
+        f"banner zones: scene side {metrics['scene_energy']:.1f}, "
+        f"right {1 - scene_share:.0%} {metrics['quiet_energy']:.1f} "
+        f"({density:.2f}× the scene)")
+    info(
+        f"banner frame/light: right floor {metrics['right_floor_share']:.2f}× "
+        f"the left and {metrics['right_floor_relief']:.2f}× its upper band; "
+        f"right luma {metrics['right_luma_ratio']:.2f}× the left; saturation "
+        f"{metrics['saturation']:.2f}, secondary hues "
+        f"{metrics['secondary_hues'] * 100:.0f}%, glare "
+        f"{metrics['glare'] * 100:.1f}%")
+
+    issues: list[str] = []
+    if density > BANNER_CALM_MAX:
+        issues.append(
+            "the right of the banner is as busy as the scene side. Keep the same "
+            "world there, but use fewer large objects, more broad light and "
+            "atmosphere, and smaller falling game items")
+    elif density < BANNER_CALM_MIN:
+        issues.append(
+            "the right of the banner is a hole, not a continuation: an empty "
+            "vertical band, niche, arch, podium, halo, dark patch or blur has been "
+            "reserved there. Regenerate one uninterrupted scene with background "
+            "detail, light, particles and several smaller game objects continuing "
+            "through the right 2/5")
+
+    if (metrics["right_floor_share"] < BANNER_RIGHT_FLOOR_SHARE_MIN or
+            metrics["right_floor_relief"] < BANNER_RIGHT_FLOOR_RELIEF_MIN):
+        issues.append(
+            "the real-game-object foreground does not continue through the right "
+            "2/5. Keep the shallow cropped object hill across the full lower edge; "
+            "it may become lower and sparser on the right, but it may not disappear "
+            "or dissolve into the background")
+
+    if not BANNER_LUMA_ZONE_MIN <= metrics["right_luma_ratio"] <= BANNER_LUMA_ZONE_MAX:
+        issues.append(
+            f"the right 2/5 changes brightness abruptly ({metrics['right_luma_ratio']:.2f}× "
+            f"the left; need {BANNER_LUMA_ZONE_MIN:.2f}-{BANNER_LUMA_ZONE_MAX:.2f}×). "
+            "It must be a natural continuation, not a visibly darkened strip or an "
+            "isolated light patch")
+    if (metrics["mean_luma"] < FINAL_LUMA_MIN or
+            metrics["shadow_share"] > FINAL_SHADOW_MAX):
+        issues.append(
+            f"the long banner is too dark (luma {metrics['mean_luma']:.2f}, deep "
+            f"shadow {metrics['shadow_share'] * 100:.0f}%). It needs a broad luminous "
+            "far plane, not bright trim on a dark stage")
+    if metrics["saturation"] < SAT_FLOOR:
+        issues.append(
+            f"the long banner is not aggressively saturated "
+            f"({metrics['saturation']:.2f}; need ≥{SAT_FLOOR:.2f})")
+    if metrics["secondary_hues"] < HUE_OUTSIDE_FAMILY_MIN:
+        issues.append(
+            "the long banner is effectively one neighbouring-colour family. Keep "
+            "distinct red, yellow, green and cyan/blue game-object accents instead "
+            "of one global tint")
+    if not GLARE_MIN <= metrics["glare"] <= GLARE_MAX:
+        issues.append(
+            f"the long banner's controlled overexposure is outside the allowed "
+            f"band ({metrics['glare'] * 100:.1f}%; need "
+            f"{GLARE_MIN * 100:.1f}-{GLARE_MAX * 100:.0f}%)")
+
+    if hero_bounds is None:
+        if require_hero_bounds:
+            issues.append(
+                "--hero-bounds is required for final long-banner art: measure the "
+                "large waist-up protagonist or hero mechanic on the left, including "
+                "the complete head/headwear and every held prop")
+        return issues
+
+    x, y, w, h = hero_bounds
+    if h < BANNER_HERO_MIN_H:
+        issues.append(
+            f"the long-banner hero is too small ({h:.0%} of banner height; need "
+            f"≥{BANNER_HERO_MIN_H:.0%}). Use a large waist-up crop, not a full-body "
+            "figure or distant machine")
+    if x > BANNER_HERO_LEFT_MAX:
+        issues.append(
+            f"the long-banner hero does not anchor the left edge (starts {x:.0%} "
+            f"into the image; need ≤{BANNER_HERO_LEFT_MAX:.0%})")
+    if y < BANNER_HERO_TOP_MIN:
+        issues.append(
+            f"the hero's head/headwear is cut or unsafe at the top ({y:.1%} margin; "
+            f"need ≥{BANNER_HERO_TOP_MIN:.0%}). Keep the waist/lower body crop, never "
+            "the head crop")
+    if x + w > BANNER_HERO_RIGHT_MAX:
+        issues.append(
+            f"the hero silhouette consumes the calmer side (ends at {x + w:.0%}; "
+            f"need ≤{BANNER_HERO_RIGHT_MAX:.0%}). Keep the complete waist-up figure "
+            "and held props in the active left scene")
+    return issues
 
 
 def banner_zone_report(canvas: Image.Image,
                        scene_share: float = BANNER_SCENE_SHARE) -> float:
     """Report how the long banner's right side relates to its scene side."""
-    column, scale = _column_energy(canvas)
-    split = max(1, min(column.size - 1, int(round(column.size * scene_share))))
-    scene = float(column[:split].mean())
-    quiet = float(column[split:].mean())
-    ratio = quiet / max(scene, 1e-6)
-    info(f"banner zones: scene side {scene:.1f}, right {1 - scene_share:.0%} "
-         f"{quiet:.1f} ({ratio:.2f}× the scene)")
-    if ratio > BANNER_CALM_MAX:
-        warn("the right of the banner is as busy as the scene side. A device, "
-             "title or badge placed there will land on clutter — ask the art for "
-             "the same world continuing at a lower density: fewer large objects, "
-             "more light and atmosphere, the bottom object band lower and sparser.")
-    elif ratio < BANNER_CALM_MIN:
-        warn("the right of the banner is a hole, not a continuation — an empty "
-             "band, niche, arch, podium, halo or blur where a phone is expected. "
-             "The brief forbids reserving that zone: the scene continues across "
-             "the full width and the device is composited on top of finished art. "
-             "Regenerate without naming a phone in the prompt.")
-    return ratio
+    issues = banner_art_issues(
+        canvas, None, require_hero_bounds=False, scene_share=scene_share)
+    for issue in issues:
+        warn(issue)
+    return banner_art_metrics(canvas, scene_share)["density_ratio"]
 
 
 def cmd_banner(args) -> None:
     w, h = parse_size(args.size)
-    # A 3-panel panorama cover-cropped to 1024×500 keeps only its middle — which
-    # is exactly where the hero is not, now that panel 1 leads with it. --offset
-    # slides the crop back onto the protagonist.
+    # The source is a dedicated horizontal render. It may still be a 3:2 image
+    # from the image API, so the 1024×500 delivery crop can lose top/bottom
+    # content; the measured hero box below is what protects the complete head.
     canvas = pop_grade(cover(load_image(args.keyart, "key art"), w, h,
                              bias_x=args.offset, zoom=args.zoom),
                        args.pop, vibrance=args.vibrance, lift=args.lift,
                        contrast=args.contrast, bloom=args.bloom)
-    banner_zone_report(canvas)
+    banner_gate = getattr(args, "banner_gate", "strict")
+    hero_bounds = (parse_unit_box(args.hero_bounds)
+                   if getattr(args, "hero_bounds", None) else None)
+    if banner_gate != "off":
+        issues = banner_art_issues(
+            canvas, hero_bounds, require_hero_bounds=banner_gate == "strict")
+        for issue in issues:
+            warn(f"BANNER GATE: {issue}")
+        if issues and banner_gate == "strict":
+            die(f"long-banner gate failed with {len(issues)} blocker(s); no feature "
+                "graphic was written. Regenerate the source art, or use "
+                "--banner-gate warn only for a diagnostic base that cannot ship")
+
+    base_out = getattr(args, "base_out", None)
+    if base_out:
+        base_path, out_path = Path(base_out), Path(args.out)
+        if base_path.resolve() == out_path.resolve():
+            die("--base-out must differ from --out: the base is the text/device-free "
+                "audited scene, while --out may add store overlays")
+        base_size = save_png(canvas, base_path)
+        ok(f"{base_path.name}  {w}×{h}  {base_size // 1024} KB "
+           "(audited text/device-free long-banner source)")
 
     if args.shot:
         # Build at working resolution, then fit by HEIGHT — a banner device sized
@@ -3836,7 +4073,10 @@ def main() -> None:
                         "draft as a pasted composite.")
     t.add_argument("--sprite-dir", action="append", default=[], metavar="DIR",
                    help="recursively add EVERY raster sprite in DIR to the layout/"
-                        "reference manifest (PNG, WebP, JPEG). Repeatable. Explicit "
+                        "reference manifest (PNG, WebP, JPEG discovery). Repeatable. "
+                        "Every discovered source is then required to be a standalone "
+                        "PNG with real transparent alpha; convert/cut out WebP/JPEG "
+                        "files before composition. Explicit "
                         "--sprite entries come first and override duplicate files, so "
                         "pass the hero with @hero before its directory. Assets are "
                         "distributed across panels; this remains a generation draft, "
@@ -3850,8 +4090,8 @@ def main() -> None:
                    help="tight normalized box around the hero as the FINAL render "
                         "shows it, including held/worn/attached props. The strict "
                         "gate uses it to prove the bust starts on the left, stays "
-                        "large, keeps its head off the top edge and its silhouette "
-                        "off the first carousel seam.")
+                        f"large, keeps at least {HERO_SAFE_Y:.0%} clear headroom, "
+                        "and keeps its silhouette off the first carousel seam.")
     t.add_argument("--art-gate", choices=("strict", "warn", "off"), default="strict",
                    help="validate the panorama against the supplied composition brief. "
                         "`strict` (default) writes no panels when the art is dark, busy "
@@ -3997,10 +4237,24 @@ def main() -> None:
     b.add_argument("--zoom", type=float, default=1.0,
                    help="oversample factor (>1) creating slack for --offset")
     b.add_argument("--offset", type=float, default=0.0,
-                   help="-1..1 horizontal crop bias — which slice of a wide panorama "
-                        "becomes the banner. The centre crop of a 3-panel panorama "
-                        "misses the hero on panel 1 entirely; slide it until the hero "
-                        "is in frame and clear of the title column and the device")
+                   help="-1..1 horizontal crop bias for a dedicated long-banner "
+                        "source with extra width. Keep the measured waist-up hero "
+                        "large on the left and its complete head inside the crop")
+    b.add_argument("--hero-bounds", metavar="X,Y,W,H",
+                   help="tight normalized box around the complete waist-up hero or "
+                        "hero mechanic in the text/device-free banner crop. Strict "
+                        "mode requires it and checks that the subject is large, left-"
+                        "anchored, fully headed, and contained in the active scene")
+    b.add_argument("--banner-gate", choices=("strict", "warn", "off"),
+                   default="strict",
+                   help="validate the long-banner source against the supplied 3/5-2/5 "
+                        "brief. `strict` (default) writes nothing when saturation, "
+                        "light, controlled glare, hero framing, continuous right-side "
+                        "detail, or the full-width lower object frame fails. `warn` is "
+                        "diagnostic only; `off` is for compositor tests")
+    b.add_argument("--base-out", metavar="PNG",
+                   help="also save the audited text/device-free long-banner crop "
+                        "before optional title and device overlays are composed")
     b.add_argument("--title", default="")
     b.add_argument("--tagline", default="")
     add_pop_args(b)
