@@ -1435,9 +1435,8 @@ def plan_panel_spans(pano: Image.Image, panels: int, panel_w: int, gutter: int,
 def seam_report(pano: Image.Image, spans: list[tuple[int, int]]) -> None:
     """Measure how busy the picture is exactly where the store will cut it.
 
-    Ratios near 1.0 mean the cuts land on calm background. Anything well above
-    the picture's average means a subject is being sliced, and the panel will
-    look like it stops mid-object on the listing page.
+    High detail flags a cut for visual review. It cannot distinguish an
+    intentionally continuous gameplay housing from a bisected decisive symbol.
     """
     if len(spans) < 2:
         return
@@ -1456,10 +1455,11 @@ def seam_report(pano: Image.Image, spans: list[tuple[int, int]]) -> None:
             hot.append((i, ratio))
     for i, ratio in hot:
         warn(f"seam {i}→{i + 1} runs through the busiest part of the picture "
-             f"({ratio:.2f}× average) — a subject is being cut there, and no cut "
-             f"inside the search radius avoided it. Widen --seam-snap, slide the crop "
-             f"(--zoom 1.15 --offset ±0.3), or regenerate the art with calm space "
-             f"{i}/{len(spans)} of the way across.")
+             f"({ratio:.2f}× average). Inspect the gapped carousel: a planned wide "
+             "gameplay housing may continue across this seam, but the hero, "
+             "decisive symbols and outcome must stay readable. Otherwise widen "
+             "--seam-snap, slide the crop (--zoom 1.15 --offset ±0.3), or "
+             f"regenerate with safe space {i}/{len(spans)} of the way across.")
 
 
 # Is the picture actually a picture?
@@ -1907,13 +1907,14 @@ _FALL_TRAIL = (0.6, 0.0, 0.4, 0.0, 0.7, 0.0, 0.3, 0.5, 0.0, 0.35)
 FALL_FRONT_W = 0.20               # at or above this it falls IN FRONT of the hero
 DEFAULT_FALL_TRAIL = 1.0          # multiplier on the per-object smear above
 # The play field built out of the game's REAL symbols (`boardplate`). It is the
-# picture's mechanic, so it takes the middle panel at nearly full width and
+# picture's mechanic, so it bridges the middle panel into both neighbours and
 # stands inside the frame instead of bleeding off the bottom like a foreground
 # prop — a board cropped by the edge stops reading as a board. The middle panel
 # is the slide that was called boring, and half of the answer is size: the field
 # is the subject of that screenshot, not an illustration of one. The other half
 # is that it must be caught mid-round rather than at rest (`boardplate --win`).
-BOARD_W, BOARD_H = 0.78, 0.56
+BOARD_W, BOARD_H = 1.16, 0.56
+BOARD_CONTAINED_W = 0.78          # narrow mechanics or layouts without two neighbours
 BOARD_X, BOARD_FOOT = 0.50, 0.88
 DEFAULT_SPRITE_LIGHT = 0.35       # how hard an object is pulled into the scene
 SPRITE_EXTENSIONS = frozenset((".png", ".webp", ".jpg", ".jpeg"))
@@ -2475,8 +2476,8 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
     contain. Describing the game's symbols to an image model produces something
     similar; pasting the shipped sprite produces the same object. This does the
     second — leading with the hero on panel 1, at a size that survives the
-    thumbnail strip, seated in the scene's own light, and always clear of the
-    seam allowance so a store gutter can never bisect one.
+    thumbnail strip, seated in the scene's own light. Interior boards may bridge
+    the seams; the hero and individual supporting objects remain seam-safe.
 
     `spans` are the cuts the panorama will actually be sliced on. They are
     passed in rather than recomputed because the seams are snapped to the
@@ -2551,7 +2552,8 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             default_w = _FALL_W[fall_i % len(_FALL_W)]
             max_h = default_w * 1.6
         else:
-            default_w = (HERO_W_MAX if hero else BOARD_W if board
+            default_w = (HERO_W_MAX if hero else
+                         (BOARD_W if panels >= 3 else BOARD_CONTAINED_W) if board
                          else _PROP_W[prop_i % len(_PROP_W)])
             # The hero's target is the height it fills *visibly*; the art itself
             # is taller, and the surplus is the waist-down crop the reference
@@ -2702,6 +2704,22 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                      "may run off that edge, but not far enough to cut an arm or a "
                      "held prop off the slide. Lower --hero-height or crop the "
                      "sprite's empty margins.")
+        elif board and w_frac > 1.0 and 0 < panel < panels - 1:
+            # A wide mechanism connects adjacent slides. Keep its aspect ratio
+            # and the full plate on the canvas; only this role may cross seams.
+            # The integration/vision pass protects decisive cells and the hero.
+            safe_left = cuts[panel - 1][0] + margin
+            safe_right = cuts[panel + 1][1] - margin
+            if art.width > safe_right - safe_left:
+                art = contain(art, safe_right - safe_left, round(panel_h * h_frac))
+            half = art.width // 2
+            cx = min(safe_right - (art.width - half), max(safe_left + half, cx))
+            left_overlap = max(0, left - (cx - half))
+            right_overlap = max(0, cx - half + art.width - right)
+            info(f"wide gameplay: {art.width / panel_w:.2f}× panel width; "
+                 f"left/right seam extension {left_overlap}px/{right_overlap}px. "
+                 "Review both store crops with gaps: only non-critical field edges "
+                 "may cross, and the hero and decisive outcome must remain readable.")
         else:
             if art.width > panel_w - 2 * margin:
                 warn(f"{Path(spec['path']).name} is {art.width}px wide — wider than one "
@@ -4135,7 +4153,8 @@ def main() -> None:
                         "what has to read at carousel size is the face. Flags: hero, "
                         "prop, frame (bottom edge), "
                         "fall (airborne), board (a `boardplate` play field — the middle panel at "
-                        f"~{BOARD_W:.2f}× the panel width, standing inside the frame). "
+                        f"~{BOARD_W:.2f}× the panel width, bridging both neighbours "
+                        "when available; use w=0.78 for a contained field). "
                         "Keys: x,y (0..1 of the panorama), w and h (fractions of one "
                         "panel — for the hero w is the cap and h is the target), "
                         "panel (1-based), rot, bleed (how far the foot runs past the "
@@ -4144,7 +4163,8 @@ def main() -> None:
                         f"— {HERO_OCCLUDE} for the hero, {PROP_OCCLUDE} for props, 0 for "
                         "the legible board), trail (falling-object motion smear), opacity. Omit x "
                         "and objects are auto-placed at graded depths, standing on the "
-                        "ground plane and always clear of the seams. Never ship this "
+                        "ground plane. Interior boards with w>1 may bridge seams; "
+                        "heroes and other objects stay clear. Never ship this "
                         "draft as a pasted composite.")
     t.add_argument("--sprite-dir", action="append", default=[], metavar="DIR",
                    help="recursively add EVERY raster sprite in DIR to the layout/"
@@ -4165,7 +4185,7 @@ def main() -> None:
                    help="tight normalized box around the hero as the FINAL render "
                         "shows it, including held/worn/attached props. The strict "
                         "gate uses it to prove the bust starts on the left, stays "
-                        f"large, keeps at least {HERO_SAFE_Y:.0%} clear headroom, "
+                        f"large, keeps at least {HERO_SAFE_Y * 100:.0f}%% clear headroom, "
                         "and keeps its silhouette off the first carousel seam.")
     t.add_argument("--art-gate", choices=("strict", "warn", "off"), default="strict",
                    help="validate the panorama against the supplied composition brief. "

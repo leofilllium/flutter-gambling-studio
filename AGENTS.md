@@ -36,6 +36,14 @@ Across both formats, follow the supplied examples' composition spine: hero on th
 gameplay-derived scene through the middle, and many real sprite assets in a controlled-chaos spill
 across the full lower edge, varied in scale, height, rotation, overlap, and depth rather than arranged
 as a tidy row or a lower-left pile.
+For carousels with at least three concept panels, prefer wide central gameplay whose non-critical
+outer structure slightly overlaps both neighbouring images (start around 1.10–1.25 panel widths)
+when the mechanic and readability allow it. Keep the hero and decisive symbols/outcome clear of
+the gaps; a narrower field is valid when its proportions or composition require it. Preserve the
+bottom spill and add recognizable flying/falling game objects at varied depths above it. Choose
+an expressive marketing background when the theme benefits, with the far plane subordinate.
+Relevant images from `examples/` may be inspected and passed as composition references when useful;
+record what is borrowed and keep the actual game's assets, mechanics and Design DNA authoritative.
 Store-screenshot generation preserves the actual game's existing menu, gameplay, splash, and shared
 background assets and wiring. A runtime-background redesign is a separate, explicit opt-in; never
 replace the game's background merely to make it match newly generated marketing art.

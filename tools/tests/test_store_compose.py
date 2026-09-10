@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -21,6 +23,13 @@ SPEC.loader.exec_module(store_compose)
 
 
 class StoreScreenshotRunbookSafetyTests(unittest.TestCase):
+    def test_triptych_cli_help_loads(self) -> None:
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "triptych", "--help"],
+            capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--sprite", result.stdout)
+
     def test_runtime_background_replacement_is_opt_in(self) -> None:
         runbook = (
             SCRIPT.parents[1] / ".claude/skills/store-screenshots/SKILL.md"
@@ -1029,6 +1038,51 @@ class BoardRoleTests(unittest.TestCase):
         self.assertIn("panel 2", line)
         width = int(line.split("(")[1].split("px")[0])
         self.assertGreaterEqual(width, self.PANEL_W * 0.6)
+
+    def test_wide_field_bridges_both_neighbours_in_both_store_aspects(self) -> None:
+        board = self._png("wide-board.png", (600, 360)) + "@board"
+        # Include shifted cuts: placement must follow the chosen spans, not
+        # nominal thirds. Neither store aspect may silently shrink the bridge.
+        for panel_h in (652, 533):
+            with self.subTest(panel_h=panel_h):
+                cuts = store_compose.uniform_spans(3, self.PANEL_W, 0, margin=17)
+                pano = Image.new("RGBA", (934, panel_h), (30, 90, 140, 255))
+                lines = store_compose.inlay_sprites(
+                    pano, [board], 3, self.PANEL_W, panel_h, 0, spans=cuts)
+                line = next(l for l in lines if l.startswith("board"))
+                cx = int(line.split("@")[1].split(",")[0])
+                width = int(line.split("(")[1].split("px")[0])
+                left, right = cuts[1]
+                self.assertAlmostEqual(cx, (left + right) / 2, delta=1)
+                self.assertGreater(left - (cx - width // 2), self.PANEL_W * 0.04)
+                self.assertGreater(cx - width // 2 + width - right, self.PANEL_W * 0.04)
+                self.assertLess(width, self.PANEL_W * 1.26)
+        self.assertFalse(any("scaling it down to fit" in m for m in self.quiet_warnings))
+
+    def test_contained_field_override_stays_inside_middle_panel(self) -> None:
+        line = next(l for l in self._inlay(
+            self._png("narrow-board.png", (600, 360)) + "@board,w=0.78")
+            if l.startswith("board"))
+        cx = int(line.split("@")[1].split(",")[0])
+        width = int(line.split("(")[1].split("px")[0])
+        left, right = store_compose.panel_span(1, self.PANEL_W, self.GUTTER)
+        self.assertGreater(cx - width // 2, left)
+        self.assertLess(cx - width // 2 + width, right)
+
+    def test_board_on_end_panel_cannot_bleed_out_of_the_carousel(self) -> None:
+        for panels, panel in ((2, 2), (3, 1), (3, 3)):
+            with self.subTest(panels=panels, panel=panel):
+                pano = Image.new("RGBA", (panels * self.PANEL_W, self.PANEL_H))
+                board = self._png("end-board.png", (600, 360))
+                lines = store_compose.inlay_sprites(
+                    pano, [board + f"@board,panel={panel},w=1.25"],
+                    panels, self.PANEL_W, self.PANEL_H, 0)
+                line = next(l for l in lines if l.startswith("board"))
+                cx = int(line.split("@")[1].split(",")[0])
+                width = int(line.split("(")[1].split("px")[0])
+                left, right = store_compose.panel_span(panel - 1, self.PANEL_W, 0)
+                self.assertGreaterEqual(cx - width // 2, left)
+                self.assertLessEqual(cx - width // 2 + width, right)
 
     def test_the_field_stands_inside_the_frame_instead_of_bleeding_off_it(self) -> None:
         # A board cropped by the bottom edge stops reading as a board.

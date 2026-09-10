@@ -1,6 +1,6 @@
 ---
 name: store-screenshots
-description: "Build a casino-grade App Store and Google Play kit: intensely saturated concept panels, real gameplay screenshots, a dedicated long-banner scene and feature graphic, an applied launcher icon, and an in-game emblem—while preserving the game's existing runtime backgrounds. Panel 1 leads with a large left-anchored waist-up protagonist; only its left/lower edges may crop, while the complete head keeps safe top margin and every attached form clears the first seam. Real-alpha game objects form a cropped lower frame and fall through a bright, broad, smooth world with controlled blown light. The long banner keeps action in the left 3/5 and a calmer populated continuation in the right 2/5, never a reserved device zone. Real gameplay is recreated as scene-matched 3D art and shipped sprites stay recognizable. Output is a ZIP under project_zip/."
+description: "Create or improve a casino-grade App Store and Google Play kit: a continuous concept carousel, real gameplay screenshots, a dedicated feature graphic, launcher icon and emblem. Prefer wide central gameplay overlapping neighbouring panels when suitable, a large left hero, flying/falling real game objects and a full-width bottom spill. Use relatable examples for composition while preserving the game's assets, mechanic and Design DNA. Keep existing runtime backgrounds unchanged. Output is a ZIP under project_zip/."
 argument-hint: "[--count 8] [--panels 3] [--size 1320x2868|1290x2796|play] [--no-play-set] [--gutter 0|100] [--seam-snap auto|off] [--pop max|blaze|vivid|soft|off] [--hero hero.png] [--hero-height 0.80] [--hero-bounds x,y,w,h] [--sprite-dir assets/images/sprites] [--object-frame auto|N|off] [--no-falling] [--fall-trail 1.0] [--board auto|rest|off] [--banner-gate strict|warn|off] [--apply-backdrop] [--lang en] [--frame ios|android|none] [--type-mood bold|epic|tech|playful|elegant|retro|clean] [--no-captions] [--no-apply] [--no-wire-logo]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -136,7 +136,7 @@ you can actually see. So:
 - The bottom object band still overlaps whatever of the figure reaches the lower edge.
 
 The other two edges are still blockers, and they are the ones that matter: **the top of the frame
-may not cut the head**, and **nothing may cross the first carousel seam**. "The protagonist" there
+may not cut the head**, and **no part of the protagonist may cross the first carousel seam**. "The protagonist" there
 means the **complete visual silhouette after integration** — hat, hair, hands, book, weapon, cape,
 clothing, held reward. Keeping the torso in panel 1 while a book or hand crosses the seam is still a
 cut protagonist, and the store's gutter falls exactly there. The draft check cannot prove this
@@ -217,6 +217,32 @@ Do not stretch it beyond recognition, replace symbols, turn the grid into orname
 cover the decisive interaction. The result should look like the game's board exists physically in
 the key-art world — not like a phone screenshot was pasted into a decorative bezel, and not like
 unrelated concept art merely inspired by the game.
+
+**Wide central gameplay is the recommended carousel layout when the mechanic fits.** For three
+or more concept panels, centre the field on the middle panel and let its physical housing or
+non-critical outer edges extend a little into both neighbouring images. Start at **1.10–1.25× one
+panel's width** (about 5–12.5% extension on each side); the draft default is `@board,w=1.16`.
+This is one continuous scene sliced once, so the overlap is artwork crossing the planned cuts,
+not duplicated pixels, overlapping output files, a second board, or an extra device frame.
+
+Preserve the field's native proportions. The hero stays in front of the left extension where they
+meet; the right extension connects to the reward scene. Keep the bottom asset spill in front of
+non-critical lower edges. The decisive cells, ball/drop path, landing result and outcome cues must
+remain readable in the middle panel and in the gapped carousel. Put seams through housing or
+other non-critical structure, never through the hero or a decisive symbol. A tall/narrow mechanic,
+a two-panel set, or a crowded composition may use `@board,w=0.78` instead. Record the choice in
+`STORE_BRIEF.md`; do not stretch the actual game just to hit the width target.
+
+Keep **two distinct object populations**: the existing irregular full-width bottom spill, and
+recognizable game objects flying/falling through open upper and middle space. Give the airborne
+objects varied scale, rotation, height and front/back overlap, with a few directional trails
+following the actual reveal/drop/reward action. Keep the hero's face and decisive gameplay clear.
+
+Choose the marketing background by theme: a broad sky and distant world for an outdoor adventure,
+a luminous atmospheric field for a cosmic mechanic, or a restrained stage for an abstract game.
+Use an expressive environment when it adds relevant context; simpler atmosphere is valid when it
+lets the mechanic lead. Keep distant forms smooth and subordinate, preserve the game's visual
+world, and leave the actual runtime backgrounds unchanged.
 
 **5. Every shipped sprite carries the game, not only a selected few.** One real hero on panel 1
 and one real board on panel 2 do not excuse the rest of the sprite library disappearing. Inventory
@@ -307,9 +333,27 @@ fails just as surely as a flat utility-app screenshot.
 
 ### The supplied reference banners
 
-Four generated long banners came in as "this is what I produce", with the working brief that made
-them. They live in `examples/` at the studio root, and they are the calibration for everything
-below, so their measurements are recorded rather than paraphrased:
+The supplied `examples/` folder contains both long banners and carousel strips. Inspect relevant
+images during preflight when they help the current brief, especially for wide gameplay, continuity
+across gaps, airborne objects and the bottom spill. Use one or two relatable examples as optional
+visual references for composition, depth, motion and background treatment. Label their role in
+the generation prompt; the current game's frames and sprite manifest remain authoritative for
+mechanics, characters, symbols, materials and palette. Do not copy example titles, logos, numerical
+promises, characters or symbols, and do not inherit their device framing or hero placement when
+it conflicts with this game's brief. Missing or unrelated examples do not block generation.
+Record selected paths and the useful composition traits in `STORE_BRIEF.md`. Append optional
+example images after the required game references, label them as composition context, and exclude
+them from sprite-manifest counts and the standalone-sprite alpha gate.
+
+Useful starting points among the supplied files (discover the folder again if names change):
+
+- `photo_2026-09-10 02.00.44.jpeg`: a large gameplay mechanism continuing across a carousel seam.
+- `photo_2026-09-10 15.32.39.jpeg`: left hero, broad middle reels, readable sky/world and bottom spill.
+- `photo_2026-09-10 15.32.25.jpeg`: diagonal flying/falling objects and a thematic cosmic field.
+- `photo_2026-09-10 15.36.29.jpeg`: oversized objects and visual continuity across separated panels.
+
+The earlier four long banners provide the recorded calibration below; these measurements are
+historical values, not measurements of every newly added example:
 
 | Reference | Saturation | Mean luma | Deep shadow | Blown (>0.95) | Lower/upper detail |
 |---|---|---|---|---|---|
@@ -330,7 +374,8 @@ dedicated long banner:
 
 - **Left:** the large readable waist-up protagonist, cropped only by the left/lower canvas edges.
 - **Middle:** the decisive live gameplay moment, recreated from a real resolving frame as a sharp,
-  readable physical mechanism inside the scene—not an unrelated vista and not a pasted screenshot.
+  readable physical mechanism inside the scene. In a carousel, prefer a wide field with slight
+  extension into both neighbours when the mechanic fits; protect decisive content from the gaps.
 - **Bottom, full width:** many real sprite assets in **controlled chaos**—large edge-cropped forms,
   medium central forms, varied height/scale/rotation, strong overlap and depth, with no tidy row or
   lower-left pile. A smaller population falls through the upper and middle space.
@@ -517,7 +562,7 @@ brightness, and a separately readable lower object frame through the right 2/5.
 | `--panels P` | `3` | Number of adjacent concept panels; `0` disables them |
 | `--size` | `1320x2868` | Main set; also supports `iphone-6.9`, `iphone-6.9-alt`, `iphone-6.5`, and `play` |
 | `--gutter` | `0` | Nothing is discarded between panels: they reassemble into the picture. An explicit width (`100`, `auto`) throws that strip away instead, for a publisher who asks the panels to line up across the store's carousel gap — it costs the picture |
-| `--seam-snap` | `auto` (12% of a panel) | How far the tiling may slide so the cuts land on the picture's quietest columns. With a lossless cut this is the only lever there is. `off` restores the content-blind even split |
+| `--seam-snap` | `auto` (12% of a panel) | How far the tiling may slide toward quieter cuts. Review deliberate wide-field crossings visually; use `off` only for a preplanned, verified lossless split whose critical content is already safe |
 | `--pop` | `max` | Intense slider-grade preset applied to generated art (`off`, `soft`, `vivid`, `blaze`, `max`). The `max` finish adaptively targets 0.80; final concept panels must still measure ≥0.68 mean saturation and should land at 0.78–0.88 |
 | `--hero` | first manifest entry marked hero | The protagonist PNG that leads panel 1; pass it explicitly before `--sprite-dir` so its role overrides directory discovery |
 | `--hero-height` | `0.80` | How much of panel 1's **height** the hero fills *visibly*. The art itself is taller: it is anchored just below the top edge and cropped by the bottom, and when it comes out wider than the panel the surplus leaves by the **left** edge (up to 20% of its width). Below 0.75 the figure is scenery again. An explicit sprite `h=` still overrides it |
@@ -528,7 +573,7 @@ brightness, and a separately readable lower object frame through the right 2/5.
 | `--object-frame` | `auto` | Number of unassigned sprites placed into the cropped bottom band. `auto` commits roughly 72% of the supporting manifest, up to three per panel, to a staggered overlapping foreground spill and preserves the smaller remainder for the fall. `off` sends them all airborne unless `--no-falling` is also set |
 | `--no-falling` | off | Disable airborne auto-placement. Supporting sprites join the bottom band; with `--object-frame off`, they use the legacy standing-prop layout |
 | `--fall-trail` | `1.0` | 0–2 multiplier for selective falling-object motion trails; 0 keeps the airborne objects crisp |
-| `--board` | `auto` | Prefer a real resolving gameplay crop (`boardplate --from-shot`) as the field reference, stand the draft plate in the scene's perspective, and place it in the middle. A symbol-built plate is provisional context only until a frame exists. `rest` is only for a mechanic with no resolving state; `off` for a game with no readable field |
+| `--board` | `auto` | Prefer a real resolving gameplay crop (`boardplate --from-shot`) as the field reference, stand the draft plate in the scene's perspective, and place it in the middle. `@board,w=1.16` recommends slight overlap into both neighbours; `w=0.78` keeps a narrow field contained. A symbol-built plate is provisional context only until a frame exists. `rest` is only for a mechanic with no resolving state; `off` for a game with no readable field |
 | `--integrate` | `on` | Generate the finished panorama from the draft, actual gameplay frame and real assets as reference images (`gpt_image.py edit`). The field is recreated with the 3D scene, never pasted afterward. `off` may retain a layout draft for debugging but cannot produce a shippable concept panorama |
 | `--sprite-light` | `0.35` | How hard inlaid objects are pulled into the scene's light (colour cast + edge light-wrap). `0` pastes them flat |
 | `--occlude` | hero `0.14`, props `0.08`, board `0` | How much of an object's height the scene's foreground closes back over, so heroes and supporting props sit *in* the picture. On a bust cropped by the bottom edge this applies to the part still on the canvas. The board stays unobscured for legibility; `0` leaves an object in front of everything |
@@ -761,9 +806,10 @@ Use image generation for three sources:
      Keep the far plane to simplified silhouettes, broad colour, soft haze and one controlled blown
      light source. A blank gradient fails, but so does intricate architecture, foliage, crowds,
      star noise or all-over particulate that competes with the game's objects.
-   - Keep important objects away from the panel seams — at 3 panels they sit at 1/3 and 2/3 of the
-     width — and ask for a **calm vertical corridor** at each of them: sky, wall, haze, floor,
-     roughly an eighth of a panel wide. This is the only protection a seam has. The panels must
+   - Plan seams at approximately 1/3 and 2/3 for three panels. Prefer a wide central field whose
+     housing extends slightly into both neighbours, reserving room for it in the empty stage.
+     Keep the hero and decisive gameplay away from the cuts. Ask for calm space at seams outside
+     the planned field; a full-height empty corridor must not shrink or disconnect the mechanism. The panels must
      reassemble into the whole picture, so nothing can be discarded at a cut and the slicer can
      only slide the tiling as a whole to find quiet ground; if the art is busy edge to edge, some
      cut lands on a subject and the only fix left is regenerating the art. Ask for the vivid end of
@@ -837,7 +883,7 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
   --out "$ART_DIR/draft" --pano-only --save-pano "$ART_DIR/keyart-draft.png" \
   --panels 3 --size 1320x2868 --pop max \
   --sprite assets/images/sprites/sprite_eagle.png@hero \
-  --sprite "$ART_DIR/board-plate.png@board,light=0.15" \
+  --sprite "$ART_DIR/board-plate.png@board,w=1.16,light=0.15" \
   --sprite assets/images/sprites/sprite_bolt.png@panel=3,rot=-8,occlude=0.10 \
   --sprite assets/images/sprites/sprite_shield.png@panel=1,rot=6 \
   --sprite-dir assets/images/sprites \
@@ -865,11 +911,13 @@ python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
   ≈0.80 of the panel *height* visibly, anchored left and cropped by the bottom, with at least 2%
   clear space above its complete head/headwear; the field on the middle panel and paying; all
   manifest assets distributed at
-  purposeful scales/depths; nothing important on a seam. `--hero-height` sets the default target; a
+  purposeful scales/depths; only planned non-critical field structure crossing seams. `--hero-height` sets the default target; a
   hero sprite's explicit `h=` still overrides it, while `w=` is the width cap to raise for a
   broad-shouldered cutout that binds early. Read the `hero bust:` line and resolve any
   `hero runs past` warning. The draft is composed against the same
-  cuts the final slice will use, so an object placed clear of a seam here stays clear of it there.
+  cuts for the draft. Recheck the integrated render in both store geometries: generation and
+  final seam snapping may move the cuts relative to the field. The width is a cap with aspect
+  ratio preserved; use `w=0.78` for a contained field when the wide layout does not fit.
 - Read the `bottom object frame:` and `falling objects:` lines. With enough supporting inventory,
   every panel must carry bottom-band objects and the remainder must be visibly distributed through
   the full height. If a game deliberately has too few sprites, record that limitation; never clone
@@ -937,7 +985,9 @@ python3 tools/gpt_image.py edit \
   block again and says that these relationships outrank added ornament.
 - The prompt asks for a *render*, not a retouch. Say, in the game's own art language:
   - Reproduce the layout of the first reference image exactly — same subject in the same place at
-    the same size, same panorama proportions, nothing added and nothing moved.
+    the same size, same panorama proportions, nothing added and nothing moved. Preserve the
+    planned wide central field and its small left/right extensions; do not compress it into
+    one panel to clear every seam. Keep decisive symbols and outcome cues inside safe areas.
   - Use the second reference image as **gameplay context only**. Do not paste, frame, mask or retain
     its rectangular screenshot pixels. Create the play field anew inside the panorama as a solid
     3D mechanism belonging to the stage: scene-matched perspective and thickness, materials that
@@ -1088,9 +1138,10 @@ mention any future overlay or the thing that will eventually be placed over the 
    at values the game pays.
 
 Follow that block with the current game's theme, Design DNA, materials, exact hero identity, exact
-object names and the decisive action. The examples in `examples/` calibrate brightness,
-saturation, depth and composition only; do not pass them as visual references and do not copy their
-characters, symbols or worlds.
+object names and the decisive action. A relatable example from `examples/` may be passed as an
+additional composition reference after the game's authoritative references. Explicitly label what
+to borrow (layout, motion, depth or atmospheric treatment) and keep the current game's characters,
+symbols and visual world. The long banner retains its own 3/5–2/5 geometry.
 
 Use the integrated panorama first as the world/style reference, followed by the actual hero and
 the principal unique object PNGs at high fidelity:
@@ -1325,14 +1376,14 @@ very column panel *i+1* begins on, and slicing discards nothing between them. Th
 so on every run — `they reassemble the panorama exactly, 0px discarded` — and if that line ever
 reports missing pixels, the kit is wrong.
 
-**What protects a seam is where it falls, not what is removed there.** An even split cuts at
-exactly 1/3 and 2/3 whatever is standing there, and when that is a face, a coin or the board's near
-edge the panel stops mid-object. `--seam-snap` composes a little slack into the panorama and slides
-the whole tiling inside it, choosing the position where the cuts land on the quietest columns the
-picture has. Panel width is fixed by the store and nothing may be discarded, so the cuts move
-*together*: this is the only lever, which is why Phase 1 has to ask the art for a calm vertical
-corridor at each boundary. `auto` searches ±12% of a panel. `--seam-snap off` restores the
-content-blind split; there is no good reason to use it.
+**Protect critical content at seams while preserving the wide gameplay composition.**
+`--seam-snap auto` searches within ±12% of a panel for quieter columns. It is a useful starting
+point, but its detail score cannot distinguish a continuous machine housing from a decisive cell.
+Inspect the actual cuts after integration: slight left/right gameplay extensions are intentional,
+while the hero and decisive gameplay remain protected. Keep `--gutter 0` so no artwork disappears.
+If automatic snapping spoils a carefully planned bridge, `--seam-snap off` is allowed after visual
+verification of the fixed cuts in both store geometries. Record the choice and the reviewed
+crossings in `STORE_INFO.md`. Never use it to ignore a cut face, symbol or outcome.
 
 **The seam allowance is opt-in and it costs the picture.** `--gutter 100` composes the panorama
 wider and throws that strip away at each cut, so the store's own carousel gap stands in for it and
@@ -1347,13 +1398,14 @@ The compositor reports what it chose and what it cost:
 - `_panorama-preview.png` — the panels laid edge to edge, cut positions marked with short ticks at
   the top and bottom edges only. This is the proof: it must read as one uninterrupted picture.
 - `_carousel-preview.png` — the same panels with the store's own gap (~4.5% of a panel) drawn
-  between them, which is what the listing page shows. Nothing important may straddle a cut here.
+  between them, which is what the listing page shows. Only planned non-critical gameplay
+  structure may bridge cuts; the complete hero and decisive outcome stay clear.
 - `seam 1→2: detail 0.94× the picture's average` — how busy the picture is exactly where it cuts.
   Ratios near 1.0 mean the cuts landed on calm background.
-- A warning above 1.35× means a subject is being sliced and no position inside the search radius
-  avoided it. Widen `--seam-snap` (up to 15%), slide the crop (`--zoom 1.15 --offset ±0.3`), or
-  regenerate the art with a calm vertical corridor at that fraction of the width. Never answer it
-  with `--gutter`: cutting a hole in the subject is not a way to stop cutting the subject.
+- A warning above 1.35× requires visual review of the gapped carousel. Accept a planned crossing
+  only when it is non-critical field structure, continuity survives the gap, and gameplay stays
+  readable; record that evidence. Otherwise adjust the cuts or regenerate. The score alone
+  cannot approve the crossing. Never answer the warning by discarding artwork with `--gutter`.
 - `panel 2: detail 6.4, 31% of it empty ground` — the density check from the art direction above.
   A panel called out as empty ground is regenerated, never graded or cropped into shape.
 
@@ -1407,9 +1459,10 @@ Vision-check both previews — `_panorama-preview.png` for whether the panels ar
   smaller midground roles, but each remains individually recognizable and has physical contact,
   shared light, or mutual overlap with its construction. Anything reduced to an unreadable speck
   or generic decoration goes back through Phase 2b with its role and minimum readable scale restated.
-- No seam cuts the hero's face, central mechanic, reward, decisive action, or an inlaid game object.
-  Check it on `_carousel-preview.png`: every one of them sits whole inside a single panel, so the
-  store's gap falls on background.
+- No seam cuts the complete hero, decisive symbol, reward or action. A wide central mechanism
+  may continue through both seams at its non-critical edges when the gapped preview stays readable.
+  Check it on `_carousel-preview.png`: critical content sits whole inside a single panel,
+  and any field extension remains coherent across the store's gap.
 - **Every panel is a finished illustration, not a backdrop.** Three occupied depth planes, ornament
   at more than one scale on the hero/game objects, more than one light, materials that respond
   differently, and the real sprites carrying the upper, middle and bottom action. A panel that is a
@@ -1624,6 +1677,9 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
   `hero bust:` figures (visible height, left bleed, bottom crop), what ornament flanks and haloes
   the head, whether the bottom object frame crosses its lower body, and the supporting objects with
   their `frame`/`fall` roles and assigned panels.
+- The chosen wide/contained field layout, measured left/right extensions in each final store crop,
+  and visual evidence that the gapped carousel preserves the hero and decisive gameplay. Record
+  any composition example used and the traits it informed.
 - Which actual gameplay frame and field rectangle supplied the integration context; how the board
   plate was derived; its yaw/pitch/depth; the resolving state it carried; and which panel it landed
   on. Record explicitly that the gameplay frame was used as a reference and was not pasted into the
@@ -1635,7 +1691,7 @@ Write `$STORE_DIR/STORE_INFO.md` in English with:
 - The exhaustive sprite-manifest totals, source → raster mappings, per-panel distribution, every
   sprite's physical role and final identity/integration verdict, plus the ordered high-fidelity
   batch passes when the manifest required more than one call. The five completeness counts from
-  Phase 9 must match. Record that every integration reference passed the standalone-PNG/real-alpha
+  Phase 9 must match. Record that every sprite integration reference passed the standalone-PNG/real-alpha
   technical gate, plus the vision verdict for one-object framing, complete silhouettes, dominant
   colour separation, and distinct red/yellow/green/cyan-blue principal anchors.
 - The per-panel anchor audit: the exact real asset anchoring every split slide, the physical
@@ -1693,7 +1749,7 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   source, source → raster mappings, the hero first, all rows assigned across the concept panels,
   and a named physical/decorative construction for each. The discovered, raster-reference,
   integration-reference, visibly-present and audited counts are equal.
-- Every integration reference is a standalone PNG with real transparent alpha and one fully
+- Every sprite integration reference is a standalone PNG with real transparent alpha and one fully
   visible object—never an opaque white/colour/checker background. The principal set has distinct
   silhouettes/dominant colours and visibly separate red, yellow, green and cyan/blue anchors.
 - At least one valid phone-aspect raw frame exists; the final selection includes active play and a win/reward state.
@@ -1758,9 +1814,14 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   missing. Anything else is a blocker, not a note.
 - They still read together in `_carousel-preview.png`, with the store's own gaps drawn in, and are
   text-free.
-- The cuts were placed by the picture, not by arithmetic: `--seam-snap` was left on, and every seam
-  either measures calm or was resolved by regenerating the art. No panel ends mid-object.
-- No seam warning above 1.35× is left unresolved, and none was answered with `--gutter`.
+- The central gameplay is wide with slight overlap into both adjacent panels when suitable;
+  a contained alternative has a mechanic/readability reason recorded in `STORE_BRIEF.md`.
+  Both aspect ratios preserve field proportions, hero prominence and the bottom spill.
+- Every seam is visually reviewed in the gapped carousel. Planned crossings show non-critical
+  field structure; the hero and decisive symbols/outcome stay clear. Automatic or preplanned
+  fixed cuts are recorded. No warning above 1.35× is left unreviewed or answered with `--gutter`.
+- Any example used as an image reference is named with its composition-only role in the brief;
+  the finished art preserves the current game's own assets, mechanic and visual world.
 - The bare staging plate passes the smooth-background ceiling before sprites land: broad bright
   colour and simplified far forms, no busy texture competing with the subject.
 - The finished panorama passes the brightness/smoothness gate too: mean luma ≥0.33, deep shadow
@@ -1834,12 +1895,11 @@ Report the title/tagline, category/archetype, App Store and Play counts/dimensio
   mid-object, which is the defect this contract exists to prevent. `--gutter` is used only when a
   publisher has explicitly asked for the panels to line up across the store's carousel gap, and
   the choice is recorded.
-- Cutting the panorama blind — `--seam-snap off`, or `--gutter` used to answer a hot seam. Cutting
-  a hole in the subject is not a way to stop cutting the subject; the cuts have to move off it, or
-  the art has to be regenerated with a calm corridor there.
-- Leaving a subject sitting on a cut because `_panorama-preview.png` "looks fine" as a continuous
-  image — of course it does, that is the panorama. The store's gaps are in
-  `_carousel-preview.png`, and that is where a straddled subject shows.
+- Cutting the panorama without checking both gapped previews, discarding artwork with `--gutter`
+  to hide a hot seam, or accepting a split decisive symbol because the field is deliberately wide.
+  Planned non-critical gameplay crossings are allowed; unreviewed critical-content cuts are not.
+- Approving a crossing solely from `_panorama-preview.png`. Use `_carousel-preview.png` to prove
+  the planned wide-field extensions survive the gaps and preserve the hero and decisive gameplay.
 - Shipping a panel that is a gradient with one object on it — an empty backdrop dressed up with a
   colour grade — or accepting one because the compositor's empty-ground warning was "only a
   warning". Sparse art is regenerated from a fuller brief, not graded, cropped or captioned into
