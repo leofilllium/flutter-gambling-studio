@@ -26,7 +26,7 @@ configuration has been retired: puzzles, runners, shooters and clickers are no l
 - **Reference configs** for all six models — `.claude/docs/templates/math-configs/`,
   each passing a run out of the box (`python3 tools/simulate_math.py --selftest`)
 - **`.claude/rules/responsible-gaming.md`** — the compliance layer became a release blocker:
-  age gate, disclaimer, responsible play, odds disclosure, and a ban on real-currency symbols
+  disclaimer, responsible play, odds disclosure, and a ban on real-currency symbols
 - **The RNG / stateless-outcome rules are now unconditional** — they used to be conditional,
   "for the gambling genre only". The single exception: seeded run determinism in C5 (requires an ADR)
 - **The "Classification" block** is mandatory in every concept: category, archetype, model,

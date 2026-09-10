@@ -56,8 +56,8 @@ bundles in the shop, a daily bonus (protection against "out of chips"), a leader
 **Mathematical model:** RTP 95–97% over 1M rounds, hit rate 20–35%, declared volatility
 (low/medium/high), a complete payout table. All weights live in `rtp-config.json`.
 
-**Compliance profile:** age gate, a "virtual chips, not real money" disclaimer, a responsible
-play block, an 18+ rating (Google Play: the Social Casino category).
+**Compliance profile:** a "virtual chips, not real money" disclaimer, a responsible
+play block (Google Play: the Social Casino category).
 
 ### Archetypes
 
@@ -135,7 +135,7 @@ shields and revenge (if there is a PvP layer), tournament events.
 - an average session length of 3–7 minutes;
 - the absence of a "grind wall": the price of unlock N+1 is no more than 1.6× the price of unlock N.
 
-**Compliance profile:** age gate + disclaimer (spin mechanics = simulated gambling), plus
+**Compliance profile:** disclaimer (spin mechanics = simulated gambling), plus
 explicit disclosure of the spin event table's probabilities if spins can be paid for.
 
 ### Archetypes
@@ -174,8 +174,8 @@ shards, banners on rotation, a collection showcase, an "odds" screen (rates disc
 - Cost: how many sessions/currency until a guaranteed SSR.
 
 **Compliance profile:** **odds disclosure is mandatory and must be in-game** (a requirement of
-the stores and of several jurisdictions) — the "Odds" screen is reachable BEFORE a pull. Plus an
-age gate, a disclaimer, and the pity counter shown to the player.
+the stores and of several jurisdictions) — the "Odds" screen is reachable BEFORE a pull. Plus a
+disclaimer and the pity counter shown to the player.
 
 ### Archetypes
 
@@ -211,10 +211,8 @@ unlocks between runs, a daily run on a shared seed.
 - run economy: income per round against shop prices;
 - **determinism**: one seed reproduces the run bit for bit (the test is mandatory).
 
-**Compliance profile:** an age gate is **not required** if there are no purchases and no
-simulated currency wagering. The disclaimer stays if it looks like a casino. The rating is
-typically 12+. This is the only category with relaxed compliance — record that decision
-explicitly in the concept.
+**Compliance profile:** The disclaimer stays if it looks like a casino. This is the only
+category with relaxed compliance — record that decision explicitly in the concept.
 
 ### Archetypes
 
@@ -322,7 +320,7 @@ read it literally:
 - **Archetype**: [A–AF | UNIQUE] — [name]
 - **Mathematical model**: [RTP | Instant-Win RTP | Economy | Gacha | Run Win-Rate | Physics RTP]
 - **Target metric**: [e.g. "RTP 96.0% ±1%", "hard pity 70, SSR 1.2%", "run win-rate 32%"]
-- **Compliance profile**: [full (age gate + disclaimer + 18+) | relaxed C5 (justify it)]
+- **Compliance profile**: [full (disclaimer) | relaxed C5 (justify it)]
 - **Game language**: English (default) | [another language, only if the user explicitly asked]
 ```
 

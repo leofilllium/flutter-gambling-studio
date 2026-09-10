@@ -74,7 +74,6 @@ The following items are mandatory for **all six categories**:
 
 #### G3. Compliance (release blockers — `.claude/rules/responsible-gaming.md`)
 
-- [ ] **Age gate**: shown once before the menu, the flag persisted, and refusal blocks entry?
 - [ ] **Disclaimer**: on the splash and in the rules, with the wording "success in this game
   does not imply future success at real-money gambling"?
 - [ ] **Responsible play**: a block in settings (reminder, break, help contacts)?
@@ -83,7 +82,6 @@ The following items are mandatory for **all six categories**:
 - [ ] **No real currency**: no `$` / `€` / `₽` symbols next to the game balance (except the IAP screen)?
 - [ ] **No promises of winnings**: no "real money", "payout", "win money" or "earn cash" in the
   UI, the copy or the store metadata?
-- [ ] **Age rating**: 18+ Google Play / 17+ App Store set (C5 without purchases — 12+)?
 - [ ] **Store metadata**: `store/metadata.md` filled in, with the "simulated gambling: yes" answer?
 
 ---

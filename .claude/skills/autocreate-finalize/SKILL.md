@@ -436,7 +436,7 @@ gameplay-screen contract passes, and playtest is not NOT-PLAYABLE. Otherwise use
 🧩 Meta systems (Agent E):
    ✅ SaveService (versioned), Economy (currency + shop), Progression (stars), Achievements
    ✅ Analytics/Ads/IAP/RemoteConfig — abstractions (no-op, no external SDKs)
-   [Gambling: age gate + 18+ disclaimer + responsible play]
+   [Gambling: disclaimer + responsible play]
 
 🔊 Audio (Phase 3.5):
    ✅ 8 real .wav sound effects synthesised (mood: [mood]) — not placeholders

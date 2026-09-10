@@ -31,7 +31,7 @@ Gambling games are more difficult than they seem - and a mistake here costs more
 - **Outcome calculated during animation** = RTP cannot be verified, cash-out is incorrect
 - **Multiplier cap or payout rounding** = silent interest drain
 - **Pity counter that does not survive restart** = pity becomes a fiction
-- **Lack of age-gate and disclaimer** = store will reject the game
+- **Lack of disclaimer** = store will reject the game
 - **Plus general**: allocations in `update()` = junk; weak UI = game looks cheap
 
 **Flutter Gambling Studio** solves all this through a system of specialized agents -
@@ -74,7 +74,7 @@ Full reference: [`.claude/docs/gambling-categories.md`](.claude/docs/gambling-ca
 Verification thresholds: [`.claude/docs/math-models.md`](.claude/docs/math-models.md).
 
 > **Always virtual.** No game accepts or pays real money.
-> Compliance layer (age-gate, disclaimer, responsible-play, revealing chances) - release blocker:
+> Compliance layer (disclaimer, responsible-play, revealing chances) - release blocker:
 > [`.claude/rules/responsible-gaming.md`](.claude/rules/responsible-gaming.md).
 
 ---
@@ -378,7 +378,7 @@ python3 tools/simulate_math.py --selftest # reference configs of all six models
 
 ### Compliance - release blocker
 
-Age-gate at first launch · disclaimer on splash and in the rules · responsible-play in settings ·
+Disclaimer on splash and in the rules · responsible-play in settings ·
 odds reveal (C4 and paid spins C3) · no real currency symbols in the game balance ·
 no promises of winnings. Full: [`.claude/rules/responsible-gaming.md`](.claude/rules/responsible-gaming.md).
 

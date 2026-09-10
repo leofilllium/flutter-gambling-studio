@@ -49,7 +49,7 @@ session state and commit messages — as well as Dart/Flutter code, file paths, 
 and CLI commands, which are English by definition.
 
 **The game itself ships in English too.** Every string the player sees — menus, buttons,
-HUD labels, rules and paytable, win messages, empty states, achievement names, the age gate,
+HUD labels, rules and paytable, win messages, empty states, achievement names,
 the disclaimer and the whole responsible-play block, plus store metadata and screenshot
 captions — is written in English by default.
 
@@ -228,7 +228,7 @@ Idea → Concept → Math model → Design → Gate → Code → UI audit → Ru
 7. **Double protection**: the main action button is locked during the animation (300 ms debounce).
 8. **The math model is verified**: `tools/simulate_math.py` returns PASS for the category's model.
    A game without a green run does not ship.
-9. **The compliance layer is in place**: age gate, disclaimer, responsible play, odds disclosure
+9. **The compliance layer is in place**: disclaimer, responsible play, odds disclosure
    where required — see `.claude/rules/responsible-gaming.md`.
 
 @.claude/docs/math-models.md

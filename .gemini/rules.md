@@ -49,7 +49,7 @@ CRITICAL RULES (ALL SIX CATEGORIES — unconditional):
 
 COMPLIANCE (release blocker — .claude/rules/responsible-gaming.md):
 - Virtual chips only. No real money in or out, no cash-out, no conversion back
-- Age gate on first launch, persisted; disclaimer on splash and in the rules
+- Disclaimer on splash and in the rules
 - Responsible-play block in settings; odds disclosure screen for C4 and paid spins in C3
 - No real-currency symbols ($/EUR/RUB) next to a virtual balance; no "win real money" copy
 

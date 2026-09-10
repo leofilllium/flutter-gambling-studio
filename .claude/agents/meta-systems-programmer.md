@@ -100,7 +100,6 @@ scaffolding and all the calls are already there. No `firebase_*`, `google_mobile
 A studio game will not pass store moderation without it. The full requirements are in
 `.claude/rules/responsible-gaming.md`. Create or guarantee:
 
-- **An age gate** on first launch: a flag in SaveService; on refusal, no entry into the game.
 - **`ComplianceCopy`** — ONE constant holding every regulated string (disclaimer, responsible
   play, help contacts, the reminder interval). Do not inline these strings into widgets: the
   stores audit them and they change by region.
@@ -116,7 +115,7 @@ A studio game will not pass store moderation without it. The full requirements a
   `$` / `€` / `₽` symbols next to the game balance are forbidden.
 
 These strings and flags are part of SaveService/the config; ui-programmer draws the UI, but the
-flag logic (has the age gate been shown) and pity persistence are yours.
+flag logic and pity persistence are yours.
 
 The relaxed profile is possible ONLY for C5 without purchases, and only when that is recorded in
 the concept's "Classification" block.
@@ -139,5 +138,5 @@ the concept's "Classification" block.
 - [ ] Economy/Progression/Achievements read values from the config, not from literals.
 - [ ] Analytics/Ad/Iap/RemoteConfig are abstractions with a no-op default, and the calls are
       placed in the gameplay.
-- [ ] (gambling) The age gate + disclaimer + responsible-play flags and strings are in place.
+- [ ] (gambling) The disclaimer + responsible-play flags and strings are in place.
 - [ ] `dart analyze lib/` is clean for the files you created.

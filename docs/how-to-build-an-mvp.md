@@ -102,7 +102,7 @@ Once the game runs under `flutter run`, it is time for the final quality check.
 ```bash
 /release-checklist
 ```
-The checklist includes the **compliance blockers**: age gate, disclaimer, responsible play,
+The checklist includes the **compliance blockers**: disclaimer, responsible play,
 odds disclosure, and the absence of real-currency symbols next to the game balance
 (`.claude/rules/responsible-gaming.md`). Without them the store will reject the game.
 

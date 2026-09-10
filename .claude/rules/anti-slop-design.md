@@ -340,12 +340,11 @@ These screens are required because players EXPECT them, not because of a checkli
 
 **Plus the compliance layer** (`.claude/rules/responsible-gaming.md` — not optional):
 
-13. **Age Gate** — once, before the main menu, persisted
 14. **Odds Disclosure** — mandatory for gacha (C4) and paid-spin hybrids (C3); reachable
     BEFORE the player spends anything
 
 The VISUAL DESIGN of each screen should come from the game's Design DNA — including the
-compliance ones. An age gate can be beautiful and in-world; it just cannot be absent.
+compliance ones.
 A pirate scratch-card's settings screen looks different from a cyberpunk crash game's.
 
 ---

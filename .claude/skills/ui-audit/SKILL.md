@@ -232,7 +232,6 @@ visual problems.
 | J7 | **Achievements working** | list + event check + reward | Subscribe to events |
 | J8 | **Analytics calls arranged** | `grep -rn "analytics\.\(log\|logEvent\)" lib/` non-empty (screen_view + level_* + game_action) | Add calls (no-op service) |
 | J9 | **No external SDKs by default** | `firebase_`/`google_mobile_ads`/`in_app_purchase` NOT in pubspec | Replace with abstraction + no-op |
-| J10 | **Age-gate** | Screen on first launch, flag in SaveService, if it fails, it won’t let you into the game | Add AgeGateScreen + flag |
 | J11 | **Disclaimer** | “Playing with virtual chips...Success does not mean success in gambling for real money” on splash + in the rules | Add a line to `ComplianceCopy` and print |
 | J12 | **Responsible-play** | Block in settings: session reminder, “take a break”, help contacts | Add block to settings |
 | J13 | **Odds disclosure** | The Odds screen is available BEFORE spending currency (required for C4 and C3 paid spins) | Add screen, read numbers from model config |
@@ -420,7 +419,7 @@ If tests fail → fix (up to 3 attempts). If the test is correct, fix the code, 
 🏗 J: Production completeness & compliance (Medium):
    [✅|❌] J1-J9: [content-data, level/mode select, modes, SaveService, economy, progression,
           achievements, analytics calls, no external SDK]
-   [✅|❌] J10-J12 (gambling): [age-gate, disclaimer, responsible-play] - release blockers
+   [✅|❌] J10-J12 (gambling): [disclaimer, responsible-play] - release blockers
    Total: [X]/16 (J10-J16 = compliance blockers; N/A only for C5 without purchases)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

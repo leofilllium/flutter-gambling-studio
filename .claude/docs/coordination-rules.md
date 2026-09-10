@@ -26,7 +26,7 @@ A mini-game succeeds when balance (mathematics/difficulty), code design and juic
    - `juice-artist` does not make an animation longer than 3–4 seconds, so the game loop does
      not slow down. `game-designer` approves the length.
    - `release-manager` is the only agent who can lift a compliance blocker. No agent
-     "simplifies" the age gate or the disclaimer for the sake of speed.
+     "simplifies" the disclaimer for the sake of speed.
 
 ## Conflict resolution
 

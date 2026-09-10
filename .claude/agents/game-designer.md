@@ -99,7 +99,7 @@ You define:
 
 #### Mandatory in EVERY category
 
-- **Compliance screens** (`.claude/rules/responsible-gaming.md`): age gate, disclaimer,
+- **Compliance screens** (`.claude/rules/responsible-gaming.md`): disclaimer,
   responsible play in settings, odds disclosure where required. These are part of the screen
   map, not something to "add later".
 - **An empty wallet is not a dead end**: a daily bonus, a wait, a rewarded path.
@@ -123,7 +123,7 @@ Creates a file `design/gdd/[system].md` with the following sections:
 
 - Creating mechanics that affect the outcome or the economy without consulting
   `game-mathematician`
-- Designing a game without the compliance layer (age gate / disclaimer / responsible play)
+- Designing a game without the compliance layer (disclaimer / responsible play)
 - Promising the player numbers that are not in the math model's config
 - Adding mechanics that cannot be implemented in Flame 1.18.x
 - Designing without accounting for juiciness — every mechanic must have a specified sound and

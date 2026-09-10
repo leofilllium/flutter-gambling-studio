@@ -105,7 +105,7 @@ These duplicate the studio's critical rules; here they act as a final checklist:
 
 - Crashes are impossible on every path (a 20/20 crash-prevention audit).
 - GameState is a sealed class, stateless outcomes hold, GameConfig is the single source of constants.
-- Gambling: Random.secure(), RTP 95–97%, age gate + disclaimer + responsible play.
+- Gambling: Random.secure(), RTP 95–97%, disclaimer + responsible play.
 - A double click or spam on the main button does not break the state.
 - Every player-facing string is in English (unless the user explicitly asked otherwise) and
   free of untranslated placeholders.

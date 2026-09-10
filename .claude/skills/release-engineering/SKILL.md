@@ -270,8 +270,7 @@ is no-op), how it is stored (locally), and a contact.
 
 > **Compliance (MANDATORY for moderation):** `full_description.txt` and `age-rating.md` must
 > state explicitly: "a social-casual game, **for entertainment only, with no real money and no
-> real winnings**", the 18+ age rating (or whatever the platform's rules require), and the
-> presence of an in-app age gate. Without that, Google/Apple will reject a gambling app.
+> real winnings**". Without that, Google/Apple will reject a gambling app.
 
 ---
 
@@ -317,7 +316,7 @@ template.
    Symbols: build/symbols/ (for de-obfuscating stack traces)
 🍎 iOS: the scaffold is ready (the IPA build happens on macOS)
 🏪 Store metadata: store/ (listing + privacy + data-safety + age-rating)
-   [Gambling: disclaimer + 18+ + age gate noted]
+   [Gambling: disclaimer noted]
 ⚙️ CI: .github/workflows/build.yml [with --with-ci]
 
 Next:
@@ -342,6 +341,6 @@ Next:
 1. Overwriting an existing keystore.
 2. Committing `key.properties`, `*.jks` or passwords (all of it goes in .gitignore).
 3. Publishing artifacts to external services without an explicit request from the user.
-4. Shipping without a disclaimer / age gate / responsible play / age rating (a release blocker).
+4. Shipping without a disclaimer / responsible play (a release blocker).
    Relaxation is acceptable only for C5 without purchases, and must be recorded in the concept.
 5. Store metadata in a language other than English, unless the user explicitly asked otherwise.

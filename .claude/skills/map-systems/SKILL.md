@@ -47,7 +47,6 @@ category and the mathematical model, and generate `design/gdd/systems-map.md`.
 - `MainMenuScreen`, `PaytableScreen`, every MVP screen
 
 ## 4. Compliance (the mandatory layer)
-- `AgeGateScreen` (once, before the menu; the result in SharedPreferences)
 - `ComplianceCopy` (disclaimer, responsible play, contacts — constants in one place)
 - `OddsScreen` (mandatory for C4 and for paid spins in C3)
 

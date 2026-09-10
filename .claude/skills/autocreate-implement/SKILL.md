@@ -164,7 +164,7 @@ delegation map above. Each phase's exit criteria come from autocreate's Quality 
 | 7. Tests | `flutter test` all green (including test/services/) | 5 |
 | 8. UI Audit | 100+ checks, including the blocking mobile-first full-viewport gate across the phone and expanded matrices | 3 |
 | 9. Balance | RTP/difficulty in range across the WHOLE curve | 3 |
-| 10. Crash Prevention | 20/20 + (gambling) age gate/disclaimer; analyze + test clean | 3 |
+| 10. Crash Prevention | 20/20 + (gambling) disclaimer; analyze + test clean | 3 |
 
 **THE ABSOLUTE MINIMUM before Phase 10.7:** `dart analyze lib/` 0 errors, `flutter test` green,
 15+ screens, working navigation, the core mechanic + content (N levels/modes) + the meta systems

@@ -7,7 +7,7 @@
 - **Mathematical model**: [M1 Paytable RTP | M2 Instant-Win | M3 Economy | M4 Gacha | M5 Run Win-Rate | M6 Physics RTP]
 - **Target metric**: [e.g. "RTP 96.0% ±1%" / "hard pity 70, SSR 1.2%" / "run win-rate 32%"]
 - **Model config**: `design/balance/[file].json`
-- **Compliance profile**: [full (age gate + disclaimer + 18+) | relaxed C5 — with justification]
+- **Compliance profile**: [full (disclaimer) | relaxed C5 — with justification]
 - **Game language**: English (default) | [another language, only if the user explicitly asked]
 - **Product target**: mobile-first Android/iOS and responsive full-viewport Web
 

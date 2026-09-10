@@ -106,7 +106,7 @@ When this skill is invoked:
      then how it fills 844×390, 768×1024, 1024×768 and 1440×900 intentionally.
 
    **Phase 6: the compliance profile**
-   - The full profile (age gate + disclaimer + responsible play + 18+) — the default.
+   - The full profile (disclaimer + responsible play) — the default.
    - Relaxed — only for C5 without purchases and without currency wagering; requires a justification.
    - Whether a separate odds disclosure screen is needed (mandatory for C4 and paid spins in C3).
    - See `.claude/rules/responsible-gaming.md`.

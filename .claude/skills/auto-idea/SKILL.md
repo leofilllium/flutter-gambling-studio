@@ -326,12 +326,10 @@ Filled in according to the model from Section 0. Thresholds - `.claude/docs/math
 - **Remote-config keys** (live-tuning): [advertising frequency, prices, RTP/pity profile, energy regen]
 
 ### Compliance (MANDATORY - see `.claude/rules/responsible-gaming.md`)
-- **Age-gate**: screen on first launch, result in SharedPreferences
 - **Disclaimer**: “Gaming with virtual chips. Real money is not accepted or paid.
   Success in this game does not mean success in gambling for real money." - splash + rules
 - **Responsible-play**: block in settings (session reminder, “take a break”, help contacts)
 - **Odds disclosure**: [required for C4 and paid spins C3 | covered by paytable for C1/C2/C6]
-- **Age rating**: [18+ Google Play / 17+ App Store; C5 without purchases - usually 12+]
 - **Weakened Profile**: [none | yes - only C5 without IAP and without currency bets, justification]
 ```
 
@@ -723,7 +721,7 @@ Layout: [L1-L6] - [name of composition archetype]
 Balance: [RTP XX% / Difficulty curve / Points system]
 Content: [N levels/stages] | Modes: [Classic + Endless/Time-Attack/Daily]
 Meta: [currency + store + progression + achievements]
-Compliance: [full: age-gate + disclaimer + responsible-play + 18+ | reduced C5]
+Compliance: [full: disclaimer + responsible-play | reduced C5]
 MVP screens: [N] screens
 Design DNA: [key visual decisions]
 

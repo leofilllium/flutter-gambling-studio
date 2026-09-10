@@ -71,7 +71,7 @@ design/gdd/
 ├── game-concept.md            # The concept: category C1–C6, archetype, math model, compliance
 ├── math-model.md              # Model M1–M6: formulas, thresholds, link to the JSON config
 ├── round-flow.md              # The full round cycle: bet → outcome → reveal → payout
-└── compliance-screens.md      # Age gate, disclaimer, responsible play, odds disclosure
+└── compliance-screens.md      # Disclaimer, responsible play, odds disclosure
 ```
 
 Plus documents for the mechanics of the specific category:

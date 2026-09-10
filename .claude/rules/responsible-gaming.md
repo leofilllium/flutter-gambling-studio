@@ -35,19 +35,6 @@
 
 Every game in the studio MUST contain the following (this is part of the MVP screen map):
 
-### 2.1 Age gate — on first launch
-
-- Shown ONCE, before the main menu; the result is persisted in `SharedPreferences`.
-- Asks for a date of birth or confirmation of "I am 18 or older".
-- On refusal or an underage answer: a polite exit screen, with NO route into the game.
-- It is not a modal over the game: it is a full screen in the routes.
-
-```dart
-/// Gate shown once before the main menu.
-/// See .claude/rules/responsible-gaming.md §2.1.
-class AgeGateScreen extends StatelessWidget { ... }
-```
-
 ### 2.2 Disclaimer — on the splash AND in the paytable/rules
 
 The exact wording (it may be adapted to the game's voice, but the meaning must survive):
@@ -90,7 +77,6 @@ C1/C2 (there the paytable plays that role).
 
 | Item | Requirement |
 |------|-------------|
-| Age rating | 18+ (Google Play), 17+/18+ (App Store) for C1–C4, C6 |
 | Google Play category | Casino / Card / Casual — with "simulated gambling: yes" on the questionnaire |
 | Store screenshots | No real-currency symbols and no payout promises |
 | Description | Contains the virtual-currency disclaimer in the first 3 lines |
@@ -113,7 +99,7 @@ Required:
 - No IAP tied to randomness;
 - Typically a 12+ rating.
 
-Not required: age gate, responsible-play block, odds disclosure.
+Not required: responsible-play block, odds disclosure.
 
 **The decision to use the relaxed profile is made once, at the concept stage, and recorded in
 the "Classification" block with a justification.** If currency purchases are added to the game
@@ -126,10 +112,9 @@ later, the profile automatically becomes the full one.
 | Where | What is checked |
 |-------|-----------------|
 | `/gate-check concept` | The "Classification" block contains a compliance profile |
-| `/gate-check design` | Age gate, disclaimer, responsible play and odds are in the screen map |
+| `/gate-check design` | Disclaimer, responsible play and odds are in the screen map |
 | `/ui-audit` | The screens are implemented; no real-currency symbols next to the game balance |
 | `/balance-check` | The numbers shown to the player match the simulation config |
-| `/playtest` | The age gate really does appear on a clean launch, and is remembered |
 | `/release-checklist` | Store metadata, rating and copy — the final GO/NO-GO |
 
 ### Automatic grep checks (used by `/ui-audit` and `/release-checklist`)
@@ -143,11 +128,11 @@ grep -rniE 'real money|win money|win cash|cash ?out|payout|earn cash' \
   lib/ store/ --include="*.dart" --include="*.md"
 
 # Presence of the required screens
-grep -rl 'AgeGate' lib/ && grep -rl 'ResponsiblePlay' lib/ && grep -rl 'Disclaimer' lib/
+grep -rl 'ResponsiblePlay' lib/ && grep -rl 'Disclaimer' lib/
 ```
 
 The first two commands MUST find nothing (other than the IAP purchase screen and the text of
-the disclaimer itself). The third MUST find all three.
+the disclaimer itself). The third MUST find both.
 
 ---
 
@@ -163,7 +148,6 @@ class ComplianceCopy {
       'This game is played with virtual chips. Real money is neither accepted nor paid out. '
       'Success in this game does not imply future success at real-money gambling.';
 
-  static const String ageGatePrompt = 'Please confirm that you are 18 or older';
   static const String responsiblePlay =
       'Play for fun. Take regular breaks.';
   static const String helpContact = '...'; // from the region config
