@@ -23,6 +23,7 @@ personas. When a task needs specialised behaviour, Codex should:
 | `sound-designer` | `.claude/agents/sound-designer.md` | SFX (BGM is opt-in), flame_audio, pitch scaling |
 | `qa-tester` | `.claude/agents/qa-tester.md` | Test plans, edge cases, validation |
 | `release-manager` | `.claude/agents/release-manager.md` | Release gate, final checklist |
+| `auto-learner` | `.claude/agents/auto-learner.md` | Evidence-backed framework improvements on isolated review branches; human merge only |
 
 ## Recommendations for Codex
 

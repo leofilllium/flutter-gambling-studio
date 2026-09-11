@@ -57,4 +57,11 @@ No real-currency symbols next to a virtual balance. See `.claude/rules/responsib
 
 ## Full Documentation
 
+Follow `.claude/docs/visual-context.md` and `.claude/docs/game-concept-examples.md`: inspect
+matching previews, generate original coherent assets, default classic slots to 3×3, and use
+config-supported x5/x10 coins where appropriate. Character-led games open with their character;
+object/mechanic-led games need no mascot. Store gameplay may span any panels. Preserve runtime
+backgrounds and topology. Joker is mischievous and slightly vicious, playful rather than horror
+or an elegant host.
+
 See `AGENTS.md`, `CLAUDE.md`, `.claude/docs/gambling-categories.md`, `.claude/docs/math-models.md` and `.claude/rules/` for complete rules.

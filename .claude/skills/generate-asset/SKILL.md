@@ -8,6 +8,13 @@ user-invocable: true
 
 # `generate-asset` — the asset studio (SVG / PNG)
 
+Read `.claude/docs/visual-context.md` before planning or reviewing visuals. For a matching
+new-game request, inspect the relevant `examples-games/` previews and read
+`.claude/docs/game-concept-examples.md`. Carry the lead kind, references/adaptations, exact
+board topology, Joker expression (when relevant), and verified multiplier-coin meanings from
+the concept into the art direction, asset manifest and prompts. Classic unspecified slots
+use 3×3; store gameplay placement is flexible and object-led games need no invented character.
+
 Handles requests to generate assets for the game.
 
 ## Step 0: choosing the format
@@ -95,4 +102,5 @@ light areas. For `background` and full-screen scenes, do not remove the backgrou
 > Do not forget `<svg viewBox="0 0 W H" xmlns="http://www.w3.org/2000/svg">`.
 
 > Any text baked into an asset is written in English (unless the user explicitly asked for the
-> game in another language). Prefer no baked-in text at all — render copy as Flutter widgets.
+> game in another language). Render ordinary copy as Flutter widgets. Verified multiplier-coin
+> inscriptions such as x5/x10 are allowed under `.claude/docs/visual-context.md`, including SVG lettering.

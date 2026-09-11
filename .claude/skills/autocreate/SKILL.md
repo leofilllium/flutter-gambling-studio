@@ -8,6 +8,13 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 
 # AutoCreate — Zero-to-Production Complete Game Factory
 
+Read `.claude/docs/visual-context.md` before planning or reviewing visuals. For a matching
+new-game request, inspect the relevant `examples-games/` previews and read
+`.claude/docs/game-concept-examples.md`. Carry the lead kind, references/adaptations, exact
+board topology, Joker expression (when relevant), and verified multiplier-coin meanings from
+the concept into the art direction, asset manifest and prompts. Classic unspecified slots
+use 3×3; store gameplay placement is flexible and object-led games need no invented character.
+
 Build a complete production-ready gambling game. Do not ask the user questions: derive reasonable choices from the concept and record them.
 
 All conversation, design documents, reports, prompts, code comments, generated game copy, store metadata, and screenshot captions must be in English. Use another player-facing language only when the user explicitly requests it and record that choice in the concept.
@@ -46,7 +53,7 @@ Session 1 must not write gameplay code, screens, services, stubs, or TODO implem
 
 In Codex, create PNG assets with the built-in image-generation tool. In headless Codex where that tool is unavailable, use `python3 tools/gpt_image.py` with `gpt-image-2`. A missing built-in tool is not a reason to fall back to SVG. If both GPT Image 2 transports fail technically, retry through the default Codex image-generation path with the same prompt. SVG is allowed only outside Codex, after an explicit `--svg`, or after all PNG paths fail and the user approves the fallback.
 
-The required visual profile is polished cartoon 2.5D casual-game art derived from the concept and Design DNA: clear bold silhouettes, rounded or slightly exaggerated forms, saturated theme-aware colors, smooth modeled gradients, glossy highlights, restrained star glints, and one consistent top-left light. Do not copy a reference set. Photorealistic product renders, flat clipart, and emoji/sticker art are forbidden.
+The required visual profile is polished cartoon 2.5D casual-game art derived from the concept and Design DNA: clear bold silhouettes, rounded or slightly exaggerated forms, saturated theme-aware colors, smooth modeled gradients, glossy highlights, restrained star glints, and one consistent top-left light. Use matching previews as visual direction and generate original coherent assets. Photorealistic product renders, flat clipart, and emoji/sticker art are forbidden.
 
 Use `design/asset-manifest.md` as the budget ledger: at most 12 unique generated PNG sources plus 2 technical recovery calls. Generate only unique game silhouettes and scenes. Build UI, typography, icons, VFX, and safe variants in code or derive/reuse them locally.
 
@@ -109,7 +116,8 @@ Each manifest row must include a logical ID, output path, dimensions, class (`ge
 
 In PNG mode:
 
-- Generate sprites/symbols on a flat chroma-key background with no text, border, frame, UI, or baked shadow.
+- Generate sprites/symbols on a flat chroma-key background with no border, frame, UI or baked shadow.
+  No text except verified multiplier-coin inscriptions from `.claude/docs/visual-context.md`.
 - Keep the full set consistent in light direction, materials, palette, perspective, and detail.
 - Use one game background by default; derive menu variants locally unless a genuinely different world/composition is required.
 - Build ordinary controls, panels, icons, typography, shadows, glows, and VFX in code.

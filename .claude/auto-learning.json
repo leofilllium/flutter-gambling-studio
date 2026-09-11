@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "publish_learning_branches": true,
+  "remote": "origin",
+  "base_branch": null,
+  "max_changed_files": 12,
+  "max_changed_lines": 800,
+  "check_timeout_seconds": 300
+}

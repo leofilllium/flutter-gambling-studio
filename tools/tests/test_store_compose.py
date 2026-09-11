@@ -35,11 +35,8 @@ class StoreScreenshotRunbookSafetyTests(unittest.TestCase):
             SCRIPT.parents[1] / ".claude/skills/store-screenshots/SKILL.md"
         ).read_text(encoding="utf-8")
 
-        self.assertIn("| `--apply-backdrop` | off |", runbook)
-        self.assertIn("preserves every existing runtime background", runbook)
+        self.assertIn("Runtime backgrounds and wiring remain unchanged", runbook)
         self.assertIn("--confirm-game-background-replacement", runbook)
-        self.assertIn("controlled chaos", runbook)
-        self.assertIn("roughly 72%", runbook)
         self.assertNotIn("Unless `--no-backdrop`", runbook)
 
 
@@ -1069,6 +1066,18 @@ class BoardRoleTests(unittest.TestCase):
         self.assertGreater(cx - width // 2, left)
         self.assertLess(cx - width // 2 + width, right)
 
+    def test_contained_board_respects_explicit_last_panel_without_x(self) -> None:
+        board = self._png("last-panel.png", (600, 360))
+        line = next(line for line in self._inlay(board + "@board,panel=3,w=0.85")
+                    if line.startswith("board"))
+        self.assertIn("panel 3", line)
+        cx = int(line.split("@")[1].split(",")[0])
+        width = int(line.split("(")[1].split("px")[0])
+        left, right = store_compose.panel_span(2, self.PANEL_W, self.GUTTER)
+        self.assertAlmostEqual(cx, (left + right) / 2, delta=1)
+        self.assertGreater(cx - width // 2, left)
+        self.assertLess(cx - width // 2 + width, right)
+
     def test_board_on_end_panel_cannot_bleed_out_of_the_carousel(self) -> None:
         for panels, panel in ((2, 2), (3, 1), (3, 3)):
             with self.subTest(panels=panels, panel=panel):
@@ -1080,9 +1089,58 @@ class BoardRoleTests(unittest.TestCase):
                 line = next(l for l in lines if l.startswith("board"))
                 cx = int(line.split("@")[1].split(",")[0])
                 width = int(line.split("(")[1].split("px")[0])
-                left, right = store_compose.panel_span(panel - 1, self.PANEL_W, 0)
-                self.assertGreaterEqual(cx - width // 2, left)
-                self.assertLessEqual(cx - width // 2 + width, right)
+                self.assertGreaterEqual(cx - width // 2, 0)
+                self.assertLessEqual(cx - width // 2 + width, pano.width)
+                self.assertGreater(width, self.PANEL_W)
+
+    def test_gameplay_can_span_all_three_or_the_right_two_panels(self) -> None:
+        board = self._png("panoramic-board.png", (1500, 600))
+        for x, width, expected_panels in ((0.5, 2.9, (0, 1, 2)),
+                                           (2 / 3, 1.9, (1, 2))):
+            with self.subTest(x=x):
+                pano = Image.new("RGBA", (900, 640), (30, 90, 140, 255))
+                lines = store_compose.inlay_sprites(
+                    pano, [board + f"@board,x={x},w={width},h=0.8"],
+                    3, 300, 640, 0, lead_kind="mechanic")
+                line = next(line for line in lines if line.startswith("board"))
+                cx = int(line.split("@")[1].split(",")[0])
+                actual_width = int(line.split("(")[1].split("px")[0])
+                self.assertAlmostEqual(actual_width, width * 300, delta=1)
+                self.assertAlmostEqual(cx, x * 900, delta=1)
+                x0, x1 = cx - actual_width // 2, cx + actual_width / 2
+                occupied = tuple(i for i in range(3) if x0 < (i + 1) * 300 and x1 > i * 300)
+                self.assertEqual(occupied, expected_panels)
+                if len(expected_panels) == 3:
+                    self.assertFalse(any("contain no real game object" in message
+                                         for message in self.quiet_warnings))
+
+    def test_mascot_draft_keeps_square_chicken_whole_without_bust_warning(self) -> None:
+        chicken = self._png("chicken.png", (300, 300))
+        pano = Image.new("RGBA", (900, 640), (30, 90, 140, 255))
+        lines = store_compose.inlay_sprites(
+            pano, [chicken + "@hero"], 3, 300, 640, 0,
+            lead_kind="character", character_framing="mascot")
+        line = next(line for line in lines if line.startswith("hero"))
+        cx, cy = (int(value) for value in line.split("@")[1].split()[0].split(","))
+        width = int(line.split("(")[1].split("px")[0])
+        self.assertGreaterEqual(width, 270)
+        self.assertGreaterEqual(cx - width // 2, 0)
+        self.assertLess(cx + width // 2, 300)
+        self.assertGreater(cy - width // 2, 640 * 0.02)
+        self.assertLess(cy + width // 2, 640)
+        self.assertFalse(any("tall waist-up bust" in issue for issue in self.quiet_warnings))
+
+    def test_object_mode_never_promotes_a_coin_to_a_character(self) -> None:
+        coin = self._png("coin.png", (160, 160))
+        pano = Image.new("RGBA", (900, 640), (30, 90, 140, 255))
+        lines = store_compose.inlay_sprites(
+            pano, [coin], 3, 300, 640, 0, lead_kind="object",
+            frame_target="off", falling=False)
+        self.assertFalse(any(line.startswith("hero") for line in lines), lines)
+        self.assertTrue(any("coin.png" in line for line in lines), lines)
+        with self.assertRaises(SystemExit):
+            store_compose.inlay_sprites(
+                pano, [coin + "@hero"], 3, 300, 640, 0, lead_kind="object")
 
     def test_the_field_stands_inside_the_frame_instead_of_bleeding_off_it(self) -> None:
         # A board cropped by the bottom edge stops reading as a board.
@@ -1514,6 +1572,222 @@ class BannerZoneTests(unittest.TestCase):
                         issues)
 
 
+class ContextCompositionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        original = store_compose.info
+        store_compose.info = lambda *_: None
+        self.addCleanup(setattr, store_compose, "info", original)
+
+    def test_noncharacter_panorama_passes_without_a_waist_or_first_panel_hero(self) -> None:
+        fixture = HeroBustGateTests()
+        for kind in ("object", "mechanic"):
+            with self.subTest(kind=kind):
+                issues = store_compose.final_art_issues(
+                    fixture._pano(), fixture._spans(), None, lead_kind=kind,
+                    lead_bounds=(0.36, 0.18, 0.60, 0.58),
+                    protected_bounds=[(0.40, 0.25, 0.12, 0.20)])
+                self.assertEqual(issues, [])
+
+    def test_noncharacter_still_requires_a_large_measured_lead(self) -> None:
+        fixture = HeroBustGateTests()
+        for bounds, message in ((None, "--lead-bounds is required"),
+                                ((0.5, 0.4, 0.1, 0.1), "too small")):
+            issues = store_compose.final_art_issues(
+                fixture._pano(), fixture._spans(), None, lead_kind="object",
+                lead_bounds=bounds)
+            self.assertTrue(any(message in issue for issue in issues), issues)
+            self.assertFalse(any("--hero-bounds" in issue for issue in issues), issues)
+
+    def test_protected_outcome_follows_shifted_seams_and_crop_edges(self) -> None:
+        canvas = Image.new("RGB", (940, 640))
+        spans = store_compose.uniform_spans(3, 300, 0, margin=20)
+        for box, valid in (((0.37, 0.2, 0.1, 0.2), True),
+                           ((0.30, 0.2, 0.1, 0.2), False),
+                           ((0.40, 0.0, 0.1, 0.2), False),
+                           ((0.94, 0.2, 0.05, 0.2), False)):
+            with self.subTest(box=box):
+                issues = store_compose.focal_bounds_issues(
+                    canvas, spans, "mechanic", (0.04, 0.1, 0.9, 0.8), [box])
+                self.assertEqual(not issues, valid, issues)
+
+    def test_free_banner_can_lead_on_the_right_without_character_anatomy(self) -> None:
+        canvas = BannerZoneTests()._compliant_canvas().transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        issues = store_compose.banner_art_issues(
+            canvas, None, lead_kind="mechanic", lead_bounds=(0.60, 0.04, 0.39, 0.94),
+            protected_bounds=[(0.68, 0.10, 0.2, 0.2)])
+        self.assertEqual(issues, [])
+        legacy = store_compose.banner_art_issues(
+            canvas, None, lead_kind="mechanic", lead_bounds=(0.60, 0.04, 0.39, 0.94),
+            banner_layout="left-heavy")
+        self.assertTrue(any("as busy as the scene side" in issue for issue in legacy), legacy)
+
+    def test_triptych_cli_exports_object_lead_and_blocks_a_cut_outcome(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "source.png"
+            HeroBustGateTests()._pano().save(source)
+            common = [sys.executable, str(SCRIPT), "triptych", "--src", str(source),
+                      "--size", "180x360", "--panels", "3", "--seam-snap", "off",
+                      "--pop", "off", "--lead-kind", "object", "--lead-bounds",
+                      "0.36,0.18,0.6,0.58"]
+            for protected, succeeds in (("0.40,0.25,0.12,0.20", True),
+                                         ("0.30,0.25,0.12,0.20", False)):
+                output = root / ("valid" if succeeds else "invalid")
+                result = subprocess.run(
+                    common + ["--out", str(output), "--protected-bounds", protected],
+                    capture_output=True, text=True, timeout=30)
+                self.assertEqual(result.returncode == 0, succeeds, result.stdout + result.stderr)
+                self.assertEqual(len(list(output.glob("store-*.png"))), 3 if succeeds else 0)
+                if not succeeds:
+                    self.assertIn("protected region 1", result.stdout + result.stderr)
+
+    def test_noncharacter_modes_retain_darkness_and_palette_gates(self) -> None:
+        canvas = Image.new("RGB", (900, 640), (15, 15, 15))
+        issues = store_compose.banner_art_issues(
+            canvas, None, lead_kind="object", lead_bounds=(0.1, 0.1, 0.8, 0.8))
+        self.assertTrue(any("too dark" in issue for issue in issues), issues)
+        self.assertTrue(any("saturated" in issue for issue in issues), issues)
+        self.assertTrue(any("foreground does not continue" in issue for issue in issues), issues)
+
+
+class MascotFramingTests(unittest.TestCase):
+    def setUp(self) -> None:
+        original = store_compose.info
+        store_compose.info = lambda *_: None
+        self.addCleanup(setattr, store_compose, "info", original)
+
+    def _canvas(self) -> Image.Image:
+        canvas = store_compose.gradient(
+            (540, 360), [(0.0, (35, 105, 235, 255)), (1.0, (245, 120, 190, 255))])
+        draw = ImageDraw.Draw(canvas)
+        draw.ellipse([0, 45, 161, 206], fill=(242, 74, 62, 255))
+        draw.ellipse([250, 20, 330, 100], fill=(255, 255, 255, 255))
+        rng = np.random.default_rng(83)
+        canvas.paste(Image.fromarray(rng.integers(10, 245, (126, 540, 3), dtype=np.uint8)), (0, 234))
+        return store_compose.pop_grade(canvas, "max")
+
+    def test_square_chicken_passes_without_a_humanoid_height(self) -> None:
+        canvas = self._canvas()
+        spans = store_compose.uniform_spans(3, 180, 0)
+        bounds = (0.0, 0.125, 0.30, 0.45)
+        issues = store_compose.final_art_issues(
+            canvas, spans, bounds, character_framing="mascot")
+        self.assertEqual(issues, [])
+        legacy = store_compose.final_art_issues(canvas, spans, bounds)
+        self.assertTrue(any("hero is too small" in issue for issue in legacy), legacy)
+
+    def test_mascot_still_rejects_tiny_inset_and_clipped_first_panel_subjects(self) -> None:
+        for bounds, message in (
+            ((0.0, 0.125, 0.10, 0.15), "mascot is too small"),
+            ((0.15, 0.125, 0.17, 0.55), "not on the left"),
+            ((0.0, 0.0, 0.30, 0.45), "top of the frame crops"),
+            ((0.0, 0.125, 0.38, 0.45), "crosses the first carousel seam"),
+        ):
+            with self.subTest(bounds=bounds):
+                issues = store_compose.final_art_issues(
+                    self._canvas(), store_compose.uniform_spans(3, 180, 0),
+                    bounds, character_framing="mascot")
+                self.assertTrue(any(message in issue for issue in issues), issues)
+
+    def test_banner_accepts_prominent_mascot_and_blocks_tiny_or_clipped_one(self) -> None:
+        canvas = BannerZoneTests()._compliant_canvas()
+        issues = store_compose.banner_art_issues(
+            canvas, (0.01, 0.04, 0.30, 0.62), character_framing="mascot")
+        self.assertEqual(issues, [])
+        for bounds, message in (((0.01, 0.1, 0.1, 0.2), "mascot is too small"),
+                                ((0.01, 0.0, 0.3, 0.62), "head/headwear is cut")):
+            issues = store_compose.banner_art_issues(canvas, bounds, character_framing="mascot")
+            self.assertTrue(any(message in issue for issue in issues), issues)
+
+
+class BackgroundSubjectSamplingTests(unittest.TestCase):
+    def setUp(self) -> None:
+        original = store_compose.info
+        store_compose.info = lambda *_: None
+        self.addCleanup(setattr, store_compose, "info", original)
+
+    def _dense_field(self, canvas: Image.Image, bounds) -> Image.Image:
+        canvas = canvas.copy()
+        x, y, w, h = bounds
+        colours = np.array([[255, 25, 50], [25, 170, 255],
+                            [40, 245, 75], [255, 215, 25]], dtype=np.uint8)
+        rng = np.random.default_rng(55)
+        cells = colours[rng.integers(0, 4, (round(h * canvas.height), round(w * canvas.width)))]
+        canvas.paste(Image.fromarray(cells), (round(x * canvas.width), round(y * canvas.height)))
+        # Keep the controlled light source outside the measured active field.
+        ImageDraw.Draw(canvas).ellipse(
+            [canvas.width * 0.45, 4, canvas.width * 0.61, canvas.height * 0.12],
+            fill=(255, 255, 255, 255))
+        return canvas
+
+    def test_full_width_mechanic_is_not_mistaken_for_detailed_background(self) -> None:
+        fixture = HeroBustGateTests()
+        bounds = (0.04, 0.14, 0.92, 0.40)
+        canvas = self._dense_field(fixture._pano(), bounds)
+        raw = store_compose.final_art_issues(
+            canvas, fixture._spans(), None, lead_kind="mechanic",
+            lead_bounds=(0.4, 0.65, 0.2, 0.3))
+        measured = store_compose.final_art_issues(
+            canvas, fixture._spans(), None, lead_kind="mechanic", lead_bounds=bounds)
+        self.assertTrue(any("background is too detailed" in issue for issue in raw), raw)
+        self.assertEqual(measured, [])
+
+    def test_character_with_high_right_two_field_uses_gameplay_bounds(self) -> None:
+        fixture = HeroBustGateTests()
+        bounds = (0.36, 0.14, 0.60, 0.40)
+        canvas = self._dense_field(fixture._pano(), bounds)
+        hero = (0.0, 0.02, 0.30, 0.98)
+        raw = store_compose.final_art_issues(canvas, fixture._spans(), hero)
+        measured = store_compose.final_art_issues(
+            canvas, fixture._spans(), hero, gameplay_bounds=[bounds])
+        self.assertTrue(any("background is too detailed" in issue for issue in raw), raw)
+        self.assertEqual(measured, [])
+
+    def test_busy_visible_background_still_fails_after_subject_exclusion(self) -> None:
+        fixture = HeroBustGateTests()
+        # Detail covers the whole upper plane; excluding a smaller true field
+        # must not remove the surrounding busy scenery from the sample.
+        canvas = self._dense_field(fixture._pano(), (0.0, 0.0, 1.0, 0.60))
+        issues = store_compose.final_art_issues(
+            canvas, fixture._spans(), None, lead_kind="object",
+            lead_bounds=(0.35, 0.15, 0.30, 0.40))
+        self.assertTrue(any("background is too detailed" in issue for issue in issues), issues)
+
+    def test_wholly_masked_background_is_a_blocker_in_both_formats(self) -> None:
+        fixture = HeroBustGateTests()
+        for issues in (
+            store_compose.final_art_issues(
+                fixture._pano(), fixture._spans(), None, lead_kind="mechanic",
+                lead_bounds=(0.0, 0.0, 1.0, 1.0)),
+            store_compose.banner_art_issues(
+                BannerZoneTests()._compliant_canvas(), None, lead_kind="object",
+                lead_bounds=(0.0, 0.0, 1.0, 1.0)),
+        ):
+            self.assertTrue(any("insufficient measurable upper background" in issue
+                                for issue in issues), issues)
+
+    def test_gameplay_masks_do_not_excuse_a_missing_bottom_object_frame(self) -> None:
+        fixture = HeroBustGateTests()
+        bounds = (0.04, 0.14, 0.92, 0.40)
+        canvas = self._dense_field(fixture._pano(), bounds)
+        ImageDraw.Draw(canvas).rectangle(
+            [0, canvas.height * 0.60, canvas.width, canvas.height], fill=(30, 170, 240, 255))
+        issues = store_compose.final_art_issues(
+            canvas, fixture._spans(), None, lead_kind="mechanic", lead_bounds=bounds)
+        self.assertTrue(any("foreground object hill" in issue for issue in issues), issues)
+
+    def test_free_banner_field_is_excluded_from_foreground_background_comparison(self) -> None:
+        bounds = (0.40, 0.14, 0.55, 0.45)
+        canvas = self._dense_field(BannerZoneTests()._compliant_canvas(), bounds)
+        raw = store_compose.banner_art_issues(
+            canvas, None, lead_kind="object", lead_bounds=(0.02, 0.65, 0.3, 0.3))
+        measured = store_compose.banner_art_issues(
+            canvas, None, lead_kind="object", lead_bounds=(0.02, 0.65, 0.3, 0.3),
+            gameplay_bounds=[bounds])
+        self.assertTrue(any("foreground does not continue" in issue for issue in raw), raw)
+        self.assertFalse(any("foreground does not continue" in issue for issue in measured), measured)
+
+
 class BackdropCommandSafetyTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
@@ -1606,6 +1880,20 @@ class BannerCommandTests(unittest.TestCase):
 
         self.assertFalse(Path(args.base_out).exists())
         self.assertFalse(Path(args.out).exists())
+
+    def test_object_banner_writes_without_inventing_a_hero(self) -> None:
+        args = self._args(hero_bounds=None, lead_kind="object",
+                          lead_bounds="0.05,0.15,0.80,0.65", banner_layout="free")
+        store_compose.cmd_banner(args)
+        self.assertTrue(Path(args.out).is_file())
+
+    def test_missing_object_measurement_blocks_export(self) -> None:
+        args = self._args(hero_bounds=None, lead_kind="object")
+        with self.assertRaises(SystemExit):
+            store_compose.cmd_banner(args)
+        self.assertFalse(Path(args.base_out).exists())
+        self.assertFalse(Path(args.out).exists())
+
 
 
 if __name__ == "__main__":

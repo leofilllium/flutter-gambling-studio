@@ -45,5 +45,10 @@ bash tools/codex-hooks.sh session-stop
 
 ## Limitation
 
+Session start/stop display the auto-learning queue. They do not invoke a model or push code.
+The active agent follows AGENTS.md and `.claude/skills/auto-learn/SKILL.md` when an observed
+failure, correction or verified faster method warrants a framework improvement. It prepares,
+validates and pushes an isolated review branch; only the owner merges.
+
 Some Claude hooks read `CLAUDE_*` environment variables. The `tools/codex-hooks.sh` wrapper
 substitutes safe defaults so that the scripts remain executable under Codex too.

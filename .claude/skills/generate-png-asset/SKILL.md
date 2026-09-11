@@ -8,6 +8,22 @@ user-invocable: true
 
 # `generate-png-asset` - PNG assets for mini-games
 
+Read `.claude/docs/visual-context.md` before planning or reviewing visuals. For a matching
+new-game request, inspect the relevant `examples-games/` previews and read
+`.claude/docs/game-concept-examples.md`. Carry the lead kind, references/adaptations, exact
+board topology, Joker expression (when relevant), and verified multiplier-coin meanings from
+the concept into the art direction, asset manifest and prompts. Classic unspecified slots
+use 3×3; store gameplay placement is flexible and object-led games need no invented character.
+
+## Game-object lettering
+
+Set `[LETTERING POLICY]` to `NO text` for ordinary assets. For a multiplier coin/badge,
+use `ONLY the exact inscription x5` (or the supported value), recording its config source and
+meaning. Prefer x5/x10 when supported; validate exact lettering at 64 px and in runtime. These
+verified inscriptions are allowed under the quality floor. No invented multipliers, marketing
+copy, balances or payout promises. A code overlay can letter an unlettered source using the same
+config value; a different payout symbol is not merely a recolor.
+
 ## Default rule
 
 1. **Exception for `/autocreate`:** if the call comes from `/autocreate` or `--from-concept`
@@ -203,7 +219,7 @@ failure of GPT Image 2 or at the explicit request of the user.
 
 **Hard quality floor for `/autocreate`:** photorealistic/product-shot render, flat
 vector icon, emoji/sticker, generic logo, cheap clipart, random neon/casino asset without
-connections to a concept, sprite sheet, text within an image, or an object with a different light pattern
+connections to a concept, sprite sheet, unapproved text within an image, or an object with a different light pattern
 considered FAIL.
 First eliminate locally correctable defects (cutout, frame normalization, reclassification
 in `code`/`derive`); one recovery call to GPT Images 2.0 is allowed for a source generation defect
@@ -220,7 +236,7 @@ shared soft [LIGHTING: key from top-left + subtle rim], rich [DNA PALETTE] color
 crisp clean silhouette readable at 64 px, premium casual-game illustration,
 flat solid single-colour [KEY COLOUR] background, no gradient, no vignette, subject fully
 inside frame, transparent-ready cutout, NO scene, NO ground shadow, NO shadow on the
-background, NO text, NO border, NO logo, NO sprite sheet, NO photorealism,
+background, [LETTERING POLICY], NO border, NO logo, NO sprite sheet, NO photorealism,
 NO product photography, NO flat vector clipart, NO emoji/sticker, 1024x1024 PNG.
 [TYPE_DETAILS]
 ```
@@ -445,7 +461,7 @@ single hero object centered, bold rounded and slightly exaggerated silhouette,
 gradients, glossy highlights and restrained star glints, [ART STYLE] render,
 soft [LIGHTING: key top-left + light rim], rich [PALETTE from DNA] colors,
 crisp clean silhouette, sharp focus, isolated on flat solid single-colour [KEY COLOUR]
-background, no gradient, no scene, no ground shadow, no text, no photorealism,
+background, no gradient, no scene, no ground shadow, [LETTERING POLICY], no photorealism,
 no product photography, no flat vector clipart, transparent-ready, 1024x1024.
 [TYPE-DETAILS]
 ```

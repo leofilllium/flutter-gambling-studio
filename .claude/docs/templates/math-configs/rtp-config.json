@@ -3,13 +3,13 @@
   "target_rtp": 0.96,
   "reels": {
     "count": 3,
-    "visible_rows": 1
+    "visible_rows": 3
   },
   "paylines": [
     [
-      0,
-      0,
-      0
+      1,
+      1,
+      1
     ]
   ],
   "symbols": [

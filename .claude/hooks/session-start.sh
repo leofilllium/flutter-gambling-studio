@@ -3,6 +3,10 @@
 # Loads sprint context and shows project state at the start of every session
 
 STATE_FILE="production/session-state/active.md"
+if [ -f tools/auto_learn.py ]; then
+  echo "Learning observations (process concrete pending findings with /auto-learn):"
+  python3 -B tools/auto_learn.py pending || true
+fi
 LOG_DIR="production/session-logs"
 DATE=$(date '+%Y-%m-%d %H:%M')
 

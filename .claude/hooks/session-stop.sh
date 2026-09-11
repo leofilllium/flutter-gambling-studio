@@ -24,3 +24,7 @@ $(git status --short 2>/dev/null | head -10 | sed 's/^/  /')
 EOF
 
 echo "📝 Session logged to $LOG_FILE"
+if [ -f tools/auto_learn.py ]; then
+  echo "Record reusable corrections or verified faster methods with /auto-learn. Pending:"
+  python3 -B tools/auto_learn.py pending || true
+fi

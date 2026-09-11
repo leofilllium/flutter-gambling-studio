@@ -92,7 +92,7 @@ after the second, accept the best of what you have and record the residual risks
   lighting from upper right, rich amber-and-teal palette, centered, single object").
 - Sprites: `flat solid single-colour chroma-key background` (by default `pure magenta #FF00FF`,
   or `pure green #00FF00` if the palette contains magenta) — for `tools/cutout.py`;
-  one object, centred, no text, no frames.
+  one object, centred, no text except verified multiplier-coin inscriptions, no frames.
 - Backgrounds: specify "background for a mobile game, soft low-contrast, no focal subject in
   center" — the background must yield focus to the play field.
 - Icons: "flat icon set style, consistent 2px stroke, single color + accent" — as a series.
@@ -110,3 +110,14 @@ after the second, accept the best of what you have and record the residual risks
 `design/asset-review.md` exists, the verdict is PASS (or REGENERATE with the regeneration
 carried out and re-reviewed), every sprite and icon has confirmed alpha, and the contact sheets
 are saved in `production/asset-review/`.
+
+## Context-led visual direction
+
+Read `.claude/docs/visual-context.md` before planning or reviewing visuals. For a matching
+new-game request, inspect the relevant `examples-games/` previews and read
+`.claude/docs/game-concept-examples.md`. Carry the lead kind, references/adaptations, exact
+board topology, Joker expression (when relevant), and verified multiplier-coin meanings from
+the concept into the art direction, asset manifest and prompts. Classic unspecified slots
+use 3×3; store gameplay placement is flexible and object-led games need no invented character.
+
+Reject forced mascots, horror Jokers, invented multipliers and store grids that differ from runtime.

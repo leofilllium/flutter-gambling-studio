@@ -37,6 +37,8 @@ Checks that the concept is ready to move into design:
 - [ ] The archetype is chosen (A–AF / Unique)
 - [ ] The Design DNA is described (palette/fonts/shapes/motion, justified by the theme; not default neon)
 - [ ] The Layout & Composition Direction is stated (Layout Archetype L1–L6)
+- [ ] Visual context records lead kind, matching preview references/adaptations, exact topology,
+      and supported multiplier markers per `.claude/docs/visual-context.md`
 - [ ] The math model's target metric is stated and sits inside the window for that model
       (M1 RTP 95–97% + volatility + ≥3 symbols | M2 house edge + cap | M3 regeneration + source/sink |
       M4 rates + hard pity | M5 win-rate + thresholds | M6 bucket multipliers)

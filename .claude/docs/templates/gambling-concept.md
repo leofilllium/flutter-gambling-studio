@@ -24,6 +24,7 @@ Filled in according to the model from §0 — see `.claude/docs/math-models.md`:
 - **M5**: round thresholds, run win-rate, run economy, seed determinism
 
 ## 3. Core mechanic (filled in by game-designer)
+- **Board topology**: [classic unspecified slot = 3 reels × 3 visible rows; document explicit variants]
 - **Round structure**: [reels/lines | cells and mines | multiplier curve | banner and pull | board | peg field]
 - **Bet / cost of entry**: [range, step, what is spent]
 - **Special elements**: [Wild, Scatter, Bonus | cash-out | pity | jokers | special buckets]
@@ -64,3 +65,13 @@ What does the player see on a "big win"?
 - **The compliance layer** (`.claude/rules/responsible-gaming.md`): age gate, the disclaimer on
   the splash and in the rules, responsible play in settings, odds disclosure (mandatory for C4
   and for paid spins in C3).
+
+## 9. Visual references and store direction
+> Follow `.claude/docs/visual-context.md` and `.claude/docs/game-concept-examples.md`.
+- **Lead kind / identity**: [character | object | mechanic; exact subject and runtime role]
+- **Previews inspected**: [paths or none applicable; borrowed traits and original adaptations]
+- **Character tone**: [if relevant; Joker = mischievous/slightly vicious, playful, not horror or an elegant host]
+- **Multiplier coins**: [prefer x5/x10 when appropriate; exact config/paytable source and meaning, or omit]
+- **Panorama map**: [anchors, gameplay location/span, critical regions and safe seam plan]
+- **Feature graphic**: [independent horizontal composition; free or justified left-heavy arrangement]
+- **Runtime continuity**: [asset identities, board topology, backgrounds and state to preserve]

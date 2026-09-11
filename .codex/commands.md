@@ -47,6 +47,7 @@ UI/UX and responsively fill landscape, tablet, desktop, and Web viewports withou
 | `/balance-check` | `.claude/skills/balance-check/SKILL.md` | RTP, difficulty curve, full-curve content validation |
 | `/perf-profile` | `.claude/skills/perf-profile/SKILL.md` | FPS, memory, particles, audio |
 | `/tech-debt` | `.claude/skills/tech-debt/SKILL.md` | The technical debt register |
+| `/auto-learn` | `.claude/skills/auto-learn/SKILL.md` | Record, implement, validate and push bounded evidence-backed learning proposals; owner merges |
 | `/hotfix` | `.claude/skills/hotfix/SKILL.md` | Urgent fix for a critical problem |
 | `/architecture-decision` | `.claude/skills/architecture-decision/SKILL.md` | ADRs and architectural choices |
 
@@ -57,7 +58,7 @@ UI/UX and responsively fill landscape, tablet, desktop, and Web viewports withou
 | `/release-checklist` | `.claude/skills/release-checklist/SKILL.md` | GO/NO-GO checklist (release-manager persona; takes the playtest and asset-review verdicts into account) |
 | `/release-engineering` | `.claude/skills/release-engineering/SKILL.md` | Icons/splash/version/signed AAB/store metadata/CI. Inside the pipeline: only `--prep-only --no-keystore` |
 | `/release-package` | `.claude/skills/release-package/SKILL.md` | Screenshots + release APK/AAB + `flutter clean` + an archive in `project_zip/`. **An explicit user action**, NOT an automatic call from the pipeline |
-| `/store-screenshots` | `.claude/skills/store-screenshots/SKILL.md` | The gambling game's store showcase: intensely saturated lossless concept sliders, real round frames in a phone frame, a separately rendered long-banner/feature graphic, and applied icon/emblem. Real-alpha PNG sprites, the existing game world, and the resolving field become a high-fidelity integrated scene. Panel 1 leads with a large left-anchored waist-up hero; left/bottom cropping is allowed, but the complete head keeps ≥2% top margin and all attached forms clear the first seam. A strict gate enforces saturation ≥0.68 (target 0.78–0.88; `--pop max` finishes toward 0.80), bright smooth depth, controlled glare, and the full-width game-object foreground. Runtime backgrounds and their wiring remain unchanged by default; replacement requires a separate explicit `--apply-backdrop` request. The long banner has an active left 3/5 and calmer populated right 2/5, with no reserved device zone. Two sets — 1320×2868 (App Store 6.9″) and 1080×1920 (Google Play). Compliance gate: no currency symbols or payout promises. Output → `project_zip/` |
+| `/store-screenshots` | `.claude/skills/store-screenshots/SKILL.md` | Context-based store kit with character/object/mechanic lead, flexible gameplay, real captures, feature graphic and ZIP; preserve runtime backgrounds. |
 
 ## Execution rule
 

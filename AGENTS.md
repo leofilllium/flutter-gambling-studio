@@ -13,8 +13,9 @@ All generated game art must use polished cartoon 2.5D casual-game illustration w
 silhouettes, rounded/exaggerated forms, saturated theme-aware color, smooth modeled
 gradients, glossy highlights, restrained star glints, and one consistent top-left light.
 Derive the visual world, shapes, materials, details, and palette independently from each
-game's concept and Design DNA. Do not depend on a reference folder or copy symbols from
-other games. Photorealistic/product-render assets, flat vector clipart, and emoji/sticker
+game's concept and Design DNA. Inspect matching `examples-games/` previews by default and
+generate original assets with relevant shared qualities. Read `.claude/docs/visual-context.md`
+and `.claude/docs/game-concept-examples.md`. Photorealistic/product-render assets, flat vector clipart, and emoji/sticker
 styling are out of scope.
 
 All store screenshot sets use casino-grade marketing composition: lead with the decisive
@@ -22,31 +23,36 @@ wager/reveal/drop/collect moment, premium depth and tactility, controlled antici
 focus, with real active gameplay large and readable. This is composition—not a mandatory
 black/neon/gold skin; every palette, material, character and type choice still comes from the
 current game's Design DNA. Never use cropping or device chrome to hide a weak gameplay layout.
-Concept panoramas lead with a large waist-up protagonist on the left; only the left and lower edges
-may crop it, while the complete face, hair and headwear retain at least 2% top headroom and the full
-attached silhouette clears the first panel seam. Real game objects form the cropped bottom frame
+Record `lead_kind: character | object | mechanic` before composing. Zeus, Joker and chicken games
+default to a large character on the first panel. Object/mechanic games such as crown slots and
+Plinko need no invented mascot or character-only opening. For characters, left/lower edge crops
+are allowed; protect heads/headwear with 2% top headroom and keep attached forms clear of the first
+seam. Animal framing fits the species. Real game objects form the cropped bottom frame
 and fall through the picture, while the bright far background stays broad and smooth so those
 subjects lead. Slider saturation is deliberately intense: 0.68 mean saturation is the hard
 floor and 0.78–0.88 is the target band, alongside a measured controlled blown light source. Generic
 stage furniture does not count as game objects, and a saturated dark, hyper-detailed far plane still
-fails the brightness contract. The Google Play feature graphic uses its own horizontal render: an
-active left 3/5 with the large waist-up hero and a calmer but populated right 2/5, with the real
-object frame continuing across the full lower edge and no reserved device-shaped zone.
-Across both formats, follow the supplied examples' composition spine: hero on the left, the decisive
-gameplay-derived scene through the middle, and many real sprite assets in a controlled-chaos spill
+fails the brightness contract. The Google Play feature graphic uses its own horizontal composition.
+A left-heavy 3/5–2/5 split is optional; object/mechanic scenes may use the full width. Keep the real
+object frame across the lower edge and no reserved device-shaped zone.
+Across both formats, place decisive gameplay wherever it reads best, with many real sprite assets in a spill
 across the full lower edge, varied in scale, height, rotation, overlap, and depth rather than arranged
 as a tidy row or a lower-left pile.
-For carousels with at least three concept panels, prefer wide central gameplay whose non-critical
-outer structure slightly overlaps both neighbouring images (start around 1.10–1.25 panel widths)
-when the mechanic and readability allow it. Keep the hero and decisive symbols/outcome clear of
-the gaps; a narrower field is valid when its proportions or composition require it. Preserve the
+Gameplay may appear on any panel, span the right two, or span all three. Noncritical board
+structure may cross seams; protect faces, inscriptions and decisive symbols/outcomes from gaps.
+A narrower field is valid when its proportions or readability require it. Preserve the
 bottom spill and add recognizable flying/falling game objects at varied depths above it. Choose
 an expressive marketing background when the theme benefits, with the far plane subordinate.
-Relevant images from `examples/` may be inspected and passed as composition references when useful;
+Matching `examples-games/` previews are default references; other relevant `examples/` images may also guide composition;
 record what is borrowed and keep the actual game's assets, mechanics and Design DNA authoritative.
 Store-screenshot generation preserves the actual game's existing menu, gameplay, splash, and shared
 background assets and wiring. A runtime-background redesign is a separate, explicit opt-in; never
 replace the game's background merely to make it match newly generated marketing art.
+
+Unspecified classic slots use 3 reels × 3 visible rows (3×3), not 4×4. Preserve explicit or existing
+variants. Joker defaults to a mischievous, slightly vicious theatrical trickster, playful rather than
+an elegant courtier or horror character. Prefer x5/x10 reward coins where the actual game config and
+theme support them; never invent multipliers or change balance solely for promotional art.
 
 All agent responses must be in English, and every artifact the pipeline writes — design documents, concepts, reports, session state and commit messages — must be in English as well. Dart/Flutter code, file paths, class names and CLI commands are English by definition.
 
@@ -72,6 +78,20 @@ If Codex CLI does not detect this project or local skills, run:
 - `bash tools/codex-doctor.sh`
 
 Then restart Codex CLI.
+
+## Automatic learning during studio work
+
+After every concrete reusable failure, user correction, or verified faster approach, invoke
+`.claude/skills/auto-learn/SKILL.md` and the `.claude/agents/auto-learner.md` role. Record evidence,
+deduplicate by cause/remedy, implement a bounded improvement in an isolated worktree, validate
+it, and push a `learning/*` proposal branch using `tools/auto_learn.py`. The owner has authorized
+these proposal pushes in `.claude/auto-learning.json`; do not ask again. Only the owner approves
+or merges. Never merge, force-push, publish unrelated work, or silently adopt unmerged rules.
+Suggest or implement new skills, agents, scripts or rules only when the observed gap warrants
+them; prefer correcting existing guidance. Keep RNG/math/compliance and quality gates intact.
+Process pending findings during agent sessions; this is not an always-running background service.
+An explicit pause or narrower user request overrides automatic learning. See
+`.claude/docs/auto-learning.md` for commands, evidence requirements and recovery.
 
 ## Project Structure & Module Organization
 

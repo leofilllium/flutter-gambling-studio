@@ -8,6 +8,13 @@ allowed-tools: Read, Glob, Grep, Write
 
 # Auto-Idea - Automatic Gambling Game Idea Generator
 
+Read `.claude/docs/visual-context.md` before planning or reviewing visuals. For a matching
+new-game request, inspect the relevant `examples-games/` previews and read
+`.claude/docs/game-concept-examples.md`. Carry the lead kind, references/adaptations, exact
+board topology, Joker expression (when relevant), and verified multiplier-coin meanings from
+the concept into the art direction, asset manifest and prompts. Classic unspecified slots
+use 3×3; store gameplay placement is flexible and object-led games need no invented character.
+
 Don't ask the user questions! Create `design/gdd/game-concept.md` completely autonomously.
 
 > **GAMBLING ONLY.** The studio does not make puzzles, runners, shooters or clickers. Any idea must
@@ -547,7 +554,7 @@ manifesto literally.
   (default pure magenta #FF00FF; pure green #00FF00 if the palette contains magenta/pink/purple),
   then cut with `tools/cutout.py`; backgrounds = full scene, no alpha removal
 - Negative prompt: no photorealism, no product photography, no flat vector icon,
-  no emoji/sticker, no logo, no text, no sprite sheet,
+  no emoji/sticker, no logo, no text except verified multiplier-coin inscriptions, no sprite sheet,
   no generic casino/neon unless this is explicitly in Design DNA
 
 ### Sprites (assets/images/sprites/)

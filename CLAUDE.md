@@ -24,8 +24,11 @@ gradients, clean colour or gold edging, glossy highlights, restrained star glint
 consistent light from the top left.
 
 The theme, characters, objects, materials, shapes, details and colours are all derived
-independently from the concept and Design DNA of the specific game. Do not depend on a
-reference folder and do not copy symbols from other games. Photorealism, product-shot
+from the concept and Design DNA of the specific game. Inspect matching `examples-games/`
+previews by default; generate original assets with relevant shared qualities. Read
+`.claude/docs/visual-context.md` and `.claude/docs/game-concept-examples.md` for lead kinds,
+flexible store composition, 3×3 classic-slot defaults, Joker tone and supported x5/x10 coins.
+Photorealism, product-shot
 rendering, flat vector clipart and emoji/sticker styling are not allowed.
 
 ## Technology stack
@@ -154,14 +157,20 @@ Idea → Concept → Math model → Design → Gate → Code → UI audit → Ru
 | `/release-checklist` | Final GO/NO-GO checklist before release, including compliance (release-manager agent) |
 | `/release-engineering` | Ship engineering: app icons (adaptive + iOS) + native splash + versioning + **signed AAB** + iOS scaffold + store metadata (with the mandatory compliance fields) + CI |
 | `/release-package` | Release packaging: screenshots of every screen + release APK/AAB + `flutter clean` + a `.zip` in `project_zip/` |
-| `/store-screenshots` | A casino-grade store showcase: mechanic-first tension/reveal/celebration composition in the current game's Design DNA, never a generic neon reskin. Includes an intensely saturated text-free concept panorama sliced into panels + real round frames inside a secondary phone frame + a separately rendered long-banner/feature graphic + applied app icon and emblem. **The existing game is authoritative**: its real-alpha PNG sprites, existing background world, and real play field (`boardplate`, stood up in perspective) are passed to the image model as references, so the panorama is one rendered picture whose objects are the app's own. Store generation preserves all runtime background assets and wiring; a background redesign requires a separate explicit `--apply-backdrop` request and confirmation. Panel 1 leads with a large left-anchored waist-up protagonist, the bottom is framed by real game objects, and the far background stays bright, broad, and smooth. Saturation has a 0.68 hard floor and 0.78–0.88 target band; `--pop max` adaptively finishes toward 0.80. The dedicated long banner uses an active left 3/5 and a calmer populated right 2/5. Prefer wide central gameplay with slight overlap into both neighbouring carousel panels when the mechanic fits, preserving the hero and decisive outcome across the gaps; contained gameplay remains valid when needed for readability. Retain the bottom sprite spill and flying/falling objects above it. Relatable `examples/` images may guide composition and thematic atmosphere while the game supplies its own assets and visual world. Panels reassemble losslessly, with visually reviewed seam placement. Two sets: **1320×2868** for App Store Connect and **1080×1920** for Google Play. Compliance and gameplay-layout gates → a `.zip` in `project_zip/` |
+| `/store-screenshots` | Context-based store kit with character/object/mechanic lead, flexible gameplay spans, real captures, feature graphic and ZIP. Read `.claude/skills/store-screenshots/SKILL.md`; preserve runtime backgrounds. |
 
 ### Diagnostics and debt
+
+Invoke `/auto-learn` after concrete reusable failures, user corrections or verified faster
+approaches during any studio task. It records evidence and produces tested isolated `learning/*`
+branches under the owner's standing push authorization; approval/merge remains human. Read
+`.claude/docs/auto-learning.md`. This runs during agent sessions, not as a background daemon.
 
 | Command | Description |
 |---------|-------------|
 | `/perf-profile [area]` | FPS / memory / particle profiling |
 | `/tech-debt` | Technical debt scan and register |
+| `/auto-learn` | Evidence-based framework improvements on tested review branches; no auto-merge |
 | `/hotfix [description]` | Emergency fix for critical bugs |
 | `/architecture-decision [decision]` | Create an ADR for a significant decision (including a change of math model) |
 
@@ -209,6 +218,7 @@ Idea → Concept → Math model → Design → Gate → Code → UI audit → Ru
 | `sound-designer` | Audio: bet, spin, stop, win, near-miss |
 | `qa-tester` | Test cases, edge cases, RNG distribution, state leakage |
 | `release-manager` | Release preparation, compliance audit |
+| `auto-learner` | Diagnose reusable failures/improvements, validate bounded framework changes, push review branches |
 
 ## Critical rules (game integrity)
 

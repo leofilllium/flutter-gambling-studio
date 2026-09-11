@@ -33,9 +33,10 @@ gold or color edging where it suits the object, glossy specular highlights, rest
 star glints, and one consistent top-left light. Backgrounds use the same saturated,
 layered cartoon depth and must preserve clear gameplay contrast.
 
-Do not depend on a local reference folder. A pirate concept uses pirate objects; a space
-concept uses space objects. Do not copy cherries, bells, sevens, stars, or generic casino
-imagery into unrelated games.
+Inspect matching `examples-games/` previews by default using `.claude/docs/visual-context.md`
+and `.claude/docs/game-concept-examples.md`. Generate original assets with relevant shared
+qualities. A pirate concept uses pirate objects; a space concept uses space objects. Cherries
+and bells fit a requested classic Joker slot; they do not belong in unrelated games.
 Photorealism, material-grounded product photography, flat vector clipart, emoji/sticker
 styling, and mixed render languages fail the studio baseline.
 

@@ -8,7 +8,7 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
   triptych  N vertical panels sliced out of ONE wide key-art panorama, so the
             first N store screenshots REASSEMBLE into that exact picture: the
             cuts are butt-joined, nothing at all is discarded between the panels
-            and no panel ends mid-object. WHERE the cuts fall is chosen by the
+            and protected content stays intact. WHERE the cuts fall is chosen by the
             picture, not by arithmetic (`--seam-snap`): the tiling slides until
             they land on the quietest columns, and the art is asked for a calm
             corridor there. `--gutter` can still throw a seam allowance away at
@@ -16,12 +16,12 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             store's own carousel gap — but that is opt-in, because it puts a
             hole in the picture.
             `--sprite` and `--sprite-dir` inlay the game's real objects into the
-            layout draft — hero on panel 1, the real field on panel 2, and ALL
+            layout draft — a context-selected lead, freely placed gameplay, and ALL
             shipped sprite assets distributed across the slides — so every
             split panel belongs unmistakably to the game. Auto-placement fills
             uncovered panels first; supporting objects form a cropped band
             across the bottom and then fall through the full picture with
-            varied rotation and selective motion trails. The large waist-up
+            varied rotation and selective motion trails. In character mode, a waist-up
             hero owns the left of panel 1: its source remains complete, while
             the composition may crop only its left and lower edges. Its full
             head/headwear stays clear of the top and its complete attached
@@ -29,10 +29,13 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             The bare background is measured to stay bright and smooth, and the
             finished art is blocked when it is dark, busy across the far plane,
             weak at the bottom, missing controlled overexposure, or when the
-            measured hero silhouette (including held props) leaves panel 1. The
+            character silhouette leaves panel 1 or protected outcome crosses a cut.
+            Object/mechanic leads use --lead-bounds, with no invented character. The
             inlaid result is a generation reference,
             never the final paste-up: the finished panorama is rendered as one
-            scene from this context. It carries NO TEXT: lettering across a
+            scene from this context. It carries no marketing copy; authentic symbol
+            denominations such as x5/x10 remain when supported by game rules.
+            Protect these just like outcome symbols. Marketing lettering across a
             panel boundary is cut by the store's gutters, and a lockup inside
             one panel breaks the single-picture illusion.
   boardplate
@@ -42,17 +45,17 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             frame), stood up in perspective with a slab edge. `--win` builds it
             at the moment the round pays — payline, ring, spill light, the rest
             of the field falling back and the paying symbol lifting out of its
-            cell — because the middle panel of a listing is its gameplay
-            example, and a correct grid at rest reads as a diagram.
+            cell — the gameplay may span any panels, and a correct grid at rest
+            reads as a diagram.
   showcase  a real in-game frame placed inside a drawn phone (bezel, notch,
             home indicator, glass glare, drop shadow) over a themed background,
             with the caption typography that sells the frame.
   banner    Google Play feature graphic (1024x500) — a separately generated,
             text-free long-banner scene + optional device mockup + title lockup,
-            laid out inside Play's safe area. The source art is blocked unless
-            its left 3/5 carries a large waist-up hero and action, its right 2/5
-            remains a quieter continuation rather than a reserved slot, and its
-            real-game-object foreground continues across the full lower edge.
+            laid out inside Play's safe area. --lead-kind follows the game context;
+            --banner-layout free allows the action anywhere. The legacy active
+            left 3/5 layout is opt-in. Real-game-object foreground continues
+            across the full lower edge in both layouts.
   backdrop  EXPLICIT-OPT-IN export of store key art as the game's background.
             Store screenshot generation never invokes this command by default.
   icon      launcher/store icon set derived from generated art: 1024 master,
@@ -1907,12 +1910,9 @@ _FALL_TRAIL = (0.6, 0.0, 0.4, 0.0, 0.7, 0.0, 0.3, 0.5, 0.0, 0.35)
 FALL_FRONT_W = 0.20               # at or above this it falls IN FRONT of the hero
 DEFAULT_FALL_TRAIL = 1.0          # multiplier on the per-object smear above
 # The play field built out of the game's REAL symbols (`boardplate`). It is the
-# picture's mechanic, so it bridges the middle panel into both neighbours and
-# stands inside the frame instead of bleeding off the bottom like a foreground
-# prop — a board cropped by the edge stops reading as a board. The middle panel
-# is the slide that was called boring, and half of the answer is size: the field
-# is the subject of that screenshot, not an illustration of one. The other half
-# is that it must be caught mid-round rather than at rest (`boardplate --win`).
+# picture's mechanic. Legacy defaults bridge the middle into its neighbours;
+# context may place it anywhere with x/y/w/h. Keep it inside the outer frame
+# and large enough to read, showing a real active round (`boardplate --win`).
 BOARD_W, BOARD_H = 1.16, 0.56
 BOARD_CONTAINED_W = 0.78          # narrow mechanics or layouts without two neighbours
 BOARD_X, BOARD_FOOT = 0.50, 0.88
@@ -2030,12 +2030,107 @@ HERO_SAFE_Y = 0.02                # real breathing room above the complete head
 HERO_LEFT_MAX = 0.12              # of panel 1: how far in the bust may start
 
 
+LEAD_KINDS = ("character", "object", "mechanic")
+CHARACTER_FRAMINGS = ("bust", "mascot")
+MASCOT_MIN_PANEL_AREA = 0.25
+MASCOT_MIN_BANNER_AREA = 0.12
+
+
+def focal_bounds_issues(canvas: Image.Image, spans: list[tuple[int, int]],
+                        lead_kind: str, lead_bounds, protected_bounds,
+                        *, require_bounds: bool = True) -> list[str]:
+    """Check measured focal content without treating a machine as a person.
+
+    Bounds describe the final delivery crop, not the source image. Whole boards
+    may span seams; each protected face, symbol or outcome must survive in one
+    panel. The caller supplies these vision measurements after integration.
+    """
+    if lead_kind not in LEAD_KINDS:
+        die(f"unknown lead kind {lead_kind!r}; expected {', '.join(LEAD_KINDS)}")
+    issues = []
+    if lead_kind != "character":
+        if lead_bounds is None:
+            if require_bounds:
+                issues.append("--lead-bounds is required for object/mechanic art: "
+                              "measure the actual focal asset or play field")
+        else:
+            x, y, w, h = lead_bounds
+            if w * h < 0.06:
+                issues.append("the object/mechanic lead is too small (need at least "
+                              "6% of the full image area); bring the actual game "
+                              "asset or field forward")
+            if x * canvas.width < spans[0][0] or (x + w) * canvas.width > spans[-1][1]:
+                issues.append("the object/mechanic lead leaves the delivered panorama crop")
+    for i, (x, y, w, h) in enumerate(protected_bounds or [], 1):
+        x0, x1 = x * canvas.width, (x + w) * canvas.width
+        margin = min(right - left for left, right in spans) * HERO_SAFE_X
+        if (y < HERO_SAFE_Y or y + h > 1 - HERO_SAFE_Y or
+                not any(x0 >= left + margin and x1 <= right - margin
+                        for left, right in spans)):
+            issues.append(f"protected region {i} crosses a carousel seam or crowds "
+                          "the delivered frame; preserve the complete face, "
+                          "decisive symbol or outcome inside one panel")
+    return issues
+
+
+BACKGROUND_SAMPLE_MIN = 0.05
+BACKGROUND_MASK_PAD = 5  # 4px activity blur plus the source edge derivative
+
+
+def upper_background_details(activity: np.ndarray, scale: float,
+                             canvas_size: tuple[int, int],
+                             spans: list[tuple[int, int]], subject_bounds=()
+                             ) -> tuple[list[float], list[str]]:
+    """Measure the visible far plane, excluding measured game subjects.
+
+    The upper band is a sampling area, not an assertion that all its pixels
+    are scenery. Subject masks affect detail only, never colour, brightness or
+    lower-edge object measurements. A panel wholly occupied by gameplay uses
+    the other panels' sampled background for its foreground comparison.
+    """
+    upper_end = max(1, int(activity.shape[0] * UPPER_BAND))
+    mask = np.ones(activity.shape, dtype=bool)
+    width, height = canvas_size
+    for x, y, w, h in subject_bounds:
+        x0 = max(0, math.floor(x * width * scale) - BACKGROUND_MASK_PAD)
+        x1 = min(mask.shape[1], math.ceil((x + w) * width * scale) + BACKGROUND_MASK_PAD)
+        y0 = max(0, math.floor(y * height * scale) - BACKGROUND_MASK_PAD)
+        y1 = min(mask.shape[0], math.ceil((y + h) * height * scale) + BACKGROUND_MASK_PAD)
+        mask[y0:y1, x0:x1] = False
+    samples = []
+    total = 0
+    for span in spans:
+        panel = _panel_slice(activity, span, scale)[:upper_end]
+        available = _panel_slice(mask, span, scale)[:upper_end]
+        samples.append(panel[available])
+        total += panel.size
+    count = sum(sample.size for sample in samples)
+    share = count / max(1, total)
+    issues = []
+    if share < BACKGROUND_SAMPLE_MIN:
+        issues.append(
+            f"subject/gameplay bounds leave insufficient measurable upper background "
+            f"({share:.1%}; need ≥{BACKGROUND_SAMPLE_MIN:.0%}). Use tight measured "
+            "subject boxes and retain visible far-plane evidence; a fully masked "
+            "background cannot pass")
+    # An empty mask is a blocker above, not a fabricated zero-detail pass.
+    overall = (sum(float(sample.sum()) for sample in samples) / count
+               if count else FINAL_UPPER_DETAIL_MAX + 1)
+    details = [float(sample.mean()) if sample.size else overall for sample in samples]
+    info(f"background detail sample: {share:.1%} of delivered upper band remains "
+         "after subject/gameplay exclusions")
+    return details, issues
+
+
 def final_art_issues(
         pano: Image.Image,
         spans: list[tuple[int, int]],
         hero_bounds: tuple[float, float, float, float] | None,
         *,
-        require_hero_bounds: bool = True) -> list[str]:
+        require_hero_bounds: bool = True,
+        lead_kind: str = "character", lead_bounds=None,
+        protected_bounds=(), gameplay_bounds=(),
+        character_framing: str = "bust") -> list[str]:
     """Return the blockers from the supplied panorama-feedback contract.
 
     ``hero_bounds`` is the tight normalized box around the protagonist as the
@@ -2049,24 +2144,32 @@ def final_art_issues(
     stays large, keeps at least 2% clear space above the complete head/headwear,
     and keeps its silhouette off the first carousel seam.
     """
-    issues: list[str] = []
+    if character_framing not in CHARACTER_FRAMINGS:
+        die(f"unknown character framing {character_framing!r}")
+    issues = focal_bounds_issues(
+        pano, spans, lead_kind, lead_bounds, protected_bounds,
+        require_bounds=require_hero_bounds)
+    if lead_kind != "character":
+        hero_bounds = None
     activity, scale = _activity(pano)
-    upper_details: list[float] = []
+    subjects = list(gameplay_bounds)
+    focal_bounds = hero_bounds if lead_kind == "character" else lead_bounds
+    if focal_bounds is not None:
+        subjects.append(focal_bounds)
+    upper_details, background_issues = upper_background_details(
+        activity, scale, pano.size, spans, subjects)
+    issues.extend(background_issues)
     panel_frame_ratios: list[float] = []
     panel_lower_details: list[float] = []
-    for span in spans:
+    for span, upper_detail in zip(spans, upper_details):
         panel = _panel_slice(activity, span, scale)
-        upper = panel[:max(1, int(panel.shape[0] * UPPER_BAND))]
-        upper_details.append(float(upper.mean()))
         lower = panel[int(panel.shape[0] * LOWER_BAND):]
         lower_mean = float(lower.mean())
         panel_lower_details.append(lower_mean)
-        panel_frame_ratios.append(lower_mean / max(float(upper.mean()), 1e-6))
+        panel_frame_ratios.append(lower_mean / max(upper_detail, 1e-6))
     upper_mean = float(np.mean(upper_details))
-    rows = activity.shape[0]
-    upper = float(activity[:max(1, int(rows * UPPER_BAND))].mean())
-    lower = float(activity[int(rows * LOWER_BAND):].mean())
-    frame_ratio = lower / max(upper, 1e-6)
+    lower = float(np.mean(panel_lower_details))
+    frame_ratio = lower / max(upper_mean, 1e-6)
 
     arr = np.asarray(pano.convert("RGB"), dtype=np.float32) / 255.0
     luma = (arr * LUMA).sum(axis=-1)
@@ -2080,7 +2183,7 @@ def final_art_issues(
         pano, spans[0], hero_bounds)
 
     info(f"art gate: luma {mean_luma:.2f}, deep shadow {shadow_share * 100:.0f}%, "
-         f"upper detail {upper_mean:.1f}, bottom/upper {frame_ratio:.2f}×, "
+         f"background detail {upper_mean:.1f}, bottom/background {frame_ratio:.2f}×, "
          f"panel floors {'/'.join(f'{v:.2f}×' for v in panel_frame_ratios)}, "
          f"saturation {saturation:.2f}, secondary hues {hue_outside * 100:.0f}%, "
          f"glare {blown * 100:.1f}%")
@@ -2098,14 +2201,14 @@ def final_art_issues(
             "bright and broad; saturation alone does not make a dark stage bright")
     if upper_mean > FINAL_UPPER_DETAIL_MAX:
         issues.append(
-            f"the final upper plane is too detailed ({upper_mean:.1f}, maximum "
+            f"the visible upper background is too detailed ({upper_mean:.1f}, maximum "
             f"{FINAL_UPPER_DETAIL_MAX:.1f}). Replace dense architecture, filigree, "
             "crowds, foliage, and all-over particles with broad color, simplified "
             "far silhouettes, soft atmosphere, and one luminous source")
     if frame_ratio < FINAL_FRAME_RATIO_MIN:
         issues.append(
             f"the bottom edge does not carry the game's object frame ({frame_ratio:.2f}× "
-            f"the upper detail; need ≥{FINAL_FRAME_RATIO_MIN:.2f}×). Generic rails, "
+            f"the background detail; need ≥{FINAL_FRAME_RATIO_MIN:.2f}×). Generic rails, "
             "scrollwork, drapery, and stage furniture do not count as game objects")
     weak_panels = [
         str(i + 1) for i, (ratio, lower_detail) in enumerate(
@@ -2117,7 +2220,7 @@ def final_art_issues(
         issues.append(
             f"the foreground object hill is missing or visually merged into the background "
             f"on panel(s) {', '.join(weak_panels)} (each lower band must be ≥"
-            f"{FINAL_PANEL_FRAME_RATIO_MIN:.2f}× its upper band and carry real object detail). "
+            f"{FINAL_PANEL_FRAME_RATIO_MIN:.2f}× sampled background detail and carry real object detail). "
             "Keep recognizable game items large, overlapping, separately silhouetted and "
             "cropped by the bottom edge")
     if saturation < SAT_FLOOR:
@@ -2149,6 +2252,9 @@ def final_art_issues(
             f"({hero_bg_value_gap:.2f}; need ≥{HERO_BG_VALUE_GAP_MIN:.2f}). "
             "Change the background colour/value so the full silhouette reads instantly")
 
+    if lead_kind != "character":
+        return issues
+
     if hero_bounds is None:
         if require_hero_bounds:
             issues.append(
@@ -2167,7 +2273,10 @@ def final_art_issues(
     info(f"art gate hero: {w:.0%} of panorama width × {h:.0%} of panel height, "
          f"starting {(hx0 - left) / max(1.0, panel_w):.0%} into panel 1; "
          f"panel 1 x={left / pano.width:.3f}..{right / pano.width:.3f}")
-    if h < HERO_MIN_H:
+    if character_framing == "mascot" and w * pano.width / panel_w * h < MASCOT_MIN_PANEL_AREA:
+        issues.append("the mascot is too small; its measured silhouette box must "
+                      f"occupy ≥{MASCOT_MIN_PANEL_AREA:.0%} of panel 1 area")
+    elif character_framing == "bust" and h < HERO_MIN_H:
         issues.append(
             f"the hero is too small ({h:.0%} of panel height; need ≥{HERO_MIN_H:.0%}). "
             "The bust is the slide: crop it at the waist and bring it forward rather "
@@ -2469,21 +2578,27 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                   spans: list[tuple[int, int]] | None = None,
                   frame_target: str | int = "auto", falling: bool = True,
                   fall_trail: float = DEFAULT_FALL_TRAIL,
-                  hero_height: float = HERO_H) -> list[str]:
+                  hero_height: float = HERO_H,
+                  lead_kind: str = "character",
+                  character_framing: str = "bust") -> list[str]:
     """Composite the game's OWN objects into the concept art.
 
     Stores reject listings whose first panels advertise a world the app does not
     contain. Describing the game's symbols to an image model produces something
     similar; pasting the shipped sprite produces the same object. This does the
-    second — leading with the hero on panel 1, at a size that survives the
-    thumbnail strip, seated in the scene's own light. Interior boards may bridge
-    the seams; the hero and individual supporting objects remain seam-safe.
+    second, selecting character/object/mechanic roles from context. Characters
+    lead panel 1; object/mechanic mode does not invent one. Boards may bridge
+    any seams with x/y/w/h placement; characters and individual supporting
+    objects remain seam-safe.
 
     `spans` are the cuts the panorama will actually be sliced on. They are
     passed in rather than recomputed because the seams are snapped to the
     picture's calm ground first: an object placed against the nominal 1/3, 2/3
     arithmetic can sit on a seam that has since moved.
     """
+    if character_framing not in CHARACTER_FRAMINGS:
+        die(f"unknown character framing {character_framing!r}")
+    mascot = character_framing == "mascot"
     parsed = [parse_sprite_spec(raw) for raw in (specs or [])]
     if not parsed:
         return []
@@ -2494,7 +2609,11 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
              f"{panels} panels. This composite is a placement/reference draft, not "
              "the deliverable; the integration render must build every asset into "
              "the scene and keep each identity recognizable.")
-    if not any(spec.get("role") == "hero" for spec in parsed):
+    if lead_kind not in LEAD_KINDS:
+        die(f"unknown lead kind {lead_kind!r}")
+    if lead_kind != "character" and any(spec.get("role") == "hero" for spec in parsed):
+        die("@hero requires --lead-kind character; use @prop or @board for objects")
+    if lead_kind == "character" and not any(spec.get("role") == "hero" for spec in parsed):
         # The store shows screenshot 1 at full size and the rest as thumbnails,
         # so the protagonist leads unless the caller names one itself. Tagging
         # some *other* object — a board, a prop — must not quietly cost the set
@@ -2552,13 +2671,13 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             default_w = _FALL_W[fall_i % len(_FALL_W)]
             max_h = default_w * 1.6
         else:
-            default_w = (HERO_W_MAX if hero else
+            default_w = ((0.92 if mascot else HERO_W_MAX) if hero else
                          (BOARD_W if panels >= 3 else BOARD_CONTAINED_W) if board
                          else _PROP_W[prop_i % len(_PROP_W)])
             # The hero's target is the height it fills *visibly*; the art itself
             # is taller, and the surplus is the waist-down crop the reference
             # banners are cut with. Everything else sits whole in the frame.
-            max_h = (hero_height / HERO_KEEP if hero
+            max_h = ((hero_height if mascot else hero_height / HERO_KEEP) if hero
                      else BOARD_H if board else PROP_H)
         w_frac = float(spec.get("w", default_w))
         h_frac = float(spec.get("h", max_h))
@@ -2569,7 +2688,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
         # other way round.
         art = contain(art, max(8, round(panel_w * w_frac)),
                       max(8, round(panel_h * h_frac)))
-        if hero and "h" not in spec:
+        if hero and not mascot and "h" not in spec:
             # A squat or wide cutout hits the width cap before it reaches full
             # height, and then the one screenshot the store shows at full size
             # is a landscape with a person in it again. What counts is the part
@@ -2611,9 +2730,8 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             elif hero:
                 panel = 0
             elif board:
-                # The mechanic sits in the middle of the strip: away from the
-                # hero's panel, and never on the last one, which the store
-                # crops first on a narrow carousel.
+                # Compatibility fallback only: context selects x/y/w/h or panel.
+                # The play field may occupy any panel or span the whole strip.
                 panel = panels // 2
             elif framed or falls:
                 # First fill any panel that does not yet have a real game
@@ -2704,12 +2822,12 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                      "may run off that edge, but not far enough to cut an arm or a "
                      "held prop off the slide. Lower --hero-height or crop the "
                      "sprite's empty margins.")
-        elif board and w_frac > 1.0 and 0 < panel < panels - 1:
+        elif board and w_frac > 1.0:
             # A wide mechanism connects adjacent slides. Keep its aspect ratio
             # and the full plate on the canvas; only this role may cross seams.
             # The integration/vision pass protects decisive cells and the hero.
-            safe_left = cuts[panel - 1][0] + margin
-            safe_right = cuts[panel + 1][1] - margin
+            safe_left = cuts[0][0] + margin
+            safe_right = cuts[-1][1] - margin
             if art.width > safe_right - safe_left:
                 art = contain(art, safe_right - safe_left, round(panel_h * h_frac))
             half = art.width // 2
@@ -2718,7 +2836,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             right_overlap = max(0, cx - half + art.width - right)
             info(f"wide gameplay: {art.width / panel_w:.2f}× panel width; "
                  f"left/right seam extension {left_overlap}px/{right_overlap}px. "
-                 "Review both store crops with gaps: only non-critical field edges "
+                 "Review all store crops with gaps: only non-critical field structure "
                  "may cross, and the hero and decisive outcome must remain readable.")
         else:
             if art.width > panel_w - 2 * margin:
@@ -2762,21 +2880,28 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
             # The board stays unobscured because its cells must remain legible,
             # and the frame band and the fall are foreground by definition.
             "occlude": max(0.0, min(0.5, float(
-                spec.get("occlude", HERO_OCCLUDE if hero else
+                spec.get("occlude", (0.0 if mascot else HERO_OCCLUDE) if hero else
                          0.0 if board or framed or falls else PROP_OCCLUDE)))),
         })
 
     anchors: list[list[str]] = [[] for _ in range(panels)]
     for p in placements:
-        anchors[p["panel"]].append(p["name"])
+        if p["board"]:
+            x0 = p["cx"] - p["art"].width // 2
+            x1 = x0 + p["art"].width
+            for index, (left, right) in enumerate(cuts):
+                if min(x1, right) - max(x0, left) >= panel_w * 0.05:
+                    anchors[index].append(p["name"])
+        else:
+            anchors[p["panel"]].append(p["name"])
     for i, names in enumerate(anchors):
         info(f"panel {i + 1} game anchors: {', '.join(names) if names else 'NONE'}")
     missing = [str(i + 1) for i, names in enumerate(anchors) if not names]
     if missing:
         warn(f"panel{'s' if len(missing) > 1 else ''} {', '.join(missing)} "
              "contain no real game object — every split slide needs an unmistakable "
-             "anchor from assets/images/ built into its own scene (panel 1 hero, "
-             "middle panel field, final panel reward/prop). Add another --sprite or "
+             "anchor from assets/images/ built into its own scene, including part "
+             "of a spanning field or recognizable game object. Add another --sprite or "
              "move one with panel=; decorative background alone does not establish "
              "game continuity.")
 
@@ -2864,7 +2989,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
              hy0 < pano.height * HERO_SAFE_Y),
             ("the first carousel seam", hx1 > pr - seam_margin),
         ) if past]
-        info(f"hero bust: {visible_h / panel_h:.0%} of panel "
+        info(f"hero {character_framing}: {visible_h / panel_h:.0%} of panel "
              f"{hero_p['panel'] + 1}'s height visible, {left_bleed:.0%} of its width "
              f"past the left edge, {bottom_crop:.0%} cropped by the bottom")
         if over:
@@ -2932,6 +3057,13 @@ def cmd_triptych(args) -> None:
     fall_trail = float(getattr(args, "fall_trail", DEFAULT_FALL_TRAIL))
     hero_height = float(getattr(args, "hero_height", HERO_H))
     art_gate = getattr(args, "art_gate", "strict")
+    lead_kind = getattr(args, "lead_kind", "character")
+    lead_bounds = (parse_unit_box(args.lead_bounds, "--lead-bounds")
+                   if getattr(args, "lead_bounds", None) else None)
+    protected_bounds = [parse_unit_box(box, "--protected-bounds")
+                        for box in getattr(args, "protected_bounds", [])]
+    gameplay_bounds = [parse_unit_box(box, "--gameplay-bounds")
+                       for box in getattr(args, "gameplay_bounds", [])]
     hero_bounds = (parse_unit_box(args.hero_bounds)
                    if getattr(args, "hero_bounds", None) else None)
     if not 0.10 <= hero_height <= 0.95:
@@ -2982,7 +3114,8 @@ def cmd_triptych(args) -> None:
     inlay_sprites(pano, sprite_specs, n, w, h, gutter,
                   glow_color=args.sprite_glow_color, light=args.sprite_light,
                   spans=spans, frame_target=frame_target, falling=falling,
-                  fall_trail=fall_trail, hero_height=hero_height)
+                  fall_trail=fall_trail, hero_height=hero_height, lead_kind=lead_kind,
+                  character_framing=getattr(args, "character_framing", "bust"))
     seam_report(pano, spans)
     detail_report(pano, spans)
     glare_report(pano)
@@ -2990,7 +3123,10 @@ def cmd_triptych(args) -> None:
     if art_gate != "off":
         issues = final_art_issues(
             pano, spans, hero_bounds,
-            require_hero_bounds=not args.pano_only)
+            require_hero_bounds=not args.pano_only, lead_kind=lead_kind,
+            lead_bounds=lead_bounds, protected_bounds=protected_bounds,
+            gameplay_bounds=gameplay_bounds,
+            character_framing=getattr(args, "character_framing", "bust"))
         if backdrop_details and any(detail > BACKDROP_BUSY
                                     for detail in backdrop_details):
             busy = ", ".join(
@@ -3437,8 +3573,8 @@ def cmd_boardplate(args) -> None:
                              origin[(c, r)][1] + cell // 2, cell,
                              min(3.0, args.lift) * (cell - 2 * inset) / cell, accent)
         else:
-            warn("no --win: the plate is the field at rest, and the middle panel is "
-                 "the listing's gameplay example. A correct grid with nothing "
+            warn("no --win: the plate is the field at rest. The listing needs a "
+                 "gameplay example. A correct grid with nothing "
                  "happening in it is what came back as 'boring' — name the cells that "
                  "pay (--win 1x2,2x2,3x2) so the panel shows the round resolving, and "
                  "--lift rides on it to pop the paying symbol out of the board.")
@@ -3667,8 +3803,14 @@ def banner_art_issues(
         hero_bounds: tuple[float, float, float, float] | None,
         *,
         require_hero_bounds: bool = True,
-        scene_share: float = BANNER_SCENE_SHARE) -> list[str]:
+        scene_share: float = BANNER_SCENE_SHARE,
+        lead_kind: str = "character", lead_bounds=None,
+        protected_bounds=(), gameplay_bounds=(),
+        banner_layout: str = "free",
+        character_framing: str = "bust") -> list[str]:
     """Return blockers from the supplied long-banner composition contract."""
+    if character_framing not in CHARACTER_FRAMINGS:
+        die(f"unknown character framing {character_framing!r}")
     metrics = banner_art_metrics(canvas, scene_share)
     density = metrics["density_ratio"]
     info(
@@ -3683,13 +3825,17 @@ def banner_art_issues(
         f"{metrics['secondary_hues'] * 100:.0f}%, glare "
         f"{metrics['glare'] * 100:.1f}%")
 
-    issues: list[str] = []
-    if density > BANNER_CALM_MAX:
+    if banner_layout not in ("free", "left-heavy"):
+        die(f"unknown banner layout {banner_layout!r}")
+    issues = focal_bounds_issues(
+        canvas, [(0, canvas.width)], lead_kind, lead_bounds, protected_bounds,
+        require_bounds=require_hero_bounds)
+    if banner_layout == "left-heavy" and density > BANNER_CALM_MAX:
         issues.append(
             "the right of the banner is as busy as the scene side. Keep the same "
             "world there, but use fewer large objects, more broad light and "
             "atmosphere, and smaller falling game items")
-    elif density < BANNER_CALM_MIN:
+    elif banner_layout == "left-heavy" and density < BANNER_CALM_MIN:
         issues.append(
             "the right of the banner is a hole, not a continuation: an empty "
             "vertical band, niche, arch, podium, halo, dark patch or blur has been "
@@ -3697,20 +3843,42 @@ def banner_art_issues(
             "detail, light, particles and several smaller game objects continuing "
             "through the right 2/5")
 
-    if (metrics["right_floor_share"] < BANNER_RIGHT_FLOOR_SHARE_MIN or
-            metrics["right_floor_relief"] < BANNER_RIGHT_FLOOR_RELIEF_MIN):
-        issues.append(
-            "the real-game-object foreground does not continue through the right "
-            "2/5. Keep the shallow cropped object hill across the full lower edge; "
-            "it may become lower and sparser on the right, but it may not disappear "
-            "or dissolve into the background")
+    if banner_layout == "left-heavy":
+        if (metrics["right_floor_share"] < BANNER_RIGHT_FLOOR_SHARE_MIN or
+                metrics["right_floor_relief"] < BANNER_RIGHT_FLOOR_RELIEF_MIN):
+            issues.append(
+                "the real-game-object foreground does not continue through the right "
+                "2/5. Keep the shallow cropped object hill across the full lower edge; "
+                "it may become lower and sparser on the right, but it may not disappear "
+                "or dissolve into the background")
 
-    if not BANNER_LUMA_ZONE_MIN <= metrics["right_luma_ratio"] <= BANNER_LUMA_ZONE_MAX:
-        issues.append(
-            f"the right 2/5 changes brightness abruptly ({metrics['right_luma_ratio']:.2f}× "
-            f"the left; need {BANNER_LUMA_ZONE_MIN:.2f}-{BANNER_LUMA_ZONE_MAX:.2f}×). "
-            "It must be a natural continuation, not a visibly darkened strip or an "
-            "isolated light patch")
+        if not BANNER_LUMA_ZONE_MIN <= metrics["right_luma_ratio"] <= BANNER_LUMA_ZONE_MAX:
+            issues.append(
+                f"the right 2/5 changes brightness abruptly ({metrics['right_luma_ratio']:.2f}× "
+                f"the left; need {BANNER_LUMA_ZONE_MIN:.2f}-{BANNER_LUMA_ZONE_MAX:.2f}×). "
+                "It must be a natural continuation, not a visibly darkened strip or an "
+                "isolated light patch")
+    else:
+        # Sample the whole lower edge symmetrically. A free layout may lead on
+        # either side; no right-hand device-shaped quiet zone is prescribed.
+        activity, scale = _activity(canvas)
+        spans = [(round(i * canvas.width / 3), round((i + 1) * canvas.width / 3))
+                 for i in range(3)]
+        subjects = list(gameplay_bounds)
+        focal_bounds = hero_bounds if lead_kind == "character" else lead_bounds
+        if focal_bounds is not None:
+            subjects.append(focal_bounds)
+        upper_details, background_issues = upper_background_details(
+            activity, scale, canvas.size, spans, subjects)
+        issues.extend(background_issues)
+        for index, (span, upper) in enumerate(zip(spans, upper_details), 1):
+            band = _panel_slice(activity, span, scale)
+            lower = float(band[int(band.shape[0] * LOWER_BAND):].mean())
+            if (lower < FINAL_PANEL_LOWER_DETAIL_MIN or
+                    lower / max(upper, 1e-6) < FINAL_PANEL_FRAME_RATIO_MIN):
+                issues.append(f"the foreground does not continue through banner "
+                              f"zone {index}; preserve real game objects across "
+                              "the full lower edge")
     if (metrics["mean_luma"] < FINAL_LUMA_MIN or
             metrics["shadow_share"] > FINAL_SHADOW_MAX):
         issues.append(
@@ -3732,16 +3900,22 @@ def banner_art_issues(
             f"band ({metrics['glare'] * 100:.1f}%; need "
             f"{GLARE_MIN * 100:.1f}-{GLARE_MAX * 100:.0f}%)")
 
+    if lead_kind != "character":
+        return issues
+
     if hero_bounds is None:
         if require_hero_bounds:
             issues.append(
                 "--hero-bounds is required for final long-banner art: measure the "
-                "large waist-up protagonist or hero mechanic on the left, including "
+                "large waist-up protagonist on the left, including "
                 "the complete head/headwear and every held prop")
         return issues
 
     x, y, w, h = hero_bounds
-    if h < BANNER_HERO_MIN_H:
+    if character_framing == "mascot" and w * h < MASCOT_MIN_BANNER_AREA:
+        issues.append("the long-banner mascot is too small; its measured silhouette "
+                      f"box must occupy ≥{MASCOT_MIN_BANNER_AREA:.0%} of banner area")
+    elif character_framing == "bust" and h < BANNER_HERO_MIN_H:
         issues.append(
             f"the long-banner hero is too small ({h:.0%} of banner height; need "
             f"≥{BANNER_HERO_MIN_H:.0%}). Use a large waist-up crop, not a full-body "
@@ -3755,7 +3929,7 @@ def banner_art_issues(
             f"the hero's head/headwear is cut or unsafe at the top ({y:.1%} margin; "
             f"need ≥{BANNER_HERO_TOP_MIN:.0%}). Keep the waist/lower body crop, never "
             "the head crop")
-    if x + w > BANNER_HERO_RIGHT_MAX:
+    if banner_layout == "left-heavy" and x + w > BANNER_HERO_RIGHT_MAX:
         issues.append(
             f"the hero silhouette consumes the calmer side (ends at {x + w:.0%}; "
             f"need ≤{BANNER_HERO_RIGHT_MAX:.0%}). Keep the complete waist-up figure "
@@ -3767,7 +3941,8 @@ def banner_zone_report(canvas: Image.Image,
                        scene_share: float = BANNER_SCENE_SHARE) -> float:
     """Report how the long banner's right side relates to its scene side."""
     issues = banner_art_issues(
-        canvas, None, require_hero_bounds=False, scene_share=scene_share)
+        canvas, None, require_hero_bounds=False, scene_share=scene_share,
+        banner_layout="left-heavy")
     for issue in issues:
         warn(issue)
     return banner_art_metrics(canvas, scene_share)["density_ratio"]
@@ -3787,7 +3962,16 @@ def cmd_banner(args) -> None:
                    if getattr(args, "hero_bounds", None) else None)
     if banner_gate != "off":
         issues = banner_art_issues(
-            canvas, hero_bounds, require_hero_bounds=banner_gate == "strict")
+            canvas, hero_bounds, require_hero_bounds=banner_gate == "strict",
+            lead_kind=getattr(args, "lead_kind", "character"),
+            lead_bounds=(parse_unit_box(args.lead_bounds, "--lead-bounds")
+                         if getattr(args, "lead_bounds", None) else None),
+            protected_bounds=[parse_unit_box(box, "--protected-bounds")
+                              for box in getattr(args, "protected_bounds", [])],
+            gameplay_bounds=[parse_unit_box(box, "--gameplay-bounds")
+                             for box in getattr(args, "gameplay_bounds", [])],
+            banner_layout=getattr(args, "banner_layout", "free"),
+            character_framing=getattr(args, "character_framing", "bust"))
         for issue in issues:
             warn(f"BANNER GATE: {issue}")
         if issues and banner_gate == "strict":
@@ -4103,6 +4287,35 @@ def add_pop_args(p: argparse.ArgumentParser) -> None:
                         "'brighter' at thumbnail size")
 
 
+def add_composition_args(parser: argparse.ArgumentParser) -> None:
+    """Shared context selection and measured final-crop subject protection."""
+    parser.add_argument("--lead-kind", choices=LEAD_KINDS, default="character",
+                        help="select from the game concept: character, object, or "
+                             "mechanic. Character is a compatibility default, "
+                             "not a reason to invent a mascot")
+    parser.add_argument("--character-framing", choices=CHARACTER_FRAMINGS, default="bust",
+                        help="bust for humanoids; mascot for chicken/animal proportions. "
+                             "Mascots retain first-panel/head/seam protection with "
+                             "area prominence instead of a humanoid height minimum")
+    parser.add_argument("--lead-bounds", metavar="X,Y,W,H",
+                        help="normalized focal object/field box in the FINAL crop; "
+                             "required for object/mechanic strict art. May span "
+                             "panels and sit anywhere; no character anatomy gate")
+    parser.add_argument("--gameplay-bounds", action="append", default=[],
+                        metavar="X,Y,W,H",
+                        help="repeat tight final-crop boxes for actual gameplay "
+                             "surfaces, including spanning boards. Exclude these "
+                             "from background-detail sampling, not palette/light "
+                             "or foreground checks. Selected hero/lead bounds are "
+                             "excluded automatically. Retain measurable background; "
+                             "protect outcomes separately with --protected-bounds")
+    parser.add_argument("--protected-bounds", action="append", default=[],
+                        metavar="X,Y,W,H",
+                        help="repeat for each decisive symbol, outcome or face in "
+                             "the FINAL crop. Each must survive fully in one "
+                             "panel. Do not mark a whole spanning board protected")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         prog="store_compose.py",
@@ -4111,7 +4324,8 @@ def main() -> None:
 
     t = sub.add_parser("triptych",
                        help="slice one wide key art into N continuous panels (no text)")
-    t.add_argument("--src", required=True, help="wide key-art PNG (no text baked in)")
+    add_composition_args(t)
+    t.add_argument("--src", required=True, help="wide key-art PNG (no marketing copy; authentic symbol markings allowed)")
     t.add_argument("--out", required=True, help="output directory")
     t.add_argument("--panels", type=int, default=3)
     t.add_argument("--size", default=DEFAULT_SCREEN_SIZE,
@@ -4140,32 +4354,20 @@ def main() -> None:
                         f"auto = {SNAP_REF * 100:.0f}%% of a panel; off = the "
                         "content-blind even split)")
     t.add_argument("--sprite", action="append", default=[], metavar="PNG[@k=v,...]",
-                   help="place a REAL game object into the layout/reference draft so "
-                        "the integration render can build it naturally into the scene. "
-                        "Use --sprite-dir to complete the exhaustive inventory. Every "
-                        "split panel must carry part of the manifest; auto-placement "
-                        "fills an empty panel before doubling up. Repeatable, and the FIRST "
-                        "one is the hero unless a role flag says otherwise: it takes "
-                        f"panel 1 as a waist-up bust filling ~{HERO_H * 100:.0f}%% of the "
-                        "panel HEIGHT, anchored to its left edge and top and cropped by "
-                        f"the bottom (and, past {HERO_W_MAX:.2f}× the panel width, by the "
-                        "left). That is the screenshot the store shows at full size, and "
-                        "what has to read at carousel size is the face. Flags: hero, "
-                        "prop, frame (bottom edge), "
-                        "fall (airborne), board (a `boardplate` play field — the middle panel at "
-                        f"~{BOARD_W:.2f}× the panel width, bridging both neighbours "
-                        "when available; use w=0.78 for a contained field). "
-                        "Keys: x,y (0..1 of the panorama), w and h (fractions of one "
-                        "panel — for the hero w is the cap and h is the target), "
-                        "panel (1-based), rot, bleed (how far the foot runs past the "
-                        "bottom edge), glow, shadow, contact, light, occlude (how much "
-                        "of the object's height the scene's foreground closes back over "
-                        f"— {HERO_OCCLUDE} for the hero, {PROP_OCCLUDE} for props, 0 for "
-                        "the legible board), trail (falling-object motion smear), opacity. Omit x "
-                        "and objects are auto-placed at graded depths, standing on the "
-                        "ground plane. Interior boards with w>1 may bridge seams; "
-                        "heroes and other objects stay clear. Never ship this "
-                        "draft as a pasted composite.")
+                   help="place REAL game assets in a reference draft, never the final "
+                        "deliverable. Roles: hero (character mode only), prop, frame "
+                        "(bottom spill), fall (airborne), board (real play field). "
+                        "Character mode promotes the first non-board sprite to hero "
+                        "if none is explicit. Object/mechanic mode never does. "
+                        "Keys: x,y (normalized panorama centre), w,h (fractions of "
+                        "one panel), panel (1-based), rot, bleed, glow, shadow, "
+                        "contact, light, occlude, trail, opacity. Gameplay can sit "
+                        "anywhere: @board,x=0.67,w=1.9 for right two panels or "
+                        "@board,x=0.5,w=2.9 for all three; set h to preserve aspect "
+                        "and readability. Non-critical board structure may cross "
+                        "seams; protect outcomes separately after final integration. "
+                        "Omitted board placement retains a central compatibility "
+                        "default, not a composition rule. Repeatable.")
     t.add_argument("--sprite-dir", action="append", default=[], metavar="DIR",
                    help="recursively add EVERY raster sprite in DIR to the layout/"
                         "reference manifest (PNG, WebP, JPEG discovery). Repeatable. "
@@ -4286,9 +4488,9 @@ def main() -> None:
                     help="the cells that PAY, 1-based COLxROW in the order they pay "
                          "(e.g. 1x2,2x2,3x2). They get the payline, an accent ring and "
                          "the light it spills onto the panel, and the rest of the field "
-                         "falls back (--dim). The middle panel of the listing is the "
-                         "gameplay example: a correct grid at rest is the slide that "
-                         "came back as boring, and this is what makes it a moment "
+                         "falls back (--dim). An active round makes the listing a "
+                         "gameplay example: a correct grid at rest looks boring. "
+                         "This captures a decisive moment "
                          "without inventing anything the app does not have")
     bp.add_argument("--win-color", default="", metavar="HEX",
                     help="the game's own win/accent colour for the payline, rings and "
@@ -4327,6 +4529,11 @@ def main() -> None:
 
     b = sub.add_parser("banner", help="Google Play feature graphic")
     b.add_argument("--keyart", required=True)
+    add_composition_args(b)
+    b.add_argument("--banner-layout", choices=("free", "left-heavy"), default="free",
+                   help="free follows game context with full-width object framing; "
+                        "left-heavy opts into the legacy active left 3/5 and calm "
+                        "right 2/5. Both retain palette, light and focal gates")
     b.add_argument("--out", required=True)
     b.add_argument("--size", default="1024x500")
     b.add_argument("--shot", help="optional in-game frame for the device mockup")
@@ -4335,19 +4542,16 @@ def main() -> None:
                    help="oversample factor (>1) creating slack for --offset")
     b.add_argument("--offset", type=float, default=0.0,
                    help="-1..1 horizontal crop bias for a dedicated long-banner "
-                        "source with extra width. Keep the measured waist-up hero "
-                        "large on the left and its complete head inside the crop")
+                        "source with extra width. Measure focal bounds after cropping")
     b.add_argument("--hero-bounds", metavar="X,Y,W,H",
-                   help="tight normalized box around the complete waist-up hero or "
-                        "hero mechanic in the text/device-free banner crop. Strict "
-                        "mode requires it and checks that the subject is large, left-"
-                        "anchored, fully headed, and contained in the active scene")
+                   help="tight normalized box around a complete waist-up character "
+                        "in the final banner crop. Required in character mode only; "
+                        "object/mechanic mode uses --lead-bounds")
     b.add_argument("--banner-gate", choices=("strict", "warn", "off"),
                    default="strict",
-                   help="validate the long-banner source against the supplied 3/5-2/5 "
-                        "brief. `strict` (default) writes nothing when saturation, "
-                        "light, controlled glare, hero framing, continuous right-side "
-                        "detail, or the full-width lower object frame fails. `warn` is "
+                   help="validate the selected context and layout. `strict` (default) "
+                        "writes nothing when palette, light, controlled glare, focal "
+                        "framing, protection, or full-width object framing fails. `warn` is "
                         "diagnostic only; `off` is for compositor tests")
     b.add_argument("--base-out", metavar="PNG",
                    help="also save the audited text/device-free long-banner crop "

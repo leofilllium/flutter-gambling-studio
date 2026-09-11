@@ -134,3 +134,14 @@ Creates a file `design/gdd/[system].md` with the following sections:
 - **Requests the mathematics from**: `game-mathematician`
 - **Hands specifications to**: `mechanics-programmer`, `juice-artist`, `sound-designer`
 - **Reports to**: `creative-director`
+
+## Context-led visual direction
+
+Read `.claude/docs/visual-context.md` before planning or reviewing visuals. For a matching
+new-game request, inspect the relevant `examples-games/` previews and read
+`.claude/docs/game-concept-examples.md`. Carry the lead kind, references/adaptations, exact
+board topology, Joker expression (when relevant), and verified multiplier-coin meanings from
+the concept into the art direction, asset manifest and prompts. Classic unspecified slots
+use 3×3; store gameplay placement is flexible and object-led games need no invented character.
+
+Reject forced mascots, horror Jokers, invented multipliers and store grids that differ from runtime.
