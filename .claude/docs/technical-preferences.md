@@ -9,6 +9,20 @@
   layouts preserve the mobile hierarchy while using the additional space intentionally. Follow
   `.claude/docs/mobile-first-contract.md`.
 
+### Web font and engine resource verification
+
+Before claiming that a served Web game starts without external resources, use a fresh browser
+profile with cache disabled and external HTTP(S) requests blocked before first navigation.
+Verify successful startup and real gameplay, and inspect the request/error log. Bundled theme
+fonts and `--no-web-resources-cdn` alone are not proof: inspect the installed engine and its
+font manifest if a fallback request remains. For example, Flutter 3.44.5 CanvasKit loads remote
+Roboto when the manifest lacks the `Roboto` family, even when the app uses bundled fonts.
+When that behavior is confirmed, a compatible bundled font can be registered under the engine
+fallback family while preserving the app's designed typography; test the generated manifest
+and repeat the blocked-network run. Do not assume the same workaround is required by every
+Flutter version or renderer. This verifies a locally served build, not serverless startup or
+an installed offline PWA.
+
 ## Flutter + Flame 1.18.x
 
 ### Mathematics and RNG
