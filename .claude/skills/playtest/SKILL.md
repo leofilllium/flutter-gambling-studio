@@ -89,6 +89,17 @@ Sources: the screenshots (`Read` vision), `manifest.json` (`semanticLabels`, `co
 > compare, run 2.2 again with a smaller N and take the before/after shots manually through
 > web_verify.
 
+For P9, repeat the same screen open/close cycle with bounded waits for transitions and GC.
+If post-GC growth persists, confirm it in a profile build and trace strong retaining paths in
+before/after heap snapshots; constant DOM/listener counts do not exclude retained Dart route
+trees. Compare disposed screen/controller/overlay counts and the warmed tail, separating
+compiled-code warmup from live-state retention. Recheck every proven path after a targeted fix:
+one workaround may remove only one of several owners. Keep semantics and interaction enabled,
+use the same workload, and record the exact source build tested. Do not clear P9 merely because
+the app still plays, a first heap delta shrank, or a debug-only explanation seems plausible.
+An engine-specific workaround must preserve labels, keyboard/touch input and persistence and
+must not become a universal component ban without evidence.
+
 ## Phase 4 — the report and automatic fixes [~3 min]
 
 Write `$PT_DIR/PLAYTEST-REPORT.md`:
