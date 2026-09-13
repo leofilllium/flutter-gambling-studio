@@ -107,3 +107,16 @@ The feature graphic needs its own horizontal render and the same context decisio
 use the full width. No reserved device-shaped zone; the clean source must look finished alone.
 Real gameplay showcase frames remain actual captures. Store work preserves menu/gameplay/splash
 background assets and wiring; redesigning them requires an explicit user request.
+
+
+## Deterministic runtime-background guards
+
+Before and after store branding, compare the same complete background/splash file inventory,
+SHA-256 hashes and code/config selecting references. Sort file paths before hashing. Search
+tools may return identical matches in a different filesystem traversal order: normalize away
+line numbers where the guard already calls for that, then sort the full reference records
+before comparing them. Keep paths and complete matched content; sorting must never discard
+a removed/added reference or suppress a changed selector. Preserve raw inventories as evidence.
+If an exact comparison fails but sorted records and asset hashes match, report unchanged
+background wiring with an ordering-only diagnostic. Never recolor or replace a runtime
+background to resolve an inventory-order difference.
