@@ -215,25 +215,24 @@ async function waitForFlutter() {
 // Enable Flutter's a11y tree (click the hidden placeholder) and read labels.
 // Returns [{label, x, y}] in viewport coords; [] if semantics unavailable.
 async function readSemantics() {
-  // 1) find + click the "Enable accessibility" placeholder (may be in shadow DOM)
-  const placeholderRect = await evaluate(`(function(){
+  // The placeholder can be at (-1,-1). Activate that exact accessibility
+  // element; clamping its coordinates would click an unrelated game control.
+  const activated = await evaluate(`(function(){
     function walk(root){
-      const els = root.querySelectorAll('*');
-      for (const el of els){
+      for (const el of root.querySelectorAll('*')){
         const tag = (el.tagName||'').toLowerCase();
-        const al  = (el.getAttribute && (el.getAttribute('aria-label')||'')) || '';
-        if (tag==='flt-semantics-placeholder' || /enable accessibility/i.test(al)){
-          const r = el.getBoundingClientRect();
-          return {x:r.left+r.width/2, y:r.top+r.height/2};
+        const label = (el.getAttribute && el.getAttribute('aria-label')) || '';
+        if(tag==='flt-semantics-placeholder' || /enable accessibility/i.test(label)){
+          el.click();
+          return true;
         }
-        if (el.shadowRoot){ const f=walk(el.shadowRoot); if(f) return f; }
+        if(el.shadowRoot && walk(el.shadowRoot)) return true;
       }
-      return null;
+      return false;
     }
     return walk(document);
-  })()`).catch(() => null);
-  if (placeholderRect) { await tap(Math.max(1, placeholderRect.x), Math.max(1, placeholderRect.y), 'enable-a11y'); await sleep(700); }
-  else { await tap(1, 1, 'enable-a11y-blind'); await sleep(500); } // placeholder usually sits 1x1 top-left
+  })()`).catch(() => false);
+  if (activated) await sleep(700);
 
   // 2) collect labeled, on-screen semantic nodes
   const nodes = await evaluate(`(function(){
