@@ -1,0 +1,7 @@
+# Session 2 routing review
+
+The observed request was a new Joker-themed 3×3 /autocreate. Session1 now owns preproduction and routes to Session2. Requiring implementation definitions or a Phase10.7.2 prompt from the router was a dead reference. The corrected runbook uses its existing ordered delegation map, role briefs and quality table, and supplies its own reviewable Session3 prompt.
+
+Reviewed unchanged invariants: five sequential role agents,18 integration connections,15screens, zero analyzer errors, green tests, 100+ UI checks, full phone/expanded viewport gates, full-curve mathematics,20/20crash prevention, no release artifacts or upload key, and mandatory Session3 handoff. The added handoff lists evidence and launch/navigation details needed by the downstream reader. No new product scope or authorization is introduced. This is a proposal only and is not used as a merged production rule.
+
+The generic skill-creator quick validator was run and rejected existing Claude-specific argument-hint/user-invocable frontmatter keys. Those keys are unchanged from the remote base and are supported by the repository's manual runbooks; removing them would be unrelated scope. The follow-up check parses YAML, compares complete frontmatter to baseline, validates all referenced paths and preserved quality clauses, and checks the changed routing. This records the validator compatibility limit without changing the validator or suppressing the result.

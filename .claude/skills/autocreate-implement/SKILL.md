@@ -29,8 +29,9 @@ Session 1 (autocreate)  →[handoff-1]→  Session 2 (THIS skill)  →[autocreat
    `.claude/docs/gameplay-screen-contract.md`, then passes the touch-first phone baseline,
    responsive full-viewport composition, stable keys, control sizing, and phone + expanded
    viewport matrices to Agent B, QA, integration, and UI audit
-5. ✅ Runs **Phases 4 → 10** as described in `.claude/skills/autocreate/SKILL.md`
-   (those phases are the canonical specification; this skill drives their execution)
+5. ✅ Runs **Phases 4 → 10** using this skill's execution map, role briefs, and exit criteria.
+   `.claude/skills/autocreate/SKILL.md` owns Session 1 and routes here; it does not contain
+   the implementation phase definitions.
 6. ✅ **Delegates the heavy phases to sub-agents** (see the map below) — the orchestrator does
    NOT read all of `lib/` itself, it works from command output (`dart analyze`/`flutter test`)
    and the agents' summaries
@@ -148,11 +149,13 @@ Do not redo what is already done.
 
 ---
 
-## Phases 4 → 10 — execution against the canon
+## Phases 4 → 10 — implementation protocol
 
-Run **Phases 4, 4.5, 5, 6, 6.5, 7, 8, 9, 10** exactly as described in
-`.claude/skills/autocreate/SKILL.md` (the "Phases 4–10 run in Session 2" section), applying the
-delegation map above. Each phase's exit criteria come from autocreate's Quality Gates table:
+Run **Phases 4, 4.5, 5, 6, 6.5, 7, 8, 9, 10** using the delegation map above,
+the relevant `.claude/agents/` role brief, and the exit criteria below. Before implementation,
+record concrete integration and crash-prevention checks in the session state from the game's
+contracts and repository rules; attach verification evidence as each check passes. The table
+below is the Session 2 quality-gate definition:
 
 | Phase | Exit criterion | Iterations |
 |-------|----------------|------------|
@@ -179,11 +182,22 @@ orientation/device-family restriction.
 
 ## Phase 10.7 — handoff & spawn Session 3 [~1 min]
 
-Run **Phase 10.7 from `.claude/skills/autocreate/SKILL.md`**: write
-`production/session-state/autocreate-handoff.md` (the full context for finalisation) and
-**spawn Session 3** through the Agent tool (the prompt is as in autocreate's Phase 10.7.2; it
-tells the sub-agent to run `.claude/skills/autocreate-finalize/SKILL.md`: runtime + soak,
-session state, release-eng PREP without building the AAB/APK, and the final report).
+Write `production/session-state/autocreate-handoff.md` with the game/package identity,
+current architecture and entrypoints, modes/content paths, completed phase evidence, analyzer
+and test results, integration/feel/UI/compliance/curve/crash reports, viewport measurements,
+asset format and known limits. Include exact runtime launch and navigation details.
+
+**Spawn a clean-context Session 3 agent** with the following instruction:
+
+```text
+You are Session 3 of /autocreate. First read
+production/session-state/autocreate-handoff.md, then
+.claude/skills/autocreate-finalize/SKILL.md. Execute its runtime and soak verification,
+playtest, session state, release-engineering PREP and final report. Preserve the
+existing concept, assets and verified balance. Do not build an AAB/APK, create an
+upload keystore or call release-package; those require a separate explicit request.
+Return the actual checks, evidence paths and any unresolved blockers.
+```
 
 Once the Session 3 sub-agent returns, pass its final report upward (to Session 1 / the user).
 If Session 3 failed, report the reason and the manual restart command: `/autocreate-finalize`.
