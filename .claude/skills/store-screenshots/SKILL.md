@@ -30,8 +30,36 @@ formats never constrain the runtime app's full mobile/expanded viewport behavior
 
 ## Phase 0 — context and preflight
 
+Select and verify an existing interpreter before installing dependencies. A missing import in
+system Python does not mean the project's virtual environment is missing that package. Honor
+an explicit `STORE_PYTHON` executable path; otherwise probe the active environment, project
+`.venv`, and `python3` in that order. Keep the selected absolute path for subsequent tool calls
+(including separate shells); do not assume a previous shell's activation persists.
+
+```bash
+if [[ -z "${STORE_PYTHON:-}" ]]; then
+  for store_candidate in "${VIRTUAL_ENV:+$VIRTUAL_ENV/bin/python}" "$PWD/.venv/bin/python" python3; do
+    [[ -n "$store_candidate" ]] || continue
+    if "$store_candidate" -c 'import PIL, numpy' >/dev/null 2>&1; then
+      STORE_PYTHON=$("$store_candidate" -c 'import sys; print(sys.executable)')
+      break
+    fi
+  done
+fi
+[[ -n "${STORE_PYTHON:-}" ]] || {
+  echo "No probed interpreter imports Pillow and numpy. Set up a project environment and rerun preflight."
+  exit 1
+}
+"$STORE_PYTHON" -c 'import sys, PIL, numpy; print(sys.executable); print("Pillow", PIL.__version__, "numpy", numpy.__version__)' || exit 1
+```
+
+If no existing environment passes, use the project's dependency setup and install into the
+chosen environment with its own `-m pip`; avoid a bare `pip` that may target another Python.
+A failed explicit `STORE_PYTHON` stops preflight so the chosen interpreter can be corrected.
+Use `"$STORE_PYTHON"` for the compositor and other Python tools in this runbook.
+
 Require a real Flutter game, Pillow/numpy, the image-generation path, compositor and capture
-tools. Read `python3 tools/store_compose.py --help` and the relevant subcommand help.
+tools. Read `"$STORE_PYTHON" tools/store_compose.py --help` and the relevant subcommand help.
 Runbook options such as count, board, hero, no-apply and apply-backdrop govern orchestration;
 do not blindly pass them to compositor subcommands. Initialize:
 
@@ -99,7 +127,7 @@ Generic stage furniture, particles or a tidy row cannot replace the actual objec
 Prepare an optional physical board reference from the measured actual frame:
 
 ```bash
-python3 tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
+"$STORE_PYTHON" tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
   --from-shot "$RAW_DIR/gameplay-reference-win.png" --rect "$FIELD_RECT" \
   --radius 0.04 --yaw -16 --pitch 7 --depth 0.06 --sheen 0.2
 ```
@@ -194,7 +222,7 @@ a planned split easy to reproduce; auto is valid when measurements and actual cu
 together. Remeasure after any geometry change and separately for each store's aspect ratio.
 
 ```bash
-python3 tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
+"$STORE_PYTHON" tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
   --out "$OUT_DIR" --panels 3 --size 1320x2868 --pop max --seam-snap off \
   --lead-kind mechanic --lead-bounds "$LEAD_BOUNDS" \
   --protected-bounds "$OUTCOME_BOUNDS" --art-gate strict
@@ -214,7 +242,7 @@ Typical Joker typography is bold/playful, not automatic elegance. Captions descr
 Resolve filenames and words from this game's inventory; honor frame/no-captions/language/count.
 
 ```bash
-python3 tools/store_compose.py showcase --shot "$RAW_DIR/03-spin.png" \
+"$STORE_PYTHON" tools/store_compose.py showcase --shot "$RAW_DIR/03-spin.png" \
   --bg "$ART_DIR/keyart-integrated.png" --out "$OUT_DIR/store-04.png" \
   --size 1320x2868 --caption "Every Spin Counts" --type-mood playful --pop vivid
 ```
@@ -223,7 +251,7 @@ With panels 0, use the existing game background for showcase composition. Compos
 Feature example, after measuring the final horizontal crop:
 
 ```bash
-python3 tools/store_compose.py banner --keyart "$ART_DIR/long-banner-integrated.png" \
+"$STORE_PYTHON" tools/store_compose.py banner --keyart "$ART_DIR/long-banner-integrated.png" \
   --out "$STORE_DIR/feature-graphic-1024x500.png" \
   --base-out "$ART_DIR/long-banner-source-1024x500.png" --size 1024x500 --pop max \
   --lead-kind object --lead-bounds "$BANNER_LEAD_BOUNDS" \
