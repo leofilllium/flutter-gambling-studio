@@ -129,6 +129,15 @@ class _MyState extends State<MyWidget> with SingleTickerProviderStateMixin {
 `TextEditingController` and `FocusNode` MUST be disposed or cancelled in `dispose()`.
 Use nullable types (`Timer?`) for safety.
 
+A listener can synchronously release its owner during `notifyListeners()`. Mark the
+owner inactive and cancel timers immediately, but defer disposal of its active
+`ChangeNotifier`/`ValueNotifier` until the notification stack unwinds (for example, a
+queued microtask). Guard subsequent notifications against the inactive owner. If a
+callback can add or remove controllers/subscribers, iterate a stable snapshot and skip
+released entries. Snapshot iteration alone does not make notifier disposal reentrant.
+Verify this with two subscribers: the first releases itself on a wallet update, while
+the second still receives the committed balance with no Flutter errors.
+
 ### 2.4 Missing assets
 
 ```dart
