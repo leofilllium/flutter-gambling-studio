@@ -596,12 +596,41 @@ tablet, landscape, desktop, and Web must still use their full viewport responsiv
 
 ## Phase 0 — preflight, store brief, and the exhaustive sprite manifest
 
+Select and verify an existing interpreter before installing dependencies. A missing import in
+system Python does not mean the project's virtual environment is missing that package. Honor
+an explicit `STORE_PYTHON` executable path; otherwise probe the active environment, project
+`.venv`, and `python3` in that order. Keep the selected absolute path for subsequent tool calls
+(including separate shells); do not assume a previous shell's activation persists.
+
+```bash
+if [[ -z "${STORE_PYTHON:-}" ]]; then
+  for store_candidate in "${VIRTUAL_ENV:+$VIRTUAL_ENV/bin/python}" "$PWD/.venv/bin/python" python3; do
+    [[ -n "$store_candidate" ]] || continue
+    if "$store_candidate" -c 'import PIL, numpy' >/dev/null 2>&1; then
+      STORE_PYTHON=$("$store_candidate" -c 'import sys; print(sys.executable)')
+      break
+    fi
+  done
+fi
+[[ -n "${STORE_PYTHON:-}" ]] || {
+  echo "No probed interpreter imports Pillow and numpy. Set up a project environment and rerun preflight."
+  exit 1
+}
+"$STORE_PYTHON" -c 'import sys, PIL, numpy; print(sys.executable); print("Pillow", PIL.__version__, "numpy", numpy.__version__)' || exit 1
+```
+
+If no existing environment passes, use the project's dependency setup and install into the
+chosen environment with its own `-m pip`; avoid a bare `pip` that may target another Python.
+A failed explicit `STORE_PYTHON` stops preflight so the chosen interpreter can be corrected.
+Use `"$STORE_PYTHON"` for the compositor and other Python tools in this runbook.
+
 Verify the project and tools:
 
 ```bash
 [[ -f pubspec.yaml ]] || { echo "A Flutter project with pubspec.yaml is required."; exit 1; }
-python3 -c "import PIL, numpy" || { echo "Pillow and numpy are required."; exit 1; }
 [[ -f tools/store_compose.py ]] || { echo "tools/store_compose.py is missing."; exit 1; }
+"$STORE_PYTHON" tools/store_compose.py --help || exit 1
+# Read the relevant subcommand help before composition.
 
 PROJECT_NAME=$(grep -m1 -E '^name:' pubspec.yaml | awk '{print $2}')
 [[ -z "$PROJECT_NAME" ]] && PROJECT_NAME="game"
@@ -658,7 +687,7 @@ The individual asset contract is blocking before any store art is generated:
 while IFS= read -r sprite_path; do
   [[ "$sprite_path" == *.png ]] \
     || { echo "BLOCKER: non-PNG sprite reference: $sprite_path"; exit 1; }
-  python3 tools/cutout.py "$sprite_path" --check \
+  "$STORE_PYTHON" tools/cutout.py "$sprite_path" --check \
     || { echo "BLOCKER: invalid transparent alpha: $sprite_path"; exit 1; }
 done < "$ART_DIR/sprite-manifest-raster.txt"
 ```
@@ -874,12 +903,12 @@ Lift the resolving field from the actual game, give that draft object the scene'
 then compose the placement draft:
 
 ```bash
-python3 tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
+"$STORE_PYTHON" tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
   --from-shot "$RAW_DIR/gameplay-reference-win.png" \
   --rect 0.06,0.22,0.88,0.44 --radius 0.04 \
   --yaw -16 --pitch 7 --depth 0.06 --sheen 0.2
 
-python3 tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
+"$STORE_PYTHON" tools/store_compose.py triptych --src "$ART_DIR/keyart.png" \
   --out "$ART_DIR/draft" --pano-only --save-pano "$ART_DIR/keyart-draft.png" \
   --panels 3 --size 1320x2868 --pop max \
   --sprite assets/images/sprites/sprite_eagle.png@hero \
@@ -950,7 +979,7 @@ while IFS= read -r sprite_path; do
   SPRITE_IMAGE_ARGS+=(--image "$sprite_path")
 done < "$ART_DIR/sprite-manifest-raster.txt"
 
-python3 tools/gpt_image.py edit \
+"$STORE_PYTHON" tools/gpt_image.py edit \
   --prompt-file "$ART_DIR/integration-prompt.txt" \
   --image "$ART_DIR/keyart-draft.png" \
   --image "$RAW_DIR/gameplay-reference-win.png" \
@@ -1147,7 +1176,7 @@ Use the integrated panorama first as the world/style reference, followed by the 
 the principal unique object PNGs at high fidelity:
 
 ```bash
-python3 tools/gpt_image.py edit \
+"$STORE_PYTHON" tools/gpt_image.py edit \
   --prompt-file "$ART_DIR/long-banner-prompt.txt" \
   --image "$ART_DIR/keyart-integrated.png" \
   --image assets/images/sprites/hero.png \
@@ -1165,7 +1194,7 @@ diagnostic crop, vision-measure the complete hero bounds on that exact crop, and
 any typography or gameplay frame is added:
 
 ```bash
-python3 tools/store_compose.py banner \
+"$STORE_PYTHON" tools/store_compose.py banner \
   --keyart "$ART_DIR/long-banner-integrated.png" \
   --out "$ART_DIR/long-banner-diagnostic.png" \
   --size 1024x500 --pop max --banner-gate warn
@@ -1224,7 +1253,7 @@ Only when the user explicitly requested a runtime-background redesign and suppli
 `--apply-backdrop` may this separate operation run:
 
 ```bash
-python3 tools/store_compose.py backdrop --src "$ART_DIR/keyart-integrated.png" \
+"$STORE_PYTHON" tools/store_compose.py backdrop --src "$ART_DIR/keyart-integrated.png" \
   --out-dir assets/images/backgrounds --prefix bg_keyart \
   --variants menu,game --size 1080x1920 --offset -0.55 --pop max --calm 0.45 \
   --confirm-game-background-replacement
@@ -1307,7 +1336,7 @@ so make both comparisons before they do. Rebuild the plate from the frame and re
 this complete win frame as the second context image:
 
 ```bash
-python3 tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
+"$STORE_PYTHON" tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
   --from-shot "$RAW_DIR/04-win.png" --rect 0.06,0.22,0.88,0.44 --radius 0.04
 ```
 
@@ -1342,20 +1371,20 @@ complete hero. Then rerun into the real output with `strict`. The App Store and 
 have different geometry, so each needs its own measured bounds:
 
 ```bash
-python3 tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
+"$STORE_PYTHON" tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
   --out "$ART_DIR/appstore-diagnostic" --panels 3 --size 1320x2868 \
   --pop max --art-gate warn
 # Vision-measure the complete protagonist in the diagnostic panorama, including held props.
 APP_HERO_BOUNDS="SET_AFTER_VISION_MEASUREMENT"  # replace with measured x,y,w,h
-python3 tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
+"$STORE_PYTHON" tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
   --out "$OUT_DIR" --panels 3 --size 1320x2868 --pop max \
   --art-gate strict --hero-bounds "$APP_HERO_BOUNDS"
 
-python3 tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
+"$STORE_PYTHON" tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
   --out "$ART_DIR/play-diagnostic" --panels 3 --size play \
   --pop max --art-gate warn
 PLAY_HERO_BOUNDS="SET_AFTER_VISION_MEASUREMENT"  # replace with this crop's measured x,y,w,h
-python3 tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
+"$STORE_PYTHON" tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
   --out "$PLAY_DIR" --panels 3 --size play --pop max \
   --art-gate strict --hero-bounds "$PLAY_HERO_BOUNDS"
 ```
@@ -1523,7 +1552,7 @@ boundary between the two halves of the listing, and the game's objects keep appe
 phone:
 
 ```bash
-python3 tools/store_compose.py showcase --shot "$RAW_DIR/03-spin.png" \
+"$STORE_PYTHON" tools/store_compose.py showcase --shot "$RAW_DIR/03-spin.png" \
   --bg "$ART_DIR/keyart-integrated.png" --out "$OUT_DIR/store-04.png" --size 1320x2868 \
   --caption "Every Spin Counts" --type-mood epic --pop vivid \
   --caption-color "#FFF6DC" --caption-color2 "#F0B34A"
@@ -1544,7 +1573,7 @@ adds any optional store overlay:
 
 ```bash
 BANNER_HERO_BOUNDS="SET_FROM_PHASE_2D_X,Y,W,H"
-python3 tools/store_compose.py banner \
+"$STORE_PYTHON" tools/store_compose.py banner \
   --keyart "$ART_DIR/long-banner-integrated.png" \
   --out "$STORE_DIR/feature-graphic-1024x500.png" \
   --base-out "$ART_DIR/long-banner-source-1024x500.png" \
@@ -1588,8 +1617,8 @@ Record the simulated-gambling questionnaire answer, category, disclaimer, and od
 ## Phase 9 — verification
 
 ```bash
-python3 tools/store_compose.py check --dir "$OUT_DIR" --store appstore
-python3 tools/store_compose.py check --dir "$PLAY_DIR" --store play
+"$STORE_PYTHON" tools/store_compose.py check --dir "$OUT_DIR" --store appstore
+"$STORE_PYTHON" tools/store_compose.py check --dir "$PLAY_DIR" --store play
 ```
 
 Both checks must pass. Confirm readable RGB PNG files, consistent dimensions, no alpha in Play screenshots, file sizes within store limits, and correct aspect ratios.
