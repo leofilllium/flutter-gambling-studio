@@ -66,6 +66,12 @@ For the juiciness of a round we use *ParticleSystemComponent* effects.
   afterwards: that loses the material, the light, the style and the tie to the game's world.
 - SVG remains the fallback mode for non-Codex environments or an explicit `--svg`.
 - The chosen format is recorded in `design/asset-format.md`.
+- Built-in image tools may return a base64 `image_url` alongside a saved-file hint.
+  Present images through `generatedImage(result)` when the tool contract provides it;
+  send only concise status and saved paths to `text`, `notify`, or other text logs.
+  Never stringify the complete image-bearing result: its payload can overwhelm and truncate
+  the tool transcript. Preserve the original PNGs and continue the normal asset review;
+  truncated text output alone is not a reason to regenerate a valid image.
 - If `format: png`, the UI uses `Image.asset(...)` and real `.png` paths.
 - If `format: svg`, the UI uses `SvgPicture.asset(...)` / `flame_svg`.
 - `/svg-to-png` exists only for legacy SVG or an explicit user request — it is not the normal
