@@ -455,6 +455,14 @@ class _ActionButtonState extends State<ActionButton> with SingleTickerProviderSt
 4. A press animation (scale / glow)
 5. A ValueListenableBuilder for reactivity
 
+Use monotonic elapsed time (for example `Stopwatch`) for the debounce interval,
+with an injectable elapsed-time source for tests. Device wall-clock corrections must
+not disable Spin until a previous timestamp catches up. Keep UTC/calendar clocks for
+persisted daily eligibility and event dates. When a configured cooldown is zero, bypass
+the interval gate explicitly; a negative wall-clock delta must not enable a disabled
+cooldown. Test a completed action after the debounce has elapsed while the device clock
+moves backward, and test zero-cooldown recovery separately from once-per-date gifts.
+
 ### 5.2 Bet +/- — locked while the round runs
 
 ```dart
