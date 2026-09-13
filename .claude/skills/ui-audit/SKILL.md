@@ -91,7 +91,7 @@ visual problems.
 
 | # | Check | How to find | Symptom | Autofix |
 |---|---------|-----------|---------|----------|
-| C1 | **Route not defined** | `pushNamed('/...')` in code vs `routes:` in `MaterialApp` | "Could not find route" - black screen or exception | Add route to `app.dart` |
+| C1 | **Route not defined** | Compare pushed routes with the loaded app router; reload a non-root Web/platform route through bootstrap loading, error/retry and ready states, with consent accepted and unaccepted | Initial-route errors can occur in a temporary loading app even when the final router is correct | Keep bootstrap navigation-free or explicitly resolve its incoming routes until services are ready; verify platform route precedence rather than assuming `initialRoute` overrides it, and retain consent guards |
 | C2 | **No Back button handling** | Screens without `PopScope` (Flutter 3.12+) or `WillPopScope` | Back button closes app instead of returning to previous screen | Add `PopScope(canPop: false, onPopInvokedWithResult: ...)` |
 | C3 | **Game overlay does not close** | Flame `overlays.add('win')` without corresponding `overlays.remove('win')` by timer or tap | Overlay hangs forever, blocks the game | Add auto-dismiss Timer + tap-to-dismiss |
 | C4 | **Settings are not saved** | Settings screen without `SharedPreferences` calls | Settings are reset on restart | Add SharedPreferences load/save |
