@@ -107,3 +107,21 @@ The feature graphic needs its own horizontal render and the same context decisio
 use the full width. No reserved device-shaped zone; the clean source must look finished alone.
 Real gameplay showcase frames remain actual captures. Store work preserves menu/gameplay/splash
 background assets and wiring; redesigning them requires an explicit user request.
+
+
+## Image reference transport preflight
+
+Check the active image transport's reference limit before submitting a large asset set.
+A built-in transport observed in September 2026 accepted at most five paths even though its
+visible schema showed only an array. Treat that as observed transport behavior, not a permanent
+limit for every provider. A request rejected during argument validation is not a generated
+source or a spent quality correction; record the rejection separately.
+
+When the inventory exceeds the supported limit, preserve complete reference coverage through
+staged integration or a labeled lossless contact sheet made from the original files. Inspect
+every original at full size and game size and retain its alpha audit and source-to-sheet
+mapping. Keep important identity references as separate inputs where possible; label runtime
+frames as topology/state evidence and previews as composition references. Do not omit secondary
+symbols to fit the limit, mistake a contact sheet for finished art, or claim packed references
+guarantee faithful output. Compare every resulting identity and the full field with the original
+sources after generation; all existing visual, math, seam and runtime gates still apply.
