@@ -83,6 +83,12 @@ Write `STORE_BRIEF.md` before any generation call:
 - Inspected references, borrowed traits and original adaptations.
 - Panel map with anchors and gameplay positions/spans. Any panel, the right two, or all three
   may carry gameplay. There is no required middle field or final reward-only panel.
+- For an object/mechanic-led game with no living character in its concept and shipped inventory,
+  mark slides 1 and 2 as gameplay-led. Each opening crop, reviewed separately, must show
+  recognizable authentic play at a three-quarter/3D angle, either through two readable samples
+  or one continuous angled gameplay surface with meaningful play visible in both. Do not
+  introduce a person, hand, animal,
+  mascot or player silhouette; slide 1 cannot be a decorative object-only scene.
 - Actual topology and resolving state. New unspecified classic slots default to 3×3; store
   work preserves the shipped game's dimensions, symbols, ordering and outcome.
 - Complete sprite inventory, source-to-PNG mapping, scene role and in-app evidence per file.
@@ -118,6 +124,11 @@ allowed for a bust; preserve the mascot's recognizable form. Joker is a mischiev
 playful trickster, not an elegant courtier or horror figure. Object/mechanic scenes have no empty
 character berth and no anatomy constraints. Keep a strong game anchor in every panel; a continuous
 board can anchor several. Multiple boards are valid only when their real states remain readable.
+When the shipped game has no living character, its first two carousel slides must instead be
+gameplay-led: present the real board or mechanic at a readable three-quarter/3D angle in each crop,
+or span one continuous angled surface across both with meaningful gameplay visible in both. Never
+add a human, hand, animal, mascot or player silhouette to supply drama. The object lead may frame
+the action, but it cannot replace gameplay in slide 1.
 
 Build the lower edge from a varied spill of actual game objects: scale, rotation, height, overlap,
 contact shadows and shared light. Add recognizable flying/falling objects at varied depths. Keep
@@ -140,7 +151,7 @@ Prepare an optional physical board reference from the measured actual frame:
 | Joker first, board right two | `--lead-kind character --sprite "hero.png@hero" --sprite "board.png@board,x=0.67,w=1.9"` |
 | Chicken first | `--lead-kind character --character-framing mascot --sprite "chicken.png@hero"` |
 | Full-width Plinko | `--lead-kind mechanic --sprite "board.png@board,x=0.5,w=2.9"` |
-| Crown/object-led slot | `--lead-kind object --sprite "crown.png@prop,panel=1,w=0.9,h=0.7" --sprite "board.png@board,x=0.58,w=2.2"` |
+| Crown/object-led slot without living characters | `--lead-kind object --sprite "board-a.png@board,panel=1,w=0.9" --sprite "board-b.png@board,panel=2,w=0.9" --sprite "crown.png@prop,panel=3,w=0.8,h=0.7"`; use angled board plates or one continuous angled field spanning panels 1–2 |
 | Contained board on chosen panel | `--sprite "board.png@board,panel=3,w=0.85"` |
 
 Here x is normalized across the panorama and w uses panel widths. Width/height are fit limits:
@@ -176,6 +187,11 @@ around faces, decisive symbols, multiplier inscriptions and bucket/reveal outcom
 the gaps. Protect those details, not the entire board housing. Every crop still needs readable
 game content. Geometry metrics cannot identify a Joker, read lettering or verify a payline:
 visual comparison is mandatory.
+
+For an object/mechanic-led game with no living character, explicitly reject any invented living
+player or mascot in slide 1. Verify that slides 1 and 2 each contain recognizable authentic
+gameplay at a three-quarter/3D angle; when one field spans both, inspect the separate crops rather
+than accepting the assembled panorama alone.
 
 Maintain store-art saturation ≥0.68, target 0.78–0.88, controlled glare, source-color separation,
 foreground depth and broad bright smooth background. Saturated darkness or excessive far-plane
@@ -280,7 +296,9 @@ Write STORE_INFO.md with context/reference decisions; panel map; upload order/di
 complete per-sprite identity and per-panel anchor audit; real state/topology/integration evidence;
 prompts/budget/corrections; measured bounds and seam review for each geometry; strict gate results
 and visual verdicts; feature source/layout/review; branding/capture/log evidence; background guard
-and compliance. Never call a draft or diagnostic a finished panorama.
+and compliance. For no-living-character object/mechanic games, record the no-invented-player
+check and separate slide-1/slide-2 angled-gameplay verdicts. Never call a draft or diagnostic a
+finished panorama.
 
 ```bash
 ARCHIVE_NAME="$PROJECT_NAME-store-$TS.zip"
