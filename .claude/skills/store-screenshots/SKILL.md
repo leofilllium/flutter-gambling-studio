@@ -267,7 +267,9 @@ passes, retain base-out, and recheck readability after overlays.
 
 Run `store_compose.py check --dir "$OUT_DIR" --store appstore` and, when enabled, the equivalent
 Play check. Verify RGB PNGs, dimensions, no store-screenshot transparency, file sizes, aspect,
-numbering/counts and feature dimensions. Review all images at thumbnail and full size.
+numbering/counts and feature dimensions. Review final rendered App Store and Google Play crops
+separately, at thumbnail and full size. For object/mechanic-led panoramas, explicitly confirm in
+each crop that an identifiable spill of actual lower game objects remains in frame.
 Read responsible-gaming.md; check captions, metadata and art for currency symbols, misleading
 multipliers and payout promises. Metadata retains the virtual-currency disclaimer, simulated
 gambling declaration, rating and applicable odds disclosure. Interpret text matches in context.
