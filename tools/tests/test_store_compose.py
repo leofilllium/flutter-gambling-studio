@@ -29,6 +29,7 @@ class StoreScreenshotRunbookSafetyTests(unittest.TestCase):
             capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("--sprite", result.stdout)
+        self.assertIn("Default auto = 100px at 1320px panels", result.stdout)
 
     def test_runtime_background_replacement_is_opt_in(self) -> None:
         runbook = (
@@ -41,11 +42,7 @@ class StoreScreenshotRunbookSafetyTests(unittest.TestCase):
 
 
 class ReassemblyTests(unittest.TestCase):
-    """The contract: lay the panels side by side and the picture comes back.
-
-    Not a millimetre of it may be missing anywhere, so the default cut is
-    butt-joined and slicing discards nothing between the panels.
-    """
+    """Explicit zero gutter is lossless; carousel allowances hide source strips."""
 
     PANEL_W, PANEL_H, PANELS = 240, 520, 3
 
@@ -87,7 +84,7 @@ class ReassemblyTests(unittest.TestCase):
         return panels, Image.open(pano_path).convert("RGBA")
 
     def test_the_panels_laid_edge_to_edge_are_the_picture_again(self) -> None:
-        panels, pano = self._slice()
+        panels, pano = self._slice(gutter="0")
         stitched = Image.new("RGBA", (self.PANEL_W * self.PANELS, self.PANEL_H))
         for i, panel in enumerate(panels):
             self.assertEqual(panel.size, (self.PANEL_W, self.PANEL_H))
@@ -101,15 +98,15 @@ class ReassemblyTests(unittest.TestCase):
                    if np.array_equal(wide[:, x:x + want.shape[1]], want)]
         self.assertTrue(offsets, "the panels do not reassemble the panorama")
 
-    def test_an_explicit_allowance_is_still_available_and_does_cost_pixels(self) -> None:
-        panels, pano = self._slice(gutter="20")
+    def test_the_default_allowance_hides_source_pixels_beneath_the_gaps(self) -> None:
+        panels, pano = self._slice()
         stitched = Image.new("RGBA", (self.PANEL_W * self.PANELS, self.PANEL_H))
         for i, panel in enumerate(panels):
             stitched.paste(panel, (i * self.PANEL_W, 0))
         wide, want = np.asarray(pano), np.asarray(stitched)
         matches = [x for x in range(wide.shape[1] - want.shape[1] + 1)
                    if np.array_equal(wide[:, x:x + want.shape[1]], want)]
-        self.assertFalse(matches, "an allowance was requested but nothing was discarded")
+        self.assertFalse(matches, "the default allowance discarded no source pixels")
 
     def test_both_previews_are_written_and_neither_is_an_upload_asset(self) -> None:
         self._slice()
@@ -122,10 +119,11 @@ class ReassemblyTests(unittest.TestCase):
 
 
 class GutterTests(unittest.TestCase):
-    """The opt-in seam allowance, for a publisher who asks the panels to line up."""
+    """Carousel gaps hide a scaled source strip unless lossless mode is explicit."""
 
-    def test_the_default_discards_nothing(self) -> None:
-        self.assertEqual(store_compose.parse_gutter(store_compose.DEFAULT_GUTTER, 1320), 0)
+    def test_the_default_matches_the_measured_publisher_gap(self) -> None:
+        self.assertEqual(store_compose.parse_gutter(store_compose.DEFAULT_GUTTER, 1320), 100)
+        self.assertEqual(store_compose.parse_gutter(store_compose.DEFAULT_GUTTER, 1080), 82)
 
     def test_auto_scales_with_the_panel_so_both_store_sets_match(self) -> None:
         self.assertEqual(store_compose.parse_gutter("auto", 1320), 100)

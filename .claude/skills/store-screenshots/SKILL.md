@@ -248,8 +248,13 @@ Resolve measured variables first. Character exports use hero-bounds instead of l
 object exports use lead-kind object. Repeat protected regions as necessary. Export Play with
 `--size play` and separately measured bounds. Do not pass sprites on final slicing calls: they
 already belong to the integrated render. Strict mode writes no deliverable on failure; warn
-is diagnostic-only and off is for tests. Default gutter 0 discards no pixels; report any explicitly
-requested nonzero gutter. Panorama/carousel previews are verification files, not upload slides.
+is diagnostic-only and off is for tests. Carousel exports default to `--gutter auto`: the continuous
+source extends beneath a hidden strip scaled from 100px at a 1320px card, matching the publisher's
+inter-card separator. Keep faces, inscriptions and decisive outcomes outside those hidden strips;
+atmosphere and noncritical field structure may cross them. Use `--gutter 0` only for a publisher
+known to render true butt joints or for a lossless diagnostic panorama. Inspect the carousel preview
+with gaps as the authoritative seam check. Panorama/carousel previews are verification files, not
+upload slides.
 
 ## Phase 5 — showcases and feature graphic
 
