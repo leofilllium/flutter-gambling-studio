@@ -53,7 +53,7 @@ Only when the user explicitly requested a runtime-background redesign and suppli
 ```bash
 "$STORE_PYTHON" tools/store_compose.py backdrop --src "$ART_DIR/keyart-integrated.png" \
   --out-dir assets/images/backgrounds --prefix bg_keyart \
-  --variants menu,game --size 1080x1920 --offset -0.55 --pop max --calm 0.45 \
+  --variants menu,game --size 1080x1920 --offset -0.55 --pop soft --calm 0.45 \
   --confirm-game-background-replacement
 ```
 

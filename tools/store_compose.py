@@ -26,9 +26,9 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             the composition may crop only its left and lower edges. Its full
             head/headwear stays clear of the top and its complete attached
             silhouette stays clear of the first carousel seam.
-            The bare background is measured to stay bright and smooth, and the
-            finished art is blocked when it is dark, busy across the far plane,
-            weak at the bottom, missing controlled overexposure, or when the
+            The bare background is measured to stay smooth and subordinate, and the
+            finished art is blocked when it is unreadably crushed, busy across the far
+            plane, weak at the bottom, visibly overprocessed, or when the
             character silhouette leaves panel 1 or protected outcome crosses a cut.
             Object/mechanic leads use --lead-bounds, with no invented character. The
             inlaid result is a generation reference,
@@ -76,8 +76,9 @@ silently degrade when written as one-off `convert` incantations. Here they are
 deterministic, testable and identical across every game.
 
 Every generated-art path is colour graded on the way out (`--pop`, default
-`max`): a listing is reviewed as a strip of thumbnails beside nine competitors,
-and ungraded model output reads washed out there. Real gameplay frames are never graded — a store
+`soft`): the restrained default gives game colours a modest readability lift while
+preserving the source exposure and avoiding automatic bloom. Stronger grades are explicit art
+direction, not a delivery requirement. Real gameplay frames are never graded — a store
 screenshot must show what the app renders, so any runtime visual correction is made in the game
 itself as a separate task. Store composition preserves the game's existing backgrounds.
 
@@ -1029,12 +1030,11 @@ def treat_background(bg: Image.Image, treatment: str) -> Image.Image:
 
 # ───────────────────────────── grade ────────────────────────────────────────
 #
-# A listing is judged as a strip of ~150px thumbnails standing next to nine
-# competitors, and raw image-model output almost always arrives a stop flat and
-# a shade desaturated for that context. Reviewers read it as "washed out" and
-# ask for the same two things every time: more saturation, more light. So the
-# grade is part of composition here, not an optional post-step — every art path
-# applies one by default and `--pop off` opts out.
+# A listing is judged as a strip of ~150px thumbnails standing next to other
+# titles, but visibility does not require one universal high-key, high-saturation
+# treatment. The default makes a small vibrance adjustment while leaving the
+# source exposure intact. Stronger presets remain available when the concept or
+# an explicit user direction asks for them; `--pop off` preserves the source.
 #
 # The saturation lift is *vibrance*, not a flat multiply: the boost is weighted
 # by how unsaturated a pixel already is, so a sky or a gold rim gains while an
@@ -1044,27 +1044,21 @@ def treat_background(bg: Image.Image, treatment: str) -> Image.Image:
 # bloom — a screen-blended blur of the highlights — is what actually reads as
 # "brighter" once the image is thumbnail-sized.
 #
-# The supplied long-banner references measure 0.58-0.83 mean saturation and
-# 1.7-6.1% blown luma. The follow-up direction for the carousel was explicit:
-# make the sliders *materially more saturated*. The default therefore uses the
-# strongest safe preset, `max`, followed by a luma-aware saturation finish
-# toward 0.80. That final pass matters: gamma lift and white bloom can
-# otherwise make a preset called "max" measure less saturated than its input.
-# The grade cannot manufacture broad white glare — the deliberate blown light
-# still has to be drawn into the art — because a grade that washed out the
-# picture would flatten the hero and symbols the same brief requires to stay sharp.
+# The stronger presets deliberately lift light, contrast, bloom, and saturation.
+# They are useful variants, but must not silently override a game's Design DNA.
+# `max` retains its luma-aware finish toward 0.80 for explicit intense treatments.
 
 LUMA = np.asarray([0.2126, 0.7152, 0.0722], dtype=np.float32)
 
 POP_PRESETS: dict[str, tuple[float, float, float, float, float]] = {
     # name:  vibrance, lift, contrast, bloom, knee (where the bloom starts)
     "off":   (0.00, 0.00, 0.00, 0.00, 0.72),
-    "soft":  (0.14, 0.03, 0.06, 0.10, 0.78),
+    "soft":  (0.12, 0.00, 0.00, 0.00, 0.78),
     "vivid": (0.30, 0.07, 0.12, 0.22, 0.72),
     "blaze": (0.38, 0.09, 0.13, 0.32, 0.62),
     "max":   (0.48, 0.12, 0.18, 0.36, 0.58),
 }
-DEFAULT_POP = "max"
+DEFAULT_POP = "soft"
 MAX_POP_SATURATION_TARGET = 0.80
 MAX_POP_SATURATION_FACTOR_CAP = 2.25
 
@@ -1129,7 +1123,7 @@ def pop_grade(img: Image.Image, preset: str = DEFAULT_POP, *,
               vibrance: float | None = None, lift: float | None = None,
               contrast: float | None = None, bloom: float | None = None,
               knee: float | None = None) -> Image.Image:
-    """Saturate and brighten generated art so it survives thumbnail review."""
+    """Apply a selectable generated-art grade without changing runtime frames."""
     if preset not in POP_PRESETS:
         die(f"--pop {preset}: choose one of {', '.join(POP_PRESETS)}")
     p_vib, p_lift, p_con, p_bloom, p_knee = POP_PRESETS[preset]
@@ -1527,7 +1521,7 @@ def backdrop_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[flo
     Run before any object is composited. A background that is already as busy as
     a finished picture leaves the hero and the game's objects nothing to read
     against — which is the complaint this measures, in the user's own words:
-    the background should be bright and smooth *so that* the character and the
+    the background should be broad and smooth *so that* the character and the
     objects stand out. The ceiling is the reference art's own upper-band detail
     (mean 20.3) — and those references already have their falling objects in
     them, so a bare plate measuring that much is over budget before it starts.
@@ -1543,9 +1537,9 @@ def backdrop_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[flo
         if upper > BACKDROP_BUSY:
             warn(f"panel {i + 1}'s background is busy ({upper:.1f}, over {BACKDROP_BUSY:.0f}) "
                  "— it will compete with the hero and the game's objects instead of "
-                 "letting them stand out. The brief asks for a bright, saturated, "
-                 "deliberately smooth backdrop: broad colour, a blown light source, "
-                 "soft atmosphere and simplified far shapes, with the detail spent "
+                 "letting them stand out. The brief asks for a deliberately smooth, "
+                 "theme-led backdrop: broad colour, soft atmosphere and simplified "
+                 "far shapes, with the detail spent "
                  "on the objects in front of it. Regenerate the base art simpler — "
                  "do not blur it in post, which only makes it look out of focus.")
     return means
@@ -1592,16 +1586,11 @@ def detail_report(pano: Image.Image, spans: list[tuple[int, int]]) -> list[float
     return shares
 
 
-# "Вся картинка насыщенная… можно использовать пересвет." The four supplied
-# banners span 0.58-0.83 mean saturation and 1.7-6.1% blown luma. Slider art now
-# targets the vivid end and slightly beyond it: 0.68 is the hard delivery floor,
-# 0.78-0.88 is the creative target, and the default grade finishes toward 0.80.
-# The blow-out is a light source drawn into the art, not something the grade
-# does — `pop_grade` cannot manufacture the required broad white glare — so
-# this checks that the generated art came back with one.
-SAT_FLOOR = 0.68     # blocking floor; MAX_POP_SATURATION_TARGET is the default aim
-GLARE_MIN = 0.012    # no blown highlight at all = no light source in the scene
-GLARE_MAX = 0.20     # past this the picture is washing out, not glowing
+# Store grading is theme-led. There is no universal minimum saturation or glare
+# requirement; these ceilings only catch a global treatment that has clipped or
+# overcooked the image. Stronger looks remain valid when intentionally directed.
+SATURATION_MAX = 0.90
+GLARE_MAX = 0.20
 HUE_BINS = 12
 HUE_MIN_SAT = 0.25
 HUE_OUTSIDE_FAMILY_MIN = 0.14
@@ -1702,31 +1691,21 @@ def colour_separation_metrics(
 
 
 def glare_report(pano: Image.Image) -> tuple[float, float]:
-    """Saturation and blown-highlight share of the finished picture."""
+    """Report colour intensity and flag only visibly overprocessed art."""
     arr = np.asarray(pano.convert("RGB"), dtype=np.float32) / 255.0
     sat = _mean_hsv_saturation(arr)
     luma = (arr * LUMA).sum(axis=-1)
     blown = float((luma > 0.95).mean())
-    info(f"colour: saturation {sat:.2f} (supplied banners 0.58-0.83; "
-         "slider target 0.78-0.88), "
-         f"{blown * 100:.1f}% of the picture blown out "
-         f"({GLARE_MIN * 100:.1f}-{GLARE_MAX * 100:.0f}% is the reference band)")
-    if sat < SAT_FLOOR:
-        warn(f"the picture is undersaturated ({sat:.2f}) — beside the reference kit it "
-             "will read soft. Ask the image model for vivid multi-hue colour at the "
-             "0.78-0.88 target, keep --pop max, and check the art itself is not "
-             "a pastel wash the grade is being asked to rescue.")
-    if blown < GLARE_MIN:
-        warn(f"nothing in the picture is blown out ({blown * 100:.1f}%) — the note "
-             "explicitly allows overexposure, and every reference has a light source "
-             "burning out somewhere: a sun behind the hero, a burst off the payout, a "
-             "rim eating into the silhouette. Ask Phase 1 for one. It cannot be added "
-             "in the grade, which is built not to clip.")
-    elif blown > GLARE_MAX:
-        warn(f"{blown * 100:.1f}% of the picture is blown out — past the reference band, "
-             "so the glare is now eating the hero and the objects instead of lighting "
-             "them. Drop to --pop vivid, or regenerate with the light source smaller "
-             "and further behind the subject.")
+    info(f"colour: mean saturation {sat:.2f}; "
+         f"{blown * 100:.1f}% of the picture blown out")
+    if sat > SATURATION_MAX:
+        warn(f"the picture is globally oversaturated ({sat:.2f}; maximum "
+             f"{SATURATION_MAX:.2f}). Use a restrained grade or regenerate without a "
+             "global colour wash.")
+    if blown > GLARE_MAX:
+        warn(f"{blown * 100:.1f}% of the picture is blown out — the glare is eating "
+             "the hero and objects instead of lighting them. Drop to --pop soft/off, "
+             "or regenerate with the light source smaller and further behind the subject.")
     return sat, blown
 
 
@@ -1754,7 +1733,7 @@ def crown_report(pano: Image.Image, span: tuple[int, int], hero_top: int,
     if hero_top <= pano.height * 0.06:
         info(f"panel {panel} crown: the bust sits near the top with its safety "
              "margin — no separate band above the head to decorate. The slide's "
-             "ornament is the object hill, falling symbols and blown light behind "
+             "ornament is the object hill, falling symbols and simple focal light behind "
              "the head instead.")
         return None
     energy, scale = _edge_map(pano, 360)
@@ -1994,33 +1973,12 @@ def validate_sprite_assets(specs: list[dict]) -> None:
             "`python3 tools/cutout.py FILE.png --check`.")
     info(f"sprite asset gate: {len(specs)} standalone PNG object(s) have real alpha")
 
-# The final panorama needs a blocking gate, not another advisory sentence. The
-# rejected preview that prompted this check was saturated, but its mean luma was
-# 0.20, 63% of its pixels were deep shadow, all three upper bands measured above
-# 30 detail, its lower/upper detail ratio was 0.83, and only 0.4% of the picture
-# was blown out.
-#
-# Round five re-cut the floors against the four long banners the author sent as
-# "these are what I generate". They are markedly brighter and more saturated
-# than the previous kit, and "яркие и светлые… с разными пересветами и бликами"
-# is the whole note:
-#
-#   file          saturation   mean luma   deep shadow   blown (>0.95)
-#   egypt              0.58        0.64          4.7%          6.1%
-#   royal reels        0.83        0.41         24.8%          2.1%
-#   joker              0.76        0.56          6.2%          1.7%
-#   lightning reels    0.77        0.39         29.4%          2.2%
-#
-# Light/shadow/glare floors stay just outside the supplied range. Saturation is
-# intentionally stricter now: the follow-up asks for aggressively saturated
-# sliders, so 0.68 is the delivery floor (target 0.78-0.88), rather than a line
-# below the weakest 0.58 reference. Luma remains 0.33 (weakest 0.39), shadow
-# 0.38 (worst 0.29), and glare 1.2% (weakest 1.7%).
-# The foreground rule is unchanged: a distinct object hill on every panel, not
-# merely lower pixels as busy as the upper ones. So is the all-yellow rejection,
-# which a saturation-only gate cannot see.
-FINAL_LUMA_MIN = 0.33
-FINAL_SHADOW_MAX = 0.38
+# The final panorama needs a blocking gate, but it protects readability rather
+# than enforcing a high-key aesthetic. These low-end limits catch an obscured or
+# crushed image while allowing a deliberately moody Design DNA. The foreground
+# and palette-separation rules remain unchanged.
+FINAL_LUMA_MIN = 0.18
+FINAL_SHADOW_MAX = 0.70
 FINAL_UPPER_DETAIL_MAX = 29.0
 FINAL_FRAME_RATIO_MIN = 1.10
 FINAL_PANEL_FRAME_RATIO_MIN = 1.05
@@ -2198,13 +2156,13 @@ def final_art_issues(
             f"the panorama is too dark (luma {mean_luma:.2f}, deep shadow "
             f"{shadow_share * 100:.0f}%; need luma ≥{FINAL_LUMA_MIN:.2f} and "
             f"shadow ≤{FINAL_SHADOW_MAX * 100:.0f}%). The far background must be "
-            "bright and broad; saturation alone does not make a dark stage bright")
+            "readable and broad; bright trim alone does not rescue crushed scenery")
     if upper_mean > FINAL_UPPER_DETAIL_MAX:
         issues.append(
             f"the visible upper background is too detailed ({upper_mean:.1f}, maximum "
             f"{FINAL_UPPER_DETAIL_MAX:.1f}). Replace dense architecture, filigree, "
             "crowds, foliage, and all-over particles with broad color, simplified "
-            "far silhouettes, soft atmosphere, and one luminous source")
+            "far silhouettes, soft atmosphere, and one simple focal source")
     if frame_ratio < FINAL_FRAME_RATIO_MIN:
         issues.append(
             f"the bottom edge does not carry the game's object frame ({frame_ratio:.2f}× "
@@ -2223,9 +2181,10 @@ def final_art_issues(
             f"{FINAL_PANEL_FRAME_RATIO_MIN:.2f}× sampled background detail and carry real object detail). "
             "Keep recognizable game items large, overlapping, separately silhouetted and "
             "cropped by the bottom edge")
-    if saturation < SAT_FLOOR:
+    if saturation > SATURATION_MAX:
         issues.append(
-            f"the panorama is undersaturated ({saturation:.2f}; need ≥{SAT_FLOOR:.2f})")
+            f"the panorama is globally oversaturated ({saturation:.2f}; need ≤"
+            f"{SATURATION_MAX:.2f})")
     if hue_outside < HUE_OUTSIDE_FAMILY_MIN:
         issues.append(
             f"the panorama is saturated but effectively monochrome ({hue_outside * 100:.0f}% "
@@ -2233,11 +2192,10 @@ def final_art_issues(
             f"{HUE_OUTSIDE_FAMILY_MIN * 100:.0f}%). A yellow/gold wash is not colourfulness: "
             "give the smooth background a clearly different hue family and preserve the "
             "game objects' own varied colours")
-    if blown < GLARE_MIN or blown > GLARE_MAX:
+    if blown > GLARE_MAX:
         issues.append(
-            f"controlled overexposure is outside the allowed band ({blown * 100:.1f}%; "
-            f"need {GLARE_MIN * 100:.1f}-{GLARE_MAX * 100:.0f}%). Put a real blown "
-            "light source behind a focal subject; do not wash over that subject")
+            f"the panorama has excessive overexposure ({blown * 100:.1f}%; need ≤"
+            f"{GLARE_MAX * 100:.0f}%). Keep highlights local and preserve focal detail")
 
     if hero_bg_hue_gap is not None and hero_bg_hue_gap < HERO_BG_HUE_GAP_MIN:
         issues.append(
@@ -3883,22 +3841,21 @@ def banner_art_issues(
             metrics["shadow_share"] > FINAL_SHADOW_MAX):
         issues.append(
             f"the long banner is too dark (luma {metrics['mean_luma']:.2f}, deep "
-            f"shadow {metrics['shadow_share'] * 100:.0f}%). It needs a broad luminous "
-            "far plane, not bright trim on a dark stage")
-    if metrics["saturation"] < SAT_FLOOR:
+            f"shadow {metrics['shadow_share'] * 100:.0f}%). It needs a broad, "
+            "readable far plane, not bright trim on crushed scenery")
+    if metrics["saturation"] > SATURATION_MAX:
         issues.append(
-            f"the long banner is not aggressively saturated "
-            f"({metrics['saturation']:.2f}; need ≥{SAT_FLOOR:.2f})")
+            f"the long banner is globally oversaturated "
+            f"({metrics['saturation']:.2f}; need ≤{SATURATION_MAX:.2f})")
     if metrics["secondary_hues"] < HUE_OUTSIDE_FAMILY_MIN:
         issues.append(
             "the long banner is effectively one neighbouring-colour family. Keep "
             "distinct red, yellow, green and cyan/blue game-object accents instead "
             "of one global tint")
-    if not GLARE_MIN <= metrics["glare"] <= GLARE_MAX:
+    if metrics["glare"] > GLARE_MAX:
         issues.append(
-            f"the long banner's controlled overexposure is outside the allowed "
-            f"band ({metrics['glare'] * 100:.1f}%; need "
-            f"{GLARE_MIN * 100:.1f}-{GLARE_MAX * 100:.0f}%)")
+            f"the long banner has excessive overexposure "
+            f"({metrics['glare'] * 100:.1f}%; need ≤{GLARE_MAX * 100:.0f}%)")
 
     if lead_kind != "character":
         return issues
@@ -4269,10 +4226,10 @@ def add_text_args(p: argparse.ArgumentParser) -> None:
 
 def add_pop_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--pop", choices=tuple(POP_PRESETS), default=DEFAULT_POP,
-                   help="colour grade for GENERATED art: a listing is judged as a "
-                        "strip of thumbnails and raw model output reads flat there, "
-                        f"so a grade is applied by default ({DEFAULT_POP}, finishing "
-                        f"toward {MAX_POP_SATURATION_TARGET:.2f} mean saturation). Use "
+                   help="colour grade for GENERATED art. The restrained default "
+                        f"({DEFAULT_POP}) preserves source exposure and adds only a "
+                        "modest colour lift; vivid/blaze/max are explicit art-direction "
+                        "choices. Use "
                         "`off` only when the art was already graded upstream.")
     p.add_argument("--vibrance", type=float, default=None, metavar="F",
                    help="override the preset's saturation lift (weighted toward the "
@@ -4391,8 +4348,8 @@ def main() -> None:
                         "and keeps its silhouette off the first carousel seam.")
     t.add_argument("--art-gate", choices=("strict", "warn", "off"), default="strict",
                    help="validate the panorama against the supplied composition brief. "
-                        "`strict` (default) writes no panels when the art is dark, busy "
-                        "in the far plane, weak at the bottom, missing controlled glare, "
+                        "`strict` (default) writes no panels when the art is unreadably "
+                        "crushed, busy in the far plane, weak at the bottom, overprocessed, "
                         "or the measured hero leaves panel 1. `warn` is only for a "
                         "diagnostic preview; `off` is for compositor unit tests.")
     t.add_argument("--object-frame", default="auto", metavar="auto|N|off",
@@ -4550,7 +4507,7 @@ def main() -> None:
     b.add_argument("--banner-gate", choices=("strict", "warn", "off"),
                    default="strict",
                    help="validate the selected context and layout. `strict` (default) "
-                        "writes nothing when palette, light, controlled glare, focal "
+                        "writes nothing when palette, readability, restrained highlights, focal "
                         "framing, protection, or full-width object framing fails. `warn` is "
                         "diagnostic only; `off` is for compositor tests")
     b.add_argument("--base-out", metavar="PNG",
