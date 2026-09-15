@@ -305,24 +305,46 @@ We archive EVERYTHING except `project_zip/`, `.git/` (large and unnecessary), `b
 SOURCE_DIR="$RELEASE_DIR/source"
 mkdir -p "$SOURCE_DIR"
 
-# rsync, excluding the junk
-rsync -a \
-  --exclude='project_zip/' \
-  --exclude='.git/' \
-  --exclude='build/' \
-  --exclude='.dart_tool/' \
-  --exclude='.flutter-plugins' \
-  --exclude='.flutter-plugins-dependencies' \
-  --exclude='ios/Pods/' \
-  --exclude='ios/.symlinks/' \
-  --exclude='android/.gradle/' \
-  --exclude='android/build/' \
-  --exclude='android/app/build/' \
-  --exclude='.idea/' \
-  --exclude='.DS_Store' \
-  --exclude='*.iml' \
-  --exclude='.claude/runtime-logs/' \
-  ./ "$SOURCE_DIR/"
+# rsync, excluding the junk. Some prepared environments do not include rsync;
+# use tar streaming with the same exclusions in that case.
+# The source destination is inside project_zip, so that exclusion also prevents recursion.
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a \
+    --exclude='project_zip/' \
+    --exclude='.git/' \
+    --exclude='build/' \
+    --exclude='.dart_tool/' \
+    --exclude='.flutter-plugins' \
+    --exclude='.flutter-plugins-dependencies' \
+    --exclude='ios/Pods/' \
+    --exclude='ios/.symlinks/' \
+    --exclude='android/.gradle/' \
+    --exclude='android/build/' \
+    --exclude='android/app/build/' \
+    --exclude='.idea/' \
+    --exclude='.DS_Store' \
+    --exclude='*.iml' \
+    --exclude='.claude/runtime-logs/' \
+    ./ "$SOURCE_DIR/"
+else
+  tar -cf - \
+    --exclude='./project_zip' \
+    --exclude='./.git' \
+    --exclude='./build' \
+    --exclude='./.dart_tool' \
+    --exclude='./.flutter-plugins' \
+    --exclude='./.flutter-plugins-dependencies' \
+    --exclude='./ios/Pods' \
+    --exclude='./ios/.symlinks' \
+    --exclude='./android/.gradle' \
+    --exclude='./android/build' \
+    --exclude='./android/app/build' \
+    --exclude='./.idea' \
+    --exclude='./.DS_Store' \
+    --exclude='*.iml' \
+    --exclude='./.claude/runtime-logs' \
+    . | tar -xf - -C "$SOURCE_DIR"
+fi
 ```
 
 ### 5.2. Create the final `.zip` archive
