@@ -272,7 +272,7 @@ class SpriteAssetGateTests(unittest.TestCase):
 
 
 class PopGradeTests(unittest.TestCase):
-    """Saturate and brighten — without clipping, which is the usual failure."""
+    """Theme-led default, with stronger opt-in grades that still avoid clipping."""
 
     def _ramp(self) -> Image.Image:
         x = np.linspace(0.0, 1.0, 64, dtype=np.float32)[None, :, None]
@@ -295,18 +295,19 @@ class PopGradeTests(unittest.TestCase):
         rgb = np.asarray(img.convert("RGB"), dtype=np.float32) / 255.0
         return store_compose._mean_hsv_saturation(rgb)
 
-    def test_default_preset_lifts_light_and_colour(self) -> None:
+    def test_default_preset_adds_restrained_colour_without_lifting_light(self) -> None:
         src = self._ramp()
         base_luma, base_sat, _ = self._stats(src)
         graded_luma, graded_sat, _ = self._stats(store_compose.pop_grade(src))
-        self.assertGreater(graded_luma, base_luma)
+        self.assertAlmostEqual(graded_luma, base_luma, delta=0.01)
         self.assertGreater(graded_sat, base_sat)
 
     def test_presets_are_monotonic(self) -> None:
         src = self._ramp()
         lumas = [self._stats(store_compose.pop_grade(src, p))[0]
                  for p in ("off", "soft", "vivid", "blaze", "max")]
-        self.assertEqual(lumas, sorted(lumas))
+        for lower, upper in zip(lumas, lumas[1:]):
+            self.assertLessEqual(lower, upper + 0.001)
 
     def test_no_preset_blows_the_highlights_out(self) -> None:
         # A flat white patch is what a naive saturate+brighten destroys first.
@@ -315,12 +316,16 @@ class PopGradeTests(unittest.TestCase):
             with self.subTest(preset=preset):
                 self.assertLess(self._stats(store_compose.pop_grade(src, preset))[2], 0.02)
 
-    def test_aggressive_max_grade_is_the_store_art_default(self) -> None:
-        self.assertEqual(store_compose.DEFAULT_POP, "max")
+    def test_restrained_soft_grade_is_the_store_art_default(self) -> None:
+        self.assertEqual(store_compose.DEFAULT_POP, "soft")
         src = self._ramp()
         np.testing.assert_array_equal(
             np.asarray(store_compose.pop_grade(src)),
-            np.asarray(store_compose.pop_grade(src, "max")))
+            np.asarray(store_compose.pop_grade(src, "soft")))
+        self.assertLess(
+            self._hsv_saturation(store_compose.pop_grade(src)),
+            self._hsv_saturation(store_compose.pop_grade(src, "vivid")),
+        )
 
     def test_max_grade_materially_raises_carousel_saturation(self) -> None:
         src = self._ramp()
@@ -499,7 +504,7 @@ class DetailReportTests(unittest.TestCase):
 
 
 class ReferenceBriefReportTests(unittest.TestCase):
-    """The newest reference kit: smooth plate, object-heavy floor, vivid glare."""
+    """Smooth plate, object-heavy floor, and restrained theme-led colour."""
 
     PANEL_W, PANEL_H = 200, 400
 
@@ -552,18 +557,15 @@ class ReferenceBriefReportTests(unittest.TestCase):
             flipped, self._spans()))
         self.assertTrue(any("not framed from below" in m for m in messages), messages)
 
-    def test_colour_and_overexposure_are_both_measured(self) -> None:
-        dull = Image.new("RGB", (100, 100), (110, 110, 110)).convert("RGBA")
-        messages = self._messages(lambda: store_compose.glare_report(dull))
-        self.assertTrue(any("undersaturated" in m for m in messages), messages)
-        self.assertTrue(any("nothing in the picture is blown out" in m for m in messages),
-                        messages)
-
-        vivid = Image.new("RGB", (100, 100), (20, 40, 230))
-        ImageDraw.Draw(vivid).rectangle([0, 0, 9, 99], fill=(255, 255, 255))
-        messages = self._messages(
-            lambda: store_compose.glare_report(vivid.convert("RGBA")))
+    def test_restrained_colour_without_glare_is_accepted(self) -> None:
+        muted = Image.new("RGB", (100, 100), (60, 90, 130)).convert("RGBA")
+        messages = self._messages(lambda: store_compose.glare_report(muted))
         self.assertEqual(messages, [])
+
+    def test_excessive_overexposure_is_reported(self) -> None:
+        washed = Image.new("RGB", (100, 100), (255, 255, 255)).convert("RGBA")
+        messages = self._messages(lambda: store_compose.glare_report(washed))
+        self.assertTrue(any("glare is eating" in m for m in messages), messages)
 
 
 class FinalArtGateTests(unittest.TestCase):
@@ -579,7 +581,7 @@ class FinalArtGateTests(unittest.TestCase):
     def _spans(self) -> list[tuple[int, int]]:
         return store_compose.uniform_spans(self.PANELS, self.PANEL_W, 0)
 
-    def test_bright_smooth_art_with_a_game_object_floor_and_glare_passes(self) -> None:
+    def test_midtone_smooth_art_with_a_game_object_floor_passes(self) -> None:
         pano = store_compose.gradient(
             (self.PANEL_W * self.PANELS, self.PANEL_H),
             [(0.0, (35, 105, 235, 255)), (1.0, (245, 120, 190, 255))])
@@ -588,12 +590,12 @@ class FinalArtGateTests(unittest.TestCase):
         # does not mean painting every plane with the same yellow grade.
         draw.rounded_rectangle([18, 44, 160, 302], radius=45,
                                fill=(242, 74, 62, 255))
-        draw.ellipse([250, 20, 330, 100], fill=(255, 255, 255, 255))
+        draw.ellipse([250, 20, 330, 100], fill=(150, 190, 220, 255))
         rng = np.random.default_rng(83)
         objects = Image.fromarray(rng.integers(
             10, 245, (126, pano.width, 3), dtype=np.uint8), "RGB").convert("RGBA")
         pano.paste(objects, (0, pano.height - objects.height))
-        pano = store_compose.pop_grade(pano, "max")
+        pano = store_compose.pop_grade(pano, "soft")
 
         issues = store_compose.final_art_issues(
             pano, self._spans(), (0.03, 0.12, 0.27, 0.78))
@@ -657,7 +659,6 @@ class FinalArtGateTests(unittest.TestCase):
         self.assertIn("too dark", joined)
         self.assertIn("too detailed", joined)
         self.assertIn("bottom edge", joined)
-        self.assertIn("controlled overexposure", joined)
         # y=0 crops the head, and the box runs from 0.04 to 0.40 of a panorama
         # whose first panel ends at 0.333 — straight through the first seam.
         self.assertIn("the top of the frame crops or crowds the hero", joined)
@@ -1641,12 +1642,12 @@ class ContextCompositionTests(unittest.TestCase):
                 if not succeeds:
                     self.assertIn("protected region 1", result.stdout + result.stderr)
 
-    def test_noncharacter_modes_retain_darkness_and_palette_gates(self) -> None:
+    def test_noncharacter_modes_retain_readability_and_palette_gates(self) -> None:
         canvas = Image.new("RGB", (900, 640), (15, 15, 15))
         issues = store_compose.banner_art_issues(
             canvas, None, lead_kind="object", lead_bounds=(0.1, 0.1, 0.8, 0.8))
         self.assertTrue(any("too dark" in issue for issue in issues), issues)
-        self.assertTrue(any("saturated" in issue for issue in issues), issues)
+        self.assertTrue(any("one neighbouring-colour" in issue for issue in issues), issues)
         self.assertTrue(any("foreground does not continue" in issue for issue in issues), issues)
 
 

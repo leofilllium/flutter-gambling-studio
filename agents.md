@@ -28,11 +28,13 @@ default to a large character on the first panel. Object/mechanic games such as c
 Plinko need no invented mascot or character-only opening. For characters, left/lower edge crops
 are allowed; protect heads/headwear with 2% top headroom and keep attached forms clear of the first
 seam. Animal framing fits the species. Real game objects form the cropped bottom frame
-and fall through the picture, while the bright far background stays broad and smooth so those
-subjects lead. Slider saturation is deliberately intense: 0.68 mean saturation is the hard
-floor and 0.78–0.88 is the target band, alongside a measured controlled blown light source. Generic
-stage furniture does not count as game objects, and a saturated dark, hyper-detailed far plane still
-fails the brightness contract. The Google Play feature graphic uses its own horizontal composition.
+and fall through the picture, while the far background stays broad, smooth, and subordinate so
+those subjects lead. Store grading is restrained and theme-led by default: preserve the Design DNA's
+exposure and add only enough saturation for the game objects to read cleanly. Brightness lifts, bloom,
+blown light sources, and aggressively saturated treatments are opt-in art direction, never universal
+delivery requirements. Generic stage furniture does not count as game objects, and a dark,
+hyper-detailed far plane can still fail the readability contract. The Google Play feature graphic
+uses its own horizontal composition.
 A left-heavy 3/5–2/5 split is optional; object/mechanic scenes may use the full width. Keep the real
 object frame across the lower edge and no reserved device-shaped zone.
 Across both formats, place decisive gameplay wherever it reads best, with many real sprite assets in a spill

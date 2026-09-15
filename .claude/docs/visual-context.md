@@ -105,9 +105,11 @@ background and the palette, light and foreground-object checks; do not mask busy
 
 Use a varied foreground spill of real game objects across the lower edge and selected flying
 objects at different depths. Preserve sharp primary forms, source colors, contact shadows,
-clear action, and a broad smooth luminous far plane. Casino-grade energy comes from composition
-and materials; it does not prescribe a universal gold/neon palette. Maintain the store art's
-saturation floor (0.68, target 0.78–0.88) and controlled glare without tinting runtime art.
+clear action, and a broad smooth subordinate far plane. Casino-grade energy comes from composition
+and materials; it does not prescribe a universal gold/neon palette, high-key exposure, or an
+aggressive saturation target. Keep the Design DNA's value structure, use a restrained theme-led
+colour grade by default, and reserve brightness lifts, bloom, glare, and intense saturation for an
+explicit concept or user direction. Never tint runtime art.
 
 The feature graphic needs its own horizontal render and the same context decision. A left-heavy
 3/5–2/5 arrangement is an option, not a universal rule. Object-led and mechanic-led banners may

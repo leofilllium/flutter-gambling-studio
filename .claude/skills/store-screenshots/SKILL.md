@@ -132,7 +132,7 @@ the action, but it cannot replace gameplay in slide 1.
 
 Build the lower edge from a varied spill of actual game objects: scale, rotation, height, overlap,
 contact shadows and shared light. Add recognizable flying/falling objects at varied depths. Keep
-primary subjects sharp, source-colored and dominant over a broad smooth luminous far plane.
+primary subjects sharp, source-colored and dominant over a broad smooth subordinate far plane.
 Generic stage furniture, particles or a tidy row cannot replace the actual object spill.
 
 Prepare an optional physical board reference from the measured actual frame:
@@ -203,9 +203,13 @@ player or mascot in slide 1. Verify that slides 1 and 2 each contain recognizabl
 gameplay at a three-quarter/3D angle; when one field spans both, inspect the separate crops rather
 than accepting the assembled panorama alone.
 
-Maintain store-art saturation ≥0.68, target 0.78–0.88, controlled glare, source-color separation,
-foreground depth and broad bright smooth background. Saturated darkness or excessive far-plane
-detail does not pass. Correct store art without recoloring runtime assets.
+Use restrained, theme-led store grading by default: preserve the concept's exposure, add only a
+modest colour lift when it helps thumbnail readability, and keep source-color separation,
+foreground depth, and a broad smooth subordinate background. Do not require a bright far plane,
+glare, bloom, or a universal saturation score. Those treatments are valid only when the Design DNA
+or user explicitly calls for them. Crushed unreadable darkness, clipped highlights, excessive
+saturation, or excessive far-plane detail still fail. Correct store art without recoloring runtime
+assets.
 
 ## Phase 3 — branding and current captures
 
@@ -249,7 +253,7 @@ together. Remeasure after any geometry change and separately for each store's as
 
 ```bash
 "$STORE_PYTHON" tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
-  --out "$OUT_DIR" --panels 3 --size 1320x2868 --pop max --seam-snap off \
+  --out "$OUT_DIR" --panels 3 --size 1320x2868 --pop soft --seam-snap off \
   --lead-kind mechanic --lead-bounds "$LEAD_BOUNDS" \
   --protected-bounds "$OUTCOME_BOUNDS" --art-gate strict
 ```
@@ -270,7 +274,7 @@ Resolve filenames and words from this game's inventory; honor frame/no-captions/
 ```bash
 "$STORE_PYTHON" tools/store_compose.py showcase --shot "$RAW_DIR/03-spin.png" \
   --bg "$ART_DIR/keyart-integrated.png" --out "$OUT_DIR/store-04.png" \
-  --size 1320x2868 --caption "Every Spin Counts" --type-mood playful --pop vivid
+  --size 1320x2868 --caption "Every Spin Counts" --type-mood playful --pop soft
 ```
 
 With panels 0, use the existing game background for showcase composition. Compose Play separately.
@@ -279,13 +283,13 @@ Feature example, after measuring the final horizontal crop:
 ```bash
 "$STORE_PYTHON" tools/store_compose.py banner --keyart "$ART_DIR/long-banner-integrated.png" \
   --out "$STORE_DIR/feature-graphic-1024x500.png" \
-  --base-out "$ART_DIR/long-banner-source-1024x500.png" --size 1024x500 --pop max \
+  --base-out "$ART_DIR/long-banner-source-1024x500.png" --size 1024x500 --pop soft \
   --lead-kind object --lead-bounds "$BANNER_LEAD_BOUNDS" \
   --banner-layout free --banner-gate strict
 ```
 
 Character banners use hero-bounds; mechanic banners use lead-bounds. Supply critical protected
-regions and gameplay-bounds for separate field surfaces too. Free layout retains light/palette/foreground checks; left-heavy additionally checks
+regions and gameplay-bounds for separate field surfaces too. Free layout retains palette/readability/foreground checks; left-heavy additionally checks
 the 3/5–2/5 density pattern. Add optional typography/real capture only after the clean source
 passes, retain base-out, and recheck readability after overlays.
 
