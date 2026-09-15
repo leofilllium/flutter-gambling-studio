@@ -5,16 +5,14 @@ store_compose.py — store-listing image compositor for the game studio.
 Produces the full set of publishable listing images for ANY game the studio
 makes (genre/theme agnostic — everything visual comes from the arguments):
 
-  triptych  N vertical panels sliced out of ONE wide key-art panorama, so the
-            first N store screenshots REASSEMBLE into that exact picture: the
-            cuts are butt-joined, nothing at all is discarded between the panels
-            and protected content stays intact. WHERE the cuts fall is chosen by the
+  triptych  N vertical panels sliced out of ONE wide key-art panorama. The
+            default source continues beneath the publisher's carousel separators:
+            an allowance scaled from 100px at a 1320px panel is discarded at each
+            cut, while protected content stays intact. WHERE the cuts fall is chosen by the
             picture, not by arithmetic (`--seam-snap`): the tiling slides until
             they land on the quietest columns, and the art is asked for a calm
-            corridor there. `--gutter` can still throw a seam allowance away at
-            each cut, for a publisher who asks the panels to line up across the
-            store's own carousel gap — but that is opt-in, because it puts a
-            hole in the picture.
+            corridor there. `--gutter 0` remains available for a true butt-jointed,
+            lossless panorama when the publisher is known not to insert gaps.
             `--sprite` and `--sprite-dir` inlay the game's real objects into the
             layout draft — a context-selected lead, freely placed gameplay, and ALL
             shipped sprite assets distributed across the slides — so every
@@ -1214,18 +1212,16 @@ def calm(img: Image.Image, strength: float) -> Image.Image:
 
 # ──────────────────────── seams, gutters and props ──────────────────────────
 #
-# THE PANELS MUST REASSEMBLE INTO THE WHOLE PICTURE. Lay them side by side and
-# the panorama has to come back exactly as it was drawn — not a millimetre of it
-# missing anywhere. That is the contract, and it is why `--gutter` defaults to 0:
-# panel i ends on the very column panel i+1 begins on, so nothing is discarded
-# between them and the set is one picture cut into parts.
+# THE SOURCE MUST CONTINUE BENEATH THE CAROUSEL SEPARATORS. The publisher inserts
+# a visible gap between cards, so the default panorama is wider than N panels and
+# a scaled allowance is discarded at every cut. At 1320px per card that hidden
+# strip is 100px. This keeps the scene spatially continuous behind the UI gap.
+# Critical faces, text and decisive outcomes must still stay outside the hidden
+# strips; only atmosphere and noncritical field structure may cross them.
 #
-# The alternative — composing wider than N panels and throwing a strip away at
-# each cut, so the store's own carousel gap stands in for the discarded strip —
-# is still reachable as `--gutter 100`, because some publishers ask for it. It
-# buys alignment on the listing page at the price of a hole in the picture: every
-# panel then ends mid-object wherever the cut fell, which is exactly the "it cuts
-# too much" the default exists to avoid. Opt-in, never automatic.
+# `--gutter 0` is the explicit lossless alternative for diagnostic panoramas or a
+# publisher known to render true butt joints. In that mode the panels reassemble
+# exactly and no source pixels are hidden.
 #
 # What protects a seam now is WHERE it falls, not what is removed there: the
 # whole tiling slides (`--seam-snap`) until the cuts land on quiet columns, and
@@ -1233,7 +1229,7 @@ def calm(img: Image.Image, strength: float) -> Image.Image:
 
 GUTTER_REF_W = 1320   # the App Store 6.9" panel the allowance was measured on
 GUTTER_REF_PX = 100   # the allowance publishers ask for at that panel width
-DEFAULT_GUTTER = "0"  # lossless by default: the panels reassemble the picture
+DEFAULT_GUTTER = "auto"  # publisher gap: 100px at 1320px, scaled with panel width
 
 
 def parse_gutter(spec: str, panel_w: int) -> int:
@@ -3188,10 +3184,8 @@ def cmd_triptych(args) -> None:
             else f", {'/'.join(map(str, gaps))}px discarded at the seams")
          + (f" (cuts snapped within ±{snap}px)" if snap else ""))
     if gutter:
-        warn(f"--gutter {gutter}: a {gutter}px strip is thrown away at every cut, so the "
-             "panels no longer reassemble into the whole picture and each one ends "
-             "mid-object wherever the cut fell. Only do this for a publisher who has "
-             "asked the panels to line up across the store's carousel gap.")
+        info(f"hidden seam allowance: {gutter}px of continuous source art sits beneath "
+             "each publisher gap; keep faces, text and decisive outcomes outside it")
 
 
 def _perspective_coeffs(dst, src) -> tuple:
@@ -4296,11 +4290,10 @@ def main() -> None:
                    help="-1..1 horizontal crop bias; slides a face off a panel seam "
                         "without regenerating the art (needs --zoom > 1)")
     t.add_argument("--gutter", default=DEFAULT_GUTTER, metavar="PX|N%|auto",
-                   help="OPT-IN seam allowance thrown away at every cut, so the store's "
-                        "own carousel gap stands in for it. It costs the picture: the "
-                        "panels stop reassembling and each ends mid-object wherever the "
-                        f"cut fell. Default 0 — nothing discarded. `auto` = "
-                        f"{GUTTER_REF_PX}px at {GUTTER_REF_W}px panels, scaled to --size")
+                   help="source strip hidden beneath every publisher carousel gap. "
+                        f"Default auto = {GUTTER_REF_PX}px at {GUTTER_REF_W}px panels, "
+                        "scaled to --size. Use 0 only for a known butt-jointed publisher "
+                        "or a lossless diagnostic panorama")
     t.add_argument("--seam-snap", default=DEFAULT_SNAP, metavar="PX|N%|auto|off",
                    help="how far the tiling may slide so the cuts fall on quiet "
                         "columns instead of through a face, a coin or the board's edge. "
