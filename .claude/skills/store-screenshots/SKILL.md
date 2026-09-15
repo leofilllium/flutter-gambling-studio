@@ -177,8 +177,18 @@ generate or retain only the character, environment, lighting and foreground dres
 the compositor to integrate the exact real board/field plate and shipped sprites. Apply any
 perspective transform to the complete exact field layer rather than redrawing its cells. This is
 not permission to paste an unintegrated rectangular screenshot: preserve the field's readable
-contents while matching scene depth, edging and light. Recount the final exported topology and
-recheck the decisive outcome after all crops and seam adjustments.
+contents while matching scene depth, edging and light.
+
+When the brief calls for angled or environment-integrated gameplay, a perspective transform alone
+is not evidence of integration. The final field must visibly satisfy all three contextual-embedding
+groups: **structural reception** (a recessed housing, altar or console with readable thickness,
+edging and plane-matched perspective); **photometric contact** (contact shadow plus local colour
+spill, light wrap or reflection consistent with the scene's key light); and **spatial interaction**
+(a foreground or atmospheric element crossing the housing edge without hiding decisive cells). A
+rectangular drop shadow, glow or decorative platform merely placed behind the whole screenshot does
+not satisfy this contract. Review these cues at final panel size as well as in the continuous
+panorama. Recount the final exported topology and recheck the decisive outcome after all crops and
+seam adjustments.
 
 Render `art/long-banner-integrated.png` separately for the horizontal feature graphic with the
 same identity and lead kind. Full-width action is valid. A left-heavy 3/5–2/5 composition is
