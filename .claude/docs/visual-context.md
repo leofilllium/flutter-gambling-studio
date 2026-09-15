@@ -16,7 +16,7 @@ the asset manifest, generation prompts, and `STORE_BRIEF.md`.
 | Lead | When it fits | Default storefront direction |
 |---|---|---|
 | Character | Zeus, Joker, chicken, another actual character or animal mascot | Recognizable large character on the first panel; action may occupy any remaining space or span panels |
-| Object | Crown, multiplier coin, capsule, treasure, machine is the visual star | Let that asset and the real mechanic drive the composition; no person, bust slot, or character-only opening panel |
+| Object | Crown, multiplier coin, capsule, treasure, machine is the visual star | Let that asset and the real mechanic drive the composition; when the game has no living character, slides 1–2 show angled authentic gameplay and introduce no person or mascot |
 | Mechanic | Plinko drop, reels, wheel, cash-out trajectory is the attraction | Lead with active play; a board or trajectory may extend through all panels |
 
 A chicken is a character even though it is not a person. A crown or coin is an object even if
@@ -85,6 +85,13 @@ humanoids; use a readable species-appropriate crop for animal mascots. Protect t
 hair/headwear and attached silhouette from the first seam, with at least 2% top headroom;
 left and lower edge crops are allowed. Object/mechanic leads have prominence and readability
 checks, not anatomy or first-panel silhouette requirements.
+
+For an object/mechanic-led game with no living character in its concept and shipped inventory,
+the first two carousel slides are gameplay-led. Show the authentic board or mechanic at a readable
+three-quarter/3D angle in each crop, or use one continuous angled gameplay surface with meaningful
+play visible in both. Do not invent a human, hand, animal, mascot or player silhouette, and do not
+use a decorative object-only first slide. Preserve the real topology, symbols and resolving state.
+Character-led games keep their existing character-first defaults.
 
 Boards may cross any seams. Put cuts through noncritical housing, gaps, or background; keep
 faces, decisive symbols, multiplier inscriptions, bucket outcomes, and critical interaction
