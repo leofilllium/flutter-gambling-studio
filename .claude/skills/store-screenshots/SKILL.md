@@ -170,6 +170,16 @@ whose field gains physical depth/light/perspective while retaining real topology
 outcome. A pasted screenshot rectangle and an attractive invented board both fail. Do not paste
 a screenshot over the final render. Save the integrated result as `art/keyart-integrated.png`.
 
+Treat count- and order-sensitive gameplay geometry as a deterministic project-derived layer,
+not as a raster-model obligation. If an integrated generation changes rows, columns, paylines,
+buckets, symbol order or the decisive outcome, reject that field. After one bounded recovery,
+generate or retain only the character, environment, lighting and foreground dressing, then use
+the compositor to integrate the exact real board/field plate and shipped sprites. Apply any
+perspective transform to the complete exact field layer rather than redrawing its cells. This is
+not permission to paste an unintegrated rectangular screenshot: preserve the field's readable
+contents while matching scene depth, edging and light. Recount the final exported topology and
+recheck the decisive outcome after all crops and seam adjustments.
+
 Render `art/long-banner-integrated.png` separately for the horizontal feature graphic with the
 same identity and lead kind. Full-width action is valid. A left-heavy 3/5–2/5 composition is
 optional. The clean source must look finished alone: no device, UI, reserved zone or marketing
