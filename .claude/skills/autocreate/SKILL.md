@@ -92,7 +92,7 @@ defaults, do not add a global orientation or iPhone-only device-family restricti
 wrap `MaterialApp` in a phone-width canvas. Session 2's UI pass must implement compact, medium,
 and expanded compositions that fill the host viewport.
 
-Use Flutter 3.27+, Dart 3.6+, Flame 1.18.x, `flame_audio`, `flame_svg`, `google_fonts`, and `shared_preferences`. Register these directories in `pubspec.yaml`:
+Use Flutter 3.27+, Dart 3.6+, Flame 1.18.x, `flame_audio ^2.1.0`, `flame_svg`, `google_fonts`, and `shared_preferences`. Retain that compatible audio constraint with the studio's Flame 1.18.x baseline; newer `flame_audio` releases can require newer Flame or Flutter versions. Register these directories in `pubspec.yaml`:
 
 ```yaml
 flutter:
