@@ -59,7 +59,7 @@ visual problems.
 | A4 | **AnimationController without dispose** | StatefulWidget with `AnimationController` but without `controller.dispose()` in `dispose()` | Memory leak → eventual crash | Add `dispose()` |
 | A5 | **Timer/StreamSubscription without cancel** | `Timer.periodic` or `.listen(` without `cancel()` in `dispose()` | Callback is called on disposed widget | Add `cancel()` to `dispose()` |
 | A6 | **Navigator.pop on empty stack** | `Navigator.pop(context)` without check `Navigator.canPop(context)` | "Navigator cannot pop - route stack is empty" | Add `if (Navigator.canPop(context))` |
-| A7 | **Missing asset** | Compare paths in code (`'assets/...'`) with real files in `assets/` | "Unable to load asset" - white screen or crash | Create missing file or fix path |
+| A7 | **Missing or silently substituted asset** | Compare every configured visual item ID with the runtime asset map, `pubspec.yaml`, and a real file. Do not filter null/blank paths before checking completeness. If text/shape fallback is intentional, require explicit art direction and runtime proof; otherwise treat letters, emoji, debug labels, or generic shapes in place of promised art as missing assets. | An outcome can render a placeholder while ordinary file-existence checks still pass | Restore one-to-one configured-ID coverage, remove unintended fallback, and fail startup/tests on incomplete mapping |
 | A8 | **Font not registered** | fontFamily in code vs fonts in `pubspec.yaml` | The font does not load, it falls back to the system one | Add to pubspec.yaml or use GoogleFonts |
 | A9 | **Infinite size**: Unconstrained widget | `MediaQuery.of(context).size` is used to set the constraints inside `build` to layout | "BoxConstraints forces an infinite width/height" | Use `LayoutBuilder` instead of `MediaQuery` for constraints |
 | A10 | **Missing Key on Animated Lists** | `ListView.builder` or `AnimatedList` without `key:` on children | Incorrect animation, flickering, potential crash when deleted | Add `ValueKey` to each child |
@@ -81,7 +81,7 @@ visual problems.
 | B9 | **Stack without Positioned** | `Stack` with children without `Positioned` or `Align` - elements superimposed on each other | Elements in corner on top of each other | Add `Positioned` or `Align` |
 | B10 | **Cutting content on small screens** | Content height > 600px without scroll | On iPhone SE/small phones - overflow | Wrap in `SingleChildScrollView` or use `LayoutBuilder` to adapt |
 | B11 | **Gameplay field is too small** | Measure `Key('gameplaySurface')` at 360×640, 360×800, 390×844 and 430×932; compare with the contract | The mechanic reads as a thumbnail and loses focus | Recompose with `Expanded`/`Stack`/`AspectRatio`; field ≥55% usable portrait area and normally ≥88% width |
-| B12 | **Nested mini-game window** | Inspect game-idle and active screenshots for a phone/browser/card-like frame or large dead margins around the field | A game appears embedded inside another generic app page | Remove outer framing/padding; keep only a tight mechanic-driven rim and integrate the backdrop |
+| B12 | **Nested or displaced game field** | Inspect game-idle and active screenshots for a phone/browser/card-like frame, large unexplained dead margins, or a field pinned to one edge without concept-driven use of the remaining region. On compact portrait, compare the usable gaps between HUD→field and field→controls; large imbalance needs an explicit composition reason. | A game appears embedded, bottom-dumped, or visually absent from the viewport's focal region | Remove outer framing/padding and unintended edge alignment; keep only a tight mechanic-driven rim and place the field according to the selected composition |
 | B13 | **Core loop requires scrolling** | Find a vertical `Scrollable` ancestor of `gameplaySurface` or `primaryAction`; verify first viewport | Field or action/control deck falls below the fold | Recompose the fixed viewport; move rules/history/secondary content to a sheet or screen |
 | B14 | **Disconnected control block** | Compare field and control deck alignment, materials, shape language, spacing and depth | Controls look like an unrelated card below the game | Attach as overlay/edge rail/compact command deck using the field's grid and DNA |
 | B15 | **Poor control proportions** | Measure transformed hit and semantic bounds plus labels at 1.0×/1.3× text scale; compare enabled/disabled states and idle/press animation extrema, not only untransformed widget sizes | Buttons are cramped, uneven, clipped, ambiguous, or shrink below their minimum during feedback | Enforce ≥48×48 targets and a primary action ≥56 logical pixels high throughout animation; keep interaction bounds stable while animating decoration, with shared baselines/heights and responsive label fitting |
@@ -357,6 +357,23 @@ flutter test
 
 If tests fail → fix (up to 3 attempts). If the test is correct, fix the code, not the test.
 
+### Integrated runtime proof
+
+Static analysis and widget tests cannot approve visual composition or prove that configured
+assets actually render. Before a final `PASS`, run the game and capture at minimum:
+
+- idle gameplay and one active/resolved action at the phone baseline; and
+- idle gameplay at one expanded viewport from the mobile-first matrix.
+
+Use the runtime screenshots to verify B11–B16 and A7 directly. Record the field bounds or
+usable gaps, confirm there is no unexplained dead region or edge-pinned mechanic, and compare
+every configured visual item with what appears in the live outcome set. Inspect console/runtime
+errors and reject captures whose renderer failed to paint raster layers.
+
+If the project cannot be executed, the audit may report source and test findings, but its
+overall result is `RUNTIME PENDING`, never `PASS`. Do not describe runtime review as deferred
+inside a PASS report.
+
 ---
 
 ## Phase 5 - Report
@@ -423,7 +440,7 @@ If tests fail → fix (up to 3 attempts). If the test is correct, fix the code, 
    Total: [X]/16 (J10-J16 = compliance blockers; N/A only for C5 without purchases)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 OVERALL RESULT: [PASS ✅ | NEEDS FIX ⚠️ | BLOCKED ❌]
+📊 OVERALL RESULT: [PASS ✅ | RUNTIME PENDING ⏳ | NEEDS FIX ⚠️ | BLOCKED ❌]
 
    Issues found: [X]
    Autocorrected: [Y]
@@ -438,7 +455,8 @@ If tests fail → fix (up to 3 attempts). If the test is correct, fix the code, 
    Visual quality: [N]
    Craft & composition: [N]
 
-   Verdict: PASS = 0 Critical + 0 High
+   Verdict: PASS = 0 Critical + 0 High + integrated runtime proof complete
+            RUNTIME PENDING = source/test review complete but required runtime proof unavailable
             NEEDS FIX = any High unclosed
             BLOCKED = any Critical unblocked
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
