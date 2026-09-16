@@ -33,13 +33,36 @@ rg -n -i 'background|backdrop|bg_' lib pubspec.yaml 2>/dev/null \
 These files establish both halves of the invariant: the existing image bytes and the code/config
 references that select them.
 
-**Launcher icon.** Use `store_compose.py icon` to create the 1024 master, 512 listing icon, and adaptive foreground. Add/configure `flutter_launcher_icons` in `pubspec.yaml`, then run:
+**Launcher icon.** If no suitable square icon art exists yet (`assets/branding/app_icon.png` or a
+game-world emblem crop from `art/keyart-integrated.png`), generate one with the same Codex GPT
+Images 2.0 path as the rest of the asset set (`generate-png-asset/SKILL.md`, budgeted as one
+`generate` source): a full-bleed square composition of the game's hero character/object/emblem
+on its own themed background, matching the Design DNA.
+
+**No drawn frame, bezel, ring, or rounded-square backdrop in the icon art.** Google Play and
+iOS apply their own mask (circle, squircle, adaptive shape) on top of the square source; a
+border baked into the artwork doubles up with the platform mask, gets cropped unevenly, or reads
+as a second competing edge. The subject fills the frame edge-to-edge with its own silhouette and
+background — no illustrated ring/frame/plate around it, unlike in-game symbol icons which may use
+themed edging per `anti-slop-design.md`.
+
+This launcher-icon art is an **opaque full-bleed square scene** (hero subject + themed
+background), not a chroma-key cutout sprite: do not generate it with the flat magenta/green key
+background used for `symbol`/`sprite`-class assets in `generate-png-asset/SKILL.md`, and do not
+run `tools/cutout.py` on the 1024 master. Only the separate `app_icon_fg.png` adaptive-foreground
+crop needs a transparent background (generate or derive it with alpha, or cut it with
+`tools/cutout.py --type icon`, before passing it as `--fg-src`).
+
+Use `store_compose.py icon` to create the 1024 master, 512 listing icon, and adaptive foreground
+from that source. Add/configure `flutter_launcher_icons` in `pubspec.yaml`, then run:
 
 ```bash
 dart run flutter_launcher_icons
 ```
 
-Verify generated Android mipmaps, adaptive icon resources, iOS AppIcon entries, and web icons. The App Store master must be opaque.
+Verify generated Android mipmaps, adaptive icon resources, iOS AppIcon entries, and web icons. The
+App Store master must be opaque. Inspect `store_icon_512.png` at thumbnail size against a circular
+and a rounded-square mask; reject and regenerate if any drawn border/frame is visible.
 
 **Emblem.** Copy the emblem to `assets/images/ui/ui_game_logo.png`, register it in `pubspec.yaml` or the shared asset registry, and—unless `--no-wire-logo`—add one responsive `Image.asset` to the main menu. Do not rewrite the screen.
 

@@ -60,7 +60,18 @@ The icon MUST be raster 1024×1024 with no alpha channel for iOS. Sources, in or
      --out-dir assets/branding --bg "[DNA Background]"
    ```
    That produces `app_icon.png` (1024, no alpha), `app_icon_fg.png` (an adaptive foreground
-   inside the safe zone) and `store_icon_512.png` (the Play listing icon).
+   inside the safe zone) and `store_icon_512.png` (the Play listing icon, 512×512).
+
+   **No drawn frame, bezel, ring, or rounded-square backdrop in generated icon art.** Google Play
+   and iOS apply their own mask over the square source; a baked-in border doubles up with that
+   mask or gets cropped unevenly. Prompt for the hero character/object/emblem filling the square
+   edge-to-edge on its own themed background — no illustrated frame around it. Check
+   `store_icon_512.png` against a circular/squircle mask before shipping.
+
+   This is an opaque full-bleed square scene, not a chroma-key cutout sprite: do not use the flat
+   magenta/green key-background prompt pattern from `generate-png-asset/SKILL.md`'s
+   `symbol`/`sprite` classes, and do not run `tools/cutout.py` on `app_icon.png` itself. Only the
+   optional `--fg-src` adaptive-foreground crop needs a transparent background.
 4. Android's adaptive icon needs a foreground with a transparent background — if
    `app_icon_fg.png` was not created, remove BOTH `adaptive_icon_*` lines from the config below,
    or Android will crop the artwork.

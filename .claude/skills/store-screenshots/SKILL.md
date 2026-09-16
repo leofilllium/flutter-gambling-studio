@@ -22,8 +22,9 @@ was explicitly requested. All copy is English unless another game language was r
 Default N=8 screenshots: P=3 adjacent concept panels from one integrated panorama followed by
 N−P actual gameplay/meta captures with optional device frames and captions. Produce `store/`
 at 1320×2868 and `store-play/` at 1080×1920 independently, not by resizing one set into the other.
-Include a dedicated 1024×500 feature graphic, icon masters/platform densities, transparent
-emblem, `STORE_BRIEF.md`, `STORE_INFO.md`, and ZIP under `project_zip/`.
+Include a dedicated 1024×500 feature graphic with one real-screenshot device inset (see Phase 5),
+icon masters/platform densities (1024 launcher master, 512×512 Play listing icon, frame-free —
+see Phase 3), transparent emblem, `STORE_BRIEF.md`, `STORE_INFO.md`, and ZIP under `project_zip/`.
 `--no-play-set` omits Play screenshots. `--panels 0` skips panorama work and uses real captures
 for all N screenshots; it still produces the separate feature graphic. Marketing portrait
 formats never constrain the runtime app's full mobile/expanded viewport behavior.
@@ -300,13 +301,23 @@ Feature example, after measuring the final horizontal crop:
   --out "$STORE_DIR/feature-graphic-1024x500.png" \
   --base-out "$ART_DIR/long-banner-source-1024x500.png" --size 1024x500 --pop soft \
   --lead-kind object --lead-bounds "$BANNER_LEAD_BOUNDS" \
-  --banner-layout free --banner-gate strict
+  --banner-layout free --banner-gate strict \
+  --shot "$RAW_DIR/03-spin.png" --frame "${DEVICE_FRAME:-ios}"
 ```
 
 Character banners use hero-bounds; mechanic banners use lead-bounds. Supply critical protected
 regions and gameplay-bounds for separate field surfaces too. Free layout retains palette/readability/foreground checks; left-heavy additionally checks
 the 3/5–2/5 density pattern. Add optional typography/real capture only after the clean source
 passes, retain base-out, and recheck readability after overlays.
+
+**The feature graphic always carries one device.** `--shot` is not optional here: pick the single
+strongest current capture (active play or a win moment, not the menu) and pass it so the compositor
+inlays a real phone mockup with that authentic screenshot into the scene, by default on the calmer
+right side of the 1024×500 canvas inside Play's safe area — matching the reference composition
+where a full scene occupies most of the frame and one device sits to the side, never a bare
+screenshot rectangle pasted with no scene around it. `--base-out` keeps the clean device-free scene
+for the art/readability gates; `--out` is the one shipped with the phone composited in. Do not ship
+a feature graphic with no device.
 
 ## Phase 6 — verify, report and package
 
