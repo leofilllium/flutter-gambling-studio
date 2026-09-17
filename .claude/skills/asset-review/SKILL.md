@@ -32,7 +32,10 @@ protocol yourself.
 3. For PNG, read `design/asset-manifest.md`: the class, the SHA-256 of the prompt, the number of
    attempts and the remaining recovery budget. A matching valid cache entry does not count as a
    new asset and must not be regenerated.
-4. Inventory:
+4. If the user supplied visual references, record the exact subject traits, identity constraints,
+   placement, scale, and adaptation requested for each affected asset. Treat these as acceptance
+   criteria, not loose inspiration; compare the shipped asset and runtime composition against them.
+5. Inventory:
 
 ```bash
 ls -la assets/images/sprites/ assets/images/ui/ assets/images/backgrounds/ 2>/dev/null
@@ -101,10 +104,33 @@ Also look at `bbox_fill` (`--json`): if it jumps around the set (0.3 for one spr
 for another), the sprites will appear at different sizes in the game — run the set through
 `python3 tools/cutout.py --dir assets/images/sprites` to normalise the framing.
 
+### Runtime composite gate for runnable projects
+
+Source PNGs and contact sheets cannot prove that the game renders them correctly. When the
+project is runnable, inspect screenshots from the canonical phone viewport and at least one
+materially different viewport before issuing the final verdict. Use the repository's runtime
+verification route; do not approve from analyzer output or isolated assets alone.
+
+In those screenshots, verify that:
+
+- runtime transforms preserve each sprite's source aspect ratio instead of stretching it to a
+  cell, panel, or arbitrary component bounds;
+- the visual lead has the requested alignment, prominence, safe-area clearance, and relationship
+  to titles and controls;
+- every explicit user reference criterion recorded in Phase 1 is visibly satisfied by the shipped
+  asset and its in-game treatment; and
+- the field, background, sprites, and UI still read as one composition at both viewports.
+
+Record the screenshot paths and findings in `design/asset-review.md`. If runtime execution is not
+yet available, mark the runtime composite checks **PENDING** and do not issue an overall PASS for
+a runnable-game deliverable. A source asset may pass AR1–AR10 while the integrated review remains
+pending or fails.
+
 ## Phase 4 — report and verdict [~1 min]
 
 Write `design/asset-review.md`: a table of asset → verdict (PASS/FAIL) → criterion →
-action (see the template in `art-director.md`). The overall verdict: **PASS** or **REGENERATE (N)**.
+action (see the template in `art-director.md`), plus the runtime composite evidence when required.
+The overall verdict: **PASS**, **PENDING RUNTIME**, or **REGENERATE (N)**.
 
 `--report-only`: stop here and return the report.
 
@@ -131,6 +157,8 @@ otherwise mark it `BUDGET_BLOCKED` in the report and do not hide the reason.
 
 - `design/asset-review.md` with a verdict and a row for every asset
 - Contact sheets in `production/asset-review/` (if montage is available)
+- For a runnable project, phone and materially different viewport screenshots proving preserved
+  aspect ratios, requested lead placement, and explicit reference adherence
 - 0 assets with a FAIL verdict that had neither a local correction nor the one permitted
   recovery; `BUDGET_BLOCKED` always states the reason, the spend and the decision needed
 - `python3 tools/cutout.py --dir assets/images/sprites --check` — no FAIL and no
