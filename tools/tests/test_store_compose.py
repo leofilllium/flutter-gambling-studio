@@ -1843,6 +1843,8 @@ class BannerCommandTests(unittest.TestCase):
         source = BannerZoneTests()._compliant_canvas()
         self.source = self.dir / "long-banner.png"
         source.save(self.source)
+        self.shot = self.dir / "spin.png"
+        Image.new("RGB", (390, 844), (40, 200, 90)).save(self.shot)
         for name in ("info", "ok", "warn"):
             original = getattr(store_compose, name)
             setattr(store_compose, name, lambda *_: None)
@@ -1852,7 +1854,7 @@ class BannerCommandTests(unittest.TestCase):
         values = {
             "keyart": str(self.source), "out": str(self.dir / "feature.png"),
             "base_out": str(self.dir / "base.png"), "size": "1024x500",
-            "shot": None, "frame": "ios", "zoom": 1.0, "offset": 0.0,
+            "shot": str(self.shot), "frame": "ios", "zoom": 1.0, "offset": 0.0,
             "hero_bounds": "0.01,0.04,0.38,0.94", "banner_gate": "strict",
             "title": "", "tagline": "", "pop": "off", "vibrance": None,
             "lift": None, "contrast": None, "bloom": None,
@@ -1860,16 +1862,68 @@ class BannerCommandTests(unittest.TestCase):
         values.update(overrides)
         return argparse.Namespace(**values)
 
-    def test_strict_banner_writes_the_audited_base_before_overlays(self) -> None:
+    def test_strict_banner_writes_the_audited_base_before_the_phone(self) -> None:
         args = self._args()
 
         store_compose.cmd_banner(args)
 
         self.assertTrue(Path(args.base_out).is_file())
         self.assertTrue(Path(args.out).is_file())
-        np.testing.assert_array_equal(
-            np.asarray(Image.open(args.base_out).convert("RGB")),
-            np.asarray(Image.open(args.out).convert("RGB")))
+        base = np.asarray(Image.open(args.base_out).convert("RGB"))
+        out = np.asarray(Image.open(args.out).convert("RGB"))
+        self.assertFalse(np.array_equal(base, out))
+
+    def test_phone_sits_on_the_right_and_the_left_stays_pure_scene(self) -> None:
+        args = self._args()
+
+        store_compose.cmd_banner(args)
+
+        base = np.asarray(Image.open(args.base_out).convert("RGB"))
+        out = np.asarray(Image.open(args.out).convert("RGB"))
+        width = out.shape[1]
+        # No scrim, lockup or copy: the left half is byte-identical to the scene.
+        np.testing.assert_array_equal(base[:, :width // 2], out[:, :width // 2])
+        changed = np.flatnonzero(np.any(base != out, axis=(0, 2)))
+        self.assertGreaterEqual(changed.min(), width // 2)
+        # The capture's green screen lands right of centre, ungraded.
+        green = np.all(out == (40, 200, 90), axis=-1)
+        columns = np.flatnonzero(green.any(axis=0))
+        self.assertGreater(columns.size, 0)
+        self.assertGreater(columns.min(), width * 0.6)
+        self.assertLess(columns.max(), width * 0.95)
+
+    def test_banner_refuses_every_kind_of_text(self) -> None:
+        for flag in ("title", "tagline", "logo"):
+            with self.subTest(flag=flag):
+                args = self._args(**{flag: "Zeus Slots"})
+                with self.assertRaises(SystemExit):
+                    store_compose.cmd_banner(args)
+                self.assertFalse(Path(args.base_out).exists())
+                self.assertFalse(Path(args.out).exists())
+
+    def test_banner_requires_a_framed_phone(self) -> None:
+        for overrides in ({"shot": None}, {"frame": "none"}):
+            with self.subTest(**overrides):
+                args = self._args(**overrides)
+                with self.assertRaises(SystemExit):
+                    store_compose.cmd_banner(args)
+                self.assertFalse(Path(args.out).exists())
+
+    def test_banner_cli_requires_a_shot_and_hides_text_flags(self) -> None:
+        missing = subprocess.run(
+            [sys.executable, str(SCRIPT), "banner", "--keyart", str(self.source),
+             "--out", str(self.dir / "feature.png")],
+            capture_output=True, text=True, timeout=30)
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertIn("--shot", missing.stderr)
+        self.assertFalse((self.dir / "feature.png").exists())
+
+        usage = subprocess.run(
+            [sys.executable, str(SCRIPT), "banner", "--help"],
+            capture_output=True, text=True, timeout=30)
+        self.assertEqual(usage.returncode, 0, usage.stderr)
+        for flag in ("--title", "--tagline", "--logo", "--type-mood"):
+            self.assertNotIn(flag, usage.stdout)
 
     def test_strict_banner_writes_nothing_when_hero_framing_fails(self) -> None:
         args = self._args(hero_bounds="0.20,0.00,0.15,0.35")

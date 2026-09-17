@@ -73,5 +73,5 @@ What does the player see on a "big win"?
 - **Character tone**: [if relevant; Joker = mischievous/slightly vicious, playful, not horror or an elegant host]
 - **Multiplier coins**: [prefer x5/x10 when appropriate; exact config/paytable source and meaning, or omit]
 - **Panorama map**: [anchors, gameplay location/span, critical regions and safe seam plan]
-- **Feature graphic**: [independent horizontal composition; free or justified left-heavy arrangement]
+- **Feature graphic**: [independent horizontal composition; free or justified left-heavy arrangement; text-free, with one phone on the right holding a real capture]
 - **Runtime continuity**: [asset identities, board topology, backgrounds and state to preserve]

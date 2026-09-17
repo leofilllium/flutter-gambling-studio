@@ -34,6 +34,20 @@ class StoreScreenshotTopologyGuidanceTest(unittest.TestCase):
         self.assertLess(recovery, deterministic)
         self.assertLess(deterministic, final_audit)
 
+    def test_feature_graphic_is_text_free_with_one_phone_on_the_right(self) -> None:
+        required_contract = (
+            "a banner with one phone on the right and no text",
+            "no title, tagline, logo, wordmark, caption, badge or call to action",
+            "`banner` refuses `--title`, `--tagline` and `--logo`",
+            "`--shot` is required",
+            "`--frame none` is refused",
+            "a left side left blank for text is a failed banner",
+        )
+        for phrase in required_contract:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, self.guidance_flat)
+        self.assertNotIn("optional typography", self.guidance_flat)
+
     def test_angled_field_requires_contextual_embedding_cues(self) -> None:
         required_cues = (
             "a perspective transform alone is not evidence of integration",

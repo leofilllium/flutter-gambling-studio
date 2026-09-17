@@ -114,6 +114,9 @@ explicit concept or user direction. Never tint runtime art.
 The feature graphic needs its own horizontal render and the same context decision. A left-heavy
 3/5–2/5 arrangement is an option, not a universal rule. Object-led and mechanic-led banners may
 use the full width. No reserved device-shaped zone; the clean source must look finished alone.
+The shipped feature graphic is that scene plus one framed phone on the right holding a real
+capture, and it carries no text: no title, tagline, logo, wordmark or copy on the left or
+anywhere else, and no blank space kept for them.
 Real gameplay showcase frames remain actual captures. Store work preserves menu/gameplay/splash
 background assets and wiring; redesigning them requires an explicit user request.
 

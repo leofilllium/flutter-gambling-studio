@@ -36,7 +36,9 @@ delivery requirements. Generic stage furniture does not count as game objects, a
 hyper-detailed far plane can still fail the readability contract. The Google Play feature graphic
 uses its own horizontal composition.
 A left-heavy 3/5–2/5 split is optional; object/mechanic scenes may use the full width. Keep the real
-object frame across the lower edge and no reserved device-shaped zone.
+object frame across the lower edge and no reserved device-shaped zone. The shipped feature graphic
+is text-free — the scene plus one framed phone on the right with a real capture, and no title,
+tagline, logo or copy on the left or anywhere else.
 Across both formats, place decisive gameplay wherever it reads best, with many real sprite assets in a spill
 across the full lower edge, varied in scale, height, rotation, overlap, and depth rather than arranged
 as a tidy row or a lower-left pile.

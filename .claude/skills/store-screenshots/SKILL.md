@@ -22,7 +22,8 @@ was explicitly requested. All copy is English unless another game language was r
 Default N=8 screenshots: P=3 adjacent concept panels from one integrated panorama followed by
 N−P actual gameplay/meta captures with optional device frames and captions. Produce `store/`
 at 1320×2868 and `store-play/` at 1080×1920 independently, not by resizing one set into the other.
-Include a dedicated 1024×500 feature graphic with one real-screenshot device inset (see Phase 5),
+Include a dedicated text-free 1024×500 feature graphic: the scene plus one phone on the right
+holding a real screenshot, with no title or copy on the left or anywhere else (see Phase 5),
 icon masters/platform densities (1024 launcher master, 512×512 Play listing icon, frame-free —
 see Phase 3), transparent emblem, `STORE_BRIEF.md`, `STORE_INFO.md`, and ZIP under `project_zip/`.
 `--no-play-set` omits Play screenshots. `--panels 0` skips panorama work and uses real captures
@@ -95,8 +96,10 @@ Write `STORE_BRIEF.md` before any generation call:
 - Complete sprite inventory, source-to-PNG mapping, scene role and in-app evidence per file.
 - Verified coin inscriptions, preferably x5/x10 when supported and thematic, with exact config/
   paytable source and meaning. No invented multipliers or guaranteed rewards. Only these short
-  game-object markings may be generated; render captions/titles with compositor typography.
+  game-object markings may be generated; render showcase captions with compositor typography.
 - Independent feature layout: `free` by default or justified `left-heavy`; no reserved device zone.
+  The feature graphic is text-free: record the chosen capture for its right-side phone, not a
+  title or tagline.
 - Generation budget and recovery limit inherited from the asset manifest; no unlimited retries.
 
 Inventory all shipped gameplay sprite roots from the registry/pubspec, including secondary and
@@ -194,7 +197,9 @@ seam adjustments.
 Render `art/long-banner-integrated.png` separately for the horizontal feature graphic with the
 same identity and lead kind. Full-width action is valid. A left-heavy 3/5–2/5 composition is
 optional. The clean source must look finished alone: no device, UI, reserved zone or marketing
-words. Keep actual game objects across the lower edge and sharp primary subjects.
+words. Do not ask the image model for a title, logo, wordmark, tagline or empty copy space; a
+left side left blank for text is a failed banner. Keep actual game objects across the lower edge
+and sharp primary subjects.
 
 ## Phase 2 — identity and critical-region review
 
@@ -307,23 +312,31 @@ Feature example, after measuring the final horizontal crop:
 
 Character banners use hero-bounds; mechanic banners use lead-bounds. Supply critical protected
 regions and gameplay-bounds for separate field surfaces too. Free layout retains palette/readability/foreground checks; left-heavy additionally checks
-the 3/5–2/5 density pattern. Add optional typography/real capture only after the clean source
-passes, retain base-out, and recheck readability after overlays.
+the 3/5–2/5 density pattern. Add the phone only after the clean source passes, and retain base-out.
 
-**The feature graphic always carries one device.** `--shot` is not optional here: pick the single
+**The feature graphic is a banner with one phone on the right and no text.** It carries no
+title, tagline, logo, wordmark, caption, badge or call to action — not on the left, not over the
+scene, not beside the device. The scene fills the frame and the phone sits on the right; the left
+is pure illustration with no scrim or copy space. The compositor enforces this: `banner` refuses
+`--title`, `--tagline` and `--logo`. The only lettering that may appear is an authentic game-object
+marking already inside the art (a verified x5/x10 coin) or the game's own UI inside the captured
+screenshot.
+
+**The feature graphic always carries one device.** `--shot` is required: pick the single
 strongest current capture (active play or a win moment, not the menu) and pass it so the compositor
-inlays a real phone mockup with that authentic screenshot into the scene, by default on the calmer
-right side of the 1024×500 canvas inside Play's safe area — matching the reference composition
-where a full scene occupies most of the frame and one device sits to the side, never a bare
-screenshot rectangle pasted with no scene around it. `--base-out` keeps the clean device-free scene
-for the art/readability gates; `--out` is the one shipped with the phone composited in. Do not ship
-a feature graphic with no device.
+inlays a real phone mockup with that authentic screenshot on the right side of the 1024×500 canvas
+inside Play's safe area — a full scene occupies most of the frame and one device sits to the right,
+never a bare screenshot rectangle (`--frame none` is refused) or a pasted capture with no scene
+around it. `--base-out` keeps the clean device-free scene for the art/readability gates; `--out` is
+the one shipped with the phone composited in. Do not ship a feature graphic with no device.
 
 ## Phase 6 — verify, report and package
 
 Run `store_compose.py check --dir "$OUT_DIR" --store appstore` and, when enabled, the equivalent
 Play check. Verify RGB PNGs, dimensions, no store-screenshot transparency, file sizes, aspect,
-numbering/counts and feature dimensions. Review final rendered App Store and Google Play crops
+numbering/counts and feature dimensions. Open the feature graphic and confirm it shows no title,
+tagline, logo or other copy, no blank left-hand text space, and exactly one framed phone on the
+right. Review final rendered App Store and Google Play crops
 separately, at thumbnail and full size. For object/mechanic-led panoramas, explicitly confirm in
 each crop that an identifiable spill of actual lower game objects remains in frame.
 Read responsible-gaming.md; check captions, metadata and art for currency symbols, misleading
@@ -337,8 +350,8 @@ success is not runtime or visual verification.
 Write STORE_INFO.md with context/reference decisions; panel map; upload order/dimensions/counts;
 complete per-sprite identity and per-panel anchor audit; real state/topology/integration evidence;
 prompts/budget/corrections; measured bounds and seam review for each geometry; strict gate results
-and visual verdicts; feature source/layout/review; branding/capture/log evidence; background guard
-and compliance. For no-living-character object/mechanic games, record the no-invented-player
+and visual verdicts; feature source/layout/review, its right-side capture and a no-text verdict;
+branding/capture/log evidence; background guard and compliance. For no-living-character object/mechanic games, record the no-invented-player
 check and separate slide-1/slide-2 angled-gameplay verdicts. Never call a draft or diagnostic a
 finished panorama.
 

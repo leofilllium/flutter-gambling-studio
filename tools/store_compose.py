@@ -49,11 +49,13 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             home indicator, glass glare, drop shadow) over a themed background,
             with the caption typography that sells the frame.
   banner    Google Play feature graphic (1024x500) — a separately generated,
-            text-free long-banner scene + optional device mockup + title lockup,
-            laid out inside Play's safe area. --lead-kind follows the game context;
-            --banner-layout free allows the action anywhere. The legacy active
-            left 3/5 layout is opt-in. Real-game-object foreground continues
-            across the full lower edge in both layouts.
+            text-free long-banner scene + ONE phone mockup holding a real
+            capture on the right, inside Play's safe area. It carries no
+            typography at all: no title, tagline, logo or copy on either side.
+            --lead-kind follows the game context; --banner-layout free allows
+            the action anywhere. The legacy active left 3/5 layout is opt-in.
+            Real-game-object foreground continues across the full lower edge in
+            both layouts.
   backdrop  EXPLICIT-OPT-IN export of store key art as the game's background.
             Store screenshot generation never invokes this command by default.
   icon      launcher/store icon set derived from generated art: 1024 master,
@@ -106,10 +108,9 @@ Examples:
       --type-mood epic --caption-color "#FFF6DC" --caption-color2 "#F0B34A"
   python3 tools/store_compose.py showcase ... --size play   # 9:16 set for Play
   python3 tools/store_compose.py banner --keyart art/long-banner-integrated.png \\
-      --shot raw/02-menu.png --hero-bounds 0.02,0.04,0.38,0.92 \\
+      --shot raw/03-spin.png --frame ios --hero-bounds 0.02,0.04,0.38,0.92 \\
       --base-out art/long-banner-source.png \\
-      --out store/feature-graphic-1024x500.png --title "Zeus Slots" \\
-      --tagline "Match. Chain. Ascend." --type-mood epic --title-color2 "#F0B34A"
+      --out store/feature-graphic-1024x500.png
   python3 tools/store_compose.py icon --src icon_art.png --fg-src emblem.png \\
       --out-dir assets/branding --bg "#2A0E4F"
 """
@@ -3002,7 +3003,7 @@ def cmd_triptych(args) -> None:
     if refused:
         die(f"{', '.join(refused)}: the concept panorama carries no text — it is one "
             "uninterrupted illustration.\n   Put the words on the game frames "
-            "(`showcase --caption`) and the feature graphic (`banner --title/--tagline`).")
+            "(`showcase --caption`); the feature graphic carries no text either.")
 
     gutter = parse_gutter(args.gutter, w)
     snap = parse_snap(args.seam_snap, w)
@@ -3705,6 +3706,11 @@ BANNER_HERO_MIN_H = 0.70
 BANNER_HERO_LEFT_MAX = 0.12
 BANNER_HERO_RIGHT_MAX = 0.68
 BANNER_HERO_TOP_MIN = 0.02
+# The one phone on the feature graphic: centred at 82% of the width, inside
+# Play's safe area. A drawn frame is mandatory — a bare rectangle reads as a
+# pasted screenshot, not a device held in the scene.
+BANNER_DEVICE_CENTER_X = 0.82
+DEVICE_FRAMES = ("ios", "android")
 
 
 def banner_art_metrics(canvas: Image.Image,
@@ -3900,6 +3906,25 @@ def banner_zone_report(canvas: Image.Image,
 
 
 def cmd_banner(args) -> None:
+    # The feature graphic is a picture plus one phone on the right — no title,
+    # tagline, logo or copy anywhere, and never a banner without the device.
+    # Refuse both before any work so nothing half-finished is written.
+    refused = [flag for flag, value in (
+        ("--title", getattr(args, "title", "")),
+        ("--tagline", getattr(args, "tagline", "")),
+        ("--logo", getattr(args, "logo", "")),
+    ) if value]
+    if refused:
+        die(f"{', '.join(refused)}: the feature graphic carries no text — it is the "
+            "scene plus one phone on the right.\n   Put the words on the game frames "
+            "(`showcase --caption`).")
+    if not getattr(args, "shot", None):
+        die("--shot is required: the feature graphic always carries one phone on the "
+            "right holding a real gameplay capture")
+    if getattr(args, "frame", "ios") not in DEVICE_FRAMES:
+        die(f"--frame {args.frame!r}: the feature graphic needs a drawn phone "
+            f"({' or '.join(DEVICE_FRAMES)}), not a bare screenshot rectangle")
+
     w, h = parse_size(args.size)
     # The source is a dedicated horizontal render. It may still be a 3:2 image
     # from the image API, so the 1024×500 delivery crop can lose top/bottom
@@ -3935,62 +3960,26 @@ def cmd_banner(args) -> None:
         base_path, out_path = Path(base_out), Path(args.out)
         if base_path.resolve() == out_path.resolve():
             die("--base-out must differ from --out: the base is the text/device-free "
-                "audited scene, while --out may add store overlays")
+                "audited scene, while --out adds the phone")
         base_size = save_png(canvas, base_path)
         ok(f"{base_path.name}  {w}×{h}  {base_size // 1024} KB "
            "(audited text/device-free long-banner source)")
 
-    if args.shot:
-        # Build at working resolution, then fit by HEIGHT — a banner device sized
-        # by width alone ends up a postage stamp on a 1024×500 canvas.
-        device = build_device(args.shot, round(h * 0.5), args.frame)
-        device = contain(device, int(w * 0.32), int(h * 0.86))
-        shadowed, pad = drop_shadow(device, blur=max(5, round(w * 0.014)),
-                                    dy=round(h * 0.012), opacity=0.5)
-        # Right side, inside Play's 924×432 safe area.
-        cx = int(w * 0.82)
-        canvas.alpha_composite(shadowed, (cx - shadowed.width // 2,
-                                          (h - shadowed.height) // 2))
-        canvas.alpha_composite(gradient((int(w * 0.42), h), [
-            (0.0, (0, 0, 0, 0)), (1.0, (0, 0, 0, int(0.30 * 255)))
-        ], horizontal=True), (w - int(w * 0.42), 0))
-
-    if args.title or args.tagline:
-        type_plan = TypePlan(args, display_text=args.title, body_text=args.tagline)
-        type_plan.report()
-        text_w = int(w * 0.50) if args.shot else int(w * 0.80)
-        x = int(w * 0.06)
-        # Hold full strength across the whole text column, then fade. A scrim
-        # that is still fading where the words are is the classic unreadable-
-        # tagline bug — the tagline sits low and light, so it needs the floor.
-        veil = int(max(0.0, min(1.0, args.scrim)) * 255)
-        veil_w = text_w + int(w * 0.16)
-        canvas.alpha_composite(gradient((veil_w, h), [
-            (0.0, (0, 0, 0, veil)),
-            (float(text_w) / veil_w, (0, 0, 0, veil)),
-            (1.0, (0, 0, 0, 0)),
-        ], horizontal=True), (0, 0))
-        title_c = hex_rgba(args.title_color)
-        title_c2 = opt_rgba(args.title_color2)
-        accent = opt_rgba(args.accent) or title_c2 or title_c
-        block_h = int(h * 0.52)
-        cursor = (h - block_h) // 2
-        if args.title:
-            _, drawn = draw_text_block(
-                canvas, args.title, (x, cursor, text_w, int(h * 0.30)),
-                type_plan.display, title_c, max_size=int(h * 0.26), valign="top",
-                max_lines=2, colour2=title_c2, tracking=type_plan.tracking,
-                uppercase=type_plan.upper, outline=type_plan.outline)
-            cursor += drawn + int(h * 0.035)
-            if not args.no_rule:
-                accent_rule(canvas, x + text_w // 2, cursor, int(h * 0.18),
-                            max(2, round(h * 0.008)), accent, title_c2)
-                cursor += max(2, round(h * 0.008)) + int(h * 0.035)
-        if args.tagline:
-            draw_text_block(
-                canvas, args.tagline, (x, cursor, text_w, int(h * 0.16)),
-                type_plan.body, hex_rgba(args.tagline_color),
-                max_size=int(h * 0.10), valign="top", max_lines=2, shadow=0.45)
+    # Build at working resolution, then fit by HEIGHT — a banner device sized
+    # by width alone ends up a postage stamp on a 1024×500 canvas.
+    device = build_device(args.shot, round(h * 0.5), args.frame)
+    device = contain(device, int(w * 0.32), int(h * 0.86))
+    shadowed, _ = drop_shadow(device, blur=max(5, round(w * 0.014)),
+                              dy=round(h * 0.012), opacity=0.5)
+    # Seat the phone with a gentle falloff on the scene BEHIND it. It lands
+    # before the device so the real capture on its screen is never graded.
+    canvas.alpha_composite(gradient((int(w * 0.42), h), [
+        (0.0, (0, 0, 0, 0)), (1.0, (0, 0, 0, int(0.30 * 255)))
+    ], horizontal=True), (w - int(w * 0.42), 0))
+    # Right side, inside Play's 924×432 safe area. The left stays pure scene.
+    cx = int(w * BANNER_DEVICE_CENTER_X)
+    canvas.alpha_composite(shadowed, (cx - shadowed.width // 2,
+                                      (h - shadowed.height) // 2))
 
     size = save_png(canvas, Path(args.out))
     ok(f"{Path(args.out).name}  {w}×{h}  {size // 1024} KB (feature graphic)")
@@ -4486,8 +4475,11 @@ def main() -> None:
                         "right 2/5. Both retain palette, light and focal gates")
     b.add_argument("--out", required=True)
     b.add_argument("--size", default="1024x500")
-    b.add_argument("--shot", help="optional in-game frame for the device mockup")
-    b.add_argument("--frame", choices=("ios", "android", "none"), default="ios")
+    b.add_argument("--shot", required=True,
+                   help="the real in-game capture shown on the phone at the right "
+                        "(active play or a win moment, not the menu)")
+    b.add_argument("--frame", choices=DEVICE_FRAMES, default="ios",
+                   help="phone style; the feature graphic always draws a device")
     b.add_argument("--zoom", type=float, default=1.0,
                    help="oversample factor (>1) creating slack for --offset")
     b.add_argument("--offset", type=float, default=0.0,
@@ -4505,11 +4497,12 @@ def main() -> None:
                         "diagnostic only; `off` is for compositor tests")
     b.add_argument("--base-out", metavar="PNG",
                    help="also save the audited text/device-free long-banner crop "
-                        "before optional title and device overlays are composed")
-    b.add_argument("--title", default="")
-    b.add_argument("--tagline", default="")
+                        "before the phone is composed")
     add_pop_args(b)
-    add_text_args(b)
+    # Retired: the feature graphic is pure image plus one phone. Still parsed so a
+    # stale caller gets a sentence explaining why, not `unrecognized arguments`.
+    for dead in ("--title", "--tagline", "--logo"):
+        b.add_argument(dead, default="", help=argparse.SUPPRESS)
     b.set_defaults(func=cmd_banner)
 
     d = sub.add_parser(
