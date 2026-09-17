@@ -14,6 +14,9 @@ new-game request, inspect the relevant `examples-games/` previews and read
 board topology, Joker expression (when relevant), and verified multiplier-coin meanings from
 the concept into the art direction, asset manifest and prompts. Classic unspecified slots
 use 3×3; store gameplay placement is flexible and object-led games need no invented character.
+The named requests Book of Ra, Joker, Shining Crown, Zeus Game, and Plinko must use the exact
+preview mapping in that document. Adapt character references into visibly original designs;
+never add a character to Shining Crown or Plinko.
 
 Build a complete production-ready gambling game. Do not ask the user questions: derive reasonable choices from the concept and record them.
 
@@ -67,6 +70,9 @@ The concept must include:
 - A reference bar naming 2–3 successful games in the category, the specific feel/timing lesson from each, and the new game's differentiating hook. Never copy their content or art.
 - A complete production plan with content volume, 2–3 modes, progression, virtual economy, achievements/daily loop, service abstractions, telemetry, and compliance.
 - Context-derived Design DNA and layout archetype L1–L6.
+- For a named preview-mapped request, the mandatory local preview path, traits borrowed, traits
+  changed, `lead_kind`, and the topology decision. Do not proceed to asset generation until this
+  reference record is explicit.
 - At least 12 connected screens, their data flow, the complete game loop, and all failure/edge states.
 - A mobile-first full-viewport declaration following `.claude/docs/mobile-first-contract.md`,
   including phone-baseline and expanded-layout strategies.

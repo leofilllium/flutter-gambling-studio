@@ -6,6 +6,12 @@ For matching new-game requests, inspect the relevant previews in `examples-games
 and read `.claude/docs/game-concept-examples.md`. They are visual references, not runtime assets
 or complete game specifications. A missing reference does not block an unrelated concept.
 
+`/autocreate` requests named **Book of Ra**, **Joker**, **Shining Crown**, **Zeus Game**, or
+**Plinko** must use the exact local reference mapping in `game-concept-examples.md`; do not replace
+it with a generic category reference. Book of Ra, Joker, and Zeus are character-led, but their
+generated characters must be deliberate original adaptations rather than close copies. Shining
+Crown and Plinko are object/mechanic-led and must not gain an invented main character or mascot.
+
 ## Decide the visual lead before generating
 
 Record `lead_kind: character | object | mechanic`, the lead's identity and runtime role,
