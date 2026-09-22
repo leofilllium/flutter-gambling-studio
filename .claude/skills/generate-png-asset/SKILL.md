@@ -109,7 +109,7 @@ GPT Images / default Codex image generation is allowed **only** after documented
 technical failure of GPT Image 2 through both available transports: built-in tool (if it
 exposed) and `tools/gpt_image.py` (headless CLI). The very absence of a built-in tool is not
 failure: use API bridge immediately. Record the HTTP/validation reason in
-`attempts`/`status` manifest and repeat **same** prompt. Visual taste, AR1–AR10,
+`attempts`/`status` manifest and repeat **same** prompt. Visual taste, AR1–AR11,
 an unsuitable composition or an unsuccessful chroma-key are not grounds for changing the model:
 apply local processing first, then use one of the two if necessary
 recovery calls again via GPT Image 2. SVG are not created silently.

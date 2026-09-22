@@ -16,8 +16,10 @@ the concept into the art direction, asset manifest and prompts. Classic unspecif
 use 3×3; store gameplay placement is flexible and object-led games need no invented character.
 The named requests Book of Ra, Joker, Joker Jewels, Shining Crown, Zeus Game, and Plinko must use
 the exact preview mapping in that document; Joker Jewels resolves to every file in
-`examples-games/joker-jewels/` and to a 5×3 board, not to the plain Joker row's 3×3. Adapt
-character references into visibly original designs; never add a character to Shining Crown or
+`examples-games/joker-jewels/` and to a 5×3 board, not to the plain Joker row's 3×3. Follow that
+document's closeness contract: the reference is the primary context for the theme, character,
+symbol cast, palette family and board — carry all of it over and redraw it, rather than drifting
+into an unrelated game or copying the original. Never add a character to Shining Crown or
 Plinko.
 
 Don't ask the user questions! Create `design/gdd/game-concept.md` completely autonomously.

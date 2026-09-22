@@ -71,7 +71,7 @@ SVG mode: render to PNG for viewing if a converter exists (`rsvg-convert`/`inksc
 Flutter render is unavailable, read the SVG source and assess the structure: one palette, the
 gradient style, the stroke width).
 
-## Phase 3 — the vision assessment (10 criteria AR1–AR10) [~3 min]
+## Phase 3 — the vision assessment (11 criteria AR1–AR11) [~3 min]
 
 Look through Read (vision) at: the contact sheets (or each file), EVERY background at full size,
 and — **mandatory** — the 64px sheet. Readability at in-game size matters more than beauty at 1024px.
@@ -85,7 +85,14 @@ The criteria (details in `art-director.md`):
 | AR3 | One level of detail | AR8 | The background yields focus to the field |
 | AR4 | The Design DNA's palette | AR9 | The subject is identifiable |
 | AR5 | Readable at 64 px | AR10 | No AI artefacts |
+| AR11 | Reference fidelity — the set still reads as the requested game family | | |
 
+**AR11** applies whenever the request mapped to a local preview
+(`.claude/docs/game-concept-examples.md`). Open the reference beside the contact sheet and check
+the closeness contract in both directions: the theme, the cast of objects and the palette family
+carried over — and no traced face, costume, wordmark or logo. A beautiful, cohesive set that has
+drifted into a different world than the one the user asked for fails AR11 and is regenerated
+toward the reference, not further from it.
 The technical alpha check for AR6 (PNG, complementing the visual one) — `tools/cutout.py --check`
 measures exactly the defects the eye misses on a 1024 px preview:
 
@@ -123,7 +130,7 @@ In those screenshots, verify that:
 
 Record the screenshot paths and findings in `design/asset-review.md`. If runtime execution is not
 yet available, mark the runtime composite checks **PENDING** and do not issue an overall PASS for
-a runnable-game deliverable. A source asset may pass AR1–AR10 while the integrated review remains
+a runnable-game deliverable. A source asset may pass AR1–AR11 while the integrated review remains
 pending or fails.
 
 ## Phase 4 — report and verdict [~1 min]

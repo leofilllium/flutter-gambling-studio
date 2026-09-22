@@ -9,9 +9,11 @@ or complete game specifications. A missing reference does not block an unrelated
 `/autocreate` requests named **Book of Ra**, **Joker**, **Joker Jewels**, **Shining Crown**,
 **Zeus Game**, or **Plinko** must use the exact local reference mapping in
 `game-concept-examples.md`, on the `--from-concept` path as well; do not replace it with a generic
-category reference. Book of Ra, Joker, Joker Jewels, and Zeus are character-led, but their
-generated characters must be deliberate original adaptations rather than close copies. Shining
-Crown and Plinko are object/mechanic-led and must not gain an invented main character or mascot.
+category reference. Book of Ra, Joker, Joker Jewels, and Zeus are character-led: keep the
+archetype, role and world, and redraw the person as an original design — close adaptation, not a
+copy and not a departure. The full rule is the closeness contract in `game-concept-examples.md`,
+and it governs the whole concept, not only the art. Shining Crown and Plinko are
+object/mechanic-led and must not gain an invented main character or mascot.
 **Joker** and **Joker Jewels** are two different entries: Joker Jewels resolves to every file in
 the `examples-games/joker-jewels/` folder and to a 5×3 board, never to the plain Joker row's 3×3.
 
@@ -42,9 +44,11 @@ than inventing it only for the store. Existing games retain their established le
 Preserve relevant visual qualities from the chosen examples: bold silhouettes, glossy modeled
 volume, tactile materials, saturated color separation, confident expressions and decisive action.
 Create a coherent new asset family from the game's concept; do not crop example pixels into
-runtime sprites or import example logos. Similar subject families are welcome when the request
-calls for them: bells/cherries/gems for a Joker slot, crowns and jewel coins for a royal slot,
-balls/pegs/buckets for Plinko. Do not randomize away the user's requested game family.
+runtime sprites or import example logos. The subject family is required, not optional:
+bells/cherries/gems for a Joker slot, crowns and jewel coins for a royal slot, balls/pegs/buckets
+for Plinko. The reference's world, cast of objects and palette family carry over; the drawing of
+each object is new. Do not randomize away the user's requested game family — see the closeness
+contract in `game-concept-examples.md`.
 
 All art uses polished cartoon 2.5D casual-game illustration with a consistent top-left key,
 rounded/exaggerated forms, smooth gradients, glossy highlights, and restrained star glints.

@@ -32,7 +32,7 @@ UI/UX and responsively fill landscape, tablet, desktop, and Web viewports withou
 | `/generate-asset` | `.claude/skills/generate-asset/SKILL.md` | SVG by default; PNG only on explicit request |
 | `/generate-png-asset` | `.claude/skills/generate-png-asset/SKILL.md` | In Codex, raster assets via GPT Image 2: the built-in tool, or `tools/gpt_image.py` in the headless CLI; flat chroma-key background + `tools/cutout.py` |
 | `/svg-to-png` | `.claude/skills/svg-to-png/SKILL.md` | In Codex, SVG→PNG conversion via GPT Images 2.0 → GPT Images/default fallback |
-| `/asset-review` | `.claude/skills/asset-review/SKILL.md` | **Vision review of the asset set** (contact sheets, criteria AR1–AR10, regeneration of rejects). Phase 3.6 in `/autocreate` |
+| `/asset-review` | `.claude/skills/asset-review/SKILL.md` | **Vision review of the asset set** (contact sheets, criteria AR1–AR11, regeneration of rejects). Phase 3.6 in `/autocreate` |
 
 ## Quality and verification
 

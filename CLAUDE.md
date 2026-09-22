@@ -25,7 +25,10 @@ consistent light from the top left.
 
 The theme, characters, objects, materials, shapes, details and colours are all derived
 from the concept and Design DNA of the specific game. Inspect matching `examples-games/`
-previews by default; generate original assets with relevant shared qualities. Read
+previews by default. When a reference matches the request it is the primary context for the whole
+game — theme, character, symbol cast, palette family, board — so stay close to it and redraw it
+rather than copying it or drifting away (the closeness contract in
+`.claude/docs/game-concept-examples.md`). Read
 `.claude/docs/visual-context.md` and `.claude/docs/game-concept-examples.md` for lead kinds,
 flexible store composition, 3×3 classic-slot defaults, Joker tone and supported x5/x10 coins.
 Photorealism, product-shot
@@ -149,7 +152,7 @@ Idea → Concept → Math model → Design → Gate → Code → UI audit → Ru
 |---------|-------------|
 | `/code-review` | Full code review (architecture, Flame API, RNG integrity, state, tests) |
 | `/ui-audit` | Automatic UI/UX audit for anti-slop quality + compliance screens + auto-fix |
-| `/asset-review` | Vision review of the asset set for consistency (style/light/palette/readability, AR1–AR10) + regeneration of rejects (art-director agent) |
+| `/asset-review` | Vision review of the asset set for consistency (style/light/palette/readability, AR1–AR11) + regeneration of rejects (art-director agent) |
 | `/emulator-test` | Runtime verification on Chrome/Web (primary) or ADB/emulator: launch, screenshots, vision analysis, log parsing, automatic bug fixes |
 | `/playtest` | Deep GAMEPLAY verification via CDP: actually plays N rounds, checks that the balance changes, that win/lose paths work, that cash-out is honest, that the board is alive (P1–P10) |
 | `/design-review` | GDD review for completeness and mathematical correctness |
@@ -205,7 +208,7 @@ branches under the owner's standing push authorization; approval/merge remains h
 | `game-designer` | GDD: round mechanics, bets, bonuses, progression, compliance screens |
 | `mechanics-programmer` | Implementation: WeightedRNG on `Random.secure()`, stateless outcomes, paylines, multipliers, physics |
 | `meta-systems-programmer` | Meta systems: SaveService, Economy, Progression, Achievements + Analytics/Ads/IAP/RemoteConfig abstractions (no-op). Turns one round into a full game |
-| `art-director` | Visual consistency of the asset set: vision review (uniform style/light/palette, readability at 64px, AR1–AR10), regeneration of rejects |
+| `art-director` | Visual consistency of the asset set: vision review (uniform style/light/palette, readability at 64px, AR1–AR11), regeneration of rejects |
 | `juice-artist` | VFX, particles, anticipation / near-miss / win-celebration animations — what makes a round feel "juicy" |
 
 ### Tier 3 — Core specialists

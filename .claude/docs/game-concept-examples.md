@@ -19,14 +19,6 @@ lead kind, and topology decision in the generated concept before producing asset
 | Plinko / Plinko game | `examples-games/plinko.jpeg` | C6 / AE / M6 | Mechanic; glossy colored balls, pegs, buckets, charged coins | Active tilted peg field can fill all three panels; trajectories and coins carry motion; no invented person or mascot |
 | Chicken risk game | No exact local preview required | C2 / M / M2 step model, if using safe-step wagering | Character; expressive chicken, safe/risk tiles, supported reward tokens | Chicken on first panel; actual staged risk path may span the remaining panels or whole scene |
 
-For Book of Ra, Joker, Joker Jewels, and Zeus Game, retain the requested character archetype and
-role while making the generated character visibly original. Change several identity-defining
-choices such as facial structure, age, hair or headwear, costume silhouette, palette, accessories,
-pose, and gesture; do not trace the preview, reproduce its exact face/costume, import its pixels, or copy a
-logo. Preserve the useful composition and subject language so the requested family still reads.
-For Shining Crown and Plinko, the absence of a main character is part of the reference contract:
-do not add a host, mascot, hand, player silhouette, deity, or other living lead.
-
 **Joker and Joker Jewels are separate families.** A request that names only a Joker resolves to the
 3×3 row and `joker2.png`. A request that names Joker Jewels, Joker's Jewels, Jokers Jewels or
 `joker-jewels` resolves to the `examples-games/joker-jewels/` folder and its 5×3 topology, and is
@@ -40,6 +32,44 @@ costume, three-point belled cap, painted face and juggling gesture. Do not repro
 `Joker's Jewels` wordmark, the operator logo or branding, the reference UI chrome and copy, or the
 reference paytable — those figures are another product's currency and payouts, not this game's M1
 model.
+
+## How close to the reference — the closeness contract
+
+A named reference is not a mood board glanced at once and then left behind. It is the **primary
+context for the whole game**: the theme, the character, the cast of symbols, the board, the
+palette family, the mood, the feel of a round. Read it as a large context, not a footnote.
+
+Drifting into an unrelated theme, symbol set or palette fails the request just as badly as
+copying does — and it is the more common failure, because "make it original" is easy to
+overshoot.
+
+**The test.** Put the generated game beside the reference. A stranger should say *"these two are
+the same kind of game"*, and never *"that's the same picture"*.
+
+| Carry over — this is what the request means | Make your own — this is where originality lives |
+|---|---|
+| The theme and world: carnival jester hall, Egyptian dig, Olympus, fairground drop | The character's own face, age, build, proportions and expression |
+| The visual lead and its role — which character, object or mechanic fronts the game | Costume detailing, ornament, accessories, the shape of the headwear |
+| The cast of symbols: the same kinds of objects (bells, gems, lute, scarabs, bolts, balls) | How each symbol is actually drawn — silhouette, facets, material, edging |
+| The palette family and lighting mood: purple carnival, sunset sand, storm blue-and-gold | The exact hues, the accent colour and the value structure inside that family |
+| The board topology and the rhythm of a round (3×3 / 5×3 / 7×6, reveal pacing) | Every number: weights, payouts, lines, bonus rules — those come from the model |
+| The composition language: character-left/field-right, full-bleed field, and so on | The layout archetype's execution, HUD shape, control deck, motion and VFX |
+| The energy and mood: festive, adventurous, thunderous, arcade | The game's name, wordmark, copy, icon, store scene and meta systems |
+
+**Never reproduce** the reference's exact face or costume, its wordmark, logo, UI chrome,
+operator branding, paytable numbers, or any of its pixels, and never trace it. Those belong to
+another product. Everything in the left column does not — it is the game family the user asked
+for, and it must survive into the concept, the asset manifest, the prompts and the build.
+
+**Original is not a licence to drift.** It does not mean a different theme, a different symbol
+set, a different palette family, a different topology or a different character archetype. If the
+concept has wandered far enough that the reference is no longer recognisable in it, the concept
+is wrong — move back toward the reference, not further away.
+
+For Book of Ra, Joker, Joker Jewels, and Zeus Game the character is the lead: keep the archetype,
+role and world exactly, and redraw the person. For Shining Crown and Plinko the absence of a main
+character is itself part of the reference contract: do not add a host, mascot, hand, player
+silhouette, deity or other living lead.
 
 ## Concept seeds
 

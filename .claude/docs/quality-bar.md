@@ -96,7 +96,7 @@ At any moment SOMETHING is moving on the game screen (subtly, without distractin
 
 - The game is designed mobile-first and passes 360×640, 360×800, 390×844 and 430×932 as its
   canonical phone baseline, then fills and adapts at 844×390, 768×1024, 1024×768 and 1440×900.
-- Every asset looks like the work of one artist (checked by /asset-review, criteria AR1–AR10).
+- Every asset looks like the work of one artist (checked by /asset-review, criteria AR1–AR11).
 - The UI is not transferable to another game unchanged (the test from anti-slop-design.md).
 - The gameplay screen owns the viewport: the mechanic is dominant and integrated with its HUD and
   controls, never a thumbnail/window above a generic scrolling card. Core play does not require

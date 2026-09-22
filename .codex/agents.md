@@ -15,7 +15,7 @@ personas. When a task needs specialised behaviour, Codex should:
 | `game-designer` | `.claude/agents/game-designer.md` | GDD, mechanic rules, progression |
 | `mechanics-programmer` | `.claude/agents/mechanics-programmer.md` | Flame game logic, RNG, physics, spawning |
 | `meta-systems-programmer` | `.claude/agents/meta-systems-programmer.md` | SaveService, Economy, Progression, Achievements, Analytics/Ads/IAP abstractions (Agent E in /autocreate) |
-| `art-director` | `.claude/agents/art-director.md` | Visual consistency of the asset set: AR1–AR10 vision review, regeneration of rejects (/asset-review, Phase 3.6) |
+| `art-director` | `.claude/agents/art-director.md` | Visual consistency of the asset set: AR1–AR11 vision review, regeneration of rejects (/asset-review, Phase 3.6) |
 | `juice-artist` | `.claude/agents/juice-artist.md` | VFX, particles, win feel, motion + Gameplay Feel Pass (Phase 6.5) |
 | `lead-programmer` | `.claude/agents/lead-programmer.md` | Architecture, code review, refactoring control |
 | `performance-analyst` | `.claude/agents/performance-analyst.md` | FPS, memory, batching, hot-path analysis |
