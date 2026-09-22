@@ -178,6 +178,7 @@ visual problems.
 | G8 | Empty states are stylized | `grep 'empty\|EmptyState\|no data'` | Add a placeholder with text and illustration |
 | G9 | Loading state is stylized as a game | `grep 'Loading\|loading'` in screens | Replace generic → thematic |
 | G10 | **Transferability test** | Does it look out of place to mentally transfer the UI to another game? | If the UI is generic (suitable for any game) - strengthen the thematic connection |
+| G11 | **Gameplay field is centered by default** | `python3 tools/check_gameplay_center.py` (V20) plus a look at the game screenshot: the field's horizontal center sits inside the middle 60% of the viewport width, unless `design/art-direction.md`'s Layout Archetype records a reason for an offset | Remove the unexplained `Padding`/`Align`/`Positioned` offset, or record the archetype reason |
 
 ### Category H: CRAFT & COMPOSITION (Low is what distinguishes a “designer” screen from a generated one)
 
@@ -333,7 +334,7 @@ and the game HUD is discreet (E14).
 **Step 6 - Missing Screens (F1-F13):**
 Create missing screens using Agent (ui-programmer).
 
-**Stage 7 - Visual quality + craft (G1-G10, H1-H9):**
+**Stage 7 - Visual quality + craft (G1-G11, H1-H9):**
 Polish - fonts, animations, micro-interactions, type-scale, indents, alignment.
 
 **Stage 8 - Live Gameplay (I1-I7):**
@@ -422,7 +423,7 @@ inside a PASS report.
    Total: [X]/13
 
 ✨ G: Visual quality (Low):
-   [✅|❌] G1-G10: [short status]
+   [✅|❌] G1-G11: [short status]
    Total: [X]/10
 
 🎯 H: Craft & Composition (Low):

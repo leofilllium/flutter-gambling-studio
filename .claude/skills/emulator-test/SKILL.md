@@ -441,6 +441,7 @@ And visually check using the checklist:
 | V17 | **Broken mobile-first responsiveness or targeting** | Phone hierarchy breaks; expanded hosts show a capped phone strip, fake frame, dead margins, blind scaling, pointer-only controls, or an undocumented native restriction | HIGH | ui-programmer + release-engineering (enforce mobile-first contract) |
 | V18 | **Stretched or squashed asset** | An asset is drawn at a different aspect ratio than its source file: the character is widened or elongated, a round coin is an oval, an icon is a lozenge, text baked into a sprite is distorted | HIGH | ui-programmer (or juice-artist for a Flame component size) |
 | V19 | **Menu lead missing or buried** | The main menu does not show the game's declared visual lead: a character-led game opens on a title, buttons and a gradient; or the lead is clipped by an edge, hidden behind the button stack, or shrunk to an icon | HIGH | ui-programmer (menu composition) |
+| V20 | **Gameplay field off-center** | The live play field is shoved toward one edge — an `Align`/`Padding`/`Positioned` offset with no reason — instead of sitting on the viewport's horizontal center by default | HIGH | ui-programmer (remove the unexplained offset, or record the Layout Archetype reason) |
 
 **V18 — asset distortion.** Run `python3 tools/check_asset_stretch.py --report
 <SHOT_DIR>/asset-stretch.md` for the static pass: it compares each asset's real pixel
@@ -475,9 +476,29 @@ centrepiece is the crown, the board, the peg field — adding a mascot, host, ha
 silhouette is its own defect (`.claude/docs/visual-context.md`), and the same criteria apply to
 that object or mechanic instead.
 
+**V20 — gameplay-field centering.** `gameplay-screen-contract.md` §2b: absent a documented
+reason, the play field's horizontal center coincides with the viewport's horizontal center — the
+same default as V19's menu lead, and the same reasoning: an off-center field without a recorded
+cause reads as an accident, not a choice. Run
+`python3 tools/check_gameplay_center.py --report <SHOT_DIR>/gameplay-center.md` for the static
+half — it finds every `Key('gameplaySurface')` site and walks its ancestor widgets for an
+explicit offset (`Align` toward an edge, asymmetric `Padding`, a `Positioned` pinned to or
+unevenly inset from one side) — then judge `03-game-idle.png` and `04-game-action.png` at 390×844
+and 1440×900:
+
+- the field's horizontal center sits inside the middle 60% of the viewport width;
+- an off-center placement is fine when `design/art-direction.md`'s Layout Archetype calls for it
+  (L4's side rail, L5's split panel) and the field is still whole and dominant;
+- the expanded viewport keeps the same centered relationship rather than drifting toward one side
+  as the mechanic grows.
+
+This is a static-plus-vision check like V18/V19: the script proves an *explicit* offset exists,
+not the resolved runtime position, so a screen that reads centered in both screenshots passes even
+if the script flags a MEDIUM it cannot resolve.
+
 For every game-idle and active screenshot, also apply
 `.claude/docs/mobile-first-contract.md` and `.claude/docs/gameplay-screen-contract.md`.
-V13–V19 are release blockers, not subjective polish. Run the screenshot tour across 360×640,
+V13–V20 are release blockers, not subjective polish. Run the screenshot tour across 360×640,
 360×800, 390×844, 430×932, 844×390, 768×1024, 1024×768 and 1440×900.
 
 ### Create an entry for each screenshot
@@ -590,6 +611,10 @@ Sort by severity: CRITICAL → HIGH → MEDIUM.
      to `contain`/`cover`, match the box to the source ratio, or derive one side from the other
    - V19 (menu lead): compose the declared lead into the menu as its centrepiece — never invent
      a character for an object/mechanic-led game
+   - V20 (gameplay field off-center): remove the unexplained `Padding`/`Align`/`Positioned`
+     offset so the field's horizontal center returns to the viewport's — or, if the Layout
+     Archetype genuinely calls for the offset, record why in `design/art-direction.md` instead of
+     silently keeping it
    - V13/V14/V15/V16 (gameplay composition): apply `gameplay-screen-contract.md`; expand and
      integrate the field, remove nested framing/core scrolling, and rebuild the responsive control
      deck. If this needs a whole-screen recomposition, route it through `/ui-audit --fix`.

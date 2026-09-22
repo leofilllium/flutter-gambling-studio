@@ -41,7 +41,7 @@ project to `dart analyze` 0 errors + `flutter test` green. In this session:
 2. ✅ Validates that Session 2's artifacts exist (`pubspec.yaml`, `lib/main.dart`,
    `dart analyze` still 0 errors)
 3. ✅ Reads `.claude/docs/mobile-first-contract.md` and
-   `.claude/docs/gameplay-screen-contract.md` before runtime capture and treats every V13–V19
+   `.claude/docs/gameplay-screen-contract.md` before runtime capture and treats every V13–V20
    defect as a HIGH release blocker
 4. ✅ Runs Phases 10.5 → 11 → 11.5 → 12 in that order
 5. ✅ Returns the final report to the parent session (or prints it for the user)
@@ -197,16 +197,17 @@ kill "$(cat .claude/runtime-logs/flutter.pid 2>/dev/null)" 2>/dev/null || true
 ```
 
 Then:
-- **Visual analysis** of each `$SHOT_DIR/*.png` through Read (vision) against the V1–V19 checklist,
+- **Visual analysis** of each `$SHOT_DIR/*.png` through Read (vision) against the V1–V20 checklist,
   `.claude/docs/mobile-first-contract.md`, and `.claude/docs/gameplay-screen-contract.md`.
   Inspect the required phone matrix at 360×640, 360×800, 390×844 and 430×932 and the expanded
   matrix at 844×390, 768×1024, 1024×768 and 1440×900, with idle and active gameplay at 390×844
   and 1440×900. Confirm the product fills each viewport without a framed phone canvas.
 - **Error parsing**: inspect every `manifest.json` and `webconsole.log` under `$SHOT_DIR`,
   and `.claude/runtime-logs/flutter-run.log` (EXCEPTION CAUGHT, RenderFlex overflowed, Unable to load asset).
-- **Asset distortion (V18)** and **the menu lead (V19)**: run steps 10.5.2d and 10.5.2e below.
-  A screenshot that "has the sprite in it" is not proof the sprite kept its shape, and a menu
-  that renders is not proof it shows the game.
+- **Asset distortion (V18)**, **the menu lead (V19)** and **gameplay-field centering (V20)**: run
+  steps 10.5.2d, 10.5.2e and 10.5.2f below. A screenshot that "has the sprite in it" is not proof
+  the sprite kept its shape, a menu that renders is not proof it shows the game, and a field that
+  is on-screen is not proof it is centered.
 
 ### 10.5.2c — Android compile verification (only when `PLATFORM=android`)
 
@@ -336,10 +337,47 @@ move it clear of the button stack, or scale it up — a targeted layout edit on 
 > silhouette is its own defect (`.claude/docs/visual-context.md`); apply the same visibility and
 > prominence criteria to that object or mechanic instead.
 
+### 10.5.2f — gameplay-field centering audit (V20) [~20 s]
+
+`gameplay-screen-contract.md` §2b: absent a documented reason, the live play field sits centered
+on the viewport's horizontal axis — the same default the menu lead already gets in V19, and for
+the same reason: a field shoved against one edge passes every other gate (the analyzer is clean,
+the widget test only checks the field is on-screen and above the size floor, the screenshot "has
+the field in it") while still reading as unintentional.
+
+```bash
+python3 tools/check_gameplay_center.py \
+  --lib lib --warn-px 16 --fail-px 48 \
+  --report "$SHOT_DIR/gameplay-center.md" --json "$SHOT_DIR/gameplay-center.json"
+GAMEPLAY_CENTER_EXIT=$?   # 0 = no HIGH finding, 1 = at least one HIGH, 2 = bad invocation
+```
+
+The script finds every `Key('gameplaySurface')` site (the mandatory hook from
+`gameplay-screen-contract.md`) and walks its ancestor widgets for an explicit horizontal offset:
+an `Align`/`Alignment` pinned toward an edge, asymmetric `Padding`, or a `Positioned` pinned to
+one side or given unequal `left`/`right` insets. It cannot resolve the box that runtime
+constraints (parent size, safe-area insets, `Expanded` siblings) actually produce, so the vision
+pass is not optional:
+
+- Read `03-game-idle.png` and `04-game-action.png` at 390×844 and 1440×900 together with the
+  layout archetype recorded in `design/art-direction.md`.
+- The field's horizontal center should sit inside the middle 60% of the viewport width.
+- An off-center placement is fine when the recorded Layout Archetype genuinely calls for it (L4's
+  side rail, L5's split panel) — but that reason has to be written down in
+  `design/art-direction.md`, not just visible in the screenshot; an unexplained offset is V20
+  regardless of which archetype happens to be in play.
+- Check the expanded viewports specifically: a field that is centered on a phone can drift toward
+  one side once desktop-width reflow logic kicks in.
+
+Every confirmed finding is **V20, HIGH** and enters the 10.5.3 auto-fix loop. Fix the offending
+`Padding`/`Align`/`Positioned` so the field's center returns to the viewport's center, or — only
+when the composition genuinely calls for an offset — record the reason in
+`design/art-direction.md` rather than leaving it silent.
+
 ### 10.5.3 — the auto-fix loop (up to 3 iterations)
 
 Consolidate the problems, mark their severity (CRITICAL/HIGH/MEDIUM) and assign agents:
-- V2/V3/V5/V7/V8/V9/V10/V11/V13/V14/V15/V16/V18/V19 → **ui-programmer**
+- V2/V3/V5/V7/V8/V9/V10/V11/V13/V14/V15/V16/V18/V19/V20 → **ui-programmer**
 - V4/V12 → **mechanics-programmer**
 - V18 on a Flame component `size:` → **juice-artist** or **mechanics-programmer**, whoever owns
   the component
@@ -360,6 +398,7 @@ Consolidate the problems, mark their severity (CRITICAL/HIGH/MEDIUM) and assign 
 | Slight field/control constraint miss | An avoidable wrapper, padding, or incorrect flex | Make a targeted constraint edit and re-capture both idle and active states |
 | An asset is stretched or squashed (V18) | `BoxFit.fill`, a Flame `size:` off the source ratio, or a non-uniform `Transform.scale` | Fix the draw site: `BoxFit.contain`/`cover`, a box matching the source ratio, or derive one side from the other — never re-export or regenerate the asset |
 | The menu lead is missing, clipped or buried (V19) | The menu was composed from title + buttons, or the lead sits under the button stack / off the edge | A targeted menu-screen edit: place the declared lead as the centrepiece, clear of the controls, at centrepiece size — never invent a character for an object/mechanic lead |
+| The play field sits off-center (V20) | An unexplained `Padding`/`Align`/`Positioned` offset on an ancestor of `Key('gameplaySurface')` | Remove the offset so the field's horizontal center returns to the viewport's — or, only if the Layout Archetype genuinely calls for it, record the reason in `design/art-direction.md` |
 
 **Forbidden "auto-fixes":**
 - Changing `game_config.dart` (the balance is frozen)
@@ -374,9 +413,10 @@ or downgrade the defect. Mark finalization FAIL and route it back to `/ui-audit 
 ### 10.5.4 — Phase 10.5's exit criterion
 
 **The web path (the default):**
-- **Success**: 0 CRITICAL + 0 HIGH visual problems, 0 FATAL exceptions, the asset-distortion and
-  menu-lead audits report no HIGH finding (`STRETCH_EXIT=0`, `MENU_LEAD_EXIT=0`, and the vision
-  confirmations agree), and the gameplay-screen contract passes in idle and active states
+- **Success**: 0 CRITICAL + 0 HIGH visual problems, 0 FATAL exceptions, the asset-distortion,
+  menu-lead and gameplay-centering audits report no HIGH finding (`STRETCH_EXIT=0`,
+  `MENU_LEAD_EXIT=0`, `GAMEPLAY_CENTER_EXIT=0`, and the vision confirmations agree), and the
+  gameplay-screen contract passes in idle and active states
 - **Partial success**: CRITICAL/HIGH are cleared but MEDIUMs remain — go on to Phase 11 with CONCERNS
 - **Failure**: after 3 iterations any CRITICAL/HIGH remains — save
   `production/runtime-screenshots/<ts>/REPORT.md`, report with the verdict FAIL;
@@ -395,6 +435,7 @@ or downgrade the defect. Mark finalization FAIL and route it back to `/ui-audit 
 - `production/runtime-screenshots/<ts>/REPORT.md` — the verdict PASS/CONCERNS/FAIL
 - `production/runtime-screenshots/<ts>/asset-stretch.md` + `.json` — the V18 audit
 - `production/runtime-screenshots/<ts>/menu-lead.md` + `.json` — the V19 audit
+- `production/runtime-screenshots/<ts>/gameplay-center.md` + `.json` — the V20 audit
 - `.claude/runtime-logs/flutter-run.log`
 
 **The Android path (compile-only):**
@@ -537,7 +578,7 @@ gameplay-screen contract passes, and playtest is not NOT-PLAYABLE. Otherwise use
 
 🌐 Runtime verification (Chrome, Phase 10.5):
    [PASS / CONCERNS / FAIL / SKIPPED] — [N] CRITICAL, [N] HIGH issues
-   Gameplay composition: [PASS / FAIL / UNVERIFIED] — full-viewport field + integrated controls
+   Gameplay composition: [PASS / FAIL / UNVERIFIED] — full-viewport field + integrated controls, centered by default (V20)
    Screenshots: production/runtime-screenshots/<ts>/
    Report: production/runtime-screenshots/<ts>/REPORT.md
 
@@ -587,7 +628,7 @@ gameplay-screen contract passes, and playtest is not NOT-PLAYABLE. Otherwise use
 | Phase | Exit criterion | Max iterations |
 |-------|----------------|----------------|
 | 0. Preflight | The handoff exists + `dart analyze` 0 errors | 1 (fail-fast) |
-| 10.5. Runtime Chrome / Android compile | Web: 0 CRITICAL/HIGH visual, gameplay-screen contract PASS, no HIGH in the V18 asset-distortion or V19 menu-lead audits, 0 FATAL in flutter-run.log (+ soak: no leak). Android (`--platform android`): `flutter build apk --debug` exit 0 | 3 (Chrome is always available) / 2 (Android compile) |
+| 10.5. Runtime Chrome / Android compile | Web: 0 CRITICAL/HIGH visual, gameplay-screen contract PASS, no HIGH in the V18 asset-distortion, V19 menu-lead or V20 gameplay-centering audits, 0 FATAL in flutter-run.log (+ soak: no leak). Android (`--platform android`): `flutter build apk --debug` exit 0 | 3 (Chrome is always available) / 2 (Android compile) |
 | 10.6. Playtest | PLAYTEST-REPORT.md, verdict ≠ NOT-PLAYABLE (P1–P10) | 2 |
 | 11. Session state | `active.md` updated | 1 |
 | 11.5. Release-eng prep | Icons/splash generated, `store/` created (AAB best-effort) | 1 |
@@ -598,7 +639,7 @@ gameplay-screen contract passes, and playtest is not NOT-PLAYABLE. Otherwise use
 - The final report is printed, with the runtime verification verdict
 
 This minimum permits an honest blocked report; it does not permit a production-ready claim. Any
-remaining V13–V19/HIGH defect or a failed mobile-phone/gameplay-screen contract keeps the project blocked.
+remaining V13–V20/HIGH defect or a failed mobile-phone/gameplay-screen contract keeps the project blocked.
 
 ---
 
