@@ -22,6 +22,10 @@ reference paths, traits borrowed, original adaptations, board topology, and supp
 markers in `design/gdd/game-concept.md`. Carry those decisions into `design/art-direction.md`,
 the asset manifest, generation prompts, and `STORE_BRIEF.md`.
 
+Once the assets exist, record the lead's own file as `Lead asset: <path>` in the concept (or the
+art direction) — the runtime menu gate reads it. The lead is the main menu's centrepiece, not
+just the storefront's: see `quality-bar.md` §1 and V19 in `.claude/skills/emulator-test/SKILL.md`.
+
 | Lead | When it fits | Default storefront direction |
 |---|---|---|
 | Character | Zeus, Joker, chicken, another actual character or animal mascot | Recognizable large character on the first panel; action may occupy any remaining space or span panels |

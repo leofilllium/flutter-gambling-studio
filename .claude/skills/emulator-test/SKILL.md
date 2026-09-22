@@ -440,6 +440,7 @@ And visually check using the checklist:
 | V16 | **Poorly adjusted controls** | Buttons are cramped, uneven, clipped, undersized, ambiguously disabled, or visually disconnected from gameplay | HIGH | ui-programmer (responsive control deck and state pass) |
 | V17 | **Broken mobile-first responsiveness or targeting** | Phone hierarchy breaks; expanded hosts show a capped phone strip, fake frame, dead margins, blind scaling, pointer-only controls, or an undocumented native restriction | HIGH | ui-programmer + release-engineering (enforce mobile-first contract) |
 | V18 | **Stretched or squashed asset** | An asset is drawn at a different aspect ratio than its source file: the character is widened or elongated, a round coin is an oval, an icon is a lozenge, text baked into a sprite is distorted | HIGH | ui-programmer (or juice-artist for a Flame component size) |
+| V19 | **Menu lead missing or buried** | The main menu does not show the game's declared visual lead: a character-led game opens on a title, buttons and a gradient; or the lead is clipped by an edge, hidden behind the button stack, or shrunk to an icon | HIGH | ui-programmer (menu composition) |
 
 **V18 — asset distortion.** Run `python3 tools/check_asset_stretch.py --report
 <SHOT_DIR>/asset-stretch.md` for the static pass: it compares each asset's real pixel
@@ -453,9 +454,30 @@ proportions. Resizing is not distortion — only a changed width-to-height ratio
 `BoxFit.contain`/`BoxFit.cover`, a box that matches the source ratio, or deriving one side from
 the other; re-exporting the asset to fit a wrong box is not a fix.
 
+**V19 — the menu lead.** `quality-bar.md` §1 requires the menu to sell the game: a centrepiece
+from the game's world, so the player knows WHAT this is before pressing PLAY. Run
+`python3 tools/check_menu_lead.py --report <SHOT_DIR>/menu-lead.md` for the static half — it reads
+`lead_kind` and the lead asset from the design docs and checks that the main-menu source actually
+draws it — then judge `02-menu.png` at 390×844 and 1440×900:
+
+- the lead is visible on the first viewport, with no scrolling;
+- nothing important is clipped: for a character, the whole head and face sit inside the frame;
+- it is not buried — at most about a quarter of its silhouette behind buttons, logo or overlays;
+- it is the focal point, not a garnish: roughly a third of the viewport height, or a fifth of the
+  menu area, at minimum;
+- **centred by default** — its horizontal centre inside the middle 60% of the width. An off-centre
+  placement is fine when `design/art-direction.md`'s layout archetype calls for it (L3's floating
+  corners, L5's split panel) and the lead is still whole and dominant;
+- the expanded viewport keeps it proportionate, not a phone-sized cameo adrift in a wide menu.
+
+**Never satisfy V19 by inventing a character.** For an object- or mechanic-led game the
+centrepiece is the crown, the board, the peg field — adding a mascot, host, hand or player
+silhouette is its own defect (`.claude/docs/visual-context.md`), and the same criteria apply to
+that object or mechanic instead.
+
 For every game-idle and active screenshot, also apply
 `.claude/docs/mobile-first-contract.md` and `.claude/docs/gameplay-screen-contract.md`.
-V13–V18 are release blockers, not subjective polish. Run the screenshot tour across 360×640,
+V13–V19 are release blockers, not subjective polish. Run the screenshot tour across 360×640,
 360×800, 390×844, 430×932, 844×390, 768×1024, 1024×768 and 1440×900.
 
 ### Create an entry for each screenshot
@@ -566,6 +588,8 @@ Sort by severity: CRITICAL → HIGH → MEDIUM.
    - V10/V11 (design): apply palette from Design DNA, replace Material defaults
    - V18 (asset distortion): fix the draw site, never the source asset — switch `BoxFit.fill`
      to `contain`/`cover`, match the box to the source ratio, or derive one side from the other
+   - V19 (menu lead): compose the declared lead into the menu as its centrepiece — never invent
+     a character for an object/mechanic-led game
    - V13/V14/V15/V16 (gameplay composition): apply `gameplay-screen-contract.md`; expand and
      integrate the field, remove nested framing/core scrolling, and rebuild the responsive control
      deck. If this needs a whole-screen recomposition, route it through `/ui-audit --fix`.

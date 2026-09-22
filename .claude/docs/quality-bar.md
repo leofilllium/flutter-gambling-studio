@@ -24,7 +24,12 @@ The player reaches a verdict in the first minute. This is the most important are
   animation + numbers changing) within the first 10 seconds after launch.
 - **Splash 1–2 s**, animated, auto-advancing. Not a static image for 5 seconds.
 - **The menu sells the game**: a centrepiece from the game's world, so it is clear WHAT the
-  game is before pressing PLAY.
+  game is before pressing PLAY. That centrepiece is the concept's declared visual lead — the
+  character for a character-led game, the crown/board/peg field for an object- or mechanic-led
+  one. It is centred by default, whole (a character's head and face never clipped), clear of the
+  button stack, and large enough to be the focal point: roughly a third of the viewport height.
+  Checked as V19 by `/emulator-test` and `/autocreate-finalize`; never satisfied by inventing a
+  character an object-led game does not have.
 - The first launch does not greet the player with emptiness: the starting balance/energy is
   already credited, the first level is unlocked, the daily bonus beckons.
 
