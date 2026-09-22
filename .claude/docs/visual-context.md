@@ -6,11 +6,14 @@ For matching new-game requests, inspect the relevant previews in `examples-games
 and read `.claude/docs/game-concept-examples.md`. They are visual references, not runtime assets
 or complete game specifications. A missing reference does not block an unrelated concept.
 
-`/autocreate` requests named **Book of Ra**, **Joker**, **Shining Crown**, **Zeus Game**, or
-**Plinko** must use the exact local reference mapping in `game-concept-examples.md`; do not replace
-it with a generic category reference. Book of Ra, Joker, and Zeus are character-led, but their
+`/autocreate` requests named **Book of Ra**, **Joker**, **Joker Jewels**, **Shining Crown**,
+**Zeus Game**, or **Plinko** must use the exact local reference mapping in
+`game-concept-examples.md`, on the `--from-concept` path as well; do not replace it with a generic
+category reference. Book of Ra, Joker, Joker Jewels, and Zeus are character-led, but their
 generated characters must be deliberate original adaptations rather than close copies. Shining
 Crown and Plinko are object/mechanic-led and must not gain an invented main character or mascot.
+**Joker** and **Joker Jewels** are two different entries: Joker Jewels resolves to every file in
+the `examples-games/joker-jewels/` folder and to a 5×3 board, never to the plain Joker row's 3×3.
 
 ## Decide the visual lead before generating
 
@@ -55,7 +58,8 @@ Rich fabrics and gold trim can support the character without making elegance its
 ### Slot topology
 
 An unspecified “slot game” request defaults to a classic **3 reels × 3 visible rows (3×3)**,
-not 4×4. Save the topology
+not 4×4. A named preview-mapped family overrides that default with its own mapped topology:
+Joker 3×3, Joker Jewels and Book of Ra 5×3, Zeus Game 7×6. Save the topology
 in the concept and the M1 JSON config; implementation, board assets, runtime screenshots, and
 marketing must agree. A requested 5×3 video slot, cluster slot, or an existing different grid
 keeps its documented dimensions. Do not change a shipped game to satisfy a marketing default.
