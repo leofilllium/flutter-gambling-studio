@@ -439,10 +439,23 @@ And visually check using the checklist:
 | V15 | **Core loop below the fold** | Player must vertically scroll to see the primary action, stake/risk control, or essential result | HIGH | ui-programmer (fixed-viewport core composition) |
 | V16 | **Poorly adjusted controls** | Buttons are cramped, uneven, clipped, undersized, ambiguously disabled, or visually disconnected from gameplay | HIGH | ui-programmer (responsive control deck and state pass) |
 | V17 | **Broken mobile-first responsiveness or targeting** | Phone hierarchy breaks; expanded hosts show a capped phone strip, fake frame, dead margins, blind scaling, pointer-only controls, or an undocumented native restriction | HIGH | ui-programmer + release-engineering (enforce mobile-first contract) |
+| V18 | **Stretched or squashed asset** | An asset is drawn at a different aspect ratio than its source file: the character is widened or elongated, a round coin is an oval, an icon is a lozenge, text baked into a sprite is distorted | HIGH | ui-programmer (or juice-artist for a Flame component size) |
+
+**V18 — asset distortion.** Run `python3 tools/check_asset_stretch.py --report
+<SHOT_DIR>/asset-stretch.md` for the static pass: it compares each asset's real pixel
+dimensions against the box the Dart code draws it in, and flags the three operators that
+actually deform artwork (`BoxFit.fill`, a Flame `size: Vector2(w, h)` off the source ratio, a
+non-uniform `Transform.scale`). MEDIUM at 5% aspect deviation, HIGH at 10%; `stretch-ok` in a
+comment records a deliberate non-uniform scale such as a 9-slice panel. A box computed from
+runtime constraints is invisible to it, so also confirm visually: read the source file next to
+the screenshot for every character/hero asset and every reported site, and compare the silhouette
+proportions. Resizing is not distortion — only a changed width-to-height ratio is. The fix is
+`BoxFit.contain`/`BoxFit.cover`, a box that matches the source ratio, or deriving one side from
+the other; re-exporting the asset to fit a wrong box is not a fix.
 
 For every game-idle and active screenshot, also apply
 `.claude/docs/mobile-first-contract.md` and `.claude/docs/gameplay-screen-contract.md`.
-V13–V17 are release blockers, not subjective polish. Run the screenshot tour across 360×640,
+V13–V18 are release blockers, not subjective polish. Run the screenshot tour across 360×640,
 360×800, 390×844, 430×932, 844×390, 768×1024, 1024×768 and 1440×900.
 
 ### Create an entry for each screenshot
@@ -551,6 +564,8 @@ Sort by severity: CRITICAL → HIGH → MEDIUM.
    - V2/V3 (black/white screen): check main.dart → runApp, app.dart → routes, SafeArea
    - V5/V7/V8/V9 (layout): add Expanded, overflow: ellipsis, FittedBox
    - V10/V11 (design): apply palette from Design DNA, replace Material defaults
+   - V18 (asset distortion): fix the draw site, never the source asset — switch `BoxFit.fill`
+     to `contain`/`cover`, match the box to the source ratio, or derive one side from the other
    - V13/V14/V15/V16 (gameplay composition): apply `gameplay-screen-contract.md`; expand and
      integrate the field, remove nested framing/core scrolling, and rebuild the responsive control
      deck. If this needs a whole-screen recomposition, route it through `/ui-audit --fix`.

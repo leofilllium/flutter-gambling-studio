@@ -41,7 +41,7 @@ project to `dart analyze` 0 errors + `flutter test` green. In this session:
 2. ✅ Validates that Session 2's artifacts exist (`pubspec.yaml`, `lib/main.dart`,
    `dart analyze` still 0 errors)
 3. ✅ Reads `.claude/docs/mobile-first-contract.md` and
-   `.claude/docs/gameplay-screen-contract.md` before runtime capture and treats every V13–V17
+   `.claude/docs/gameplay-screen-contract.md` before runtime capture and treats every V13–V18
    defect as a HIGH release blocker
 4. ✅ Runs Phases 10.5 → 11 → 11.5 → 12 in that order
 5. ✅ Returns the final report to the parent session (or prints it for the user)
@@ -197,13 +197,15 @@ kill "$(cat .claude/runtime-logs/flutter.pid 2>/dev/null)" 2>/dev/null || true
 ```
 
 Then:
-- **Visual analysis** of each `$SHOT_DIR/*.png` through Read (vision) against the V1–V17 checklist,
+- **Visual analysis** of each `$SHOT_DIR/*.png` through Read (vision) against the V1–V18 checklist,
   `.claude/docs/mobile-first-contract.md`, and `.claude/docs/gameplay-screen-contract.md`.
   Inspect the required phone matrix at 360×640, 360×800, 390×844 and 430×932 and the expanded
   matrix at 844×390, 768×1024, 1024×768 and 1440×900, with idle and active gameplay at 390×844
   and 1440×900. Confirm the product fills each viewport without a framed phone canvas.
 - **Error parsing**: inspect every `manifest.json` and `webconsole.log` under `$SHOT_DIR`,
   and `.claude/runtime-logs/flutter-run.log` (EXCEPTION CAUGHT, RenderFlex overflowed, Unable to load asset).
+- **Asset distortion (V18)**: run step 10.5.2d below. A screenshot that "has the sprite in it"
+  is not proof the sprite kept its shape.
 
 ### 10.5.2c — Android compile verification (only when `PLATFORM=android`)
 
@@ -253,11 +255,53 @@ number of repeated console exceptions. Whatever is found goes into REPORT.md as 
 CRITICAL, if the game is playable); a targeted fix (an un-disposed controller/timer/particle
 leak) is permitted.
 
+### 10.5.2d — asset distortion audit (V18) [~20 s]
+
+An asset drawn at a different aspect ratio than its source file is one of the most visible
+"AI made this" tells, and it passes every other gate: the analyzer is clean, the widget test is
+green, the sprite is present in the screenshot — and the jester is 40% wider than the artwork
+the art director approved.
+
+```bash
+python3 tools/check_asset_stretch.py \
+  --assets assets --lib lib --warn 0.05 --fail 0.10 \
+  --report "$SHOT_DIR/asset-stretch.md" --json "$SHOT_DIR/asset-stretch.json"
+STRETCH_EXIT=$?   # 0 = no HIGH finding, 1 = at least one HIGH, 2 = bad invocation
+```
+
+The script reads each asset's real pixel dimensions from its file header and compares them with
+the box the Dart code draws it in, reporting only the operators that actually deform artwork:
+`BoxFit.fill` on a box whose ratio differs from the source, a Flame `size: Vector2(w, h)` off the
+sprite's ratio (Flame stretches to `size:` — it does not letterbox), and a non-uniform
+`Transform.scale`. MEDIUM at 5% aspect deviation, HIGH at 10%. A plain `Image.asset(width:,
+height:)` is not reported: Flutter letterboxes it under the default fit.
+
+Then the vision confirmation, which is the part the script cannot do (it cannot see a box computed
+from runtime constraints):
+
+- Read the source file and the runtime screenshot **together** for every character/hero asset, the
+  app icon, the primary action button and every site the report lists, and compare the silhouette
+  proportions — a circle still circular, a face still the right width, baked-in lettering not
+  slanted or condensed.
+- Judge the ratio, not the size. Drawing a 512×512 sprite at 64×64 is correct; drawing it at
+  96×64 is V18.
+- Check the expanded viewports specifically (1024×768, 1440×900): a background or panel that is
+  honest on a phone is often the one stretched wide on desktop.
+
+Every confirmed finding is **V18, HIGH** and enters the 10.5.3 auto-fix loop. Fix the draw site,
+never the source artwork: switch to `BoxFit.contain`/`BoxFit.cover`, make the box match the source
+ratio, or derive one side from the other. Re-exporting a sprite to fit a wrong box, or regenerating
+the asset, is not a fix. A genuinely deliberate non-uniform scale (a 9-slice panel, a full-bleed
+gradient backdrop) is recorded with a `stretch-ok` comment on the draw site, which also suppresses
+the static finding.
+
 ### 10.5.3 — the auto-fix loop (up to 3 iterations)
 
 Consolidate the problems, mark their severity (CRITICAL/HIGH/MEDIUM) and assign agents:
-- V2/V3/V5/V7/V8/V9/V10/V11/V13/V14/V15/V16 → **ui-programmer**
+- V2/V3/V5/V7/V8/V9/V10/V11/V13/V14/V15/V16/V18 → **ui-programmer**
 - V4/V12 → **mechanics-programmer**
+- V18 on a Flame component `size:` → **juice-artist** or **mechanics-programmer**, whoever owns
+  the component
 - VFX not visible → **juice-artist**
 - Logcat asset errors → check `lib/assets.dart` against the real files
 
@@ -273,6 +317,7 @@ Consolidate the problems, mark their severity (CRITICAL/HIGH/MEDIUM) and assign 
 | A red screen exception | A null check/type error from the stack trace | Fix it at the file:line from the log |
 | "Unable to load asset" | A path mismatch in `lib/assets.dart` | Fix the path, or create the file |
 | Slight field/control constraint miss | An avoidable wrapper, padding, or incorrect flex | Make a targeted constraint edit and re-capture both idle and active states |
+| An asset is stretched or squashed (V18) | `BoxFit.fill`, a Flame `size:` off the source ratio, or a non-uniform `Transform.scale` | Fix the draw site: `BoxFit.contain`/`cover`, a box matching the source ratio, or derive one side from the other — never re-export or regenerate the asset |
 
 **Forbidden "auto-fixes":**
 - Changing `game_config.dart` (the balance is frozen)
@@ -287,8 +332,9 @@ or downgrade the defect. Mark finalization FAIL and route it back to `/ui-audit 
 ### 10.5.4 — Phase 10.5's exit criterion
 
 **The web path (the default):**
-- **Success**: 0 CRITICAL + 0 HIGH visual problems, 0 FATAL exceptions, and the gameplay-screen
-  contract passes in idle and active states
+- **Success**: 0 CRITICAL + 0 HIGH visual problems, 0 FATAL exceptions, the asset-distortion
+  audit reports no HIGH finding (`STRETCH_EXIT=0` and the vision confirmation agrees), and the
+  gameplay-screen contract passes in idle and active states
 - **Partial success**: CRITICAL/HIGH are cleared but MEDIUMs remain — go on to Phase 11 with CONCERNS
 - **Failure**: after 3 iterations any CRITICAL/HIGH remains — save
   `production/runtime-screenshots/<ts>/REPORT.md`, report with the verdict FAIL;
@@ -305,6 +351,7 @@ or downgrade the defect. Mark finalization FAIL and route it back to `/ui-audit 
 **The web path:**
 - `production/runtime-screenshots/<ts>/*.png` — the shots
 - `production/runtime-screenshots/<ts>/REPORT.md` — the verdict PASS/CONCERNS/FAIL
+- `production/runtime-screenshots/<ts>/asset-stretch.md` + `.json` — the V18 audit
 - `.claude/runtime-logs/flutter-run.log`
 
 **The Android path (compile-only):**
@@ -497,7 +544,7 @@ gameplay-screen contract passes, and playtest is not NOT-PLAYABLE. Otherwise use
 | Phase | Exit criterion | Max iterations |
 |-------|----------------|----------------|
 | 0. Preflight | The handoff exists + `dart analyze` 0 errors | 1 (fail-fast) |
-| 10.5. Runtime Chrome / Android compile | Web: 0 CRITICAL/HIGH visual, gameplay-screen contract PASS, 0 FATAL in flutter-run.log (+ soak: no leak). Android (`--platform android`): `flutter build apk --debug` exit 0 | 3 (Chrome is always available) / 2 (Android compile) |
+| 10.5. Runtime Chrome / Android compile | Web: 0 CRITICAL/HIGH visual, gameplay-screen contract PASS, no HIGH in the V18 asset-distortion audit, 0 FATAL in flutter-run.log (+ soak: no leak). Android (`--platform android`): `flutter build apk --debug` exit 0 | 3 (Chrome is always available) / 2 (Android compile) |
 | 10.6. Playtest | PLAYTEST-REPORT.md, verdict ≠ NOT-PLAYABLE (P1–P10) | 2 |
 | 11. Session state | `active.md` updated | 1 |
 | 11.5. Release-eng prep | Icons/splash generated, `store/` created (AAB best-effort) | 1 |
@@ -508,7 +555,7 @@ gameplay-screen contract passes, and playtest is not NOT-PLAYABLE. Otherwise use
 - The final report is printed, with the runtime verification verdict
 
 This minimum permits an honest blocked report; it does not permit a production-ready claim. Any
-remaining V13–V17/HIGH defect or a failed mobile-phone/gameplay-screen contract keeps the project blocked.
+remaining V13–V18/HIGH defect or a failed mobile-phone/gameplay-screen contract keeps the project blocked.
 
 ---
 

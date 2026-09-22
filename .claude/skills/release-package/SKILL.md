@@ -156,7 +156,7 @@ kill $(cat .claude/runtime-logs/flutter-release.pid) 2>/dev/null || true
 ### 1.4. A quick visual audit (mandatory release gate)
 
 Read the first 5 screenshots and every gameplay-state screenshot through Read (vision). Check the
-V1–V17 problems from `emulator-test` plus `.claude/docs/mobile-first-contract.md` and
+V1–V18 problems from `emulator-test` plus `.claude/docs/mobile-first-contract.md` and
 `.claude/docs/gameplay-screen-contract.md`. If any
 CRITICAL/HIGH issue remains—including a thumbnail/nested play field, core-loop scrolling, or poor
 button proportions, capped phone layout, broken expanded reflow, or undocumented targeting—stop before
@@ -500,7 +500,7 @@ RELEASE_INFO.md), so the user at least has the sources and the screenshots.
 | Phase | Exit criterion | Max iterations |
 |-------|----------------|----------------|
 | 0. Preflight | pubspec.yaml exists | 1 (otherwise abort) |
-| 1. Screenshots | At least 5 valid PNGs and 0 CRITICAL/HIGH V1–V17/mobile-phone/gameplay-contract defects | 2 (SKIPPED if there is no device) |
+| 1. Screenshots | At least 5 valid PNGs and 0 CRITICAL/HIGH V1–V18/mobile-phone/gameplay-contract defects | 2 (SKIPPED if there is no device) |
 | 2. APK build | `app-release.apk` exists | 2 (non-fatal) |
 | 3. Metadata | RELEASE_INFO.md created | 1 |
 | 4. Clean | `flutter clean` with no errors | 1 |
