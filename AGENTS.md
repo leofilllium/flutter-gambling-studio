@@ -13,10 +13,11 @@ All generated game art must use polished cartoon 2.5D casual-game illustration w
 silhouettes, rounded/exaggerated forms, saturated theme-aware color, smooth modeled
 gradients, glossy highlights, restrained star glints, and one consistent top-left light.
 Derive the visual world, shapes, materials, details, and palette independently from each
-game's concept and Design DNA. Inspect matching `examples-games/` previews by default. A matching
-reference is the primary context for the whole game — theme, character, symbol cast, palette
-family, board: stay close to it and redraw it, rather than copying it or drifting into an
-unrelated game (the closeness contract in `.claude/docs/game-concept-examples.md`).
+game's concept and Design DNA. Inspect matching `examples-games/` previews by default. When a
+reference matches the request, recreate what it shows — theme, character, symbol cast, palette,
+board and composition are matched rather than reinterpreted, and only the title/wordmark/logo, the
+reference's own pixels and its paytable numbers stay out
+(`.claude/docs/game-concept-examples.md` → "How close to the reference — match it").
 Read `.claude/docs/visual-context.md`
 and `.claude/docs/game-concept-examples.md`. Photorealistic/product-render assets, flat vector clipart, and emoji/sticker
 styling are out of scope.

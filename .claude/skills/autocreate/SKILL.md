@@ -16,11 +16,11 @@ the concept into the art direction, asset manifest and prompts. Classic unspecif
 use 3×3; store gameplay placement is flexible and object-led games need no invented character.
 The named requests Book of Ra, Joker, Joker Jewels, Shining Crown, Zeus Game, and Plinko must use
 the exact preview mapping in that document; Joker Jewels resolves to every file in
-`examples-games/joker-jewels/` and to a 5×3 board, not to the plain Joker row's 3×3. Follow that
-document's closeness contract: the reference is the primary context for the theme, character,
-symbol cast, palette family and board — carry all of it over and redraw it, rather than drifting
-into an unrelated game or copying the original. Never add a character to Shining Crown or
-Plinko.
+`examples-games/joker-jewels/` and to a 5×3 board, not to the plain Joker row's 3×3. Recreate what
+the preview shows — theme, character, symbol cast, palette, board and composition are matched, not
+reinterpreted, and Variety Dimensions are not scrolled. Only the title/wordmark/logo, the
+reference's own pixels and its paytable numbers stay out. Never add a character to Shining Crown
+or Plinko.
 
 Build a complete production-ready gambling game. Do not ask the user questions: derive reasonable choices from the concept and record them.
 
@@ -76,9 +76,10 @@ The concept must include:
 - Context-derived Design DNA and layout archetype L1–L6.
 - For a named preview-mapped request, the mandatory local preview path, traits borrowed, traits
   changed, `lead_kind`, and the topology decision. Do not proceed to asset generation until this
-  reference record is explicit, and the theme, symbol cast, palette family and topology in the
-  concept must be recognisably the reference's (the closeness contract in
-  `.claude/docs/game-concept-examples.md`). On `--from-concept`, a saved concept that names a mapped family
+  reference record is explicit, and the concept's theme, character, symbol cast, palette, board
+  and composition must be the reference's, described file by file at full size
+  (`.claude/docs/game-concept-examples.md` → "How close to the reference — match it").
+  Variety Dimensions are not scrolled for a mapped request. On `--from-concept`, a saved concept that names a mapped family
   (for example Joker Jewels) without that record must have it added from
   `.claude/docs/game-concept-examples.md` before Phase 3, leaving the concept's other decisions
   untouched.

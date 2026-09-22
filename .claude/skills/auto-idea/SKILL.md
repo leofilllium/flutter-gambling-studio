@@ -16,11 +16,11 @@ the concept into the art direction, asset manifest and prompts. Classic unspecif
 use 3×3; store gameplay placement is flexible and object-led games need no invented character.
 The named requests Book of Ra, Joker, Joker Jewels, Shining Crown, Zeus Game, and Plinko must use
 the exact preview mapping in that document; Joker Jewels resolves to every file in
-`examples-games/joker-jewels/` and to a 5×3 board, not to the plain Joker row's 3×3. Follow that
-document's closeness contract: the reference is the primary context for the theme, character,
-symbol cast, palette family and board — carry all of it over and redraw it, rather than drifting
-into an unrelated game or copying the original. Never add a character to Shining Crown or
-Plinko.
+`examples-games/joker-jewels/` and to a 5×3 board, not to the plain Joker row's 3×3. Recreate what
+the preview shows — theme, character, symbol cast, palette, board and composition are matched, not
+reinterpreted, and Variety Dimensions are not scrolled. Only the title/wordmark/logo, the
+reference's own pixels and its paytable numbers stay out. Never add a character to Shining Crown
+or Plinko.
 
 Don't ask the user questions! Create `design/gdd/game-concept.md` completely autonomously.
 
@@ -31,7 +31,8 @@ Don't ask the user questions! Create `design/gdd/game-concept.md` completely aut
 > **ANTI-SLOP**: Read `.claude/rules/anti-slop-design.md` (principle + Craft Fundamentals)
 > `.claude/docs/mobile-first-contract.md`, and `.claude/docs/layout-archetypes.md` before generation.
 > The concept MUST include a unique visual identity (Design DNA) and the selected Layout
-> Archetype. “Gambling” ≠ “dark neon and gold”: bingo can be warm and papery,
+> Archetype. For a mapped named request the Design DNA and layout are the reference's, recorded
+> from it rather than invented — matching it is the goal, not a slop risk. “Gambling” ≠ “dark neon and gold”: bingo can be warm and papery,
 > gashapon can be pastel, while a roguelike can use strict typography. Vary both style and composition.
 > Every concept starts from touch-first phone UI/UX and includes intentional full-viewport
 > landscape, tablet, desktop, and Web behavior. Never create a capped phone wrapper or fake frame.
@@ -167,6 +168,12 @@ the core must be a wager on a random outcome.
 
 ## Variety Dimensions - why the same archetype ≠ the same game
 
+> **Not for a mapped named request.** When the request maps to a local preview
+> (`.claude/docs/game-concept-examples.md`), skip this whole section: the setting, mood, palette,
+> brightness, layout archetype and art treatment are all read off the reference and matched.
+> Scrolling these axes is exactly the drift that section forbids. Variety Dimensions exist for
+> concepts the studio invents on its own.
+
 The archetype sets the MECHANICS. To make two games of the same archetype look and feel different,
 **scroll these axes and select values ​​that are different from the last game**. Record your choice in the concept.
 
@@ -208,6 +215,9 @@ The archetype sets the MECHANICS. To make two games of the same archetype look a
    `.claude/docs/gambling-categories.md`. This is the first thing that will be included in the concept.
 4. **Scroll Variety Dimensions**: setting / mood / palette / brightness /
    Layout Archetype (L1–L6) / art style - unlike the previous game.
+   **Skip this step entirely for a mapped named request** — take the setting, mood, palette,
+   brightness, layout and art treatment from the reference instead, and record where each came
+   from.
 5. Create a detailed GDD in `design/gdd/game-concept.md`.
 
 ## Required sections of GDD

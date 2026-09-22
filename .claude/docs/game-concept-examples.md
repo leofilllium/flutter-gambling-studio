@@ -33,41 +33,49 @@ costume, three-point belled cap, painted face and juggling gesture. Do not repro
 reference paytable — those figures are another product's currency and payouts, not this game's M1
 model.
 
-## How close to the reference — the closeness contract
+## How close to the reference — match it
 
-A named reference is not a mood board glanced at once and then left behind. It is the **primary
-context for the whole game**: the theme, the character, the cast of symbols, the board, the
-palette family, the mood, the feel of a round. Read it as a large context, not a footnote.
+When a request maps to a reference, **recreate what the reference shows.** Not a reinterpretation,
+not an homage, not "inspired by": put the generated game beside the reference and they should read
+as the same game. Match all of it, as closely as the generator can get —
 
-Drifting into an unrelated theme, symbol set or palette fails the request just as badly as
-copying does — and it is the more common failure, because "make it original" is easy to
-overshoot.
+- the theme and setting;
+- the character: costume colours and pattern, cap or headwear shape and bell count, face paint,
+  build, pose and expression;
+- the full cast of symbols, object for object, with their materials and colours;
+- the palette, the light and the background treatment;
+- the board topology and the frame around it;
+- the composition — what sits where on the menu and on the game screen;
+- the UI mood: button shapes, panel materials, reel-strip colour, frame ornament;
+- the rhythm of a round: how the reveal paces and where the anticipation sits.
 
-**The test.** Put the generated game beside the reference. A stranger should say *"these two are
-the same kind of game"*, and never *"that's the same picture"*.
+**Do not introduce variation for its own sake.** No "make it your own", no fresh take, no
+re-theming, no substituted symbols, no palette shift, no inverted brightness. Wherever a choice is
+open, take the one that looks more like the reference. A result that reads as a different game is
+wrong, and it is regenerated toward the reference rather than away from it.
 
-| Carry over — this is what the request means | Make your own — this is where originality lives |
-|---|---|
-| The theme and world: carnival jester hall, Egyptian dig, Olympus, fairground drop | The character's own face, age, build, proportions and expression |
-| The visual lead and its role — which character, object or mechanic fronts the game | Costume detailing, ornament, accessories, the shape of the headwear |
-| The cast of symbols: the same kinds of objects (bells, gems, lute, scarabs, bolts, balls) | How each symbol is actually drawn — silhouette, facets, material, edging |
-| The palette family and lighting mood: purple carnival, sunset sand, storm blue-and-gold | The exact hues, the accent colour and the value structure inside that family |
-| The board topology and the rhythm of a round (3×3 / 5×3 / 7×6, reveal pacing) | Every number: weights, payouts, lines, bonus rules — those come from the model |
-| The composition language: character-left/field-right, full-bleed field, and so on | The layout archetype's execution, HUD shape, control deck, motion and VFX |
-| The energy and mood: festive, adventurous, thunderous, arcade | The game's name, wordmark, copy, icon, store scene and meta systems |
+**Describe, do not gesture.** Inspect every reference file at full size before writing the concept
+and again before every generation prompt. Write down what is actually there — the exact costume
+pattern, the points on the cap, the symbol list, the reel colour, the frame ornament, the light
+direction — and put that description into the prompt. Vague prompts are where drift comes from.
 
-**Never reproduce** the reference's exact face or costume, its wordmark, logo, UI chrome,
-operator branding, paytable numbers, or any of its pixels, and never trace it. Those belong to
-another product. Everything in the left column does not — it is the game family the user asked
-for, and it must survive into the concept, the asset manifest, the prompts and the build.
+### The three things that are not copied
 
-**Original is not a licence to drift.** It does not mean a different theme, a different symbol
-set, a different palette family, a different topology or a different character archetype. If the
-concept has wandered far enough that the reference is no longer recognisable in it, the concept
-is wrong — move back toward the reference, not further away.
+1. **The title, wordmark, logo and operator branding.** Those are the trademarks of a published
+   commercial product, and the generated game ships under its own name and its own logo.
+   Everything the logo sits on top of is matched.
+2. **The reference's pixels.** Generate the assets at production resolution from a written
+   description; never crop, trace or upscale the preview. It is a few hundred pixels wide and
+   falls apart at 1024 — lifting it would look worse than matching it properly.
+3. **The paytable numbers.** A release is blocked without a green `tools/simulate_math.py` run,
+   and figures read off a screenshot cannot be verified. Build the model with the same *shape* —
+   the same symbol ranks, the same kind of bonus, the same volatility feel — and let
+   `game-mathematician` land it inside the category's RTP window.
 
-For Book of Ra, Joker, Joker Jewels, and Zeus Game the character is the lead: keep the archetype,
-role and world exactly, and redraw the person. For Shining Crown and Plinko the absence of a main
+Everything outside those three is matched, not adapted.
+
+For Book of Ra, Joker, Joker Jewels, and Zeus Game the character is the lead: rebuild that
+character as the reference draws it. For Shining Crown and Plinko the absence of a main
 character is itself part of the reference contract: do not add a host, mascot, hand, player
 silhouette, deity or other living lead.
 
@@ -75,34 +83,34 @@ silhouette, deity or other living lead.
 
 **Prism Drop:** Stake virtual chips, release a luminous ball into a cosmic peg field, and reveal
 the bucket's configured multiplier. The core feeling is the last deflection before landing.
-Use the Plinko preview's diagonal action, oversized glossy balls, luminous trails and saturated
-separation. Rebuild the actual board from the M6 config; the preview does not establish bucket
-count, probabilities, or multipliers. M6 RTP target: 95–97%, verified by simulation.
+Match the Plinko preview's diagonal action, oversized glossy balls, luminous trails and saturated
+separation. Build the visible board to look like the preview's, and take its bucket count,
+probabilities and multipliers from the M6 config — those are the numbers, not the look. M6 RTP target: 95–97%, verified by simulation.
 
 **Sun Archive:** A 5×3 Egyptian-adventure slot centered on a glowing book reveal and an explorer
 who discovers the configured winning state. Borrow the preview's explorer-left/field-right staging,
-sunset temple depth, turquoise-and-gold relic family, and dense archaeological foreground. Create
-an original explorer design and original symbols rather than duplicating the reference character.
-The visible 5×3 topology is intentional for this named family and must match the M1 config, runtime,
+sunset temple depth, turquoise-and-gold relic family, and dense archaeological foreground. Rebuild
+the explorer and the symbol cast as the preview draws them, object for object. The visible 5×3
+topology is intentional for this named family and must match the M1 config, runtime,
 and store captures. M1 RTP target: 95–97%.
 
 **Crown Cascade:** A classic 3×3 virtual-chip slot whose three crowned symbols illuminate a real
-winning line. Borrow royal tactility, jewel silhouettes, dramatic lighting and the coin spill
-from the crown preview. The preview's single visible strip is not the new game's row count.
-Create 3 visible rows, model-supported payout coins, and original frame ornament. M1 RTP target:
+winning line. Match the crown preview's royal tactility, jewel silhouettes, dramatic lighting,
+frame ornament and coin spill. The preview's single visible strip is not the new game's row
+count: build 3 visible rows with model-supported payout coins. M1 RTP target:
 95–97%; declare paylines, weights and payouts before generation.
 
 **Joker's Dare:** A 3×3 slot with five configured paylines and a grinning theatrical trickster.
 Bells, cherries and gems read at phone size; supported x5/x10 medallions can punctuate rewards.
-Borrow `joker2.png`'s character-left/field-right composition and bold gesture, but sharpen the
-Joker's mischievous expression rather than producing an elegant host. Derive every depicted
+Match `joker2.png`'s character-left/field-right composition, its Joker and its bold gesture; keep
+the mischievous expression rather than drifting toward an elegant host. Derive every depicted
 winning line from the actual resolver; five lines are a concept choice that must enter M1.
 
 **Harlequin Revel:** A 5×3 jewel slot with fixed paylines paying left to right and a crown bonus
 symbol that pays from any position. A striped-costume jester is the visual lead and appears in the
-menu, the idle board and the win celebration. Borrow the references' carnival purple staging,
-bunting and confetti, glossy faceted gem silhouettes, and the jester's belled-cap swagger, while
-giving the character an original face, costume detailing, proportions and palette accent. The 5×3
+menu, the idle board and the win celebration. Match the references' carnival purple staging,
+bunting and confetti, glossy faceted gem silhouettes, and the jester's striped costume, belled cap
+and painted face as the character files draw them. The 5×3
 topology is intentional for this named family and must match the M1 config, runtime and store
 captures. A low fixed line count (the reference family uses five) is a deliberate classic-feel
 choice below archetype B's usual 10–25; record the chosen count in the concept and the JSON config.
@@ -110,11 +118,10 @@ The reference establishes no weights, payouts or bonus rules. M1 RTP target: 95�
 20–35%.
 
 **Thunder Reels:** A 7×6 Zeus scatter-pays slot built around a lightning reveal of a configured
-winning cluster. Zeus is an in-game character and visual lead, with an original
+winning cluster. Zeus is an in-game character and visual lead, with the preview's
 eagle/bolt/laurel asset family.
-Borrow the local preview's character-left/field-right energy, cloud-bright Olympus depth, electric
-blue/gold separation, and tumbling thematic objects while changing Zeus's face, costume details,
-pose, and supporting ornament. The preview's 7×6 topology is intentional for this named family and
+Match the local preview's character-left/field-right energy, cloud-bright Olympus depth, electric
+blue/gold separation, tumbling thematic objects, and Zeus himself. The preview's 7×6 topology is intentional for this named family and
 must match the M1 config, runtime, and store captures; the reference does not establish symbol
 weights, cluster thresholds, or payouts. Lightning effects never manufacture near misses or change
 resolved results.
@@ -125,6 +132,8 @@ it the visual lead. Configure the step probabilities and cash-out multipliers in
 use x5/x10 tokens only when those exact steps are supported. House edge and maximum multiplier
 are disclosed; target RTP is 96–99%.
 
-For every seed, finish the normal concept: complete loop, production plan, mobile/expanded layout,
-asset manifest, meta systems, required screens, responsible-play copy and a verifiable JSON model.
-The preview alone never proves playable UI, balance, or a completed game.
+Every seed's *look* comes from its preview and every seed's *numbers* come from its model — those
+are the only two sources. Finish the normal concept around them: complete loop, production plan,
+mobile/expanded layout, asset manifest, meta systems, required screens, responsible-play copy and
+a verifiable JSON model. The preview alone never proves playable UI, balance, or a completed
+game.

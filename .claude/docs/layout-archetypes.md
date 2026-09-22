@@ -16,8 +16,10 @@ Game = Layout Archetype (HOW it is composed) × Design DNA (HOW it looks) × Arc
 ```
 
 In `/autocreate` the layout archetype is chosen pseudo-randomly (like the structure) and
-recorded in `design/art-direction.md`. `ui-programmer` reads it and composes the screens
-accordingly.
+recorded in `design/art-direction.md` — except for a request mapped to a local preview
+(`.claude/docs/game-concept-examples.md`), where the archetype is the one the reference uses.
+Read the composition off the reference and record which archetype it is; do not roll for it.
+`ui-programmer` reads the recorded archetype and composes the screens accordingly.
 
 Every archetype is designed **mobile-first** under `.claude/docs/mobile-first-contract.md`.
 Its phone composition defines the hierarchy and touch ergonomics; medium and expanded layouts

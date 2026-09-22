@@ -85,14 +85,15 @@ The criteria (details in `art-director.md`):
 | AR3 | One level of detail | AR8 | The background yields focus to the field |
 | AR4 | The Design DNA's palette | AR9 | The subject is identifiable |
 | AR5 | Readable at 64 px | AR10 | No AI artefacts |
-| AR11 | Reference fidelity — the set still reads as the requested game family | | |
+| AR11 | Reference match — the set looks like the reference's | | |
 
 **AR11** applies whenever the request mapped to a local preview
-(`.claude/docs/game-concept-examples.md`). Open the reference beside the contact sheet and check
-the closeness contract in both directions: the theme, the cast of objects and the palette family
-carried over — and no traced face, costume, wordmark or logo. A beautiful, cohesive set that has
-drifted into a different world than the one the user asked for fails AR11 and is regenerated
-toward the reference, not further from it.
+(`.claude/docs/game-concept-examples.md`). Open the reference beside the contact sheet and compare
+object for object: the same subjects, the same materials and colours, the same light, the same
+character. Anything re-themed, substituted, recoloured or "improved" fails AR11 and is regenerated
+toward the reference. Only the title/wordmark/logo, the reference's own pixels and its paytable
+numbers are out of scope — a beautiful, cohesive set that drifted into a different world is still
+a fail.
 The technical alpha check for AR6 (PNG, complementing the visual one) — `tools/cutout.py --check`
 measures exactly the defects the eye misses on a 1024 px preview:
 

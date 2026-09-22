@@ -43,6 +43,9 @@ like "a game from our studio"**.
   style among many, not the standard. A cosy game is warm and light. Zen is minimal. A fairy
   tale is papery. Retro is pixel. Actively VARY the direction between games.
 - The transferability test: if this UI could be moved to another game unchanged, the DNA failed.
+  It does not apply to a request mapped to a local reference — there the DNA is the reference's,
+  and the test is whether the two read as the same game
+  (`.claude/docs/game-concept-examples.md`).
 - Account for the **Layout Archetype** (`design/art-direction.md`) — the DNA dresses the chosen
   composition.
 

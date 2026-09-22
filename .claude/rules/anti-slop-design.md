@@ -365,7 +365,9 @@ Instead of checking for specific widgets or effects, validate that:
 - [ ] Loading states have personality (not generic spinner)
 - [ ] Empty states guide the player (not blank)
 - [ ] Effects serve a purpose (each glow/particle/blur communicates something)
-- [ ] The design wouldn't make sense in a DIFFERENT game (it's specific to this one)
+- [ ] The design wouldn't make sense in a DIFFERENT game (it's specific to this one) —
+      for a request mapped to a local reference, the test is instead "does this match the
+      reference", and matching it is a PASS, not slop
 - [ ] Animation timings are centralized (not hardcoded in each widget)
 - [ ] No default Material/Cupertino widgets used without intentional customization
 - [ ] The overall visual identity is CONSISTENT across all screens

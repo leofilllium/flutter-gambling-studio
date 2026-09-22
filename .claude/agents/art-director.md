@@ -66,7 +66,7 @@ Look at the contact sheets and every background WITH YOUR EYES (vision), and ass
 | AR8 | The background does not fight the field | The background is brighter or higher-contrast than the game elements and steals focus |
 | AR9 | It matches the subject | A "cherry" that looks like a tomato; a symbol that cannot be identified |
 | AR10 | No AI artefacts | Extra limbs, letter-mush, deformed geometry |
-| AR11 | Reference fidelity (mapped requests only) | The set drifted into a different world, cast of objects or palette family than the request's preview — or, the other way, traced its face/costume/wordmark. See the closeness contract in `.claude/docs/game-concept-examples.md` |
+| AR11 | Reference match (mapped requests only) | The set was re-themed, substituted, recoloured or "improved" away from the request's preview instead of matching its subjects, materials, colours, light and character — or it traced the preview's pixels or lifted its wordmark. See "How close to the reference — match it" in `.claude/docs/game-concept-examples.md` |
 
 ### Step 4 — Verdict and regeneration
 
