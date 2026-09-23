@@ -51,6 +51,7 @@ const BUDGET = Number(arg('budget', '150')) * 1000;
 const QUICK = arg('quick', false) === true;
 const SOAK = Number(arg('soak', '0')) || 0;   // N stress taps for leak detection (0 = off)
 const SIZE = String(arg('size', '390x844'));
+const SETTLE = Math.max(500, Number(arg('settle', '2500')) || 2500);
 const [VW, VH] = SIZE.split('x').map(Number);
 // Capture at real device resolution. At dpr 1 a 390x844 viewport yields a 390px-wide
 // PNG, which the store compositor then has to upscale ~3x. Default 2 (780x1688) is
@@ -110,9 +111,19 @@ const userDir = join(tmpdir(), `webverify-${process.pid}`);
 let chrome;
 function launchChrome() {
   const flags = [
-    '--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
-    '--use-gl=swiftshader', '--hide-scrollbars', '--no-first-run', '--no-default-browser-check',
-    '--disable-extensions', '--disable-background-networking',
+    '--headless=new', '--no-sandbox', '--disable-dev-shm-usage',
+    // CanvasKit needs a WebGL context for raster Image.asset textures. Keep
+    // SwiftShader available in CI/headless Chrome but explicitly allow the
+    // GPU path; --disable-gpu forces CPU-only CanvasKit where PNG layers can
+    // disappear while text and vector primitives still render.
+    '--enable-gpu', '--ignore-gpu-blocklist', '--use-gl=angle', '--use-angle=swiftshader',
+    '--hide-scrollbars', '--no-first-run', '--no-default-browser-check',
+    // Keep ordinary network loading enabled: Flutter's HTML renderer decodes
+    // Image.asset resources through the page's asset pipeline. Chromium's
+    // --disable-background-networking flag can silently suppress those image
+    // loads in headless runs even when the initial document and AssetManifest
+    // are available, producing text/shapes with blank raster art.
+    '--disable-extensions',
     `--window-size=${VW},${VH}`, `--remote-debugging-port=${PORT}`,
     `--user-data-dir=${userDir}`, URL,
   ];
@@ -261,6 +272,28 @@ function findByLabel(nodes, re) {
   return nodes.find((n) => re.test(n.label));
 }
 
+function normalizedLabel(label) {
+  return String(label || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+// Flutter exposes composite semantics nodes alongside their actionable leaves.
+// Prefer exact leaf labels first; when a game uses a variant label, choose the
+// shortest matching node so a screen-sized root is not tapped at its centre.
+function findLeafByLabel(nodes, exactLabels, fallbackRe) {
+  const exact = new Set(exactLabels.map(normalizedLabel));
+  const exactMatch = nodes.find((n) => exact.has(normalizedLabel(n.label)));
+  if (exactMatch) return exactMatch;
+
+  return nodes
+    .filter((n) => fallbackRe.test(n.label))
+    .sort((a, b) => {
+      const words = (label) => normalizedLabel(label).split(' ').filter(Boolean).length;
+      const wordDelta = words(a.label) - words(b.label);
+      if (wordDelta !== 0) return wordDelta;
+      return normalizedLabel(a.label).length - normalizedLabel(b.label).length;
+    })[0];
+}
+
 // ─── the tour ──────────────────────────────────────────────────────────────
 async function main() {
   launchChrome();
@@ -304,20 +337,41 @@ async function main() {
   await sleep(3500);
   await screenshot('02-menu');
 
-  // 3. game screen — prefer a labeled Play/Start button, else thumb-zone tap
+  // 3. menu/game screen — this game has an explicit splash CTA. Flutter's
+  // semantics tree also exposes a composite root label containing all of the
+  // screen copy; never let a broad regex select that giant node (its center is
+  // not an actionable control). Prefer the shortest exact actionable leaf.
   const nodes = await readSemantics();
-  const play = findByLabel(nodes, /play|start|begin|spin|new game|continue|tap to play/i);
+  const enter = findLeafByLabel(nodes, ['enter olympus'], /^enter( olympus)?$/i);
+  if (enter) {
+    log(`🎯 found splash CTA by exact label: "${enter.label}"`);
+    await tap(enter.x, enter.y, enter.label);
+    await sleep(1200);
+  }
+  const menuNodes = await readSemantics();
+  const play = findLeafByLabel(
+    menuNodes,
+    ['play main storm', 'play', 'start', 'begin', 'new game', 'continue', 'tap to play'],
+    /play|start|begin|new game|continue|tap to play/i,
+  );
   if (play) { log(`🎯 found action by label: "${play.label}"`); await tap(play.x, play.y, play.label); }
   else { log('🎯 no labeled Play — tapping thumb zone'); await tap(VW / 2, VH * 0.82); }
-  await sleep(2500);
+  await sleep(SETTLE);
   await screenshot('03-game-idle');
 
   // 4. main action (spin/play/tap) — labeled if possible, else thumb zone again
   const nodes2 = await readSemantics();
-  const act = findByLabel(nodes2, /spin|play|tap|roll|throw|drop|launch|deal|draw|pull|bet|go|move|open/i);
+  // Prefer the exact leaf action. Flutter semantics also exposes a composite
+  // root label containing the whole HUD; a broad regex can otherwise select
+  // that root and tap its centre instead of the real SPIN control.
+  const act = findLeafByLabel(
+    nodes2,
+    ['spin', 'play', 'tap', 'roll', 'throw', 'drop', 'launch', 'deal', 'draw', 'pull', 'bet', 'go', 'move', 'open'],
+    /spin|play|tap|roll|throw|drop|launch|deal|draw|pull|bet|go|move|open/i,
+  );
   if (act) { log(`🎯 action button: "${act.label}"`); await tap(act.x, act.y, act.label); }
   else { await tap(VW / 2, VH * 0.82); }
-  await sleep(1500);
+  await sleep(SETTLE);
   await screenshot('04-game-action');
   await sleep(3000);
   await screenshot('05-game-after-action');
@@ -366,9 +420,19 @@ async function main() {
       [/profile|stats|statistics|leaderboard|records|scores/i, '08-stats'],
     ];
     for (const [re, name] of extras) {
-      const back = findByLabel(await readSemantics(), /back|close|menu|home|exit|return/i);
+      const back = findLeafByLabel(
+        await readSemantics(),
+        ['back', 'close', 'menu', 'home', 'exit', 'return'],
+        /back|close|menu|home|exit|return/i,
+      );
       if (back) { await tap(back.x, back.y, back.label); await sleep(1200); }
-      const item = findByLabel(await readSemantics(), re);
+      const extraNodes = await readSemantics();
+      // Prefer an actionable leaf over Flutter's composite screen root. The
+      // root often contains every HUD label (including "Paytable and odds")
+      // and its centre is not a tappable control.
+      const item = extraNodes
+        .filter((n) => re.test(n.label))
+        .sort((a, b) => normalizedLabel(a.label).split(' ').length - normalizedLabel(b.label).split(' ').length)[0];
       if (item) { await tap(item.x, item.y, item.label); await sleep(1500); await screenshot(name); }
     }
   }
