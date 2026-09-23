@@ -279,8 +279,8 @@ independent axes are cycled on top of it:
 
 ```
 Game = Archetype (WHAT the mechanic is)
-     × Layout Archetype L1–L6 (HOW it is composed — layout-archetypes.md)
-     × Design DNA (HOW it looks — anti-slop-design.md)
+     × Per-screen layout recipes (HOW each state is composed — layout-archetypes.md)
+     × Design Signature (HOW interaction and presentation behave — anti-slop-design.md)
 ```
 
 A pseudo-random choice that avoids repeating the previous one:

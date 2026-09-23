@@ -20,18 +20,18 @@ The player reaches a verdict in the first minute. This is the most important are
 
 - **TTP (time-to-play) ≤ 3 taps**: splash → menu → game. No mandatory tutorial walls, no
   registration, no extra intermediate screens.
-- **TTF (time-to-fun) ≤ 10 seconds**: the first game action with full feedback (sound +
-  animation + numbers changing) within the first 10 seconds after launch.
-- **Splash 1–2 s**, animated, auto-advancing. Not a static image for 5 seconds.
-- **The menu sells the game**: a centrepiece from the game's world, so it is clear WHAT the
-  game is before pressing PLAY. That centrepiece is the concept's declared visual lead — the
-  character for a character-led game, the crown/board/peg field for an object- or mechanic-led
-  one. It is centred by default, whole (a character's head and face never clipped), clear of the
-  button stack, and large enough to be the focal point: roughly a third of the viewport height.
-  Checked as V19 by `/emulator-test` and `/autocreate-finalize`; never satisfied by inventing a
-  character an object-led game does not have.
-- The first launch does not greet the player with emptiness: the starting balance/energy is
-  already credited, the first level is unlocked, the daily bonus beckons.
+- **TTF (time-to-fun) ≤ 10 seconds**: the first game action and its complete, readable state
+  feedback occur within the first 10 seconds after launch.
+- **Opening state ≤ 2 s**, auto-advancing. It may be animated or deliberately direct according to
+  the Design Signature; it must not hold the player on an inert branding image.
+- **The menu sells the game**: it implements the recorded memorable interface idea and M/O/R
+  recipe, so the player understands the world and route to play before acting. A character,
+  object, mechanic, scene, path, machine facade, shelf, or typographic/poster composition can
+  lead. Do not invent a mascot or force a centered one-third-height centerpiece. V19 checks the
+  documented attention order and intentional composition, not a universal subject placement.
+- The first launch does not greet the player with emptiness: starting resources are credited, the
+  first playable path is available, and the next optional reward/progression route is discoverable
+  without forcing a daily-bonus badge into every menu composition.
 
 ## 2. Responsiveness (response windows)
 
@@ -39,37 +39,41 @@ A professional game answers EVERY touch inside hard time windows:
 
 | Event | Window | What exactly |
 |-------|--------|--------------|
-| Tapping any button | ≤ 100 ms | A visual reaction (scale/highlight) + sound |
-| The main game action | ≤ 100 ms | The action's opening animation starts instantly |
+| Activating any control | ≤ 100 ms | Immediate visible/tactile acknowledgement from the control's documented feedback role |
+| The main game action | ≤ 100 ms | Commitment feedback starts instantly; the resolved outcome remains predetermined |
 | The round result | ≤ 2 s after the action | Instant rounds (C2/C4); reel/wheel animation up to 3 s |
-| Win feedback | immediately on the result | Numbers + particles + sound start on ONE frame |
-| Screen transition | 200–400 ms | Neither an instant teleport nor a 2-second interstitial |
+| Result feedback | immediately on the result | Field, HUD, audio/haptics, and overlays change coherently where each is applicable |
+| Ordinary screen transition | 0–400 ms | Direct/standard is valid; longer sequences are reserved for recorded dramatic states and remain skippable/reduced-motion safe |
 
 A dead touch (a tap with no reaction at all) is an automatic FAIL of the bar.
 
 ## 3. Feedback scaled to significance
 
-The strength of the feedback is proportional to the significance of the event — this is the
-"grammar" of the game's language:
+The strength of feedback is proportional to event significance, expressed through this game's
+recorded motion, sound, haptic, depth, and overlay vocabulary:
 
-- Small win / match → a light sound + a local animation.
-- Big → fanfare + particles + an accent pause.
-- Mega → a fullscreen celebration + screen shake + a rising counter.
-- Identical feedback for everything means the player stops feeling the difference — boredom.
-- Numbers NEVER jump — always an animated counter.
+- routine events usually stay local to the object or value that changed;
+- notable events may change field emphasis, cadence, or a contextual HUD region;
+- major events may take over more of the scene when interruption is justified, but full-screen
+  overlays, particles, shake, fanfares, and counters are options rather than required ingredients;
+- event tiers must be distinguishable without relying only on color, volume, or flashing.
+- Meaningful reward/risk/progression changes communicate magnitude; stable utility values may
+  update directly when animation would add delay or noise.
 
-## 4. A living board (never static)
+## 4. A responsive, stateful board
 
-At any moment SOMETHING is moving on the game screen (subtly, without distracting):
+The game must visibly respond to input and state changes. Continuous ambient motion is optional:
 
-- Idle animations on the game elements (breathing/swaying, with desynchronised phases).
-- An ambient background layer (particles/glints/parallax) — at the level of perception, not noise.
-- The main action button pulses gently, inviting a tap.
-- The test: screenshots taken 2 seconds apart MUST differ (checked by /playtest P5).
+- idle motion belongs on elements whose world/material supports it;
+- particles, glints, parallax, and pulsing controls are techniques, not baseline requirements;
+- a deliberately still setup state can improve tension, precision, readability, or battery use;
+- `/playtest` P5 verifies that an active round produces meaningful frame change. It must not fail
+  a deliberately still idle state merely because two idle screenshots match.
 
 ## 5. Audio integrity
 
-- Every significant event has a sound (tap/action/result/transition/error).
+- Significant events have an intentional audio policy: an appropriate cue, a purposeful quiet
+  beat, or silence where repetition/accessibility makes sound harmful. Do not sonify every route.
 - **SFX only by default — background music is opt-in.** A game with no BGM clears this section;
   do not raise it as a gap. See `.claude/agents/sound-designer.md` → "Music is opt-in".
 - Levels are mixed so nothing shouts (SFX ~0.9). When a game does have BGM, it sits under the
@@ -78,8 +82,7 @@ At any moment SOMETHING is moving on the game screen (subtly, without distractin
 
 ## 6. Performance as a feature
 
-- A steady 60 fps on the game screen, INCLUDING the win celebration
-  (the most common jank moment — a particle peak, a counter and sound all at once).
+- A steady 60 fps on the game screen, including the highest-cost recorded result treatment.
 - No allocations in update()/render(); particles ≤ GameConfig.maxParticles.
 - Cold web start ≤ 5 s to an interactive menu.
 - A long session (200+ actions) without heap growth — checked by the soak run.
@@ -88,7 +91,8 @@ At any moment SOMETHING is moving on the game screen (subtly, without distractin
 
 - Content: N > 1 levels/stages; 2–3 modes; progression with real unlocks.
 - The economy closes: earn → spend → receive visible value (a skin, a booster).
-- Achievements/daily bonus work and are VISIBLE from the menu (the retention surface).
+- Achievements/daily bonus work and are discoverable from the menu or its documented hub/navigation
+  model; they do not require a universal icon row.
 - All 12+ screens are complete; empty states speak in the game's voice.
 - Game over is not a dead end: instant restart + a path to the menu + a rewarded continue if one exists.
 
@@ -97,7 +101,8 @@ At any moment SOMETHING is moving on the game screen (subtly, without distractin
 - The game is designed mobile-first and passes 360×640, 360×800, 390×844 and 430×932 as its
   canonical phone baseline, then fills and adapts at 844×390, 768×1024, 1024×768 and 1440×900.
 - Every asset looks like the work of one artist (checked by /asset-review, criteria AR1–AR11).
-- The UI is not transferable to another game unchanged (the test from anti-slop-design.md).
+- The UI passes the recorded Similarity Check and remains distinctive in wireframe/grayscale;
+  changing only palette and art would not produce the same game.
 - The gameplay screen owns the viewport: the mechanic is dominant and integrated with its HUD and
   controls, never a thumbnail/window above a generic scrolling card. Core play does not require
   page scrolling; see `gameplay-screen-contract.md`.

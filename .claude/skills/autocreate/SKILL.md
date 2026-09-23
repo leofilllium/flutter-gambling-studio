@@ -1,6 +1,6 @@
 ---
 name: autocreate
-description: "Zero-to-Production factory for complete C1-C6 gambling games. Produces an English game concept and production plan, polished concept-derived 2.5D PNG assets in Codex, synthesized WAV audio, structured content/economy data, complete Flutter/Flame implementation, tests, compliance, math verification, runtime verification, and release preparation. The result is a complete publishable game, not a mini-demo."
+description: "Zero-to-Production factory for complete C1-C6 gambling games. Produces an English game concept and production plan, reference-matched or concept-derived 2D/2.5D PNG assets in Codex, synthesized WAV audio, structured content/economy data, complete Flutter/Flame implementation, tests, compliance, math verification, runtime verification, and release preparation. The result is a complete publishable game, not a mini-demo."
 argument-hint: "[--from-concept | --idea-only]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -18,8 +18,8 @@ The named requests Book of Ra, Joker, Joker Jewels, Shining Crown, Zeus Game, an
 the exact preview mapping in that document; Joker Jewels resolves to every file in
 `examples-games/joker-jewels/` and to a 5×3 board, not to the plain Joker row's 3×3. Recreate what
 the preview shows — theme, character, symbol cast, palette, board and composition are matched, not
-reinterpreted, and Variety Dimensions are not scrolled. Only the title/wordmark/logo, the
-reference's own pixels and its paytable numbers stay out. Never add a character to Shining Crown
+reinterpreted, and Variety Dimensions are not scrolled. Follow the source-quality and branding
+limits in `game-concept-examples.md`. Never add a character to Shining Crown
 or Plinko.
 
 Build a complete production-ready gambling game. Do not ask the user questions: derive reasonable choices from the concept and record them.
@@ -44,7 +44,9 @@ metadata and native branding but does not build an AAB/APK or upload keystore.
 
 Session 1 must produce:
 
-- `design/gdd/game-concept.md` with classification, production plan, Design DNA, layout direction, screen map, data flow, complete loop, and edge cases.
+- `design/gdd/game-concept.md` with classification, production plan, Asset/World Design DNA,
+  Game UI Read, Design Signature, state map, per-screen layout recipes, Similarity Check, screen
+  map, data flow, complete loop, and edge cases.
 - A Flutter project created for Web plus Android and iOS, with the mobile-first responsive target
   recorded in design artifacts.
 - `design/structure.md` and `design/art-direction.md`.
@@ -60,9 +62,15 @@ Session 1 must not write gameplay code, screens, services, stubs, or TODO implem
 
 In Codex, create PNG assets with the built-in image-generation tool. In headless Codex where that tool is unavailable, use `python3 tools/gpt_image.py` with `gpt-image-2`. A missing built-in tool is not a reason to fall back to SVG. If both GPT Image 2 transports fail technically, retry through the default Codex image-generation path with the same prompt. SVG is allowed only outside Codex, after an explicit `--svg`, or after all PNG paths fail and the user approves the fallback.
 
-The required visual profile is polished cartoon 2.5D casual-game art derived from the concept and Design DNA: clear bold silhouettes, rounded or slightly exaggerated forms, saturated theme-aware colors, smooth modeled gradients, glossy highlights, restrained star glints, and one consistent top-left light. Use matching previews as visual direction and generate original coherent assets. Photorealistic product renders, flat clipart, and emoji/sticker art are forbidden.
+Choose a coherent 2D or 2.5D finish from the concept and Design DNA. For a mapped game, the
+reference's actual linework, depth, shading, palette, lighting and texture are the style anchor;
+do not impose the studio's former glossy 2.5D default. Use the reference files as image inputs
+for assets that need their identity preserved, and compare the resulting runtime composition.
 
-Use `design/asset-manifest.md` as the budget ledger: at most 12 unique generated PNG sources plus 2 technical recovery calls. Generate only unique game silhouettes and scenes. Build UI, typography, icons, VFX, and safe variants in code or derive/reuse them locally.
+Use `design/asset-manifest.md` as the budget ledger. The 12-source default applies to original
+concepts; a mapped reference needs enough distinct sources to cover its complete visible cast.
+Record the inventory and planned call count before generation. Build UI, typography, icons, VFX,
+and safe variants in code or derive/reuse them locally.
 
 ## Phase 1 — concept
 
@@ -73,7 +81,9 @@ The concept must include:
 - Category C1–C6, math model M1–M6, archetype, compliance obligations, and English game language.
 - A reference bar naming 2–3 successful games in the category, the specific feel/timing lesson from each, and the new game's differentiating hook. Never copy their content or art. This bar is separate from a mapped local preview: a named request's preview is close context to stay with, not a competitor to differentiate from.
 - A complete production plan with content volume, 2–3 modes, progression, virtual economy, achievements/daily loop, service abstractions, telemetry, and compliance.
-- Context-derived Design DNA and layout archetype L1–L6.
+- A context-derived Game UI Read, multidimensional Design Signature, per-screen layout recipes,
+  explicit `lead_kind` plus `menu_role: dominant | supporting | absent`, and a recorded
+  Similarity Check.
 - For a named preview-mapped request, the mandatory local preview path, traits borrowed, traits
   changed, `lead_kind`, and the topology decision. Do not proceed to asset generation until this
   reference record is explicit, and the concept's theme, character, symbol cast, palette, board
@@ -122,13 +132,23 @@ flutter:
 
 Do not hardcode studio-default fonts. Select display and body fonts from the game's Design DNA and use `google_fonts`.
 
-Read `.claude/docs/directory-structure.md`, choose one V1–V5 structure, create the directories, and write the exact path map to `design/structure.md`. Read `.claude/docs/mobile-first-contract.md`, `.claude/docs/layout-archetypes.md` and `.claude/docs/gameplay-screen-contract.md`, choose L1–L6 from the concept, and write screen-specific composition rules to `design/art-direction.md`. The art-direction file must specify the mobile-first composition at 360×640, 360×800, 390×844 and 430×932; the responsive reflow at 844×390, 768×1024, 1024×768 and 1440×900; how the live field fills each viewport; where the integrated HUD/control deck sits; and how the phone 55% area / normal 88% width thresholds are met. It must not plan a nested mini-game, page-scrolling core loop, capped phone wrapper, or fake device frame.
+Read `.claude/docs/directory-structure.md`, choose one V1–V5 structure, create the directories, and write the exact path map to `design/structure.md`. Read `.claude/rules/anti-slop-design.md`, `.claude/docs/mobile-first-contract.md`, `.claude/docs/layout-archetypes.md` and `.claude/docs/gameplay-screen-contract.md`; then write the Game UI Read, Design Signature, state composition map, per-screen layout recipes, and Similarity Check to `design/art-direction.md`. The art-direction file must specify the mobile-first composition at 360×640, 360×800, 390×844 and 430×932; the responsive reflow at 844×390, 768×1024, 1024×768 and 1440×900; how the live field fills each viewport; where its integrated HUD/controls sit; and how the phone 55% area / normal 88% width thresholds are met. It must not plan a nested mini-game, page-scrolling core loop, capped phone wrapper, or fake device frame.
 
 ## Phase 3 — asset generation and validation
 
 Detect the environment without asking the user. Write `design/asset-format.md`, `design/asset-prompts.md`, and `design/asset-manifest.md` before generating assets.
 
 Each manifest row must include a logical ID, output path, dimensions, class (`generate`, `derive`, `code`, or `reuse`), source ID, generator, prompt/style anchor, attempt count, SHA-256, alpha requirement, and validation verdict.
+
+For a mapped game, first write a reference ledger in `design/art-direction.md`: source path and
+role for every mapped image, character traits, complete symbol cast, background, board geometry,
+palette, 2D/2.5D finish and screen composition. Add source image paths and any direct-reuse crop
+to each relevant asset-manifest row. Use the built-in image edit path with the source images, or
+`python3 tools/gpt_image.py edit --image <source> --fidelity high` in headless Codex. Supply the
+character image to character generation, gameplay image to symbols and board materials, and
+background/key art to scene generation. A text-only `generate` call is appropriate only when no
+usable visual source exists for that asset. Respect the transport's image/byte limits by making
+separate focused calls; do not silently omit a required source file.
 
 In PNG mode:
 
@@ -138,6 +158,9 @@ In PNG mode:
 - Use one game background by default; derive menu variants locally unless a genuinely different world/composition is required.
 - Build ordinary controls, panels, icons, typography, shadows, glows, and VFX in code.
 - Remove backgrounds only with `python3 tools/cutout.py`; never use fuzz-based global color transparency.
+- Before Phase 3.6, compare the source with the generated asset set and documented board/layout
+  plan; correct mismatched character, symbol, background, palette and finish. After implementation,
+  compare a real phone gameplay screenshot beside the source for board and composition fidelity.
 
 ```bash
 python3 tools/cutout.py --dir assets/images/sprites --check
@@ -195,7 +218,7 @@ Parse every JSON file before exit. Do not duplicate these values as inline const
 
 Write `production/session-state/autocreate-handoff-1.md` with:
 
-- Timestamp, game name, category, archetype, math model, package ID, structure variant, layout archetype, audio mood, and game language.
+- Timestamp, game name, category, archetype, math model, package ID, structure variant, Design Signature, per-screen recipe codes, audio mood, and game language.
 - Links to the concept, production plan, structure, art direction, asset format/prompts/manifest/review, balance configs, and content data.
 - Counts and paths for generated/derived assets, WAV files, levels/stages/banners/boards, economy entries, and modes.
 - A checklist confirming that Session 1 is complete and that gameplay implementation has not started.

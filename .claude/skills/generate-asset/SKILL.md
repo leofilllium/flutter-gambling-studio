@@ -71,11 +71,11 @@ light areas. For `background` and full-screen scenes, do not remove the backgrou
 1. Establish the **Design DNA / palette** (if it was not passed as an argument, read it from
    `design/gdd/game-concept.md`; if there is no GDD, ask for the theme/palette). The world,
    shapes, materials, details and colours all derive from the DNA, **not from a casino/neon
-   default**; the rendering finish is always polished cartoon 2.5D.
+   default**; the rendering finish may be polished 2D or 2.5D.
 2. Choose the asset type (the look comes from the Design DNA, not from casino/neon):
    - `symbol` / `sprite`: a 64x64 or 96x96 game element (a reel symbol, card, chip, ball, mine,
-     capsule). The render style is cartoon volumetric 2.5D: a rounded readable silhouette,
-     smooth gradients, saturated colour, glossy highlights. Crisp on a phone.
+     capsule). Match the source's 2D linework or 2.5D modeling, silhouette, shading and colour.
+     Keep it crisp on a phone.
    - `ui`: buttons / panels / frames / icons. The shape comes from the DNA's shape language (a
      rounded rectangle is fine). Effects (`<feDropShadow>` / glow) ONLY if the DNA has them;
      a flat/minimal style has none at all.
@@ -87,13 +87,11 @@ light areas. For `background` and full-screen scenes, do not remove the backgrou
 > **UNIFIED SVG STYLE CONSTRAINTS (MANDATORY)**:
 > Every SVG asset must be perfectly consistent with the others.
 > - **Style from the DNA**: the world, shapes, materials, palette and brightness come from the
->   Design DNA; the rendering finish is a single polished cartoon 2.5D.
-> - **Unified `<defs>`**: use the same structure of gradients and effects across every file.
-> - **Lighting**: fix the lighting angle (45 degrees from the upper left, say) and stick to it strictly.
-> - **Shadows & strokes**: use the same stroke-width and IDENTICAL shadow parameters
->   (`<feDropShadow dx="0" dy="4" stdDeviation="4">`) across every file.
-> - **Mix & match**: mixing cartoon 2.5D with flat clipart, emoji/sticker or photorealism inside
->   one set is FORBIDDEN.
+>   Design DNA or mapped reference; use one consistent 2D or 2.5D finish for the set.
+> - **Unified `<defs>`**: share palette, gradients and effects where the chosen style uses them.
+> - **Lighting**: match the source's direction and depth; flat 2D may need no modeled key light.
+> - **Shadows & strokes**: use consistent stroke and shadow rules that fit the chosen style.
+> - **Mix & match**: inconsistent rendering treatments inside one set are forbidden.
 > - **Icons**: one style (all outline OR all filled) and one stroke width across the whole set.
 
 3. Save to `assets/images/sprites/` or `assets/images/ui/`. If the folder is new, be sure to add

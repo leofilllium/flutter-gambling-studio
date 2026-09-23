@@ -41,7 +41,7 @@ project to `dart analyze` 0 errors + `flutter test` green. In this session:
 2. ✅ Validates that Session 2's artifacts exist (`pubspec.yaml`, `lib/main.dart`,
    `dart analyze` still 0 errors)
 3. ✅ Reads `.claude/docs/mobile-first-contract.md` and
-   `.claude/docs/gameplay-screen-contract.md` before runtime capture and treats every V13–V20
+   `.claude/docs/gameplay-screen-contract.md` before runtime capture and treats every V13–V21
    defect as a HIGH release blocker
 4. ✅ Runs Phases 10.5 → 11 → 11.5 → 12 in that order
 5. ✅ Returns the final report to the parent session (or prints it for the user)
@@ -197,14 +197,17 @@ kill "$(cat .claude/runtime-logs/flutter.pid 2>/dev/null)" 2>/dev/null || true
 ```
 
 Then:
-- **Visual analysis** of each `$SHOT_DIR/*.png` through Read (vision) against the V1–V20 checklist,
+- **Visual analysis** of each `$SHOT_DIR/*.png` through Read (vision) against the V1–V21 checklist,
   `.claude/docs/mobile-first-contract.md`, and `.claude/docs/gameplay-screen-contract.md`.
+  For a named `examples-games/` game, compare the mapped source files beside the menu and
+  idle/active gameplay captures. Record wrong character, symbol, background, palette, topology,
+  finish or composition as HIGH V21 and route the fix to art or UI before a PASS verdict.
   Inspect the required phone matrix at 360×640, 360×800, 390×844 and 430×932 and the expanded
   matrix at 844×390, 768×1024, 1024×768 and 1440×900, with idle and active gameplay at 390×844
   and 1440×900. Confirm the product fills each viewport without a framed phone canvas.
 - **Error parsing**: inspect every `manifest.json` and `webconsole.log` under `$SHOT_DIR`,
   and `.claude/runtime-logs/flutter-run.log` (EXCEPTION CAUGHT, RenderFlex overflowed, Unable to load asset).
-- **Asset distortion (V18)**, **the menu lead (V19)** and **gameplay-field centering (V20)**: run
+- **Asset distortion (V18)**, **menu composition/role (V19)** and **gameplay-field centering (V20)**: run
   steps 10.5.2d, 10.5.2e and 10.5.2f below. A screenshot that "has the sprite in it" is not proof
   the sprite kept its shape, a menu that renders is not proof it shows the game, and a field that
   is on-screen is not proof it is centered.
@@ -299,10 +302,10 @@ the static finding.
 
 ### 10.5.2e — main-menu lead audit (V19) [~20 s]
 
-`quality-bar.md` §1: the menu has to sell the game — a centrepiece from the game's world, so the
-player knows WHAT this is before pressing PLAY. A character-led game whose menu is a title, three
-buttons and a gradient has already failed that, and every other gate passes it because the route
-exists and renders.
+`quality-bar.md` §1: the menu must implement the memorable idea and M/O/R recipe recorded in
+`design/art-direction.md`. The storefront lead does not automatically become a runtime-menu
+centrepiece: the design docs record `menu_role: dominant | supporting | absent` separately from
+`lead_kind`.
 
 ```bash
 python3 tools/check_menu_lead.py \
@@ -311,37 +314,35 @@ python3 tools/check_menu_lead.py \
 MENU_LEAD_EXIT=$?   # 0 = no HIGH finding, 1 = at least one HIGH, 2 = bad invocation
 ```
 
-The script reads `lead_kind` and the lead asset out of `design/gdd/game-concept.md` /
-`design/art-direction.md` / `design/asset-manifest.md` and checks that the main-menu source (all
-five structure variants keep it named `main_menu.dart`) actually draws it. If the concept never
-recorded the lead, it says so as a MEDIUM instead of guessing — read the concept and re-run with
-`--lead-kind` / `--lead-asset`.
+The script reads `lead_kind`, `menu_role`, and the lead asset out of
+`design/gdd/game-concept.md` / `design/art-direction.md` / `design/asset-manifest.md`. For a
+dominant or supporting character role, it checks that the main-menu source actually draws the
+asset. If the concept never recorded the role, it says so as a MEDIUM instead of guessing — read
+the concept and re-run with `--lead-kind`, `--menu-role`, and `--lead-asset` as needed.
 
 Then judge `02-menu.png` at 390×844 and 1440×900, which is the half the script cannot do:
 
-- the lead is visible on the first viewport, with no scrolling;
-- nothing important is clipped — for a character, the whole head and face are inside the frame;
-- at most about a quarter of its silhouette is behind buttons, the logo or an overlay;
-- it is the focal point: roughly a third of the viewport height, or a fifth of the menu area, at
-  minimum — not an icon beside the title;
-- **centred by default**, its horizontal centre inside the middle 60% of the width. Off-centre is
-  fine when `design/art-direction.md`'s layout archetype calls for it (L3 floating corners, L5
-  split panel) and the lead is still whole and dominant;
-- the expanded viewport keeps it proportionate rather than a phone-sized cameo in a wide menu.
+- the documented M/O/R recipe is recognizable and its attention order is intentional;
+- a dominant or supporting lead is visible on the first viewport and important features are not
+  accidentally clipped or buried by controls;
+- a dominant lead actually leads; a supporting lead supports; an absent lead is not reintroduced
+  just to satisfy a generic menu pattern;
+- its alignment and crop follow the recorded recipe instead of an undocumented centering default;
+- the expanded viewport preserves that relationship rather than turning the composition into a
+  phone-sized island or stretching it to fill space.
 
-A confirmed failure is **V19, HIGH** and enters the 10.5.3 loop: compose the lead into the menu,
-move it clear of the button stack, or scale it up — a targeted layout edit on the menu screen.
+A confirmed failure is **V19, HIGH** and enters the 10.5.3 loop: restore the documented menu role,
+attention order, or responsive relationship with a targeted edit on the menu screen.
 
-> **Never satisfy V19 by inventing a character.** For an object- or mechanic-led game the
-> centrepiece is the crown, the board, the peg field. Adding a mascot, host, hand or player
-> silhouette is its own defect (`.claude/docs/visual-context.md`); apply the same visibility and
-> prominence criteria to that object or mechanic instead.
+> **Never satisfy V19 by inventing a character or forcing the storefront lead into the menu.**
+> Object- and mechanic-led games may use their object or field as dominant, supporting, or absent
+> according to the documented recipe. Adding a mascot, host, hand, or player silhouette is its own
+> defect (`.claude/docs/visual-context.md`).
 
 ### 10.5.2f — gameplay-field centering audit (V20) [~20 s]
 
 `gameplay-screen-contract.md` §2b: absent a documented reason, the live play field sits centered
-on the viewport's horizontal axis — the same default the menu lead already gets in V19, and for
-the same reason: a field shoved against one edge passes every other gate (the analyzer is clean,
+on the viewport's horizontal axis. A field shoved against one edge passes every other gate (the analyzer is clean,
 the widget test only checks the field is on-screen and above the size floor, the screenshot "has
 the field in it") while still reading as unintentional.
 
@@ -360,12 +361,11 @@ constraints (parent size, safe-area insets, `Expanded` siblings) actually produc
 pass is not optional:
 
 - Read `03-game-idle.png` and `04-game-action.png` at 390×844 and 1440×900 together with the
-  layout archetype recorded in `design/art-direction.md`.
+  state recipe recorded in `design/art-direction.md`.
 - The field's horizontal center should sit inside the middle 60% of the viewport width.
-- An off-center placement is fine when the recorded Layout Archetype genuinely calls for it (L4's
-  side rail, L5's split panel) — but that reason has to be written down in
-  `design/art-direction.md`, not just visible in the screenshot; an unexplained offset is V20
-  regardless of which archetype happens to be in play.
+- An off-center placement is fine when the recorded state recipe genuinely calls for it (for
+  example, an edge rail or split relationship), but that reason has to be written down in
+  `design/art-direction.md`, not just visible in the screenshot; an unexplained offset is V20.
 - Check the expanded viewports specifically: a field that is centered on a phone can drift toward
   one side once desktop-width reflow logic kicks in.
 
@@ -381,6 +381,7 @@ Consolidate the problems, mark their severity (CRITICAL/HIGH/MEDIUM) and assign 
 - V4/V12 → **mechanics-programmer**
 - V18 on a Flame component `size:` → **juice-artist** or **mechanics-programmer**, whoever owns
   the component
+- V21 → **art-director** for asset identity/finish or **ui-programmer** for screen composition
 - VFX not visible → **juice-artist**
 - Logcat asset errors → check `lib/assets.dart` against the real files
 
@@ -397,8 +398,8 @@ Consolidate the problems, mark their severity (CRITICAL/HIGH/MEDIUM) and assign 
 | "Unable to load asset" | A path mismatch in `lib/assets.dart` | Fix the path, or create the file |
 | Slight field/control constraint miss | An avoidable wrapper, padding, or incorrect flex | Make a targeted constraint edit and re-capture both idle and active states |
 | An asset is stretched or squashed (V18) | `BoxFit.fill`, a Flame `size:` off the source ratio, or a non-uniform `Transform.scale` | Fix the draw site: `BoxFit.contain`/`cover`, a box matching the source ratio, or derive one side from the other — never re-export or regenerate the asset |
-| The menu lead is missing, clipped or buried (V19) | The menu was composed from title + buttons, or the lead sits under the button stack / off the edge | A targeted menu-screen edit: place the declared lead as the centrepiece, clear of the controls, at centrepiece size — never invent a character for an object/mechanic lead |
-| The play field sits off-center (V20) | An unexplained `Padding`/`Align`/`Positioned` offset on an ancestor of `Key('gameplaySurface')` | Remove the offset so the field's horizontal center returns to the viewport's — or, only if the Layout Archetype genuinely calls for it, record the reason in `design/art-direction.md` |
+| The documented menu role or composition is not realized (V19) | The runtime menu contradicts its M/O/R recipe, attention order, or `menu_role` | A targeted menu-screen edit that restores the documented relationship — never invent a character or force a storefront lead into an `absent` role |
+| The play field sits off-center (V20) | An unexplained `Padding`/`Align`/`Positioned` offset on an ancestor of `Key('gameplaySurface')` | Remove the offset so the field's horizontal center returns to the viewport's, or record and verify the state recipe/mechanic reason in `design/art-direction.md` |
 
 **Forbidden "auto-fixes":**
 - Changing `game_config.dart` (the balance is frozen)
@@ -458,7 +459,8 @@ error: playtest needs a genuinely running instance over CDP, and compile-only la
 
 - The tour + gameplay load (`web_verify.mjs --soak 60`) → the **P1–P10** checks
   (vision comparison of frames: the action changes the field, the HUD numbers change, win
-  feedback is visible, the idle animation exists; manifest: 0 consoleErrors, suspectLeak=false).
+  feedback is visible, and active-state motion communicates the result; a deliberately still idle
+  state is valid; manifest: 0 consoleErrors, suspectLeak=false).
 - Verdict: **PLAYABLE / PLAYABLE-WITH-ISSUES / NOT-PLAYABLE / SKIPPED** →
   `production/playtest/<ts>/PLAYTEST-REPORT.md`.
 - On a CRITICAL (P1/P2/P8), run an auto-fix loop of up to 2 iterations against the same table of
@@ -628,7 +630,7 @@ gameplay-screen contract passes, and playtest is not NOT-PLAYABLE. Otherwise use
 | Phase | Exit criterion | Max iterations |
 |-------|----------------|----------------|
 | 0. Preflight | The handoff exists + `dart analyze` 0 errors | 1 (fail-fast) |
-| 10.5. Runtime Chrome / Android compile | Web: 0 CRITICAL/HIGH visual, gameplay-screen contract PASS, no HIGH in the V18 asset-distortion, V19 menu-lead or V20 gameplay-centering audits, 0 FATAL in flutter-run.log (+ soak: no leak). Android (`--platform android`): `flutter build apk --debug` exit 0 | 3 (Chrome is always available) / 2 (Android compile) |
+| 10.5. Runtime Chrome / Android compile | Web: 0 CRITICAL/HIGH visual, gameplay-screen contract PASS, no HIGH in the V18 asset-distortion, V19 menu-composition/role or V20 gameplay-centering audits, 0 FATAL in flutter-run.log (+ soak: no leak). Android (`--platform android`): `flutter build apk --debug` exit 0 | 3 (Chrome is always available) / 2 (Android compile) |
 | 10.6. Playtest | PLAYTEST-REPORT.md, verdict ≠ NOT-PLAYABLE (P1–P10) | 2 |
 | 11. Session state | `active.md` updated | 1 |
 | 11.5. Release-eng prep | Icons/splash generated, `store/` created (AAB best-effort) | 1 |
@@ -639,7 +641,7 @@ gameplay-screen contract passes, and playtest is not NOT-PLAYABLE. Otherwise use
 - The final report is printed, with the runtime verification verdict
 
 This minimum permits an honest blocked report; it does not permit a production-ready claim. Any
-remaining V13–V20/HIGH defect or a failed mobile-phone/gameplay-screen contract keeps the project blocked.
+remaining V13–V21/HIGH defect or a failed mobile-phone/gameplay-screen contract keeps the project blocked.
 
 ---
 

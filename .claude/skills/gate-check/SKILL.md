@@ -35,10 +35,14 @@ Checks that the concept is ready to move into design:
       M1–M6, target metric, the path to the config, the compliance profile
 - [ ] The unique mechanic (the "juice") is described
 - [ ] The archetype is chosen (A–AF / Unique)
-- [ ] The Design DNA is described (palette/fonts/shapes/motion, justified by the theme; not default neon)
-- [ ] The Layout & Composition Direction is stated (Layout Archetype L1–L6)
-- [ ] Visual context records lead kind, matching preview references/adaptations, exact topology,
-      and supported multiplier markers per `.claude/docs/visual-context.md`
+- [ ] Asset/World Design DNA and the Game UI Read/Design Signature are described (world/cast,
+      mechanic, audience, information, field/controls/HUD, palette/type/material/motion, all
+      justified rather than defaulted)
+- [ ] Layout & Composition Direction records per-screen recipes plus a Similarity Check against
+      recent/nearest games (or the exact mapped-reference contract)
+- [ ] Visual context records `lead_kind`, `menu_role: dominant | supporting | absent`, matching
+      preview references/adaptations, exact topology, and supported multiplier markers per
+      `.claude/docs/visual-context.md`
 - [ ] The math model's target metric is stated and sits inside the window for that model
       (M1 RTP 95–97% + volatility + ≥3 symbols | M2 house edge + cap | M3 regeneration + source/sink |
       M4 rates + hard pity | M5 win-rate + thresholds | M6 bucket multipliers)

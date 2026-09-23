@@ -17,9 +17,9 @@ as unintentional, not deliberate.
 
 This tool does the static half of the check:
 
-  1. LAYOUT ARCHETYPE — reads the recorded `L1`-`L6` layout archetype (and any
-                        recorded narrow-mechanic/thumb-rail exception) out of
-                        `design/art-direction.md`.
+  1. LAYOUT DIRECTION — reads the recorded F/C/H/M/O/R composition recipe (or a
+                        legacy `L1`-`L6` archetype) plus any recorded offset
+                        exception out of `design/art-direction.md`.
   2. GAMEPLAY SURFACE — finds every `Key('gameplaySurface')` site (the
                         mandatory hook from `gameplay-screen-contract.md`) and
                         walks its ancestor widgets for an explicit horizontal
@@ -59,9 +59,12 @@ DESIGN_DOCS = (
 ANCESTOR_LEVELS = 5  # how many enclosing widgets to walk out from the key
 
 _KEY_RE = re.compile(r"Key\(\s*['\"]gameplaySurface['\"]\s*\)")
-_LAYOUT_RE = re.compile(r"\bL([1-6])\b")
+_LEGACY_LAYOUT_RE = re.compile(r"\bL([1-6])\b")
+_RECIPE_RE = re.compile(r"\b(?:F[1-6]|C[1-7]|H[1-6]|M[1-7]|O[1-6]|R[1-5])\b", re.I)
+_ALIGNMENT_DECL_RE = re.compile(r"primary field alignment\s*:", re.I)
 _EXCEPTION_RE = re.compile(
-    r"narrow[- ]mechanic|thumb[- ]rail|gameplay[- ]offset|field[- ]offset", re.I)
+    r"narrow[- ]mechanic|thumb[- ]rail|gameplay[- ]offset|field[- ]offset|"
+    r"primary field alignment[^\n]{0,160}(?:intentionally offset|off[- ]center|because)", re.I)
 
 _SIGNED_NUM = r"(-?[0-9]+(?:\.[0-9]+)?)"
 _IDENT_RE = re.compile(r"([A-Za-z_][\w.]*)\s*$")
@@ -114,11 +117,20 @@ def read_docs(root: Path, extra: list[str]) -> list[tuple[str, str]]:
     return docs
 
 
-def find_layout_archetype(docs: list[tuple[str, str]]) -> str | None:
+def find_layout_direction(docs: list[tuple[str, str]]) -> str | None:
     for _, text in docs:
-        match = _LAYOUT_RE.search(text)
-        if match:
-            return f"L{match.group(1)}"
+        recipe_lines = [line for line in text.splitlines()
+                        if re.search(r"\b(?:recipe|recipes)\b", line, re.I)]
+        recipes = list(dict.fromkeys(
+            match.group(0).upper()
+            for line in recipe_lines
+            for match in _RECIPE_RE.finditer(line)))
+        if recipes or _ALIGNMENT_DECL_RE.search(text):
+            label = "+".join(recipes[:6]) if recipes else "alignment declared"
+            return f"recipe {label}"
+        legacy = _LEGACY_LAYOUT_RE.search(text)
+        if legacy:
+            return f"legacy L{legacy.group(1)}"
     return None
 
 
@@ -222,11 +234,11 @@ def audit(root: Path, lib_root: Path, warn_px: float, fail_px: float,
          extra_docs: list[str]) -> tuple[list[Finding], dict]:
     findings: list[Finding] = []
     docs = read_docs(root, extra_docs)
-    archetype = find_layout_archetype(docs)
+    layout_direction = find_layout_direction(docs)
     exception_recorded = has_recorded_exception(docs)
     sites = gameplay_surface_sites(lib_root)
     context = {
-        "layout_archetype": archetype,
+        "layout_direction": layout_direction,
         "exception_recorded": exception_recorded,
         "sites": [{"file": p.as_posix(), "line": text_line(p, o)}
                   for p, o in sites],
@@ -242,11 +254,11 @@ def audit(root: Path, lib_root: Path, warn_px: float, fail_px: float,
             "visually instead."))
         return findings, context
 
-    if archetype is None:
+    if layout_direction is None:
         findings.append(Finding(
-            "MEDIUM", "layout-archetype-undeclared", "-", 0,
-            "No `L1`-`L6` layout archetype recorded in design/art-direction.md. "
-            "The concept is required to record one; centering is judged "
+            "MEDIUM", "layout-direction-undeclared", "-", 0,
+            "No F/C/H/M/O/R layout recipe or primary-field alignment recorded in "
+            "design/art-direction.md. The concept must record its per-state recipe; centering is judged "
             "against the default (centered) composition until it does."))
 
     for path, offset in sites:
@@ -271,8 +283,8 @@ def audit(root: Path, lib_root: Path, warn_px: float, fail_px: float,
             detail += (" A narrow-mechanic/thumb-rail exception is recorded in the "
                        "design docs — confirm it actually justifies this offset "
                        "before treating it as intentional.")
-        elif archetype and exception_recorded is False:
-            detail += (f" Layout archetype {archetype} does not by itself excuse an "
+        elif layout_direction and exception_recorded is False:
+            detail += (f" Recorded {layout_direction} does not by itself excuse an "
                        "off-center field; record a reason in "
                        "design/art-direction.md if this is deliberate.")
         findings.append(Finding(severity, code,
@@ -298,7 +310,7 @@ def render_report(findings: list[Finding], context: dict,
         "# Gameplay-field centering audit (V20)",
         "",
         f"- Verdict: **{verdict}** (static half only)",
-        f"- Layout archetype: **{context.get('layout_archetype') or 'undeclared'}**",
+        f"- Layout direction: **{context.get('layout_direction') or 'undeclared'}**",
         f"- Recorded off-center exception: {'yes' if context.get('exception_recorded') else 'no'}",
         f"- `gameplaySurface` sites: "
         + (", ".join(f"`{s['file']}:{s['line']}`" for s in context["sites"])
@@ -322,7 +334,7 @@ def render_report(findings: list[Finding], context: dict,
         "`Expanded` siblings). Confirm on `03-game-idle.png` and "
         "`04-game-action.png` at 390×844 and 1440×900: the field's horizontal "
         "center should sit inside the middle 60% of the viewport width, unless "
-        "the recorded layout archetype and a documented reason justify otherwise.",
+        "the recorded state recipe and a documented reason justify otherwise.",
         "",
     ]
     return "\n".join(lines)

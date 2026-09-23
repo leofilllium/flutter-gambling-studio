@@ -32,34 +32,41 @@ Filled in according to the model from §0 — see `.claude/docs/math-models.md`:
 - **Stop condition**: [end of animation | the player's cash-out | bust | end of the run]
 
 ## 4. Juiciness
-What is the main visual event? (An explosion? Screen shake? A golden waterfall?)
-What does the player see on a "big win"?
+What state change is the decisive feedback moment, and how does the player read it? Record the
+feedback character for routine, notable, and major outcomes, including where motion/effects stay
+absent. Do not assume an explosion, shake, particle shower, or full-screen takeover.
 
 ## 5. Full asset list
 - `sprite_...`
 - `ui_...`
 - `background_...`
 
-## 6. Design DNA (visual identity — NOT default neon)
-> Every decision is justified by THIS game's theme. See `.claude/rules/anti-slop-design.md`.
-- **Emotional core**: [what the player feels]
-- **Visual world**: [the world: underwater / space / Egypt / cosy / …]
-- **Palette (5 colours with reasons)**: background / surface / primary / win / loss
-- **Brightness**: [light / dark / twilight — driven by the theme]
-- **Typography (via google_fonts)**: display + body — [specific fonts + why]
-- **Shape language**: [the shape of buttons/panels — why]
-- **Motion character**: [feedback / win celebration / transitions]
-- **Depth strategy**: [glass / card / paper / flat — whatever fits]
+## 6. Asset/World Design DNA, Game UI Read, and Design Signature
+> Every decision follows from this game's player, mechanic, state needs, world, and reference.
+> See `.claude/rules/anti-slop-design.md`.
+- **Asset/World Design DNA**: [fiction, subject cast, silhouette language, materials, lighting,
+  illustration palette, and finish; no fixed color/font count]
+- **Player/session and core decision**: [who, posture, duration, repeated choice]
+- **Emotional arc and information pressure**: [setup -> anticipation -> result; now vs later]
+- **Visual world and memorable interface idea**: [specific, mechanic-linked]
+- **Field framing / controls / HUD / navigation**: [choice + reason for each]
+- **Geometry / surface / type / color-value**: [semantic roles; no fixed token count]
+- **Motion / depth / sound-haptics**: [what they communicate, and where they stay absent]
 
-## 7. Layout & composition direction
-> See `.claude/docs/mobile-first-contract.md` and `.claude/docs/layout-archetypes.md` (L1–L6).
-- **Layout archetype**: [L1–L6] — [why it fits]
-- How it applies to the main menu / game screen + HUD / overlays / transitions.
+## 7. State composition and layout direction
+> See `.claude/docs/mobile-first-contract.md` and `.claude/docs/layout-archetypes.md`.
+- **State map**: [setup / commitment / anticipation / result / recovery attention order]
+- **Per-screen recipes**: [main menu M/O/R; live states F/C/H/O/R; secondary screens]
+- **Store lead and menu role**: [lead_kind: character | object | mechanic;
+  menu_role: dominant | supporting | absent, with reason from the M recipe]
+- **Primary field alignment**: [centered, or documented mechanic/recipe reason for an offset]
 - **Phone-baseline proof**: [360×640 / 360×800 / 390×844 / 430×932; thumb reach; no core scroll]
 - **Expanded proof**: [844×390 / 768×1024 / 1024×768 / 1440×900; full-viewport reflow strategy]
+- **Similarity Check**: [neighbors, intentional repeats, at least four material differences,
+  remaining risk/correction; skip anti-repeat drift for an exact mapped reference]
 - **Non-targets**: no fixed-width phone wrapper, fake device frame, or pointer-only interaction.
 
-## 8. Screen map (at least 12+, composed per the chosen layout archetype)
+## 8. Screen map (at least 12+, each with a job and appropriate recipe)
 - Splash, main menu, game + HUD, paytable/rules, settings, help, win overlays (3 tiers),
   insufficient/out of chips, daily bonus, leaderboard, profile, loading.
 - **The compliance layer** (`.claude/rules/responsible-gaming.md`): age gate, the disclaimer on
@@ -69,7 +76,9 @@ What does the player see on a "big win"?
 ## 9. Visual references and store direction
 > Follow `.claude/docs/visual-context.md` and `.claude/docs/game-concept-examples.md`.
 - **Lead kind / identity**: [character | object | mechanic; exact subject and runtime role]
-- **Previews inspected**: [paths or none applicable; borrowed traits and original adaptations]
+- **Previews inspected**: [every mapped path and its role; exact traits, 2D/2.5D finish, and any deviations]
+- **Reference ledger**: [character, every symbol, board, background, UI materials and composition;
+  source path(s) for each; direct reuse versus high-fidelity image edit]
 - **Character tone**: [if relevant; Joker = mischievous/slightly vicious, playful, not horror or an elegant host]
 - **Multiplier coins**: [prefer x5/x10 when appropriate; exact config/paytable source and meaning, or omit]
 - **Panorama map**: [anchors, gameplay location/span, critical regions and safe seam plan]

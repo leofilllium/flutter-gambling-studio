@@ -99,18 +99,21 @@ When this skill is invoked:
    - How complex are the controls? How many taps to the first round (target ≤ 3)?
 
    **Phase 4: juiciness**
-   - Which visual feature will set the game apart? (Cascading explosions? A decelerating
-     spinner? A slowdown before the crash? A coin avalanche? A shaking camera?)
+   - Which decisive state transition will set the game apart, and what feedback vocabulary makes
+     it readable? Consider restraint as well as spectacle; do not default to explosions, shake,
+     particles, rolling counters, or full-screen overlays.
    - ⚠️ Anticipation and near-miss must be HONEST: they display the real outcome, they do not
      tune the feeling.
 
    **Phase 5: visual identity and composition**
-   - **Design DNA**: which world/mood? The palette, fonts, shapes and motion all derive from it
-     (see `.claude/rules/anti-slop-design.md`). Brightness is light/dark per the theme, not
-     "always dark".
-   - **Layout Archetype** (L1–L6, see `.claude/docs/layout-archetypes.md`): how are the screens
-     composed (top HUD / bottom console / floating corners / thumb rail / split / cards)?
-     Vary both the style and the composition, so the game does not resemble the previous ones.
+   - **Asset/World Design DNA**: fiction, cast, silhouette language, materials, lighting,
+     illustration palette, and finish. Keep this distinct from interaction architecture.
+   - **Game UI Read and Design Signature**: audience/session, emotional arc, information pressure,
+     field framing, controls, HUD behavior, materials, type, color/value, motion, and depth (see
+     `.claude/rules/anti-slop-design.md`). Do not infer a fixed token count or default darkness.
+   - **Per-screen layout recipes** (see `.claude/docs/layout-archetypes.md`): choose independent
+     field/control/HUD/menu/overlay/reflow ingredients for the menu, live states, result, and
+     information screens. Compare with nearby games; changing only style is not enough.
    - **Mobile-first proof**: how the phone composition adapts across 360×640, 360×800, 390×844
      and 430×932 while keeping the primary action in thumb reach and the core loop above the fold;
      then how it fills 844×390, 768×1024, 1024×768 and 1440×900 intentionally.
@@ -128,8 +131,8 @@ When this skill is invoked:
 
 3. **Synthesis**: produce 3 concepts to choose from. Each must include an elevator pitch, the
    category and archetype, the mathematical model with its target metric, the theme, the "juicy"
-   feature, the **Design DNA** and the **Layout Archetype** — and ideally 3 different visual
-   directions (light/dark/minimal, say) rather than three neon ones.
+   feature, **Asset/World Design DNA**, the **Design Signature**, key state recipes, and Similarity
+   Check — and ideally three materially different directions rather than three reskinned ones.
 
 4. **Writing the document**: create `design/gdd/game-concept.md` from the
    `.claude/docs/templates/gambling-concept.md` template — starting with the **Classification**

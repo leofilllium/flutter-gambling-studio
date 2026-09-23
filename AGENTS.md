@@ -9,18 +9,14 @@ baseline. It must also fill and adapt to tablet, landscape, desktop, and Web vie
 fixed-width phone canvas or fake device frame. Follow `.claude/docs/mobile-first-contract.md`,
 including both its phone-baseline and expanded-viewport verification gates.
 
-All generated game art must use polished cartoon 2.5D casual-game illustration with bold
-silhouettes, rounded/exaggerated forms, saturated theme-aware color, smooth modeled
-gradients, glossy highlights, restrained star glints, and one consistent top-left light.
-Derive the visual world, shapes, materials, details, and palette independently from each
-game's concept and Design DNA. Inspect matching `examples-games/` previews by default. When a
-reference matches the request, recreate what it shows — theme, character, symbol cast, palette,
-board and composition are matched rather than reinterpreted, and only the title/wordmark/logo, the
-reference's own pixels and its paytable numbers stay out
-(`.claude/docs/game-concept-examples.md` → "How close to the reference — match it").
-Read `.claude/docs/visual-context.md`
-and `.claude/docs/game-concept-examples.md`. Photorealistic/product-render assets, flat vector clipart, and emoji/sticker
-styling are out of scope.
+Choose each game's rendering style from its brief and visual references. Polished 2D and modeled
+2.5D are both valid. Keep the asset set coherent in linework, depth, materials, palette, detail
+and light without imposing gloss, gradients or top-left lighting. Inspect matching
+`examples-games/` images by default. When the user requests one of those games, match its
+character, symbols, background, palette, board, composition and visual finish closely. Pass the
+actual reference images into image generation when the tool supports it, and compare the runtime
+game beside the references. See `.claude/docs/visual-context.md` and
+`.claude/docs/game-concept-examples.md` for the reference contract and limits.
 
 All store screenshot sets use casino-grade marketing composition: lead with the decisive
 wager/reveal/drop/collect moment, premium depth and tactility, controlled anticipation and reward

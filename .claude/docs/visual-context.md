@@ -12,8 +12,9 @@ or complete game specifications. A missing reference does not block an unrelated
 category reference. Recreate what the preview shows: theme, character, symbol cast, palette,
 board and composition are matched, not reinterpreted. The full rule is "How close to the
 reference — match it" in `game-concept-examples.md`, and it governs the whole concept, not only
-the art. Only the title/wordmark/logo, the reference's own pixels and its paytable numbers stay
-out. Shining Crown and Plinko are object/mechanic-led and must not gain an invented main
+the art. Follow the production limits in `game-concept-examples.md`; suitable source pixels can
+be reused, while branding and unverified paytable values do not carry over. Shining Crown and
+Plinko are object/mechanic-led and must not gain an invented main
 character or mascot.
 **Joker** and **Joker Jewels** are two different entries: Joker Jewels resolves to every file in
 the `examples-games/joker-jewels/` folder and to a 5×3 board, never to the plain Joker row's 3×3.
@@ -26,8 +27,11 @@ markers in `design/gdd/game-concept.md`. Carry those decisions into `design/art-
 the asset manifest, generation prompts, and `STORE_BRIEF.md`.
 
 Once the assets exist, record the lead's own file as `Lead asset: <path>` in the concept (or the
-art direction) — the runtime menu gate reads it. The lead is the main menu's centrepiece, not
-just the storefront's: see `quality-bar.md` §1 and V19 in `.claude/skills/emulator-test/SKILL.md`.
+art direction). Separately record `menu_role: dominant | supporting | absent` from the main
+menu's M recipe. `lead_kind` controls storefront composition; it does not force every runtime
+menu into the same centerpiece layout. Character-led references often choose `dominant`, while a
+poster, map, or progression hub may choose `supporting` or `absent` with a concrete reason. See
+`quality-bar.md` §1 and V19 in `.claude/skills/emulator-test/SKILL.md`.
 
 | Lead | When it fits | Default storefront direction |
 |---|---|---|
@@ -43,16 +47,27 @@ than inventing it only for the store. Existing games retain their established le
 ## Reference-led original assets
 
 For a mapped request, rebuild the example's asset family object for object: the same subjects,
-materials, colours and light, at production resolution. Do not crop example pixels into runtime
-sprites and do not import example logos — match by describing what is there, and generate it
-clean. Preserve the qualities the examples share: bold silhouettes, glossy modeled volume,
-tactile materials, saturated color separation, confident expressions and decisive action. Never
-randomize away the requested game family; see "How close to the reference — match it" in
-`game-concept-examples.md`. For an unmapped concept with no reference, the asset family is derived
-from that game's own concept and Design DNA as usual.
+costume, pose, materials, colours, light and rendering style, at runtime resolution. Inspect every
+mapped image at full size and make a reference ledger for the character, each symbol, board,
+background, UI materials and composition. Supply the relevant source image(s) directly to a
+reference-capable image tool at high fidelity; a written description alone is insufficient when
+the source is available. The local `tools/gpt_image.py edit --image <reference> --fidelity high`
+path accepts JPEG and PNG. If the tool caps input count or bytes, select the relevant references
+for each asset and document which ones were used; never silently drop a required identity image.
+Use the resulting coherent assets in the real game, then compare runtime screenshots beside the
+source at phone and expanded sizes. Fix mismatched character traits, symbol identity, background,
+topology and palette before declaring the asset set complete. See "How close to the reference —
+match it" in `game-concept-examples.md`.
 
-All art uses polished cartoon 2.5D casual-game illustration with a consistent top-left key,
-rounded/exaggerated forms, smooth gradients, glossy highlights, and restrained star glints.
+Directly reuse an example image or a cleanly isolated element when its pixels are suitable for
+the intended runtime size and the requested reproduction; preserve provenance in the manifest.
+Do not turn a flattened screenshot with UI, title or payout text into a background or sprite.
+When isolation would be visibly poor, regenerate with the source image as a visual input and
+compare again. For an unmapped concept, derive the visual style from its brief and Design DNA.
+
+2D and 2.5D are both valid. Record the chosen depth and finish in the Design DNA. Match a mapped
+reference's linework, shading, texture and light; do not convert 2D art into generic glossy 2.5D.
+For an original game, choose the finish that serves the concept and use it consistently.
 Build the actual runtime set first; store generation then uses those shipped assets as identity
 references. A marketing reference cannot override the real game's colors, symbols, or topology.
 

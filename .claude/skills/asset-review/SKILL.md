@@ -80,7 +80,7 @@ The criteria (details in `art-director.md`):
 
 | # | Criterion | # | Criterion |
 |---|-----------|---|-----------|
-| AR1 | One polished cartoon 2.5D style; no photoreal/product-shot/flat clipart | AR6 | Clean alpha (no halos) |
+| AR1 | One coherent 2D or 2.5D finish matching the reference or DNA | AR6 | Clean alpha (no halos) |
 | AR2 | One light source | AR7 | Icons — one style/weight |
 | AR3 | One level of detail | AR8 | The background yields focus to the field |
 | AR4 | The Design DNA's palette | AR9 | The subject is identifiable |
@@ -90,10 +90,12 @@ The criteria (details in `art-director.md`):
 **AR11** applies whenever the request mapped to a local preview
 (`.claude/docs/game-concept-examples.md`). Open the reference beside the contact sheet and compare
 object for object: the same subjects, the same materials and colours, the same light, the same
-character. Anything re-themed, substituted, recoloured or "improved" fails AR11 and is regenerated
-toward the reference. Only the title/wordmark/logo, the reference's own pixels and its paytable
-numbers are out of scope — a beautiful, cohesive set that drifted into a different world is still
-a fail.
+character and finish. Anything re-themed, substituted, recoloured or "improved" fails AR11 and
+is corrected toward the reference. Verify each source image appears in the ledger and that relevant
+images were actually supplied to generation or directly reused with provenance. When the game is
+runnable, review the real runtime screen beside the reference; in pre-production, mark this check
+pending for runtime verification. Follow the production limits in
+`game-concept-examples.md`; a cohesive set that drifted into a different world still fails.
 The technical alpha check for AR6 (PNG, complementing the visual one) — `tools/cutout.py --check`
 measures exactly the defects the eye misses on a 1024 px preview:
 

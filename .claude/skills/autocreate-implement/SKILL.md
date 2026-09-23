@@ -130,7 +130,8 @@ echo "✅ Preflight OK — Session 1's artifacts are in place"
 
 Read `autocreate-handoff-1.md`, `design/structure.md`, `design/art-direction.md`,
 `design/asset-format.md` (the asset format: PNG or SVG — it affects Agent B's code),
-`design/gdd/game-concept.md` (especially the Production Plan, Screen Map, Design DNA and the
+`design/gdd/game-concept.md` (especially the Production Plan, Screen Map, asset/world Design DNA,
+Game UI Read, Design Signature, state composition map, per-screen recipes, Similarity Check, and
 ValueNotifier contracts). Do not read `lib/` en masse.
 
 > **CRITICAL for the asset format:** if `design/asset-format.md` says `format: png`:

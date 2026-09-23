@@ -1,6 +1,6 @@
 ---
 name: auto-idea
-description: "Autonomously generates a ready-made concept for a gambling game (without asking the user). Selects from 32 A-AF archetypes in six categories (social casino, casino originals, spin-to-progress, gacha, casino roguelike, coin pusher/plinko) or comes up with a unique gambling mechanic. Scrolls through Variety Dimensions (setting/mood/palette/brightness/layout/style art) so that games are not repeated. Includes Classification (category + mathematical model + compliance), Design DNA, Layout Archetype, full map of MVP screens (12+), UX flow and craft-level tokens."
+description: "Autonomously generates a ready-made concept for a gambling game (without asking the user). Selects from 32 A-AF archetypes in six categories (social casino, casino originals, spin-to-progress, gacha, casino roguelike, coin pusher/plinko) or comes up with a unique gambling mechanic. Builds a mechanic-derived Design Signature, per-screen layout recipes, and a nearest-neighbor Similarity Check so games do not become reskinned copies. Includes Classification (category + mathematical model + compliance), full MVP screen map, UX flow and craft-level tokens."
 argument-hint: "[--list] | [--archetype A-AF] | [--category C1-C6]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write
@@ -18,8 +18,8 @@ The named requests Book of Ra, Joker, Joker Jewels, Shining Crown, Zeus Game, an
 the exact preview mapping in that document; Joker Jewels resolves to every file in
 `examples-games/joker-jewels/` and to a 5×3 board, not to the plain Joker row's 3×3. Recreate what
 the preview shows — theme, character, symbol cast, palette, board and composition are matched, not
-reinterpreted, and Variety Dimensions are not scrolled. Only the title/wordmark/logo, the
-reference's own pixels and its paytable numbers stay out. Never add a character to Shining Crown
+reinterpreted, and Variety Dimensions are not scrolled. Follow the source-quality and branding
+limits in `game-concept-examples.md`. Never add a character to Shining Crown
 or Plinko.
 
 Don't ask the user questions! Create `design/gdd/game-concept.md` completely autonomously.
@@ -30,8 +30,9 @@ Don't ask the user questions! Create `design/gdd/game-concept.md` completely aut
 >
 > **ANTI-SLOP**: Read `.claude/rules/anti-slop-design.md` (principle + Craft Fundamentals)
 > `.claude/docs/mobile-first-contract.md`, and `.claude/docs/layout-archetypes.md` before generation.
-> The concept MUST include a unique visual identity (Design DNA) and the selected Layout
-> Archetype. For a mapped named request the Design DNA and layout are the reference's, recorded
+> The concept MUST include a mechanic-derived Design Signature, state composition map, per-screen
+> layout recipes, and Similarity Check. For a mapped named request the signature and composition
+> are the reference's, recorded
 > from it rather than invented — matching it is the goal, not a slop risk. “Gambling” ≠ “dark neon and gold”: bingo can be warm and papery,
 > gashapon can be pastel, while a roguelike can use strict typography. Vary both style and composition.
 > Every concept starts from touch-first phone UI/UX and includes intentional full-viewport
@@ -170,7 +171,7 @@ the core must be a wager on a random outcome.
 
 > **Not for a mapped named request.** When the request maps to a local preview
 > (`.claude/docs/game-concept-examples.md`), skip this whole section: the setting, mood, palette,
-> brightness, layout archetype and art treatment are all read off the reference and matched.
+> brightness, composition and art treatment are all read off the reference and matched.
 > Scrolling these axes is exactly the drift that section forbids. Variety Dimensions exist for
 > concepts the studio invents on its own.
 
@@ -183,12 +184,13 @@ The archetype sets the MECHANICS. To make two games of the same archetype look a
 | **Mood/mood** | intense, cozy, epic, ironic, mystical, upbeat, meditative |
 | **Palette family** | warm earthy, cool neon, pastel, monochrome+1 accent, jewel tones, burnt retro |
 | **Brightness** | light / dark / twilight - NOT always dark |
-| **Layout Archetype** | L1–L6 (see Section 3.5) - vary the composition |
-| **Cartoon 2.5D treatment** | glossy arcade, soft storybook, clay-like, candy-like, hand-drawn adventure, retro cartoon—always with volume, clean silhouettes, and consistent light |
+| **Interaction/composition signature** | field framing, controls, HUD behavior, menu, overlays, reflow |
+| **Art finish and depth** | crisp 2D illustration, hand-drawn, cut paper, shallow layers, or modeled 2.5D; use the mapped reference's actual finish when present |
 | **Audience/tone** | hardcore casual, children's, premium elegant, retro nostalgia |
 
 > Goal: even two "A" slots should look like DIFFERENT games - one warm Egyptian light,
-> another cold cosmic dark one, with different layout archetypes. Setting + palette + layout
+> another cold cosmic dark one, with different interaction and composition signatures. Setting,
+> information behavior, controls, palette, and layout
 > together they give a huge range of dissimilar results.
 >
 > **Separately against “casino-slop”**: neon + black + gold IS a default, not a style.
@@ -213,8 +215,10 @@ The archetype sets the MECHANICS. To make two games of the same archetype look a
    ```
 3. **Define the category and mathematical model** of the archetype by
    `.claude/docs/gambling-categories.md`. This is the first thing that will be included in the concept.
-4. **Scroll Variety Dimensions**: setting / mood / palette / brightness /
-   Layout Archetype (L1–L6) / art style - unlike the previous game.
+4. **Build and compare the Design Signature**: setting / mood / field framing / control topology /
+   HUD behavior / information density / menu / overlays / palette / brightness / motion / art style.
+   Compare it with recent or nearest games and change at least four material axes when the mechanic
+   and reference do not justify repetition.
    **Skip this step entirely for a mapped named request** — take the setting, mood, palette,
    brightness, layout and art treatment from the reference instead, and record where each came
    from.
@@ -361,112 +365,89 @@ Filled in according to the model from Section 0. Thresholds - `.claude/docs/math
 > GameConfig), rather than N handwritten screens. 8 bet-tiers + 3 banners = one GameScreen + config
 > with records. This is the “full game” at the low cost of context.
 
-### Section 3: Design DNA (Contextual Visual Identity)
+### Section 3: Asset/World Design DNA, Game UI Read, and Design Signature (MANDATORY)
 
-**Each visual decision MUST be justified within the context of THAT SPECIFIC game.**
-Not a template. Not "always neon + trapezoid." Design flows from theme, mood and mechanics.
-
-Read `.claude/rules/anti-slop-design.md` - the principle is explained there.
+Read `.claude/rules/anti-slop-design.md`. Infer the interface from the player, repeated decision,
+emotional arc, information pressure, world, reference, and platform constraints before selecting
+visual tokens.
 
 ```markdown
-## Design DNA: [Game Name]
+## Game UI Read
+- Player and session: [audience, posture, duration, one/two-handed]
+- Core decision: [the repeated gambling decision]
+- Emotional arc: [setup -> commitment -> anticipation -> result -> recovery/progression]
+- Information pressure: [instant vs contextual information]
+- World and tone: [specific world]
+- Reference contract: [mapped reference, or named patterns borrowed]
+- Memorable interface idea: [one spatial or interactive idea]
 
-### Emotional Core
-[1-2 sentences: how does the player FEEL while playing THIS PARTICULAR game?]
-[Example: “Increasing tension and euphoria when winning” / “Quiet satisfaction from a solved puzzle” / “Adrenaline from speed and reflexes”]
+## Asset/World Design DNA
+- Emotional core and visual world: [specific feeling, fiction, and subject cast]
+- Silhouette and form language: [what makes objects recognizable at game size]
+- Materials and surface behavior: [world materials, not generic UI effects]
+- Illustration palette and value structure: [semantic/world roles; no fixed color count]
+- Lighting and finish: [2D/2.5D choice, linework, texture and light from mapped reference or concept]
+- Asset typography constraints: [wordmark/display character if relevant; body UI remains readable]
 
-### Visual World
-[What visual world does this game exist in? This determines EVERYTHING else.]
-[Example: "Underwater world with soft glow of jellyfish" / "Neon Tokyo 2080s" / "Cozy coffee shop with paper textures"]
-
-### Shape Language (derived from Visual World)
-- Primary action button: [form + WHY for this game]
-  [Example for an underwater game: "smooth drop - organic shape, like a jellyfish"]
-  [Example for a mechanical game: “a grooved rectangle is like an industrial lever”]
-  [Example for a cozy game: “soft rounded - like a pillow”]
-- Info panels: [form + WHY]
-- Decorative elements: [shape + WHY]
-
-### Color Palette (5 colors - EACH justified by the context of the game)
-- Background: #XXXXXX - [WHY this color for THIS game]
-- Surface: #XXXXXX - [WHY]
-- Primary: #XXXXXX - [WHY - connection with the theme/world of the game]
-- Win/Success: #XXXXXX — [WHY]
-- Danger/Loss: #XXXXXX — [WHY]
-[Note: if the game is about a forest, the green palette is LOGICAL, and not prohibited.
-If the game is about space, blue is LOGICAL. Color is only prohibited if it is RANDOM.]
-
-### Typography (derived from world and mood)
-- Display font: [specific Google Font] - [WHY this font suits this game]
-  [Example: "Press Start 2P - Retro Slot Hall" / "Playfair Display - Elegant Casino" / "Nunito - Friendly Social Bingo"]
-- Body font: [specific Google Font] - [WHY readable and fits the mood]
-
-### Motion Character (derived from emotional core)
-- Button feedback: [WHAT and WHY]
-  [Heavy mechanical game: deep pressing with delay]
-  [Light Casual: Springy Rebound]
-  [Elegant: subtle glow]
-- Win celebration: [WHAT exactly and WHY corresponds to the level of winning]
-- Screen transitions: [WHAT and WHY - connection with the game metaphor]
-  [Card game: card flip. Slot: doors. Gachapon: capsule opens.]
-  [Or: quick cut for quick play. Intentional simplicity is also a design decision.]
-- Idle state: [WHAT animates the screen when the player is not interacting]
-
-### Depth & Effects Strategy
-[NOT "always glassmorphism." A: What technique for creating depth is appropriate for THIS game?]
-- [Example: "Paper layers with shadows" for a board game]
-- [Example: "Holographic overlays" for sci-fi]
-- [Example: “No depth - flat minimalism” for a strict roguelike]
-- [Example: "Glassmorphism" for a futuristic theme]
-- Effects: [what effects are used, why, and where NOT used]
-
-### What Makes This Design UNIQUE to This Game
-[If you transfer this UI to another game, will it look out of place? If yes, the design was a success.]
-[1-2 sentences: what would NOT be possible to transfer to another game]
+## Design Signature
+- Field framing: [choice + why]
+- Control topology: [choice + why]
+- HUD behavior: [choice + why]
+- Information density: [choice + why]
+- Navigation model: [choice + why]
+- Geometry: [choice + role rules]
+- Surface/material: [choice + why]
+- Type voice and semantic roles: [choice + readability rationale]
+- Color/value logic and semantic roles: [choice + contrast rationale]
+- Motion/feedback: [choice + what each family communicates]
+- Depth model: [choice + why]
+- Sound/haptics: [choice + why]
 ```
 
-### Section 3.5: Layout & Composition Direction (MANDATORY)
+Do not require exactly five colors, two fonts, one accent, or one preset type scale. Define as many
+semantic roles as this game's content needs, and no more.
 
-**Select Layout Archetype** from `.claude/docs/layout-archetypes.md` (L1–L6) and apply
-`.claude/docs/mobile-first-contract.md` plus `.claude/docs/gameplay-screen-contract.md`. The
-archetype defines
-COMPOSITION of screens regardless of Design DNA (which determines the look). **Vary the archetype
-from the last game** - this is the main lever against “all screens are the same”.
+### Section 3.5: State Composition and Layout Recipes (MANDATORY)
 
-| ID | Archetype | The essence of the composition |
-|----|---------|-----------------|
-| L1 | Classic Stack | Top HUD bar, field in the center, controls+action below |
-| L2 | Bottom Command Deck | Edge-to-edge top, tight bottom console |
-| L3 | Floating Corners | Full-bleed field, floating chips in the corners, floating button |
-| L4 | Adaptive Action Rail | Lower thumb rail on phones; side rail where expanded width supports it |
-| L5 | Split Panel | Dominant ≈65–75% field / compact core-control zone |
-| L6 | Card/Sheet Stack | Full-viewport field with structural layered sheets; never a nested mini-game card |
+Use the independent axes in `.claude/docs/layout-archetypes.md`; do not choose one L1-L6 template.
+Apply `.claude/docs/mobile-first-contract.md` and `.claude/docs/gameplay-screen-contract.md`.
 
 ```markdown
+## State Composition Map
+### Setup / wager
+- Job and attention order: [...]
+- Persistent vs contextual information: [...]
+- Recipe: [F# + C# + H# + O# + R#]
+### Commitment / anticipation
+[same fields]
+### Result / celebration or loss
+[same fields]
+### Recovery / progression
+[same fields]
+
 ## Layout & Composition Direction
+- Main Menu: [M# + O# + R#; why; `menu_role: dominant | supporting | absent` for the recorded
+  `lead_kind`]
+- Live Game: [state recipes; primary field alignment and any documented offset reason]
+- Rules/Odds: [recipe; disclosure and scan strategy]
+- Collection/Profile/Progression: [recipe appropriate to category]
+- Mobile-first proof: [360x640, 360x800, 390x844, 430x932]
+- Expanded proof: [844x390, 768x1024, 1024x768, 1440x900]
 
-### Selected Archetype: [L1–L6] - [name]
-[1 sentence: why this composition fits this mechanic and category]
-
-### Applying to key screens
-- Main Menu: [as assembled by archetype + dressed in DNA]
-- Game Screen + HUD: [where is the HUD, where is the main action, like a field]
-- Mobile-first proof: [how the phone composition passes 360×640, 360×800, 390×844 and 430×932;
-  how the field reaches ≥55% usable area and normally ≥88% width; how core
-  field/HUD/stake/action stay visible without scrolling]
-- Expanded proof: [how 844×390, 768×1024, 1024×768 and 1440×900 fill and reflow intentionally
-  without a centered phone strip, fake device frame, dead margins, or pointer-only controls]
-- Overlays: [toast position, modal entry style]
-- Transitions: [a family of transitions from an archetype, colored by the game's metaphor]
+## Similarity Check
+- Compared with: [up to three recent/nearest games]
+- Repeated intentionally: [mechanic/reference/platform reasons]
+- Material differences: [at least four Design Signature axes]
+- Nearest-neighbor risk and correction: [...]
 ```
 
-> Archetype = composition (HOW it is arranged). DNA = appearance (WHAT it looks like). Don't default
-> "HUD on top + button on bottom center" layout for every game. Description of screens below -
-> MUST follow the chosen archetype.
+For a mapped reference, record its actual composition and skip anti-repeat drift. For an original,
+changing only art and palette does not pass the Similarity Check.
 
 ### Section 4: MVP Screen Map
 
-**NECESSARILY. Minimum 10 screens with description and UX flow. The composition of each is according to the selected Layout Archetype.**
+**NECESSARILY. Minimum 10 screens with description and UX flow. Give each screen a job and an
+appropriate recipe; reuse structure only where consistency helps the player.**
 
 ```markdown
 ## Screen Map
@@ -562,17 +543,16 @@ assets `.svg`, if the game will be played through `/autocreate` in Codex: downst
 manifesto literally.
 
 ### Shared Visual Style Anchor
-- Render style: polished cartoon 2.5D casual-game art; [how the concept determines the forms,
-  materials, details and character of this cartoon world]
+- Render style: [2D or 2.5D; mapped reference's actual linework, shading and depth, or the
+  concept's chosen finish]
 - Lighting: [single source, for example soft top-left key + subtle rim]
-- Palette: [3-5 colors from Design DNA]
+- Palette: [semantic color roles from the Design Signature; use the number this game needs]
 - Camera/composition: single centered hero object for sprites/icons; 9:16 layered scene for backgrounds
 - Cutout policy: sprites/icons/tiles/items = generate on a flat solid chroma-key background
   (default pure magenta #FF00FF; pure green #00FF00 if the palette contains magenta/pink/purple),
   then cut with `tools/cutout.py`; backgrounds = full scene, no alpha removal
-- Negative prompt: no photorealism, no product photography, no flat vector icon,
-  no emoji/sticker, no logo, no text except verified multiplier-coin inscriptions, no sprite sheet,
-  no generic casino/neon unless this is explicitly in Design DNA
+- Negative prompt: [exclude styles and artifacts that conflict with this game's reference or DNA],
+  no unintended logo or text, no sprite sheet, no generic casino/neon unless explicitly intended
 
 ### Sprites (assets/images/sprites/)
 - sprite_[name].png — [subject identity from the game world; material/texture; role in gameplay; readable at 64px]
@@ -703,21 +683,25 @@ manifesto literally.
 ### Section 8: Anti-Slop Checklist + Production Readiness
 ```markdown
 ## Anti-Slop (intent + craft, NOT imposed style)
-- [ ] Palette based on the theme of the game (not random purple-blue by default)
-- [ ] 2 fonts from DNA + typographic hierarchy (type scale 4–6 sizes)
-- [ ] Basic indent step (4/8); button shape from shape language (rounded rectangle is OK if it fits)
-- [ ] Layout Archetype selected and applied (composition NOT default “HUD on top + button on bottom”)
+- [ ] Game UI Read and complete Design Signature are recorded with reasons
+- [ ] State Composition Map covers setup, anticipation, result, and recovery/progression
+- [ ] Per-screen layout recipes are selected from independent F/C/H/M/O/R axes
+- [ ] Similarity Check names real neighbors and records at least four material differences,
+      unless a mapped reference or mechanic justifies repetition
+- [ ] Semantic type, spacing, color, shape, material, and motion roles are defined without a
+      studio-wide count or aesthetic preset
 - [ ] Gameplay screen contract satisfied: dominant full-viewport field, integrated controls,
       core loop visible without scrolling, and usable button proportions at all four target sizes
-- [ ] Transitions between screens are thematic (related to the game world)
+- [ ] Motion/transition choices communicate feedback, hierarchy, continuity, or anticipation
 - [ ] All 12+ screens are described with full content
 - [ ] Micro-interactions on each interactive element
 - [ ] Idle animations defined
-- [ ] Loading - thematic widget (not CircularProgressIndicator)
-- [ ] Depth strategy of DNA modals (glass / card / paper / flat - whatever suits the world)
-- [ ] One clear focus on each screen; text contrast ≥ 4.5:1
+- [ ] Loading/committed state fits the screen and remains accessible; a standard control is allowed
+      when it is the clearest choice
+- [ ] Depth and overlay behavior follow the Design Signature instead of default cards/glass
+- [ ] Every key state has an intentional attention order; text contrast ≥ 4.5:1
 - [ ] Centralized animation timings (animations.dart)
-- [ ] The style is NOT transferable to another game (neon/dark theme - only if justified by the theme)
+- [ ] The interface remains distinct in wireframe/grayscale; variety is not only palette and mascot
 
 ## Production Readiness
 - [ ] Complete Game Loop described (step by step)
@@ -741,13 +725,13 @@ Category: [C1-C6] - [title]
 Archetype: [A-AF | UNIQUE] - [name]
 Mathematical model: [M1-M6] - target metric [...]
 Setting / Mood: [world] / [mood]
-Layout: [L1-L6] - [name of composition archetype]
+Layout: [key per-screen F/C/H/M/O/R recipes]
 Balance: [RTP XX% / Difficulty curve / Points system]
 Content: [N levels/stages] | Modes: [Classic + Endless/Time-Attack/Daily]
 Meta: [currency + store + progression + achievements]
 Compliance: [full: disclaimer + responsible-play | reduced C5]
 MVP screens: [N] screens
-Design DNA: [key visual decisions]
+Design Signature: [key interaction, composition and visual decisions]
 
 Saved: design/gdd/game-concept.md
 

@@ -323,7 +323,8 @@ IDEA CONCEPT DESIGN CODE QA RELEASE
 ```
 
 > Archetype = MECHANICS. To prevent games of the same archetype from being repeated, they scroll on top of it
-> **Layout Archetype L1–L6** (screen composition) and **Design DNA** (palette/fonts/shapes).
+> **Per-screen layout recipes** (field/controls/HUD/menu/overlay/reflow) and a contextual
+> **Design Signature** (materials/type/color/motion/depth), with an explicit anti-repeat check.
 > “Gambling” ≠ “dark neon and gold”: bingo can be warm and papery, gashapon -
 > pastel, while a roguelike can use strict typography.
 

@@ -18,21 +18,19 @@ back. This is not a "safety feature" — it is the frame the whole studio exists
 
 ## Visual standard for assets
 
-All game imagery uses a polished cartoon 2.5D casual-game language: bold readable silhouettes,
-rounded or slightly exaggerated forms, a saturated theme-aware palette, smooth modelled
-gradients, clean colour or gold edging, glossy highlights, restrained star glints and one
-consistent light from the top left.
+Choose the visual finish from the game's brief and references. Both polished 2D illustration and
+modeled 2.5D art are valid. Keep the complete asset set coherent in silhouette, linework, depth,
+materials, palette, detail and lighting; do not add glossy volume to a flat illustrated reference.
 
-The theme, characters, objects, materials, shapes, details and colours are all derived
-from the concept and Design DNA of the specific game. Inspect matching `examples-games/`
-previews by default. When a reference matches the request, recreate what it shows: theme,
-character, symbol cast, palette, board and composition are matched rather than reinterpreted, and
-only the title/wordmark/logo, the reference's own pixels and its paytable numbers stay out
-(`.claude/docs/game-concept-examples.md` → "How close to the reference — match it"). Read
+The theme, characters, objects, materials, shapes, details and colours come from the concept and
+Design DNA of the specific game. Inspect matching `examples-games/` images by default. When a
+reference matches the request, recreate its character, symbol cast, background, palette, board,
+composition and rendering style. Use the actual images as generation references and compare the
+runtime result beside them (`.claude/docs/game-concept-examples.md` → "How close to the reference
+— match it"). Read
 `.claude/docs/visual-context.md` and `.claude/docs/game-concept-examples.md` for lead kinds,
 flexible store composition, 3×3 classic-slot defaults, Joker tone and supported x5/x10 coins.
-Photorealism, product-shot
-rendering, flat vector clipart and emoji/sticker styling are not allowed.
+The reference's visual language is authoritative; reject unrequested style substitutions.
 
 ## Technology stack
 
@@ -265,9 +263,11 @@ The pattern: **Question → Options → Decision → Draft → Approval**
 > warm and papery, a gashapon pastel and toy-like, a roguelike strict and typographic.
 > The test: if the UI could be moved to another game unchanged, the design failed.
 >
-> Variety rests on TWO independent axes:
-> - **Design DNA** (the look: palette/fonts/shapes/motion) — from the game's theme. See anti-slop-design.md.
-> - **Layout Archetype** (the composition: where the HUD and the action go, how the menu works) — L1–L6. See layout-archetypes.md.
+> Distinctiveness rests on a documented **Design Signature** (field framing, controls, HUD
+> behavior, information density, materials, type, color/value, motion, and depth) plus
+> **per-screen composition recipes**. The menu, live round, result, and information screens may
+> use different compatible recipes from the layout grammar. Changing only palette and mascot over
+> one recurring shell is not variety. See anti-slop-design.md and layout-archetypes.md.
 
 @.claude/rules/anti-slop-design.md
 

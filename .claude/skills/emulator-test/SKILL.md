@@ -246,7 +246,7 @@ viewport sizes use subdirectories named after the viewport, with the same quick-
 **Navigation:** the script first tries to find the action button by `aria-label`
 (Flutter semantics - studio requires `Semantics(label: …)` on the main button: `play/spin/
 play/start/spin`), and only if there is no mark - taps the thumb zone (center of the lower 60%). This covers
-all layout archetypes L1–L6 without guessing window coordinates.
+all per-screen layout recipes without guessing window coordinates.
 
 **Parsing Chrome errors**: grep on `manifest.json` (`consoleErrors`) and `webconsole.log`
 (EXCEPTION, RenderFlex overflowed, Unable to load asset) **plus** `flutter-run.log`
@@ -440,8 +440,9 @@ And visually check using the checklist:
 | V16 | **Poorly adjusted controls** | Buttons are cramped, uneven, clipped, undersized, ambiguously disabled, or visually disconnected from gameplay | HIGH | ui-programmer (responsive control deck and state pass) |
 | V17 | **Broken mobile-first responsiveness or targeting** | Phone hierarchy breaks; expanded hosts show a capped phone strip, fake frame, dead margins, blind scaling, pointer-only controls, or an undocumented native restriction | HIGH | ui-programmer + release-engineering (enforce mobile-first contract) |
 | V18 | **Stretched or squashed asset** | An asset is drawn at a different aspect ratio than its source file: the character is widened or elongated, a round coin is an oval, an icon is a lozenge, text baked into a sprite is distorted | HIGH | ui-programmer (or juice-artist for a Flame component size) |
-| V19 | **Menu lead missing or buried** | The main menu does not show the game's declared visual lead: a character-led game opens on a title, buttons and a gradient; or the lead is clipped by an edge, hidden behind the button stack, or shrunk to an icon | HIGH | ui-programmer (menu composition) |
-| V20 | **Gameplay field off-center** | The live play field is shoved toward one edge — an `Align`/`Padding`/`Positioned` offset with no reason — instead of sitting on the viewport's horizontal center by default | HIGH | ui-programmer (remove the unexplained offset, or record the Layout Archetype reason) |
+| V19 | **Menu composition contradicts direction** | The runtime menu does not realize its M/O/R recipe, attention order, or `menu_role`; dominant/supporting content is accidentally hidden or an absent storefront lead is forced back in | HIGH | ui-programmer (menu composition) |
+| V20 | **Gameplay field off-center** | The live play field is shoved toward one edge — an `Align`/`Padding`/`Positioned` offset with no reason — instead of sitting on the viewport's horizontal center by default | HIGH | ui-programmer (remove the unexplained offset, or record the state recipe/mechanic reason) |
+| V21 | **Mapped reference mismatch** | A named `examples-games/` game has a different character, symbol cast, background, palette, board topology, art finish or main composition than its mapped source | HIGH | art-director for assets; ui-programmer for composition |
 
 **V18 — asset distortion.** Run `python3 tools/check_asset_stretch.py --report
 <SHOT_DIR>/asset-stretch.md` for the static pass: it compares each asset's real pixel
@@ -455,31 +456,29 @@ proportions. Resizing is not distortion — only a changed width-to-height ratio
 `BoxFit.contain`/`BoxFit.cover`, a box that matches the source ratio, or deriving one side from
 the other; re-exporting the asset to fit a wrong box is not a fix.
 
-**V19 — the menu lead.** `quality-bar.md` §1 requires the menu to sell the game: a centrepiece
-from the game's world, so the player knows WHAT this is before pressing PLAY. Run
+**V19 — the menu composition.** `quality-bar.md` §1 requires the menu to realize the memorable
+idea and M/O/R recipe recorded in `design/art-direction.md`. Run
 `python3 tools/check_menu_lead.py --report <SHOT_DIR>/menu-lead.md` for the static half — it reads
-`lead_kind` and the lead asset from the design docs and checks that the main-menu source actually
-draws it — then judge `02-menu.png` at 390×844 and 1440×900:
+`lead_kind`, `menu_role: dominant | supporting | absent`, and the lead asset from the design docs;
+for dominant/supporting character roles it checks that the menu source draws the asset. Then judge
+`02-menu.png` at 390×844 and 1440×900:
 
-- the lead is visible on the first viewport, with no scrolling;
-- nothing important is clipped: for a character, the whole head and face sit inside the frame;
-- it is not buried — at most about a quarter of its silhouette behind buttons, logo or overlays;
-- it is the focal point, not a garnish: roughly a third of the viewport height, or a fifth of the
-  menu area, at minimum;
-- **centred by default** — its horizontal centre inside the middle 60% of the width. An off-centre
-  placement is fine when `design/art-direction.md`'s layout archetype calls for it (L3's floating
-  corners, L5's split panel) and the lead is still whole and dominant;
-- the expanded viewport keeps it proportionate, not a phone-sized cameo adrift in a wide menu.
+- the recorded M/O/R recipe and attention order are recognizable;
+- dominant/supporting content is visible and intentionally cropped, not accidentally hidden by
+  controls or the viewport edge;
+- the runtime prominence matches `menu_role`; an absent lead remains absent;
+- alignment follows the recipe rather than a universal centering rule;
+- the expanded viewport preserves the composition instead of producing a phone-sized island or
+  stretched filler.
 
-**Never satisfy V19 by inventing a character.** For an object- or mechanic-led game the
-centrepiece is the crown, the board, the peg field — adding a mascot, host, hand or player
-silhouette is its own defect (`.claude/docs/visual-context.md`), and the same criteria apply to
-that object or mechanic instead.
+**Never satisfy V19 by inventing a character or forcing the storefront lead into the menu.** An
+object or mechanic may be dominant, supporting, or absent according to the documented recipe.
+Adding a mascot, host, hand, or player silhouette is its own defect
+(`.claude/docs/visual-context.md`).
 
 **V20 — gameplay-field centering.** `gameplay-screen-contract.md` §2b: absent a documented
-reason, the play field's horizontal center coincides with the viewport's horizontal center — the
-same default as V19's menu lead, and the same reasoning: an off-center field without a recorded
-cause reads as an accident, not a choice. Run
+reason, the play field's horizontal center coincides with the viewport's horizontal center. An
+off-center field without a recorded cause reads as an accident, not a choice. Run
 `python3 tools/check_gameplay_center.py --report <SHOT_DIR>/gameplay-center.md` for the static
 half — it finds every `Key('gameplaySurface')` site and walks its ancestor widgets for an
 explicit offset (`Align` toward an edge, asymmetric `Padding`, a `Positioned` pinned to or
@@ -487,7 +486,7 @@ unevenly inset from one side) — then judge `03-game-idle.png` and `04-game-act
 and 1440×900:
 
 - the field's horizontal center sits inside the middle 60% of the viewport width;
-- an off-center placement is fine when `design/art-direction.md`'s Layout Archetype calls for it
+- an off-center placement is fine when `design/art-direction.md`'s state recipe calls for it
   (L4's side rail, L5's split panel) and the field is still whole and dominant;
 - the expanded viewport keeps the same centered relationship rather than drifting toward one side
   as the mechanic grows.
@@ -498,7 +497,10 @@ if the script flags a MEDIUM it cannot resolve.
 
 For every game-idle and active screenshot, also apply
 `.claude/docs/mobile-first-contract.md` and `.claude/docs/gameplay-screen-contract.md`.
-V13–V20 are release blockers, not subjective polish. Run the screenshot tour across 360×640,
+For a named mapped game, open the relevant source files beside the menu and idle/active gameplay
+captures. Record each mismatch under V21 with its source path and affected game asset or screen.
+Compare the actual phone runtime first; use expanded captures to check that the same identity
+survives responsive reflow. V13–V21 are release blockers. Run the screenshot tour across 360×640,
 360×800, 390×844, 430×932, 844×390, 768×1024, 1024×768 and 1440×900.
 
 ### Create an entry for each screenshot
@@ -609,12 +611,15 @@ Sort by severity: CRITICAL → HIGH → MEDIUM.
    - V10/V11 (design): apply palette from Design DNA, replace Material defaults
    - V18 (asset distortion): fix the draw site, never the source asset — switch `BoxFit.fill`
      to `contain`/`cover`, match the box to the source ratio, or derive one side from the other
-   - V19 (menu lead): compose the declared lead into the menu as its centrepiece — never invent
-     a character for an object/mechanic-led game
+   - V19 (menu composition): restore the documented M/O/R recipe, attention order, and
+     `menu_role` — never invent a character or force an absent storefront lead into the menu
    - V20 (gameplay field off-center): remove the unexplained `Padding`/`Align`/`Positioned`
-     offset so the field's horizontal center returns to the viewport's — or, if the Layout
-     Archetype genuinely calls for the offset, record why in `design/art-direction.md` instead of
+     offset so the field's horizontal center returns to the viewport's — or, if the state recipe
+     genuinely calls for the offset, record why in `design/art-direction.md` instead of
      silently keeping it
+   - V21 (mapped reference mismatch): correct the asset through a source-image edit with its
+     mapped reference, or restore the documented board/background/composition in the UI; capture
+     the game again and compare beside the source
    - V13/V14/V15/V16 (gameplay composition): apply `gameplay-screen-contract.md`; expand and
      integrate the field, remove nested framing/core scrolling, and rebuild the responsive control
      deck. If this needs a whole-screen recomposition, route it through `/ui-audit --fix`.

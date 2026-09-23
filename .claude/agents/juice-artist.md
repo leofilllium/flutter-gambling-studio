@@ -52,31 +52,32 @@ Design DNA (`design/gdd/game-concept.md`). Juice is not "more particles everywhe
 > has already been computed. Tuning the "almost won" feeling in favour of monetisation is
 > forbidden (`.claude/rules/responsible-gaming.md` §1.6).
 
-#### 0.5 — Animation INSIDE the gameplay (THE TOP PRIORITY)
+#### 0.5 — State feedback INSIDE gameplay (THE TOP PRIORITY)
 
-> **The studio's most common mistake:** all the "juice" goes into menus, buttons and win
-> overlays while the play field itself stays static — symbols sit still, tiles teleport, the
-> player "jumps" between frames. That is a dead game. **Animation lives PRIMARILY in the game
-> components on the field**, and only then in the HUD/menu. If only the UI is animated and the
-> gameplay is static, the work has failed.
+> The play field must clearly communicate commitment, anticipation, result, and recovery. Put the
+> strongest feedback at the mechanic's decisive event, not automatically in menus or decorative
+> chrome. A still idle board can be intentional; an active round that snaps between unreadable
+> states is not.
 
-**Every game element on the field MUST be "alive" through 5 kinds of movement:**
+Use the smallest set of feedback roles that makes the state change tactile and legible. An element
+does not need every role, and perpetual motion is never a completeness requirement:
 
 | Type | What it is | Examples by category |
 |------|------------|----------------------|
 | **Entrance** | The element does not appear instantly — it flies in, drops in, or fades up | a symbol drops onto the reel with a bounce; a card is dealt into a fan; a ball falls into the peg field; a capsule rolls down the chute |
-| **Idle** (living wait) | While nothing is happening, the element breathes, sways or shimmers | symbols breathing 1.0↔1.02; chips trembling; coins on the shelf settling slightly; the machine's lights flickering |
+| **Idle** (optional atmosphere) | A quiet loop only when it supports the Motion Character and does not compete with the next action | a rare status light, environmental drift, coins settling after a drop |
 | **Impact / Reaction** | The element physically reacts to an action — squash & stretch, a flash, recoil | a winning line: flash + scale-up → pop; the ball hitting a peg: ripple + recoil; a safe mines cell: tint flash; a coin nudging its neighbours |
 | **State transition** | A transition between an object's states is animated rather than snapping | symbol → Wild morph; a coin → stuck in Hold&Spin; a closed mines cell → revealed; a capsule → cracked open |
 | **Anticipation / Release** | Build-up before the result, release at the moment | the cascading reel stop; a near-miss slow-mo; the silence before a mine is revealed; a case spinner decelerating |
 
 **THE MANDATORY wiring rule:** an animation is useless if it is not connected to a real game
-event. For every game component:
-- an `update(double dt)` method drives the idle animation (synchronously, with no allocations);
+event. For each selected feedback role:
+- use `update(double dt)` only for a justified continuous effect, synchronously and without
+  allocations; a component with no continuous motion does not need it;
 - public hook methods (`playEntrance()`, `playImpact()`, `playStateChange()`, `playLand()` and
   so on) are called by `mechanics-programmer` through a callback at the right point in the game
-  loop — **you must verify that those calls really exist in the logic code**, not merely that
-  they are declared;
+  loop — **verify that selected hooks really exist in the logic code**, not merely that they are
+  declared;
 - the result of the game action (the stateless outcome) is already known — the animation only
   "plays back" a predetermined script and never influences the outcome.
 
@@ -119,8 +120,9 @@ class TileComponent extends PositionComponent {
 }
 ```
 
-> Budget: idle and entrance animations must not exceed the overall component limit or the frame
-> budget (60 FPS). Use `RepaintBoundary` and effects rather than recreating objects.
+> Budget: selected animations must stay within the component limit and frame budget (60 FPS).
+> Spend that budget on decisive state changes before ambient loops. Use `RepaintBoundary` and
+> effects rather than recreating objects.
 
 #### 1. Spin animation — gambling / slots
 
@@ -208,6 +210,10 @@ void stopWithNearMiss(SlotSymbol winningSymbol, SlotSymbol actualSymbol) {
 
 #### 4. VFX by category
 
+These are candidate event/feedback pairings, not per-category checklists. Select only the events
+that exist in the game and translate them through its Motion Character; invent a different answer
+when the state map calls for one.
+
 **C1 — Social Casino (slots, tables, bingo)**:
 - The cascading reel stop: each successive reel takes slightly longer to brake
 - The winning line: highlight the path + flash the symbols + a counter
@@ -244,42 +250,45 @@ void stopWithNearMiss(SlotSymbol winningSymbol, SlotSymbol actualSymbol) {
 - The coin avalanche: the camera dips slightly, the sound builds with the number of coins
 - The jackpot bucket: the glow intensifies as the ball approaches
 
-#### 5. Idle animation
+#### 5. Idle behavior
 
-When the player has not interacted for 3+ seconds:
-- The main game element gently "breathes" (scale 1.0 → 1.02 → 1.0 loop)
-- The main action button pulses with light
-- Background elements animate slowly
+Choose one behavior from the Design Signature: deliberately still; sparse environmental motion;
+or a low-amplitude loop on one contextual element. Do not make every symbol breathe, pulse the
+main action merely because time passed, or animate the background by default. Idle behavior must
+preserve a clear next action, honor reduced motion, and remain visually quieter than a live round.
 
 #### 6. Button feedback
 
-The main action button (Spin/Play/Launch):
-- **Press**: an instant scale to 0.95 plus a brighten
-- **Release**: scale back with a 1.05 overshoot
-- **Disabled**: opacity 0.5, no hover effect
+The main action button (Spin/Play/Launch) needs immediate press/release and disabled-state
+feedback, but its expression follows the Motion Character. Weighty controls may depress and
+settle; precise controls may shift tone or border; springy controls may scale and overshoot.
+Do not hard-code one scale/brighten recipe across every game. Hover is supplemental, never the
+only feedback.
 
 #### 7. Score/counter animation
 
-The balance and score must never jump instantly. On a win or a change:
-- The counter climbs from the current value to the new one over 1.5s
-- The "coin ticking" sound is synchronised
-- The rate of climb: accelerate → decelerate
+Animate a value only when its magnitude is part of the reward, risk, or progression feedback.
+Choose duration, curve, and any synchronized sound from the event tier and Motion Character; do
+not impose a 1.5-second rolling counter on every balance, score, timer, or utility update. Stable
+utility values and reduced-motion mode may update directly.
 
-### The "living gameplay" checklist (verify BEFORE handing off)
+### Gameplay feedback checklist (verify BEFORE handing off)
 
-The gameplay counts as alive only if EVERY item is done and **wired to events**:
+The gameplay passes when its selected feedback roles are **wired to real state transitions**:
 
-- [ ] The main game element (symbol/tile/player/ball) has idle movement in `update()`
-- [ ] Elements arrive with an entrance animation (they do not appear instantly)
-- [ ] On the main game action the element gives impact/reaction (squash & stretch / flash / recoil)
-- [ ] A game object's state change is animated (morph/reveal/flip), not a frame snap
-- [ ] There is an anticipation→release phase before the result (cascade/slow-mo/wind-up)
-- [ ] Every hook method (`playEntrance`/`playImpact`/…) is really CALLED from the logic (grep the code)
+- [ ] The state map identifies setup, commitment, anticipation/reveal, result, and recovery feedback
+- [ ] The field acknowledges commitment immediately in the game's own vocabulary
+- [ ] The predetermined result transition is readable; a direct change is allowed when clearest
+- [ ] Routine/notable/major outcomes have proportionate, distinguishable treatment
+- [ ] Idle is deliberately still or uses only the contextual loop recorded in the signature
+- [ ] Every selected hook method is really called from the logic; no decorative orphan APIs remain
 - [ ] No allocations in `update()`/`render()`; timings come from `AnimationConfig`
 - [ ] Field animations do NOT hide the game state (you can see what is where)
+- [ ] Reduced-motion and reduced-flashing behavior preserves all outcome information
 
-> If even one game element is static for the whole round, go back and bring it to life.
-> "Only the HUD is animated" = failure. Tell `mechanics-programmer` where a hook call is needed.
+> A still element is not a defect by itself. If only the HUD or menu communicates a live round's
+> state change while the field becomes ambiguous, tell `mechanics-programmer` where the selected
+> hook call is needed.
 
 ### Formulas worth knowing
 

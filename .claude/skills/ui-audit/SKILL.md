@@ -23,10 +23,12 @@ visual problems.
 
 ## Phase 1 - Data Collection
 
-1. Read `.claude/rules/anti-slop-design.md` (principle + Craft Fundamentals + Audit guard)
+1. Read `.claude/rules/anti-slop-design.md` (Game UI Read, Design Signature, state map,
+   anti-repeat gate, craft floor, audit guard)
 2. Read `.claude/rules/ui-code.md`
-2a. Read `design/gdd/game-concept.md` → **Design DNA** (palette/fonts/shapes/motion of THIS game)
-2b. Read `design/art-direction.md` (if any) → selected **Layout Archetype** (L1–L6)
+2a. Read `design/gdd/game-concept.md` → **Game UI Read and Design Signature**
+2b. Read `design/art-direction.md` → state composition map, F/C/H/M/O/R recipes, Similarity
+    Check, and viewport proofs
 2c. Read `.claude/docs/quality-bar.md` → professional level thresholds
     (§1 first 30 sec: TTP ≤ 3 taps; §2 response ≤ 100 ms; §3 scaled feedback;
     §7 completeness; §8 visual integrity) - the audit measures BY THEM, not “by eye”
@@ -83,7 +85,7 @@ visual problems.
 | B11 | **Gameplay field is too small** | Measure `Key('gameplaySurface')` at 360×640, 360×800, 390×844 and 430×932; compare with the contract | The mechanic reads as a thumbnail and loses focus | Recompose with `Expanded`/`Stack`/`AspectRatio`; field ≥55% usable portrait area and normally ≥88% width |
 | B12 | **Nested or displaced game field** | Inspect game-idle and active screenshots for a phone/browser/card-like frame, large unexplained dead margins, or a field pinned to one edge without concept-driven use of the remaining region. On compact portrait, compare the usable gaps between HUD→field and field→controls; large imbalance needs an explicit composition reason. | A game appears embedded, bottom-dumped, or visually absent from the viewport's focal region | Remove outer framing/padding and unintended edge alignment; keep only a tight mechanic-driven rim and place the field according to the selected composition |
 | B13 | **Core loop requires scrolling** | Find a vertical `Scrollable` ancestor of `gameplaySurface` or `primaryAction`; verify first viewport | Field or action/control deck falls below the fold | Recompose the fixed viewport; move rules/history/secondary content to a sheet or screen |
-| B14 | **Disconnected control block** | Compare field and control deck alignment, materials, shape language, spacing and depth | Controls look like an unrelated card below the game | Attach as overlay/edge rail/compact command deck using the field's grid and DNA |
+| B14 | **Disconnected controls** | Compare field, C recipe, materials, geometry, spacing and depth | Controls look like an unrelated generic panel | Integrate them according to the recorded attached/dock/rail/distributed/direct/contextual recipe |
 | B15 | **Poor control proportions** | Measure transformed hit and semantic bounds plus labels at 1.0×/1.3× text scale; compare enabled/disabled states and idle/press animation extrema, not only untransformed widget sizes | Buttons are cramped, uneven, clipped, ambiguous, or shrink below their minimum during feedback | Enforce ≥48×48 targets and a primary action ≥56 logical pixels high throughout animation; keep interaction bounds stable while animating decoration, with shared baselines/heights and responsive label fitting |
 | B16 | **Broken mobile-first responsiveness or targeting** | Inspect phone + expanded screenshots, layout branches, `main.dart`, Android manifest, and iOS plist/project | Phone hierarchy breaks; expanded hosts show a capped phone strip, fake frame, dead margins, blind scaling, pointer-only controls, or an undocumented native restriction | Enforce the mobile-first contract; use the full host canvas and intentional responsive reflow |
 
@@ -121,30 +123,30 @@ visual problems.
 
 > We do not check “whether there is neon glow.” We check: “is there INTENTION behind every decision.”
 > Read `.claude/rules/anti-slop-design.md` to understand the principle.
-> Also read `design/gdd/game-concept.md` (Design DNA) to understand the context of THIS game.
+> Also read the game's UI Read, Design Signature, state map, recipes, and Similarity Check.
 >
 > 🛑 **AUDIT GUARD - do not change one slop for another.** This audit checks the INTENT,
 > CONSISTENCY and CRAFT are NEVER a specific style. DO NOT "fix" the screen by adding
-> neon, glassmorphism, beveled buttons or dark theme, if they are not in the DNA of the game. Clean
-> a bright, cozy screen that respects Craft Fundamentals is PASS. Any autofix must
-> move the UI towards Design DNA, and not towards a house-style studio.
+> neon, glassmorphism, beveled buttons or dark theme if they are not in the Design Signature. A
+> bright, cozy screen or restrained standard control can pass. Any autofix must move the UI toward
+> the recorded signature and state job, not toward a studio house style.
 
 | # | Check | How to check | Autofix |
 |---|---------|--------------|----------|
-| E1 | **No default framework widgets without customization** | `ThemeData.dark()`, `ThemeData.light()` without modification | → Custom theme from Design DNA |
-| E2 | **No generic loading** | `CircularProgressIndicator`, `LinearProgressIndicator` | → Thematic loader (from the context of the game) |
-| E3 | **No generic dialogs** | `AlertDialog(` unstylized | → Stylized dialogue (style from Design DNA) |
-| E4 | **No generic transitions** | `MaterialPageRoute` | → Thematic `PageRouteBuilder` |
+| E1 | **Semantic theme is applied** | Default theme values make hierarchy/states inconsistent with the signature | Define only the missing semantic roles; do not restyle for novelty |
+| E2 | **Loading/committed state fits the job** | Loader obscures state, lacks progress/meaning, or conflicts with the signature | Choose a standard or thematic indicator that communicates the actual wait |
+| E3 | **Blocking surfaces are appropriate** | Dialog/sheet/screen choice mismatches interruption level or content length | Use the recorded O recipe and restore focus on close |
+| E4 | **Transitions have a reason** | Motion exists only as decoration or continuity is unclear | Simplify or implement the recorded transition reason; standard/direct is allowed |
 | E5 | **No print()** | `print(` | → `debugPrint` or delete |
 | E6 | **There are animations.dart** | `lib/theme/animations.dart` does not exist | Create file |
 | E7 | **No hard-skinned Duration in screens** | `Duration(milliseconds:` outside animations.dart | → `AnimationConfig.xxx` |
-| E8 | **Design DNA exists and is in use** | Read `design/gdd/game-concept.md` - is there Design DNA? Are the colors from DNA used in `game_theme.dart`? | If there is no DNA, create it. If you have it but are not using it, tie it up. |
+| E8 | **Design Signature exists and is in use** | Are field/controls/HUD/material/type/color/motion decisions reflected in implementation? | Create missing signature/state documentation or align the implementation |
 | E9 | **Colors based on context** | Read game_theme.dart - do the colors match the theme of the game? (forest = green OK, casino = gold OK, random purple = NO) | Adjust palette |
 | E10 | **Fonts match the mood** | Does the font suit the game world? (retro slot machine = pixelated, elegant casino = serif, cozy bingo = rounded) | Replace with a suitable one |
-| E11 | **Buttons are shaped from Design DNA** | All primary buttons use one form, secondary - another | Bring to a unified style from DNA |
-| E12 | **Visual Consistency** | All screens use the same palette, same fonts, same button style | Bring to unity |
-| E13 | **Menu - conceptual (centerpiece)** | `main_menu` has a branded thematic visual anchor from the game world (not just a logo + a column of buttons); layered depth | Add live centerpiece + layers (parallax/particles) from DNA |
-| E14 | **Game screen - discreet HUD** | On the game_screen, the HUD is compact, pressed to the edges, and does not interfere with the field; field ≈60%+ - focus; no heavy effects on HUD | Shrink/tighten HUD to edges, mute secondary elements, remove distracting effects |
+| E11 | **Control roles are distinct** | Primary, secondary, dangerous, disabled, and contextual actions communicate their roles | Align with the signature without forcing one shape on every control |
+| E12 | **Coherent, not cloned** | Semantic roles persist across screens while screen jobs may use different recipes | Repair unexplained drift or inappropriate structural repetition |
+| E13 | **Menu recipe and memorable idea** | Menu implements its M/O/R recipe and is not merely the studio's recurring shell | Recompose to the recorded job; do not automatically add a centerpiece/layers |
+| E14 | **State-aware game UI** | Field meets contract; C/H recipes and attention order hold in setup, anticipation, and result | Fix the failing state instead of forcing every HUD to the edges |
 
 ### Category F: MISSING SCREENS (Medium)
 
@@ -168,49 +170,50 @@ visual problems.
 
 | # | Check | How to check | Autofix |
 |---|---------|--------------|----------|
-| G1 | 2+ fonts included (display + body) | `grep 'fontFamily\|GoogleFonts'` | Add a suitable pair for the context of the game |
-| G2 | Action button: idle + press + disabled visually distinguishable | Read button code | Add feedback (character - from Design DNA) |
-| G3 | Numbers animate as they change | `grep 'TweenAnimationBuilder\|AnimatedCount'` | Wrap in TweenAnimationBuilder |
-| G4 | Interactive elements have visual feedback | `grep 'onTapDown\|AnimatedScale\|ScaleTransition'` | Add feedback to all GestureDetector |
-| G5 | Win overlay scales to win size | Read win_overlay - is there small/big/mega | Add switch by multiplier |
+| G1 | Semantic type roles are implemented | Inspect display/readout/action/body/legal roles and readability | Add or consolidate roles; one family may be correct |
+| G2 | Action button: idle + press + disabled visually distinguishable | Read button code | Add feedback from the Design Signature |
+| G3 | Meaningful value changes communicate magnitude | Observe balance/win/risk/progression changes | Animate only changes that matter; stable utility values may update directly |
+| G4 | Interactive elements acknowledge input | Inspect code and runtime for immediate, role-appropriate pressed/committed feedback | Add the feedback behavior recorded by the signature; scaling is only one option |
+| G5 | Result tiers are distinguishable | Compare routine/notable/major outcomes against the state map | Differentiate locally or globally as documented; a win overlay is optional |
 | G6 | Text to background contrast >= 4.5:1 | Check colors in theme | Adjust |
-| G7 | Game screen: mechanic dominates and primary action leads the controls | Measure the field and inspect hierarchy against `gameplay-screen-contract.md` | Expand/integrate the field; keep the main action visually strongest within the compact control layer |
-| G8 | Empty states are stylized | `grep 'empty\|EmptyState\|no data'` | Add a placeholder with text and illustration |
-| G9 | Loading state is stylized as a game | `grep 'Loading\|loading'` in screens | Replace generic → thematic |
-| G10 | **Transferability test** | Does it look out of place to mentally transfer the UI to another game? | If the UI is generic (suitable for any game) - strengthen the thematic connection |
-| G11 | **Gameplay field is centered by default** | `python3 tools/check_gameplay_center.py` (V20) plus a look at the game screenshot: the field's horizontal center sits inside the middle 60% of the viewport width, unless `design/art-direction.md`'s Layout Archetype records a reason for an offset | Remove the unexplained `Padding`/`Align`/`Positioned` offset, or record the archetype reason |
+| G7 | Game screen: mechanic dominates and the next action is clear | Measure the field and inspect hierarchy against `gameplay-screen-contract.md` | Expand/integrate the field; clarify the recorded action or direct-manipulation affordance |
+| G8 | Empty states are useful and in voice | `grep 'empty\|EmptyState\|no data'`; verify explanation and next step | Add concise copy and an action; illustration is optional |
+| G9 | Loading/committed state is clear and accessible | Inspect waiting states and interruption/retry behavior | Use the simplest indicator that fits the job/signature |
+| G10 | **Wireframe distinction test** | Does field/control/HUD/menu structure remain specific in grayscale without art? | Rework interaction/composition; palette/mascot swaps do not count |
+| G11 | **Gameplay field alignment is intentional** | `python3 tools/check_gameplay_center.py` plus screenshots: centered by default, or the recipe records a concrete offset reason | Remove unexplained offsets or document and verify the recipe's reason |
 
 ### Category H: CRAFT & COMPOSITION (Low is what distinguishes a “designer” screen from a generated one)
 
-> This is not about style, but about craft. Applicable to ANY DNA. See "Craft Fundamentals" in `anti-slop-design.md`.
+> This is not about style, but about craft. Applicable to every Design Signature. See
+> "Craft floor without a house style" in `anti-slop-design.md`.
 
 | # | Check | How to find | Autofix |
 |---|---------|-----------|----------|
-| H1 | **Type-scale** | The theme has 4-6 text sizes and they are reused (no random `fontSize:`) | Reduce dimensions to scale in topic |
-| H2 | **Indent Step** | Paddings/gaps are multiples of the base step (4 or 8), not arbitrary numbers | Reduce to multiples of base step |
-| H3 | **Palette Consistency** | No more than 1–2 accents; colors from one DNA palette (no random hue) | Reduce to DNA palette |
-| H4 | **One focus per screen** | Each screen has one dominant element, the rest are quieter | Reinforce Hierarchy (Size/Color/Position) |
-| H5 | **Unified shape language** | The radii/shapes of buttons and cards are consistent within the game | Convert to a single radius/shape from DNA |
-| H6 | **Alignment and Margins** | Elements are divided by alignment lines; equal optical fields from the edges | Align, align margins from edges |
+| H1 | **Semantic type system** | Named roles are reused; no unexplained one-off sizes; roles remain readable | Consolidate or add a justified role, without a fixed role count |
+| H2 | **Spacing rhythm** | Named spacing/grouping tokens express relationship and touch ergonomics | Replace arbitrary gaps with project tokens; no universal 4/8 mandate |
+| H3 | **Color-role discipline** | Every hue/value has a semantic or material role; critical meaning is redundant | Remove roleless colors or fix semantic mapping; no universal accent cap |
+| H4 | **Attention order by state** | Setup, anticipation, result, and recovery match their recorded first/second/third reads | Repair hierarchy for that state; dual focus is allowed when documented |
+| H5 | **Role-based geometry** | Shape differences follow control/surface/material roles | Fix unexplained mixing; do not force one radius everywhere |
+| H6 | **Intentional alignment and balance** | Shared edges or object-relative placement look chosen and safe-area aware | Fix near-misses while preserving documented asymmetry |
 | H7 | **Restraint effects** | There is no “soup” of weak shadows/gradients; the effects are meaningful | Remove unnecessary effects |
 | H8 | **Unified iconography** | Icons in the same style and stroke thickness | Bring to one style |
-| H9 | **Layout Archetype Matching** | Screen composition follows the selected L1–L6 from `design/art-direction.md` (not the default layout) | Rearrange by archetype |
+| H9 | **Recipe and anti-repeat matching** | Screens follow recorded F/C/H/M/O/R recipes and the Similarity Check is honest | Recompose the mismatched screen or update the rationale with evidence |
 
-### Category I: LIVE GAMEPLAY (Medium - animation INSIDE the field, not menu)
+### Category I: LIVE GAMEPLAY FEEDBACK (Medium - state change inside the field, not menu decoration)
 
-> The most common “hole”: the menu and HUD are animated, but the game components themselves on the field are static.
-> Here we check `lib/components/` (game components), not screens. If the field is dead -
-> this is a failure of the “live game”, even when the menu is beautiful. Principles - `juice-artist.md` (Section 0.5).
+> Inspect `lib/components/` and the live round. A still setup state can be deliberate. Failure means
+> commitment, anticipation, result, or recovery is unreadable because field state snaps or only the
+> surrounding HUD reacts. Apply `juice-artist.md` §0.5 and the recorded state map.
 
 | # | Check | How to find | Autofix |
 |---|---------|-----------|----------|
-| I1 | **Idle movement** on the main game element | `update(` in components with phase accumulation/ScaleEffect/sin (breathing/swaying) | Add idle to `update(dt)` (without allocations) |
-| I2 | **Entrance animation** of elements (does not appear instantly) | `playEntrance`/scale-in/move-in on spawn | Add entrance when adding to World |
-| I3 | **Impact/Reaction** on the main action | `playImpact`/`playMatch`/squash&stretch/flash called from logic | Add reaction + call from game/systems |
-| I4 | **State transition** of the game object is animated | reveal/morph/flip when changing state (not by clicking a frame) | Animate state transition |
-| I5 | **Hooks are actually CALLED** from logic | `grep -rn "play...(" lib/ \| grep -v "void play"` - non-empty | Place hook calls at the right points in the loop |
+| I1 | **Idle behavior matches the signature** | Runtime observation plus reduced-motion path | Keep deliberate stillness or add only the documented contextual loop |
+| I2 | **Commitment is acknowledged on the field** | Compare the pre-action and immediate post-input frames | Add a mechanic-specific cue; entrance travel is optional |
+| I3 | **Anticipation/reveal remains readable** | Observe what changes before and at the predetermined result | Add only the feedback roles needed to explain the transition |
+| I4 | **Result and recovery are distinct** | Compare field states, not only HUD/overlay pixels | Make the outcome and return-to-play state unambiguous; direct changes may be valid |
+| I5 | **Selected hooks are actually called** from logic | Trace each feedback hook from state transition to component | Wire the missing selected hooks; do not create unused animation APIs |
 | I6 | **No allocations** in `update()`/`render()` components | `Vector2(`/`Paint()`/`Rect.` inside update | Preinitialize fields |
-| I7 | **Timings from the animations file** (not hardcode in components) | `Duration(milliseconds:` to `lib/components/` | Place in `AnimationConfig` |
+| I7 | **Timing roles are centralized** | Compare used timings with `AnimationConfig` and reduced-motion values | Centralize repeated/semantic timings without forcing one cadence on all events |
 
 > ⚠️ If autofix requires significant work (to revive the entire gameplay) - delegate it to an agent
 > **juice-artist** via Agent tool (Gameplay Feel Pass role), as in Phase 6.5 `/autocreate`.
@@ -328,8 +331,9 @@ Check all routes, all persistence, all overlay lifecycle.
 Ensure that each button has feedback, double-click protection, and a disabled state.
 
 **Stage 5 - Anti-Slop (E1-E14):**
-Replace all prohibited patterns with custom ones. Make the menu conceptual (centerpiece, E13)
-and the game HUD is discreet (E14).
+Fix unsupported defaults and contradictions with the recorded Design Signature. Make the menu's
+M/O/R recipe legible (E13) and make the HUD's H recipe and state behavior legible (E14). A custom
+widget is not automatically better than a standard control, and a centerpiece is not mandatory.
 
 **Step 6 - Missing Screens (F1-F13):**
 Create missing screens using Agent (ui-programmer).

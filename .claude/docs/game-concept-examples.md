@@ -4,18 +4,19 @@ Inspect the matching local preview when a user requests one of these game famili
 named requests below, the listed preview is mandatory input to `/autocreate`, including the
 `--from-concept` path and common spacing, punctuation, hyphenation, and capitalization variants of
 the name. A reference entry is either one file or a folder; when it is a folder, every file in it
-is mandatory input and the table states each file's job. These are starting directions for
-original concepts, not runtime assets, fixed templates, or validated balance designs. Use
+is mandatory input and the table states each file's job. These are visual identity references;
+suitable pixels may be reused as runtime assets when cleanly isolated and sharp at target size.
+They are not complete game specifications or validated balance designs. Use
 `.claude/docs/visual-context.md` and record the preview path, borrowed traits, original adaptations,
 lead kind, and topology decision in the generated concept before producing assets.
 
 | Request family | Preview | Classification | Lead and assets | Store starting composition |
 |---|---|---|---|---|
-| Book of Ra / Book of Ra game | `examples-games/book-of-ra.png` | C1 / B / M1 | Character; original desert archaeologist, enchanted book, ankhs, scarabs, falcons, Egyptian relics | Large adapted explorer on the first panel; readable 5×3 field occupies the right; sunset temple depth and relic spill support the gameplay |
-| Joker / Joker game | `examples-games/joker2.png`, with `examples-games/joker.jpeg` as secondary reference | C1 / A / M1 | Character; original impish, slightly vicious Joker, bells, cherries, gems, supported multiplier chips | Large adapted Joker on first panel; readable 3×3 field spans the right two by default; gestures lead toward play |
-| Joker Jewels / Joker's Jewels / joker-jewels | `examples-games/joker-jewels/` — all four files: `jj_reference.jpeg` (key-art staging), `jj_gameplay.jpeg` (board topology and symbol family), `jj_character-reference.jpeg` and `jj_character-reference2.jpeg` (jester lead) | C1 / B / M1 | Character; original belled-cap jester in a striped costume, plus faceted red and cyan gems, blue orb, lute, juggling clubs, jester shoes, crown bonus symbol | Large adapted jester on the first panel; readable 5×3 field occupies the right; gems, bunting and confetti spill through the foreground |
+| Book of Ra / Book of Ra game | `examples-games/book-of-ra.png` | C1 / B / M1 | Character; reference-matched desert archaeologist, enchanted book, ankhs, scarabs, falcons, Egyptian relics | Large reference-matched explorer on the first panel; readable 5×3 field occupies the right; sunset temple depth and relic spill support the gameplay |
+| Joker / Joker game | `examples-games/joker2.png`, with `examples-games/joker.jpeg` as secondary reference | C1 / A / M1 | Character; reference-matched impish, slightly vicious Joker, bells, cherries, gems, supported multiplier chips | Large reference-matched Joker on first panel; readable 3×3 field spans the right two by default; gestures lead toward play |
+| Joker Jewels / Joker's Jewels / joker-jewels | `examples-games/joker-jewels/` — all four files: `jj_reference.jpeg` (key-art staging), `jj_gameplay.jpeg` (board topology and symbol family), `jj_character-reference.jpeg` and `jj_character-reference2.jpeg` (jester lead) | C1 / B / M1 | Character; reference-matched belled-cap jester in a striped costume, plus faceted red and cyan gems, blue orb, lute, juggling clubs, jester shoes, crown bonus symbol | Large reference-matched jester on the first panel; readable 5×3 field occupies the right; gems, bunting and confetti spill through the foreground |
 | Shining Crown / Shining Crown game | `examples-games/shining-crown.jpeg` | C1 / A / M1 | Object; crown, jewel star, clover gem, ruby, supported multiplier medallions | No invented player or mascot; slides 1–2 show authentic reels at a three-quarter/3D angle, with reward objects across the foreground |
-| Zeus Game / Zeus slot | `examples-games/zeus.jpeg` | C1 / C / M1 | Character; original thunder god, lightning, eagle, laurel, temple and storm symbols | Large adapted Zeus on first panel; readable 7×6 field occupies the right; lightning and game objects can spill through the foreground |
+| Zeus Game / Zeus slot | `examples-games/zeus.jpeg` | C1 / C / M1 | Character; reference-matched thunder god, lightning, eagle, laurel, temple and storm symbols | Large reference-matched Zeus on first panel; readable 7×6 field occupies the right; lightning and game objects can spill through the foreground |
 | Plinko / Plinko game | `examples-games/plinko.jpeg` | C6 / AE / M6 | Mechanic; glossy colored balls, pegs, buckets, charged coins | Active tilted peg field can fill all three panels; trajectories and coins carry motion; no invented person or mascot |
 | Chicken risk game | No exact local preview required | C2 / M / M2 step model, if using safe-step wagering | Character; expressive chicken, safe/risk tiles, supported reward tokens | Chicken on first panel; actual staged risk path may span the remaining panels or whole scene |
 
@@ -54,25 +55,28 @@ re-theming, no substituted symbols, no palette shift, no inverted brightness. Wh
 open, take the one that looks more like the reference. A result that reads as a different game is
 wrong, and it is regenerated toward the reference rather than away from it.
 
-**Describe, do not gesture.** Inspect every reference file at full size before writing the concept
-and again before every generation prompt. Write down what is actually there — the exact costume
-pattern, the points on the cap, the symbol list, the reel colour, the frame ornament, the light
-direction — and put that description into the prompt. Vague prompts are where drift comes from.
+**Inspect and supply the reference.** View every mapped file at full size before writing the
+concept and before generation. Record the exact costume pattern, cap, symbol list, reel colour,
+frame ornament, background, linework, depth and light. Pass the relevant image files into a
+reference-capable generator at high fidelity; use those observations in the prompt as specific
+constraints. Text-only generation when image inputs are available causes identity drift.
 
-### The three things that are not copied
+### Production limits
 
 1. **The title, wordmark, logo and operator branding.** Those are the trademarks of a published
    commercial product, and the generated game ships under its own name and its own logo.
    Everything the logo sits on top of is matched.
-2. **The reference's pixels.** Generate the assets at production resolution from a written
-   description; never crop, trace or upscale the preview. It is a few hundred pixels wide and
-   falls apart at 1024 — lifting it would look worse than matching it properly.
+2. **Source image quality.** Direct reuse is appropriate only for a clean element or background
+   that remains sharp at its actual displayed size. A flattened screenshot is usually unsuitable
+   as a whole game background because it bakes in symbols, controls, title or payout text. Isolate
+   suitable pixels with provenance, or generate a production-sized asset from the actual source
+   image as a high-fidelity visual input. Do not substitute a merely similar character or symbol.
 3. **The paytable numbers.** A release is blocked without a green `tools/simulate_math.py` run,
    and figures read off a screenshot cannot be verified. Build the model with the same *shape* —
    the same symbol ranks, the same kind of bonus, the same volatility feel — and let
    `game-mathematician` land it inside the category's RTP window.
 
-Everything outside those three is matched, not adapted.
+Everything outside these limits is matched, not adapted.
 
 For Book of Ra, Joker, Joker Jewels, and Zeus Game the character is the lead: rebuild that
 character as the reference draws it. For Shining Crown and Plinko the absence of a main

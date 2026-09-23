@@ -53,6 +53,7 @@ class Project:
     """A throwaway game project laid out the way the studio generates one."""
 
     def __init__(self, tmp: str, *, lead_kind: str = "character",
+                 menu_role: str = "dominant",
                  menu: str = MENU_WITH_LEAD, menu_path: str = "lib/screens/main_menu.dart",
                  record_asset: bool = True) -> None:
         self.root = Path(tmp)
@@ -72,10 +73,12 @@ class Project:
                       if record_asset else "")
         concept.write_text(
             "# Harlequin Revel\n\n## Visual lead\n"
-            f"- lead_kind: {lead_kind}\n{asset_line}", encoding="utf-8")
+            f"- lead_kind: {lead_kind}\n- menu_role: {menu_role}\n{asset_line}",
+            encoding="utf-8")
 
     def audit(self, **kwargs):
-        params = dict(lead_kind=None, lead_asset=None, min_side=120.0, extra_docs=[])
+        params = dict(lead_kind=None, menu_role=None, lead_asset=None,
+                      min_side=120.0, extra_docs=[])
         params.update(kwargs)
         return menu_lead.audit(self.root, self.root / "lib",
                                self.root / "assets", **params)
@@ -86,6 +89,7 @@ class LeadDiscoveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             findings, context = Project(tmp).audit()
             self.assertEqual(context["lead_kind"], "character")
+            self.assertEqual(context["menu_role"], "dominant")
             self.assertTrue(context["lead_asset"].endswith("sprite_joker.png"))
             self.assertEqual(findings, [])
 
@@ -94,6 +98,7 @@ class LeadDiscoveryTests(unittest.TestCase):
             project = Project(tmp)
             (project.root / "design/gdd/game-concept.md").write_text(
                 "**lead_kind**: character\n"
+                "**menu_role**: dominant\n"
                 "- Lead asset: `assets/images/sprites/sprite_joker.png`\n",
                 encoding="utf-8")
             _, context = project.audit()
@@ -103,11 +108,23 @@ class LeadDiscoveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             project = Project(tmp)
             (project.root / "design/gdd/game-concept.md").write_text(
-                "# Harlequin Revel\n", encoding="utf-8")
+                "# Harlequin Revel\n\nmenu_role: dominant\n", encoding="utf-8")
             findings, context = project.audit()
             self.assertIsNone(context["lead_kind"])
             self.assertEqual([f.code for f in findings], ["lead-kind-undeclared"])
             self.assertEqual([f.severity for f in findings], ["MEDIUM"])
+
+    def test_undeclared_menu_role_is_medium(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Project(tmp)
+            concept = project.root / "design/gdd/game-concept.md"
+            concept.write_text(
+                "lead_kind: character\n"
+                "- Lead asset: `assets/images/sprites/sprite_joker.png`\n",
+                encoding="utf-8")
+            findings, context = project.audit()
+            self.assertIsNone(context["menu_role"])
+            self.assertEqual([f.code for f in findings], ["menu-role-undeclared"])
 
 
 class MenuLeadTests(unittest.TestCase):
@@ -130,6 +147,22 @@ class MenuLeadTests(unittest.TestCase):
             findings, _ = Project(tmp, menu=cameo).audit()
             self.assertEqual([f.code for f in findings], ["lead-drawn-small"])
             self.assertEqual(findings[0].severity, "MEDIUM")
+
+    def test_supporting_lead_may_be_cameo_sized(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cameo = MENU_WITH_LEAD.replace("width: 260, height: 260",
+                                           "width: 48, height: 48")
+            findings, context = Project(
+                tmp, menu_role="supporting", menu=cameo).audit()
+            self.assertEqual(findings, [])
+            self.assertEqual(context["menu_role"], "supporting")
+
+    def test_absent_role_does_not_force_store_lead_into_menu(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            findings, context = Project(
+                tmp, menu_role="absent", menu=MENU_WITHOUT_LEAD).audit()
+            self.assertEqual(findings, [])
+            self.assertEqual(context["menu_role"], "absent")
 
     def test_menu_is_found_in_every_structure_variant(self) -> None:
         for path in ("lib/screens/main_menu.dart", "lib/ui/screens/main_menu.dart",

@@ -408,12 +408,10 @@ def _generate(args: argparse.Namespace) -> int:
 def _edit(args: argparse.Namespace) -> int:
     """One finished picture built FROM the game's own files, not described to it.
 
-    `generate` can only be told what the hero and the symbols look like, and a
-    described symbol comes back similar rather than identical — which is the
-    defect that got a storefront returned. `edit` hands the model the shipped
-    PNGs (and usually a composed layout draft) as reference images, so it can
-    render those exact objects into the scene with real perspective, volume and
-    contact instead of the flat paste-up a compositor can produce.
+    `generate` can only be told what the hero and the symbols look like. `edit`
+    gives the model local reference images (mapped examples or shipped assets)
+    to preserve their identity. The prompt determines whether the target uses
+    2D illustration or modeled 2.5D art.
     """
     prompt = _read_prompt(args)
     images = _read_input_images(args.image)
@@ -495,8 +493,7 @@ def _parser() -> argparse.ArgumentParser:
 
     edit = subparsers.add_parser(
         "edit",
-        help="render one PNG FROM reference images — the game's own assets, so the "
-             "objects in the result are the objects in the app",
+        help="render one PNG from local reference images or the game's own assets",
     )
     edit_prompt = edit.add_mutually_exclusive_group(required=True)
     edit_prompt.add_argument("--prompt", help="image prompt")
@@ -506,9 +503,9 @@ def _parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         required=True,
-        metavar="PNG",
-        help="a reference image. Repeatable, and ORDER MATTERS: pass the layout "
-             "draft first, then one file per object whose identity must survive "
+        metavar="IMAGE",
+        help="a PNG, JPEG or WebP reference image. Repeatable, and ORDER MATTERS: "
+             "pass the layout draft first, then identity-critical references "
              f"(max {MAX_INPUT_IMAGES})",
     )
     edit.add_argument("--out", required=True, help="destination .png path")

@@ -79,27 +79,26 @@ through the manifest/budget above.
 - The asset's name from the file name (for example `sprite_cherry` → `cherry`)
 - The colours, shape and purpose from the SVG's content
 - If `design/gdd/game-concept.md` exists, read the **Design DNA** (world, materials, palette,
-  render style). A conversion is not "tracing the picture" — it is an **upgrade** of a flat SVG
-  into a cartoon volumetric 2.5D asset of the same object, faithful to the concept.
+  render style). Preserve the source's intended 2D or 2.5D finish. Conversion is not permission
+  to add glossy volume or change its silhouette, colours or meaning.
 
-**2. Build the prompt** in English (concept-grounded cartoon 2.5D — NOT a cheap icon):
+**2. Build the prompt** in English from the source SVG and Design DNA:
 
 First derive from the SVG + concept: the **subject** (what this object is in the game's world),
 the **material/texture** (metal/glass/stone/wood/neon/fabric), the **lighting** (consistent for
 the set, e.g. a key light from the upper left + a rim), and the **render style** from the DNA.
 
 ```
-Polished cartoon 2.5D game asset of [SUBJECT identity], single hero object centered,
-bold rounded and slightly exaggerated silhouette, [MATERIAL/TEXTURE] simplified into
-smooth modeled gradients, clean edging, glossy highlights and restrained star glints,
-soft [LIGHTING] light, rich [DNA PALETTE] colors,
+Game asset of [SUBJECT identity], single object centered,
+[SOURCE SILHOUETTE], [2D OR 2.5D STYLE ANCHOR: linework/shading/texture],
+[MATERIAL/TEXTURE], [SOURCE LIGHTING], [DNA PALETTE] colors,
 crisp clean silhouette, sharp focus, faithful to the original shape/colors,
 isolated on flat solid single-colour [KEY COLOUR] background, no gradient, no scene, no ground shadow, no text,
-no photorealism, no product photography, no flat vector clipart, transparent-ready, 1024x1024.
+no unrequested style substitution, transparent-ready, 1024x1024.
 ```
 
 > The object in the PNG must match the source SVG in shape and composition (this is a
-> conversion, not a new idea), but it must have volume and material rather than a flat fill.
+> conversion, not a new idea); preserve a deliberate flat or illustrated source when present.
 
 **3. Generating the PNG:**
 

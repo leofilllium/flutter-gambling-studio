@@ -1,141 +1,183 @@
-# Layout Archetypes — compositional variety across screens
+# Layout Grammar — compositional variety without whole-game templates
 
-> **The problem this solves:** even with a unique Design DNA (colours/fonts/shapes), games come
-> out looking alike because the COMPOSITION of the screens is always the same: HUD on top, a big
-> button bottom-centre, a menu that is a vertical stack of buttons. The 5 structure variants
-> (`directory-structure.md`) change WHERE the files live — not how a screen LOOKS. This document
-> adds variety to the composition itself.
-
-A **Layout Archetype** is a system for placing elements (where the HUD goes, where the main
-action goes, how the menu is assembled, how overlays enter). Art direction (palette, fonts,
-shapes) comes from the concept's **Design DNA**. The two axes are independent: the same layout
-archetype with a different DNA produces completely different games, and vice versa.
+> The old L1-L6 catalog selected one complete layout for an entire game. That produced a small
+> number of recurring shells: top HUD plus bottom controls, command deck, floating corners, rail,
+> split panel, or sheets. Changing the theme did not change the interaction architecture.
+>
+> The replacement is a grammar. Choose independent ingredients for each important screen and
+> gameplay state, then connect them with one Design Signature. The result is coherent without
+> forcing every screen, or every game, through one composition.
 
 ```
-Game = Layout Archetype (HOW it is composed) × Design DNA (HOW it looks) × Archetype A–AF (WHAT the mechanic is)
+Game UI = mechanic and state needs
+        × per-screen composition recipe
+        × Design Signature
+        × mobile/expanded reflow
 ```
 
-In `/autocreate` the layout archetype is chosen pseudo-randomly (like the structure) and
-recorded in `design/art-direction.md` — except for a request mapped to a local preview
-(`.claude/docs/game-concept-examples.md`), where the archetype is the one the reference uses.
-Read the composition off the reference and record which archetype it is; do not roll for it.
-`ui-programmer` reads the recorded archetype and composes the screens accordingly.
+## Invariants
 
-Every archetype is designed **mobile-first** under `.claude/docs/mobile-first-contract.md`.
-Its phone composition defines the hierarchy and touch ergonomics; medium and expanded layouts
-may reflow that same composition to use the full viewport without turning into a generic desktop
-dashboard.
+Every recipe still follows the product contracts:
 
----
+- phone-first, touch-first, full-viewport layout;
+- tap targets at least 48x48 logical pixels;
+- safe-area protection for essential controls and text;
+- the live field is the first read, meets `gameplay-screen-contract.md`, and does not require
+  page scrolling with its core controls;
+- no phone mockup, nested mini-game window, unrelated information card, or fixed-width phone strip;
+- a visible primary action or direct-manipulation affordance in thumb reach;
+- a reliable back path and supported-input focus order;
+- intentional medium/expanded reflow instead of blind scaling.
 
-## Invariants (upheld in EVERY archetype)
+These invariants define usability, not aesthetics. They do not prescribe a top bar, centered
+button, dark background, card surface, or any particular field alignment.
 
-The archetype changes the composition but does NOT break the baseline UX:
+## Recipe axes
 
-- The main action sits in the thumb zone (the bottom 60% of the screen on mobile) and remains
-  immediately discoverable on expanded layouts.
-- Tap targets ≥ 48×48 on every interactive element.
-- SafeArea on every screen except the fullscreen GameScreen.
-- The GameScreen owns the viewport; safe-area padding protects chrome without framing the whole
-  game inside a second window.
-- The play field remains the main focus of the game screen (≥55% of the usable phone area and
-  normally ≥88% of its width; see `gameplay-screen-contract.md`).
-- The field, essential HUD, stake/risk controls, and primary action are visible without page
-  scrolling.
-- No archetype permits a thumbnail play field, a phone/window inside the game, or a large generic
-  information card that competes with the mechanic.
-- Visual hierarchy: the main action is the most prominent element.
-- Back navigation works from every screen.
+Choose one primary option per axis for each key screen. Add a secondary option only when the
+state change genuinely needs it. The codes make plans concise; they are not prefab widgets.
 
----
+### F — field or subject framing
 
-## L1 — Classic Stack (top HUD / bottom panel)
+| Code | Direction | Good fit | Watch for |
+|---|---|---|---|
+| F1 | Full-bleed stage | physics, crash, scenic originals | HUD contrast over moving art |
+| F2 | Bounded game object | reels, boards, tables, scratch cards | object must dominate, not become a card in a card |
+| F3 | Tabletop / angled plane | cards, dice, coin objects | perspective must preserve readable targets |
+| F4 | Split relationship | spin plus progress/world, risk plus reward | neither side may become a thumbnail |
+| F5 | Layered diorama | collection/progression with spatial depth | keep critical interaction on a stable plane |
+| F6 | Instrument / cabinet | mechanical or diegetic controls | avoid ornamental chrome stealing field space |
 
-The familiar mobile layout. The safe default.
+### C — control topology
 
-- **Main menu:** a hero logo top-centre → a vertical stack of buttons beneath it. PLAY is large and dominant.
-- **Game screen:** a thin HUD bar pinned to the top (balance/score/settings), the play field in the centre, the control panel and main action pinned to the bottom.
-- **Action button:** centred in the bottom panel, the largest element.
-- **Overlays:** toasts from the bottom above the panel; modals centred with a light scrim.
-- **Transitions:** a smooth fade-through or slide-up.
+| Code | Direction | Description |
+|---|---|---|
+| C1 | Attached | Controls are physically or visually attached to the field/object they affect. |
+| C2 | Thumb dock | A compact lower control cluster; it need not span the screen or look like a panel. |
+| C3 | Edge rail | Controls occupy one safe edge and may move to a side on wider viewports. |
+| C4 | Distributed | Small controls sit near their consequences, with one clear recurring action. |
+| C5 | Direct manipulation | Drag, scratch, place, aim, or choose on the field; chrome is secondary. |
+| C6 | Context action | The primary action changes with state in one stable location. |
+| C7 | Radial / spatial choice | Options surround an object or decision point when direction has meaning. |
 
-## L2 — Bottom Command Deck
+### H — HUD behavior
 
-The whole "dashboard" is gathered into a dense bottom console; the field stretches to the edges above it.
+| Code | Direction | Description |
+|---|---|---|
+| H1 | Edge anchors | A few stable readouts occupy protected corners/edges without a full bar. |
+| H2 | Compact strip | Related persistent values share one quiet strip. |
+| H3 | Embedded | Values live on the machine, table, board, character, or other world object. |
+| H4 | Contextual | Information appears for setup/result/risk states and recedes afterward. |
+| H5 | State panels | The same zone swaps its content as the round advances. |
+| H6 | Dense tactical | More information stays visible because comparison is the mechanic. |
 
-- **Main menu:** large art/scene on top (≈55%), a sliding mode panel (bottom sheet) below with the start button.
-- **Game screen:** the play field edge-to-edge on top, a pronounced console deck below carrying the HUD, the bet/controls and the main action as one block.
-- **Action button:** built into the deck, set apart by colour or size relative to its neighbours.
-- **Overlays:** slide up out of the deck; modals are bottom sheets with a rounded top.
-- **Transitions:** sheet slide-up; the deck "breathes" during transitions.
+### M — menu and hub structure
 
-## L3 — Floating Corners (minimal chrome)
+| Code | Direction | Description |
+|---|---|---|
+| M1 | Poster / title composition | A focused title/action composition; can be quiet or theatrical. |
+| M2 | Interactive scene | World objects or hotspots are navigation. Include clear text/focus fallbacks. |
+| M3 | Machine facade | The game object itself holds Play and secondary entries. |
+| M4 | Map / path | Progress locations form the menu and make goals spatial. |
+| M5 | Shelf / collection | Modes or content are physical/displayed objects, not equal cards by default. |
+| M6 | Editorial split | Copy/identity and playable preview or choices share an intentional split. |
+| M7 | Compact conventional | A clear list/grid used when speed and scanability matter more than spectacle. |
 
-No bars. Small floating widgets in the corners, the field full-bleed.
+### O — overlay and secondary-surface behavior
 
-- **Main menu:** full-bleed art/scene across the whole screen, one central CTA, small settings/info icons in the corners.
-- **Game screen:** the field fills the screen; balance/score is a floating chip in one top corner, settings in the opposite one, and the main action is a large floating button (FAB style) bottom-centre or in the thumb corner.
-- **Action button:** floating, with a pronounced shadow or outline so it reads over the field.
-- **Overlays:** pop out from the relevant corner; modals are compact centred cards.
-- **Transitions:** scale/fade from the point of origin.
-- ⚠️ Contrast between the floating elements and the field is mandatory (a backing plate, an outline or a shadow) — otherwise it is unreadable.
+| Code | Direction | Description |
+|---|---|---|
+| O1 | Local callout | Feedback stays near the object or control that caused it. |
+| O2 | Edge sheet | Secondary detail enters from the nearest safe edge. |
+| O3 | Center dialog | Short blocking decisions only; restore focus on close. |
+| O4 | Object-led reveal | A chest, card, capsule, door, meter, or board element carries the reveal. |
+| O5 | Full-state takeover | Major result/bonus changes the whole scene, proportionate to importance. |
+| O6 | Dedicated screen | Long rules, odds, settings, collection, and history get readable space. |
 
-## L4 — Adaptive Action Rail
+### R — expanded-viewport reflow
 
-A slim rail groups secondary actions while the field continues behind or beside it. It starts as
-a lower-thumb overlay on phones and may become a side rail when the viewport has enough width.
+| Code | Direction | Description |
+|---|---|---|
+| R1 | Grow the field | Extra space primarily enlarges or reveals more of the mechanic/world. |
+| R2 | Relocate controls | A phone dock becomes a side attachment or rail while meaning stays stable. |
+| R3 | Add supporting zone | History, build detail, or progression appears beside the dominant field. |
+| R4 | Rebalance a split | The same two subjects change proportion/orientation at content breakpoints. |
+| R5 | Reveal environment | Art/world expands while critical UI holds a readable max measure. |
 
-- **Main menu:** full-bleed centerpiece, with a short action rail anchored to the lower thumb edge
-  on phones; at expanded widths it may move beside the centerpiece.
-- **Game screen:** the field remains dominant; a compact lower-edge rail overlays a non-critical
-  margin on phones and may occupy a narrow side zone on medium/expanded layouts. Essential
-  counters stay close to the field.
-- **Action button:** attached to the bottom of the rail, visually larger than its other buttons
-  and clear of the system gesture inset.
-- **Overlays:** slide out from the rail side; modals are centred over the field.
-- **Transitions:** horizontal slide, with the rail staying stable.
-- ⚠️ On phones the rail must never reduce the play field below the contract's 88% normal-width
-  threshold; it overlays a safe zone or collapses to icons on compact-height phones. On expanded
-  layouts, any side rail must leave the mechanic visually dominant.
+## Building recipes
 
-## L5 — Split Panel (two zones)
+The plan must define recipes for at least the main menu, live setup/idle, active/anticipation,
+result, and one information-heavy secondary screen. Other screens may reuse a recipe when their
+jobs are genuinely similar.
 
-The screen is explicitly split into two zones with different surfaces.
+```markdown
+## Layout & Composition Direction
 
-- **Main menu:** the upper zone is art/preview, the lower zone (a different surface) is the mode menu.
-- **Game screen:** the top ≈65–75% is the play field, the compact bottom zone carries only core
-  information, controls, and the main action. Rules/history expand as an overlay or separate screen.
-- **Action button:** in the info panel, as the accent.
-- **Overlays:** expand within the lower panel, or over both zones for major events.
-- **Transitions:** the zones can animate separately (cross-fade on top, slide below).
+### Main menu — M3 + O2 + R5
+- Why: [the machine is the brand and the menu; secondary entries remain discoverable]
+- Compact: [phone composition and thumb path]
+- Expanded: [what grows, moves, or becomes visible]
 
-## L6 — Card / Sheet Stack
+### Live setup — F2 + C1 + H4 + O1 + R1
+- Attention order: [field -> wager control -> action]
+- Persistent/contextual information: [...]
+- Primary field alignment: [centered | intentionally offset because ...]
 
-Content lives on rounded cards or sheets that replace one another.
+### Anticipation — F2 + C6 + H4 + O1 + R1
+- What changes from setup: [...]
+- What stays spatially stable: [...]
 
-- **Main menu:** a horizontal carousel of mode cards; swipe to choose a mode, tap to start.
-- **Game screen:** a full-viewport field with one structural sheet edge or layered surface; a thin
-  HUD pill and compact controls may float above it. The field must not become a small rounded card
-  surrounded by page padding—the "card" metaphor describes transitions and depth, not a nested app.
-- **Action button:** on the lower sheet, or as the accent on the card itself.
-- **Overlays:** new cards ride over the stack; modals are a rising sheet.
-- **Transitions:** cards slide and overlap (shared axis), with depth from layered shadows.
+### Result — F2 + C6 + H5 + O4 + R1
+- Win/loss attention shift: [...]
+- Return-to-play path: [...]
 
----
+### Rules/odds — M7 + O6 + R3
+- Scan and disclosure strategy: [...]
 
-## How the archetype is chosen (in /autocreate)
-
-In Phase 2, alongside the project structure, the layout archetype is chosen:
-
-```python
-import time
-layout = ["L1", "L2", "L3", "L4", "L5", "L6"][(int(time.time() // 7) % 6)]
+### Viewport proof
+- Phone: [360x640, 360x800, 390x844, 430x932]
+- Expanded: [844x390, 768x1024, 1024x768, 1440x900]
 ```
 
-It is recorded in `design/art-direction.md`. On a `--from-concept` run it is taken from the
-**Layout & Composition Direction** section of the concept (see `auto-idea`).
+This example is syntax, not a recommended combination. Do not copy it into every concept.
 
-> **Not to be confused with the DNA.** The archetype says "the HUD is in a bottom deck"; the DNA
-> says "the deck is warm wood with brass buttons" or "the deck is cold matte metal with
-> backlighting". Choose the composition (the archetype) first, then dress it in the DNA. Never
-> apply the same art style (neon/glass) to every game — that is exactly what slop is.
+## Coherence rules
+
+- Keep semantic color roles, typography roles, material logic, input meanings, and navigation
+  behavior consistent across recipes.
+- Keep one or two stable landmarks across adjacent round states so the player perceives change,
+  not a new screen teleport.
+- Do not make every screen spatially unique. Variation follows job differences, not novelty quotas.
+- Do not make every screen structurally identical. Menu, live round, dramatic result, and dense
+  information do different work and usually need different recipes.
+- A vertical button list, centered field, bottom dock, or modal is allowed when it is the clearest
+  answer. It becomes slop when it appears by habit and is merely reskinned.
+
+## Selection process
+
+1. Map gameplay states and information priority from `.claude/rules/anti-slop-design.md`.
+2. Choose a field/subject frame from the mechanic's physical or conceptual structure.
+3. Choose controls based on the repeated input, hand posture, and action frequency.
+4. Choose HUD behavior based on when information is needed, not where a template has space.
+5. Choose overlays by interruption level and content length.
+6. Define compact composition first, then choose an expanded reflow strategy.
+7. Compare the resulting recipes with recent/nearest games. If the same F+C+H+M combination
+   recurs, either justify it from the mechanic/reference or choose a stronger alternative.
+8. Record the recipes and Similarity Check in `design/art-direction.md`.
+
+Random selection is allowed only between equally suitable choices after this reasoning. A clock-
+based roll is not a design method.
+
+## Reference-mapped games
+
+When `.claude/docs/game-concept-examples.md` maps the request to a local preview, read the preview's
+actual framing, controls, HUD, menu, overlays, and responsive implications. Record those as recipes
+without forcing them into a different combination for variety. The reference contract outranks the
+anti-repeat gate; exact pixels, title/logo, and paytable numbers remain excluded as documented.
+
+## Deprecated L1-L6 behavior
+
+Do not select one L1-L6 archetype for a new game. Existing concepts that already record L1-L6 may
+be implemented for backward compatibility, but convert them into explicit per-screen recipes when
+the project is next redesigned. The old names are not accepted as sufficient art direction because
+they omit state changes, information behavior, and expanded reflow.

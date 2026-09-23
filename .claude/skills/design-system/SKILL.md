@@ -10,10 +10,10 @@ argument-hint: "<system-name> (e.g. rtp-weights, free-spins, multiplier-curve, p
 
 Interactively designs one **game** system of a gambling game (mechanics/balance).
 
-> The **visual design system** (Design DNA → theme tokens: palette, type scale, shapes, motion)
-> and the **composition** (Layout Archetype) live in the concept: `design/gdd/game-concept.md`
-> (Design DNA) and `design/art-direction.md` (Layout). See `.claude/rules/anti-slop-design.md`
-> (plus its craft fundamentals) and `.claude/docs/layout-archetypes.md`. This skill is about
+> The **interface direction** (asset/world Design DNA plus the Game UI Read, Design Signature,
+> state map, and per-screen layout recipes) lives in `design/gdd/game-concept.md` and
+> `design/art-direction.md`. See `.claude/rules/anti-slop-design.md` and
+> `.claude/docs/layout-archetypes.md`. This skill is about
 > game systems, not about the theme.
 
 ## Workflow

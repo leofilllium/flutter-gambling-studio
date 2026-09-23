@@ -21,10 +21,10 @@ language.
 
 ## BEFORE YOU START (required reading)
 
-1. `design/gdd/game-concept.md` → the **Design DNA** section (palette, fonts, shape language, motion)
-2. `design/art-direction.md` (if it exists) → the chosen **Layout Archetype** (L1–L6) — this
-   determines the COMPOSITION of the screens (where the HUD goes, where the main action goes,
-   how the menu is assembled). The catalogue is `.claude/docs/layout-archetypes.md`.
+1. `design/gdd/game-concept.md` → the **Game UI Read and Design Signature** (mechanic, world,
+   information, field, controls, HUD, materials, type, color/value, motion)
+2. `design/art-direction.md` → the **State Composition Map**, per-screen F/C/H/M/O/R recipes,
+   Similarity Check, and viewport proofs. The grammar is `.claude/docs/layout-archetypes.md`.
 3. `design/asset-format.md` → `format: png|svg`. Under Codex `/autocreate` this is usually `png`.
 4. `.claude/rules/anti-slop-design.md` → the principle plus the craft fundamentals
 5. `.claude/rules/ui-code.md` → crash safety
@@ -33,8 +33,9 @@ language.
 7. `.claude/docs/gameplay-screen-contract.md` → full-viewport composition, measurable field
    dominance, control sizing, stable test keys, and the required viewport matrix
 
-**Axis 1 — the Layout Archetype** says HOW the screen is composed. **Axis 2 — the Design DNA**
-says HOW it looks. You implement the intersection of those two, not a default studio template.
+The state map says what the player needs now. The per-screen recipe says how it is composed. The
+Design Signature says how interaction and presentation behave. Implement their intersection, not
+a studio template with swapped colors.
 
 ### The asset format contract
 
@@ -57,32 +58,31 @@ Read and follow strictly: `.claude/rules/anti-slop-design.md`
 
 ### Forbidden (real AI slop — decisions made without context)
 
-- `ThemeData.dark()` / `ThemeData.light()` without customisation for the game's DNA
-- A palette unrelated to the game's theme (the default "random purple-blue")
-- One font for the whole app, with no typographic hierarchy
+- `ThemeData.dark()` / `ThemeData.light()` without semantic customization for the Design Signature
+- A palette or type treatment unrelated to the game's mechanic, world, or information roles
 - The same treatment on every element — no visual hierarchy (you cannot see what matters)
 - Default `CircularProgressIndicator` / `AlertDialog` / `MaterialPageRoute` where a thematic
   solution is obviously called for
 - Effects (glow / blur / shadows / particles) with no purpose — "for prettiness"
-- Random one-off font sizes and chaotic spacing
+- Random one-off values with no semantic token role
 
-### Required (craft level — from the Design DNA, NOT from a default neon look)
+### Required (craft level — from the Design Signature, not a default look)
 
-- A custom `ThemeData`, palette and fonts — strictly from the concept's Design DNA
-- The shape of buttons and cards comes from the game's shape language. A rounded rectangle is
-  fine if it suits the world. The shape does NOT have to be a trapezoid or a skew.
-- A type scale: 4–6 sizes, reused (craft fundamentals)
-- A base spacing unit (4 or 8); every padding and gap is a multiple of it
-- Animated screen transitions in a style tied to the game's world
-- Micro-interactions on EVERY interactive element (their character comes from the DNA)
-- Numbers (balance, win, score, timer) animate when they change
-- The 60-30-10 rule: 60% game, 30% controls, 10% decoration
-- One clear focus on each screen; an explicit visual hierarchy
+- A custom semantic theme sourced from the Design Signature; its token count fits this game
+- Shapes, materials, type, color, depth, and feedback follow documented roles
+- Spacing and type use named scales/tokens without imposing one studio-wide size count
+- Every interactive element exposes idle, pressed, disabled, focus/hover where applicable, and
+  loading/committed behavior
+- Numbers animate only when the change communicates reward, risk, or progression
+- Motion and transitions communicate feedback, hierarchy, continuity, anticipation, or outcome
+- Every key state follows its recorded attention order and information policy
+- Menu, live round, result, and secondary screens implement their own compatible layout recipes
 
 > ⚠️ **A dark theme, neon, glassmorphism, skewed buttons and Orbitron are ONE style, not the
 > studio's standard.** Cosy bingo is warm and light. A strict roguelike is minimal and airy. A
 > retro arcade hall is pixel. A fairy tale is papery and soft. If ALL your games come out
-> neon-dark, you are producing the studio's own slop. The style ALWAYS derives from the DNA.
+> neon-dark, you are producing the studio's own slop. The result always derives from the current
+> Game UI Read and Design Signature.
 
 ---
 
@@ -96,37 +96,26 @@ Screens 13–15 are the **compliance layer**, and are mandatory
 ### 1. Splash screen (`lib/screens/splash_screen.dart`)
 
 ```dart
-// An animated logo / game title
-// Duration: 1.5-2 seconds
-// A thematic animation from the game's Design DNA:
-//   slot — a spinning symbol or a neon reveal
-//   crash — an accelerating curve; plinko — a falling ball
-//   gashapon — a capsule rolling out; bingo — a card filling in
+// A <=2-second opening state from the Design Signature. It may use a meaningful animation or a
+// direct composition; do not add a generic logo reveal merely to satisfy a splash convention.
 // MANDATORY: the disclaimer line from ComplianceCopy at the bottom of the splash
-// Transition: a custom animation → Main Menu
+// Transition: direct, standard, or custom only when the recorded continuity/state reason calls for it
 class SplashScreen extends StatefulWidget { ... }
 ```
 
 ### 2. Main menu (`lib/screens/main_menu.dart`)
 
-> **The menu is the game's shop window, not a list of buttons.** A standard menu (background +
-> logo + a column of centred buttons) is slop. The first screen must look hand-made and must
-> convey the game's world immediately. Build a CONCEPTUAL menu (see "Signature menu centerpiece"
-> below).
+> **The menu must perform its documented job.** Implement its M/O/R recipe and attention order;
+> do not turn every game into the same logo + hero + button stack, but do not reject a compact
+> conventional hub when speed, clarity, or the concept genuinely calls for one.
 
 ```dart
-// The composition follows the chosen Layout Archetype (NOT always a centred column).
-// MANDATORY — a signature centerpiece derived from the game's world:
-//   slot — a stylised machine/reel with a highlight; plinko — a peg field with a hovering ball;
-//   gashapon — a capsule machine; bingo — a table with cards; roguelike — a fanned-out hand;
-//   space — a planet/ship with parallax; pirate — a map/chest.
-//   This is NOT just a text logo — it is a living thematic visual with a light animation.
-// A layered background: 2–3 layers with parallax/particles (depth from the DNA), not a flat gradient.
-// The game's title — custom typography (shape/effect from the DNA), integrated into the composition.
-// The "PLAY" button — the dominant focus, a custom shape from the DNA, with an idle pulse.
-// Secondary entries (Settings/Profile/Shop/Bonus/Records) — quieter than the primary, one style,
-//   and may be corner icons or a rail (per the Layout Archetype) rather than an identical column.
-// Entrance: staggered — the layers and buttons come in one after another.
+// Implement the recorded M/O/R recipe. The menu may be a poster, interactive scene, machine
+// facade, map/path, shelf, editorial split, or compact conventional hub.
+// Its memorable idea comes from the Game UI Read; do not force a centerpiece, parallax layers,
+// particles, an idle pulse, or staggered entrance when another composition fits better.
+// Title, primary entry, and secondary navigation follow the recorded attention order and remain
+// usable by touch and supported focus navigation.
 class MainMenuScreen extends StatefulWidget { ... }
 ```
 
@@ -135,16 +124,17 @@ class MainMenuScreen extends StatefulWidget { ... }
 > **The play field takes priority. The HUD serves the game, not the other way round.** Unlike
 > the menu, the UI on the game screen must be RESTRAINED and must not pull attention: thematic
 > in look, but compact, pushed to the edges, never overlapping the field. Buttons and labels are
-> styled from the DNA but "quieter" than the menu — no heavy effects distracting from the gameplay.
+> styled from the Design Signature but calibrated to the live state's attention order.
 
 ```dart
 // A full-viewport GameWidget composition + integrated overlay/edge HUD. The field follows the
 // measurable gameplay-screen contract and stays the first focus; it is never a nested mini-window.
-// The HUD is compact bars/chips at the edges (per the Layout Archetype), NOT large central panels.
+// The HUD follows its H recipe: edge anchors, strip, embedded, contextual, state panel, or dense
+// tactical. It must not cover the field's critical interaction zone.
 // The HUD contains at least:
 //   - A counter (chip balance / current multiplier / energy — per category), an animated counter
-//   - The main action button (SPIN / PLAY / START) — a custom shape from the DNA,
-//     3 states: idle/active/disabled; within thumb reach
+//   - The main action (SPIN / PLAY / START or direct manipulation), with complete interaction
+//     states and thumb-reachable placement
 //   - An info button (→ Rules/Paytable)
 //   - A settings button
 // Gambling-specific HUD additions:
@@ -336,162 +326,110 @@ class CategoryScreenB extends StatefulWidget { ... }
 
 ---
 
-## Signature menu centerpiece (a conceptual menu, not "a list of buttons")
+## Main menu: implement its job and recipe
 
-> The menu is the place where you can — and should — be visually bold. There is no gameplay
-> here, so the UI can take the stage. The goal: the player sees the first screen and immediately
-> understands what world they have landed in.
+The menu establishes identity and starts or resumes play. It does not have a mandatory visual
+formula. Read the recorded M/O/R recipe and build that composition:
 
-**Mandatory for the main menu:**
+- a poster/title composition may let type lead;
+- an interactive scene may use world objects as navigation with clear text/focus fallbacks;
+- a machine facade may place entries on the game object;
+- a map/path may turn progression into navigation;
+- a shelf/collection may make modes physical;
+- an editorial split may pair identity with a preview or choice;
+- a compact conventional hub may be the best answer for a fast or information-heavy game.
 
-1. **A signature centerpiece** — a thematic visual at the heart of the composition, derived from
-   the game's world, NOT just a text logo. It is the screen's anchor:
-   - slot/casino → a stylised machine / reel with a highlight; plinko → a peg field with a ball;
-   - gashapon → a capsule machine; bingo → a table with a card; roguelike → a fanned-out hand;
-   - space → a planet/station with an orbit; pirate → a treasure map / chest;
-   - zen → one expressive geometric object. The centerpiece is lightly animated (idle).
-2. **Layered depth** — 2–3 layers (background → mid-ground → centre) with parallax, particles or
-   a gradient drift per the DNA. Not a flat fill.
-3. **Composition per the Layout Archetype** — the placement of the centerpiece, the title and
-   the buttons is dictated by the chosen L1–L6 (`design/art-direction.md`), not by a default
-   "centred column" every time.
-4. **Integrated typography** — the game's title is resolved as part of the scene (shape/effect
-   from the DNA), not a system `Text` over a picture.
-5. **The "PLAY" button is the single explicit focus**; secondary entries are noticeably quieter
-   and share one style.
-6. **Staggered entrance** — the layers and elements arrive in sequence; the screen comes alive.
-
-> The test: if this menu could be dropped into another game by changing only the colour, the
-> centerpiece has not been made. The centerpiece must be recognisably "about this game".
+Implement the documented attention order, not a studio-wide “large centerpiece + PLAY + icon row.”
+Depth, idle motion, staggered entrances, particles, and parallax are optional techniques. Use them
+only when the Design Signature gives them a communication role and provide reduced-motion behavior.
+The menu must still expose a clear route to play, settings, help/rules, and compliance surfaces.
 
 ---
 
-## In-game UI restraint & alignment (gameplay takes priority)
+## In-game UI hierarchy and alignment (gameplay takes priority)
 
-> Here the rule is the opposite of the menu: **restraint**. The player came to play, not to
-> admire the HUD. The UI on the game screen is thematic but compact, peripheral, and never gets
-> in the way of reading the field.
+> The mechanic owns the live screen. HUD density and placement follow the H recipe: restrained
+> and peripheral in many games, embedded or dense tactical when the mechanic requires it. Chrome
+> must never get in the way of reading or manipulating the field.
 
 **Mandatory for the game screen:**
 
-1. **The field is the main focus (≈60%+).** The HUD does not overlap the play field or cover
-   important zones.
-2. **The HUD hugs the edges** — compact bars/chips/decks at the top and/or bottom (per the Layout
-   Archetype), not large central panels. Minimal chrome: show only what is needed right now.
-3. **A one-button hierarchy** — the main action dominates; everything else in the HUD is visually
-   quieter (smaller, lower contrast), with no competing glow or effects stealing attention from
-   the field.
-4. **Strict alignment** (the most common tell of "generated" UI):
-   - HUD elements share alignment lines (left edges/right edges/centres line up);
-   - equal optical margins from the screen edges (via `SafeArea` + one shared padding);
-   - every gap and padding is a multiple of the base unit (4 or 8) — no random `padding: 7/13/22`;
-   - counters and icons align to the baseline rather than floating.
-5. **Effects are functional only.** On the game screen, save glow and particles for game events
-   (a win, a combo), not for permanent HUD decoration.
-6. **Readability over the field** — HUD text gets a scrim or shadow, with contrast ≥ 4.5:1,
-   because the field behind it is alive.
-
-> The test: mentally remove the HUD — the field should read perfectly. Put the HUD back — it
-> should "disappear" into the periphery until you look at it. If the HUD competes with the field
-> for attention, simplify it.
+1. The field meets the measurable dominance thresholds in `gameplay-screen-contract.md` and its
+   critical interaction/readability zone stays clear.
+2. Controls implement the recorded C recipe: attached, thumb dock, edge rail, distributed,
+   direct manipulation, contextual action, or radial/spatial choice.
+3. HUD behavior implements the recorded H recipe. Persistent values stay glanceable; contextual
+   values appear only in the states that need them; dense tactical information is allowed when
+   comparison is part of the mechanic.
+4. The attention order changes as recorded across setup, anticipation, result, and recovery. The
+   primary action does not have to remain visually dominant during a decisive result or risk choice.
+5. Use shared alignment and spacing tokens, but permit intentional broken grids or object-relative
+   placement when the recipe documents them.
+6. Test text and controls over the brightest, darkest, and busiest live frames. Add local backing,
+   outline, shadow, or scrim as needed; critical information cannot depend on color alone.
+7. Permanent effects and chrome must earn their space by communicating interaction, grouping,
+   state, or world material. Celebration effects scale with outcome importance.
 
 ---
 
-## The custom game theme — values from the Design DNA
+## The custom game theme — semantic roles from the Design Signature
 
-> The structure is the same for every game; **the values come from the Design DNA**, not from
-> the example below. This is a template of fields, not a default palette. Never copy neon
-> colours blindly.
+Do not give every game the same token inventory. Define the semantic roles this game's screens
+actually use, then centralize them. The sketch below shows minimum accessibility roles, not a
+fixed palette, type count, radius system, or surface treatment.
 
 ```dart
 // lib/theme/game_theme.dart
-// A custom theme is MANDATORY. brightness comes from the DNA (light/dark are equally valid).
+// A custom semantic theme is mandatory. Values and optional roles come from the signature.
 
 class GameTheme {
-  // === Palette: 5 colours from the Design DNA (NOT from this example) ===
-  static const Color background  = Color(0x________); // from the DNA: Background
-  static const Color surface     = Color(0x________); // from the DNA: Surface
-  static const Color primary     = Color(0x________); // from the DNA: Primary (accent)
-  static const Color success     = Color(0x________); // from the DNA: Win/Success
-  static const Color danger      = Color(0x________); // from the DNA: Danger/Loss
+  // Minimum semantic color roles; add/remove contextual roles deliberately.
+  static const Color background = Color(0x________);
+  static const Color surface = Color(0x________);
+  static const Color action = Color(0x________);
+  static const Color success = Color(0x________);
+  static const Color danger = Color(0x________);
   static const Color textPrimary = Color(0x________);
   static const Color textSecondary = Color(0x________);
 
-  // === Fonts from the DNA (through google_fonts — any Google Font) ===
-  // GoogleFonts.<display>() for headings/numbers, GoogleFonts.<body>() for text.
-
-  // === The type scale (4–6 sizes, reused) ===
-  static const double display = 40, title = 24, body = 16, caption = 13;
-
-  // === The base spacing unit ===
-  static const double space = 8; // every padding and gap is a multiple of space
-
-  // === Radius/shape — from the DNA's shape language ===
-  static const double radius = 16; // ← the value from the DNA (0 for sharp, large for soft)
+  // Name type, spacing, and shape tokens by role. Their count is project-specific.
+  // Example roles: outcomeDisplay, balanceReadout, actionLabel, body, legal.
+  // Example spacing: inlineGap, controlGap, sectionGap, safeInset.
+  // Example shapes: primaryActionShape, readoutShape, blockingDialogShape.
 
   static ThemeData get themeData => ThemeData(
-    brightness: /* from the DNA */ Brightness.dark,
+    brightness: /* from the Design Signature */ Brightness.dark,
     scaffoldBackgroundColor: background,
-    // ... full customisation: ColorScheme, TextTheme (the type scale), button shapes, etc.
+    // ColorScheme, TextTheme, controls, focus, and disabled states use semantic roles.
   );
 }
 ```
 
-**The palette is derived from the game's world. Examples (DO NOT copy — they illustrate the range):**
+Do not copy a world-to-palette/font lookup table. Derive those choices from the current concept,
+reference, readability needs, and anti-repeat comparison.
 
-| Game world | Background | Primary | Fonts (example) | Brightness |
-|------------|-----------|---------|-----------------|------------|
-| Neon cyberpunk | deep blue-black | electric cyan/magenta | Audiowide + Exo 2 | dark |
-| Cosy café / fairy tale | warm cream | caramel/terracotta | Fredoka + Nunito | light |
-| Zen minimalism | near-white/sand | one calm accent | Inter + Inter | light |
-| Space / sci-fi | charcoal blue | cold white/ice | Orbitron + Rajdhani | dark |
-| Pirate / wood | dark wood/parchment | gold/rum | Cinzel + Lora | dark/warm |
-| Candy / children's | pastel | vivid coral/mint | Baloo 2 + Quicksand | light |
-
-Add effect helpers (glow, shadows) **only if they are in the DNA**. For a flat or minimal style
+Add effect helpers (glow, shadows) **only if they are in the Design Signature**. For a flat or minimal style
 there may be none at all — and that is correct.
 
 ---
 
 ## Centralised animations
 
-```dart
-// lib/theme/animations.dart
-// Creating this config is MANDATORY. EVERY Duration and Curve lives HERE.
-// Hardcoding a `Duration` inside a widget is FORBIDDEN.
-
-class AnimationConfig {
-  static const Duration screenTransition = Duration(milliseconds: 600);
-  static const Duration splashDelay = Duration(seconds: 2);
-  static const Duration buttonScale = Duration(milliseconds: 150);
-  static const Duration counterIncrement = Duration(milliseconds: 1200);
-  static const Curve defaultCurve = Curves.easeOutCubic;
-  static const Curve bounceCurve = Curves.elasticOut;
-  // ... the full configuration
-}
-```
+Create `lib/theme/animations.dart` and centralize the roles the state map actually uses, such as
+input acknowledgement, ordinary state change, contextual HUD reveal, meaningful value change,
+and dramatic outcome. Choose each duration/curve from this game's motion character and provide
+reduced-motion variants. Do not copy one timing set or bounce curve to every project.
 
 ---
 
-## Custom widgets (a reusable library)
+## Custom widgets
 
-Create `lib/widgets/` with custom components. **The purpose is fixed, the LOOK comes from the DNA.**
-The names below are deliberately neutral: `PrimaryActionButton` in a cosy game is a soft rounded
-button with a warm shadow; in a neon game it glows; in a zen game it is flat with a thin outline.
-Do not build a `NeonText` for a game that has no neon.
-
-| Widget | File | Purpose (the look comes from the DNA) |
-|--------|------|---------------------------------------|
-| `AnimatedCounter` | `animated_counter.dart` | Smooth number changes (balance, score, win) |
-| `PrimaryActionButton` | `primary_action_button.dart` | The main action, 3 states (idle/press/disabled); shape + effect from the DNA |
-| `SecondaryButton` | `secondary_button.dart` | Secondary actions, visually quieter than the primary |
-| `DisplayText` | `display_text.dart` | Accent text (titles/numbers); the effect (glow/shadow/none) from the DNA |
-| `IdlePulse` | `idle_pulse.dart` | A wrapper for idle animation (character from the DNA) |
-| `StaggeredEntrance` | `staggered_entrance.dart` | Sequential appearance of elements |
-| `ThemedSlider` | `themed_slider.dart` | A styled slider for settings |
-| `ThemedToggle` | `themed_toggle.dart` | A styled toggle |
-| `GameLoadingIndicator` | `game_loading.dart` | A thematic loading indicator (not a generic spinner) |
-| `ThemedPanel` | `themed_panel.dart` | A surface container; the depth strategy from the DNA (card/glass/paper/flat) |
+Create reusable widgets only for repeated behavior or semantic roles in this game. A primary action
+control and accessible focus/pressed/disabled behavior are common needs; `AnimatedCounter`,
+`IdlePulse`, `StaggeredEntrance`, `ThemedPanel`, or a custom loading object are optional. Do not
+manufacture a component library that forces every screen into the same cards and effects. Standard
+Flutter controls may be lightly themed when they provide the clearest accessible behavior,
+especially on settings and form-like screens.
 
 ---
 
@@ -503,8 +441,8 @@ Do not build a `NeonText` for a game that has no neon.
   cap, `phoneViewport` wrapper, centered phone strip, or fake device frame.
 - **No `BuildContext` in Flame components**
 - **`ValueNotifier` only** for passing state from Flame to Flutter
-- **The theme's brightness comes from the DNA** (light/warm/dark are equally valid; not "always dark")
-- **Screen composition comes from the chosen Layout Archetype** (`design/art-direction.md`)
+- **Theme roles come from the Design Signature** (light/warm/dark/mixed-value are contextual)
+- **Screen composition follows its recorded state and F/C/H/M/O/R recipe**
 - **Responsive**: use `LayoutBuilder` and `MediaQuery`; cover compact-height treatment at 360×640
   and intentional medium/expanded recomposition through 1440×900
 - **Accessibility**: `Semantics` on every interactive element, text contrast ≥ 4.5:1
@@ -520,7 +458,8 @@ Do not build a `NeonText` for a game that has no neon.
 //                  → /settings
 //                  → /help
 //                  → /category-a         (paytable / history / odds / compendium)
-// Every transition is a custom animation through PageRouteBuilder
+// Use a custom PageRouteBuilder only when the recorded transition communicates continuity or state.
+// A direct or standard transition is valid when speed and clarity are stronger.
 ```
 
 ---

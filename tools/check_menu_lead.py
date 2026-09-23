@@ -2,29 +2,27 @@
 """
 check_menu_lead.py — is the game's declared visual lead actually on the main menu?
 
-`quality-bar.md` §1: "The menu sells the game: a centrepiece from the game's
-world, so it is clear WHAT the game is before pressing PLAY." A character-led
-game that opens on a title, three buttons and a gradient has failed that before
-the player reaches the reels — and every other gate passes it, because the menu
-route exists, renders and does not crash.
+`quality-bar.md` §1: the menu implements its documented memorable idea and
+M/O/R recipe. The storefront's visual lead is not automatically the runtime
+menu centerpiece, so design docs record `menu_role: dominant | supporting |
+absent` separately from `lead_kind`.
 
 This tool does the static half of the check:
 
   1. LEAD KIND     — reads `lead_kind: character | object | mechanic` out of
                      the design docs (the concept is required to record it).
-  2. LEAD ASSET    — reads the recorded lead asset path.
-  3. MENU SOURCE   — finds the main-menu screen across all five project
-                     structure variants (they all keep the file named
-                     `main_menu.dart`) and checks the lead is actually drawn
-                     there, at a size that can be a centrepiece.
+  2. MENU ROLE     — reads whether that lead is dominant, supporting, or absent.
+  3. LEAD ASSET    — reads the recorded lead asset path.
+  4. MENU SOURCE   — for dominant/supporting character roles, finds the menu
+                     source and checks the recorded asset is actually drawn.
 
 What it cannot do is judge whether the lead is *visible* — clipped by an edge,
 buried behind the button stack, or shrunk to a cameo by a runtime constraint.
 That is the vision pass on `02-menu.png`, and it is not optional.
 
 **An object- or mechanic-led game must not gain a character to satisfy this
-check.** For those the centrepiece is the crown, the board, the peg field;
-inventing a mascot is itself a defect (`.claude/docs/visual-context.md`).
+check.** A documented absent role must not be "fixed" by forcing the store lead
+into a menu recipe that does not call for it.
 
 Usage:
   python3 tools/check_menu_lead.py
@@ -59,6 +57,9 @@ MENU_GLOBS = ("**/main_menu.dart", "**/main_menu_screen.dart",
 
 _LEAD_KIND_RE = re.compile(
     r"lead[_ ]?kind[^A-Za-z]{0,8}(character|object|mechanic)", re.I)
+_MENU_ROLE_RE = re.compile(
+    r"(?:menu[_ ]?role|main menu role)[^A-Za-z]{0,8}(dominant|supporting|absent)",
+    re.I)
 _LEAD_ASSET_RE = re.compile(
     r"\blead[^\n]{0,120}?((?:assets|images)/[\w./-]+\.(?:png|jpe?g|webp|svg))", re.I)
 _SIZE_RE = re.compile(r"\bsize\s*:\s*Vector2\(\s*" + _NUM + r"\s*,\s*" + _NUM + r"\s*\)")
@@ -89,6 +90,14 @@ def read_docs(root: Path, extra: list[str]) -> list[tuple[str, str]]:
 def find_lead_kind(docs: list[tuple[str, str]]) -> str | None:
     for _, text in docs:
         match = _LEAD_KIND_RE.search(text)
+        if match:
+            return match.group(1).lower()
+    return None
+
+
+def find_menu_role(docs: list[tuple[str, str]]) -> str | None:
+    for _, text in docs:
+        match = _MENU_ROLE_RE.search(text)
         if match:
             return match.group(1).lower()
     return None
@@ -147,17 +156,18 @@ def largest_literal_side(call: str) -> float | None:
 
 
 def audit(root: Path, lib_root: Path, assets_root: Path, lead_kind: str | None,
-          lead_asset: str | None, min_side: float,
+          menu_role: str | None, lead_asset: str | None, min_side: float,
           extra_docs: list[str]) -> tuple[list[Finding], dict]:
     findings: list[Finding] = []
     assets = index_assets(assets_root)
     docs = read_docs(root, extra_docs)
     kind = (lead_kind or find_lead_kind(docs) or "").lower() or None
+    role = (menu_role or find_menu_role(docs) or "").lower() or None
     asset = lead_asset or find_lead_asset(docs, assets)
     if lead_asset:
         asset = _resolve(lead_asset, assets) or lead_asset
     menus = menu_sources(lib_root)
-    context = {"lead_kind": kind, "lead_asset": asset,
+    context = {"lead_kind": kind, "menu_role": role, "lead_asset": asset,
                "menu_sources": [p.as_posix() for p in menus],
                "references": []}
 
@@ -167,16 +177,25 @@ def audit(root: Path, lib_root: Path, assets_root: Path, lead_kind: str | None,
             "No `lead_kind: character | object | mechanic` in the design docs. "
             "The concept is required to record it; read the concept and pass "
             "--lead-kind, then judge the menu visually."))
+    if role is None:
+        findings.append(Finding(
+            "MEDIUM", "menu-role-undeclared",
+            "No `menu_role: dominant | supporting | absent` in the design docs. "
+            "Record the role from the main menu's M recipe; do not infer that the "
+            "storefront lead must be the runtime centerpiece."))
     if not menus:
         findings.append(Finding(
             "MEDIUM", "menu-source-not-found",
             f"No main-menu source under {lib_root.as_posix()} "
             f"({', '.join(MENU_GLOBS)}). Verify the menu visually instead."))
 
+    if role in (None, "absent"):
+        return findings, context
+
     if kind != "character":
         if kind in ("object", "mechanic"):
             context["note"] = (
-                f"{kind}-led game: the centrepiece is the object/mechanic itself. "
+                f"{kind}-led game: inspect the recorded menu recipe visually. "
                 "Do NOT add a character, mascot, hand or player silhouette to "
                 "satisfy this gate — that is its own defect.")
         return findings, context
@@ -184,7 +203,7 @@ def audit(root: Path, lib_root: Path, assets_root: Path, lead_kind: str | None,
     if not asset:
         findings.append(Finding(
             "MEDIUM", "lead-asset-unrecorded",
-            "The lead is a character but no lead asset path is recorded in the "
+            "The menu uses the character lead but no lead asset path is recorded in the "
             "design docs. Record it, or pass --lead-asset."))
         return findings, context
     if asset not in assets:
@@ -202,19 +221,19 @@ def audit(root: Path, lib_root: Path, assets_root: Path, lead_kind: str | None,
     if not hits:
         findings.append(Finding(
             "HIGH", "lead-absent-from-menu",
-            f"The character lead `{asset}` is never drawn by the main menu "
+            f"The character lead `{asset}` has menu_role `{role}` but is never drawn by the main menu "
             f"({', '.join(p.as_posix() for p in menus)}). The menu has to show "
-            "the character before the player presses PLAY."))
+            "the character as documented."))
         return findings, context
 
     sides = [(p, n, largest_literal_side(call)) for p, n, call in hits]
     measured = [s for _, _, s in sides if s is not None]
-    if measured and max(measured) < min_side:
+    if role == "dominant" and measured and max(measured) < min_side:
         biggest = max(measured)
         findings.append(Finding(
             "MEDIUM", "lead-drawn-small",
             f"The character lead is drawn at {biggest:g} logical px at most "
-            f"({min_side:g} expected for a centrepiece). Confirm in 02-menu.png "
+            f"({min_side:g} expected for a dominant role). Confirm in 02-menu.png "
             "that it reads as the menu's focal point and not as an icon."))
     return findings, context
 
@@ -229,11 +248,12 @@ def render_report(findings: list[Finding], context: dict, min_side: float) -> st
         f"- Verdict: **{verdict}** (static half only)",
         f"- Declared lead: **{context.get('lead_kind') or 'undeclared'}**"
         + (f" — `{context['lead_asset']}`" if context.get("lead_asset") else ""),
+        f"- Runtime menu role: **{context.get('menu_role') or 'undeclared'}**",
         f"- Menu sources: {', '.join(f'`{m}`' for m in context['menu_sources']) or 'none found'}",
         f"- Lead drawn in the menu at: "
         + (", ".join(f"`{r['file']}:{r['line']}`" for r in context["references"])
            or "no draw site found"),
-        f"- Centrepiece size floor: {min_side:g} logical px",
+        f"- Dominant-role size heuristic: {min_side:g} logical px",
         "",
     ]
     if context.get("note"):
@@ -247,10 +267,10 @@ def render_report(findings: list[Finding], context: dict, min_side: float) -> st
             lines.append(f"| {f.severity} | `{f.code}` | {detail} |")
         lines.append("")
     lines += [
-        "Static analysis only. It proves the menu *draws* the lead; it cannot "
-        "see a lead clipped by an edge, hidden behind the button stack, or "
-        "shrunk by a runtime constraint. Confirm on `02-menu.png` at 390×844 "
-        "and 1440×900.",
+        "Static analysis only. For dominant/supporting character roles it proves "
+        "the menu draws the declared asset; it cannot judge attention order, "
+        "clipping, or the overall M/O/R recipe. Confirm on `02-menu.png` at "
+        "390×844 and 1440×900.",
         "",
     ]
     return "\n".join(lines)
@@ -264,11 +284,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--assets", default="assets", help="asset root")
     parser.add_argument("--lead-kind", choices=["character", "object", "mechanic"],
                         help="override the lead kind read from the design docs")
+    parser.add_argument("--menu-role", choices=["dominant", "supporting", "absent"],
+                        help="override the runtime menu role read from the design docs")
     parser.add_argument("--lead-asset", help="override the lead asset path")
     parser.add_argument("--doc", action="append", default=[],
                         help="an extra design doc to read (repeatable)")
     parser.add_argument("--min-side", type=float, default=120.0,
-                        help="centrepiece size floor in logical px (default: 120)")
+                        help="dominant-role size heuristic in logical px (default: 120)")
     parser.add_argument("--report", help="write the markdown report here")
     parser.add_argument("--json", help="write JSON here ('-' for stdout)")
     args = parser.parse_args(argv)
@@ -283,7 +305,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     findings, context = audit(root, lib_root, assets_root, args.lead_kind,
-                              args.lead_asset, args.min_side, args.doc)
+                              args.menu_role, args.lead_asset, args.min_side,
+                              args.doc)
     report = render_report(findings, context, args.min_side)
 
     if args.report:

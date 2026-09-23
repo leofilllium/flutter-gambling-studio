@@ -70,7 +70,7 @@ decisions on the flow of each call:
 ```markdown
 # Asset Manifest — Budgeted GPT Images 2.0
 
-budget: unique_sources=12, technical_recovery_calls=2
+budget: unique_sources=[12 for original concepts; reference-inventory count for mapped games], technical_recovery_calls=2
 
 | logical_id | class | target_path | prompt_sha256 | source_id | attempts | validation | status |
 |------------|-------|-------------|---------------|-----------|----------|------------|--------|
@@ -85,20 +85,23 @@ Manifest classes:
 | `code` | UI, text, buttons, panels, icons, frames, shadows, glow, particles and VFX | 0 |
 | `reuse` | Already validated source without changing its game meaning | 0 |
 
-For each `generate` before the call, construct a normalized prompt (including type, Design DNA,
-key color and path) and write it SHA-256. If the manifest already has the same
-`prompt_sha256`, the file exists, is valid and passed `cutout.py --check` for a simple asset,
-reuse it without calling again. For example:
+For each generation or reference edit, construct a normalized request (type, prompt, Design DNA,
+key color, output path, reference paths and SHA-256 hashes of their contents) and hash it. This
+prevents a changed reference from hitting a stale prompt-only cache entry. If the manifest has
+the same request hash, the file exists, is valid and passed `cutout.py --check` for a simple
+asset, reuse it without calling again. For a prompt-only request, for example:
 
 ```bash
 printf '%s' "$NORMALIZED_PROMPT" | shasum -a 256
 ```
 
-Standard budget for `/autocreate` and `--from-concept`: no more than **12 unique successful
-source codes** and no more than **2 technical recovery calls** per game. Inside these 12
-By default, 5-8 unique game symbols and a maximum of two full-screen scenes are allowed.
-Exceeding the limit is not done silently: a manual command requires an explicit user request, and
-the autopipe is required to first reclassify the element to `derive`, `code` or `reuse`.
+Standard budget for an original `/autocreate` or `--from-concept`: no more than **12 unique
+successful sources** and **2 technical recovery calls** per game. For a mapped named request,
+inventory the full visible cast first. Directly reused or safely derived source elements cost no
+generation call; allocate distinct generation/edit calls to every remaining unique character,
+symbol or scene needed for faithful reproduction. Record the resulting budget in the manifest.
+Do not omit or merge identities merely to meet the original-concept 12-source default. Reuse and
+derive only where the subject and its game meaning remain the same.
 
 Color variations are allowed only if they do not change the recognizable result of the round,
 rarity, payout or probability. Otherwise it is a separate `generate` asset.
@@ -201,43 +204,49 @@ failure of GPT Image 2 or at the explicit request of the user.
 
 ### Cartoon finish & concept fidelity (read BEFORE building the prompt)
 
-> The goal is NOT “draw an abstract icon.” The goal is an **expressive cartoon 2.5D asset,
-> which unmistakably belongs to the world of THIS game**. Before generating each asset
+> The goal is an asset that belongs unmistakably to THIS game. Choose 2D or 2.5D from the
+> mapped reference or Design DNA, never from a studio default. Before generating each asset
 > independently derive from the concept (`design/gdd/game-concept.md`) and Design DNA four
 > things and substitute them in the prompt:
 
 1. **Subject identity** - what exactly is this object in the game world (not “heme”, but “faceted”
    amethyst with inner glow"; not a “button”, but a “brass key with engraving”).
-2. **Material & texture** - what it is made of: metal/glass/wood/gem/neon/fabric;
-   how the material is simplified into pure cartoon volume, gradients and glossy highlights.
-3. **Lighting** - a single source for the ENTIRE set (for example, soft upper-left key light
-   + light rim). Light = the main sign of an “expensive” asset.
-4. **Render style** — polished cartoon 2.5D casual-game art: bold rounded/exaggerated
-   silhouette, smooth modeled gradients, saturated theme-aware colors, clean edging,
-   glossy highlights and restrained star glints. DNA determines the world, forms, materials,
-   palette and details. Keep the finish the same throughout the entire set.
+2. **Material & texture** - the source's actual surface, whether flat color, ink, painted
+   texture, gem, metal or modeled volume; do not add gloss without evidence.
+3. **Lighting** - match the source's direction and softness across the set; a 2D reference may
+   use minimal shading rather than a volumetric key and rim.
+4. **Render style** - record the reference's or concept's linework, depth, edge treatment,
+   shading, palette and detail. Keep the chosen finish coherent throughout the set.
 
-**Hard quality floor for `/autocreate`:** photorealistic/product-shot render, flat
-vector icon, emoji/sticker, generic logo, cheap clipart, random neon/casino asset without
-connections to a concept, sprite sheet, unapproved text within an image, or an object with a different light pattern
-considered FAIL.
+For a mapped request, use the relevant image file as an actual visual input. In the Codex app,
+pass `referenced_image_paths` to the image tool. In headless Codex, use
+`python3 tools/gpt_image.py edit --image examples-games/<file> --prompt-file <file> --out <file>
+--size 1024x1024 --fidelity high` for a sprite (repeat `--image` for relevant references).
+Choose a scene-appropriate `--size` for backgrounds. This edit path accepts JPEG/PNG/WebP.
+Record every input path in the asset manifest. Include exact identity constraints in the prompt:
+character costume and pose, symbol silhouette and color, board material or background landmark.
+Use `generate` without images only when no usable source depicts the asset. Check reference-count
+and byte limits before each call; make separate focused edits when the full folder exceeds them.
+
+**Hard quality floor for `/autocreate`:** an unrelated style, generic logo, random neon/casino
+asset, sprite sheet, unapproved text, wrong light pattern, or mismatched reference identity is a
+FAIL. A well-executed 2D asset passes when the reference or concept calls for 2D.
 First eliminate locally correctable defects (cutout, frame normalization, reclassification
 in `code`/`derive`); one recovery call to GPT Images 2.0 is allowed for a source generation defect
 to `logical_id`. You cannot automatically switch to fallback due to aesthetic considerations.
 
-### Prompt for a simple asset (concept-grounded, cartoon 2.5D)
+### Prompt for a simple asset (reference- or concept-grounded)
 
 ```
-Polished cartoon 2.5D mobile game asset of [SUBJECT IDENTITY from concept],
-single hero object centered, bold rounded and slightly exaggerated silhouette,
-[MATERIAL/TEXTURE] simplified into smooth modeled gradients, clean gold or color edging
-where appropriate, glossy specular highlights and restrained star glints,
-shared soft [LIGHTING: key from top-left + subtle rim], rich [DNA PALETTE] colors,
-crisp clean silhouette readable at 64 px, premium casual-game illustration,
+Mobile game asset of [EXACT SUBJECT IDENTITY from source or concept],
+single object centered, [SILHOUETTE AND POSE], [2D OR 2.5D STYLE ANCHOR:
+linework, texture, shading, edge treatment], [MATERIAL/TEXTURE],
+[SOURCE LIGHTING], [SOURCE PALETTE] colors,
+crisp clean silhouette readable at 64 px,
 flat solid single-colour [KEY COLOUR] background, no gradient, no vignette, subject fully
 inside frame, transparent-ready cutout, NO scene, NO ground shadow, NO shadow on the
-background, [LETTERING POLICY], NO border, NO logo, NO sprite sheet, NO photorealism,
-NO product photography, NO flat vector clipart, NO emoji/sticker, 1024x1024 PNG.
+background, [LETTERING POLICY], NO border, NO logo, NO sprite sheet,
+NO style substitution, 1024x1024 PNG.
 [TYPE_DETAILS]
 ```
 
@@ -249,9 +258,9 @@ NO product photography, NO flat vector clipart, NO emoji/sticker, 1024x1024 PNG.
 ### Prompt for background (without cutting out the background)
 
 ```
-Polished cartoon 2.5D 9:16 mobile game background: [SCENE from concept & DNA].
-Full atmospheric scene with saturated layered depth (foreground / midground / sky layers),
-[DNA mood & palette], volumetric light, no foreground characters, no UI, no text,
+9:16 mobile game background matching [REFERENCE IMAGE OR SCENE from concept & DNA].
+[2D OR 2.5D STYLE ANCHOR], [SCENE LANDMARKS AND PLACEMENT],
+[DNA mood & palette], [SOURCE LIGHTING], no foreground characters, no UI, no text,
 calm readable empty area in the vertical center for gameplay, high quality PNG.
 ```
 
@@ -388,8 +397,8 @@ echo "✓ ${OUTPUT_DIR}/${ASSET_NAME}.png"
 > ⚠️ The table below is an illustration for a classic fruit slot. **For THIS game
 > symbols, palette and style are taken from the Design DNA concept** (`design/gdd/game-concept.md`),
 > and NOT casino/neon by default. For `/autocreate` the basic style is polished cartoon
-> 2.5D casual-game art. Substitute theme/world, palette, shapes, materials, single
-> light and brightness from DNA.
+> chosen 2D or 2.5D finish. Substitute theme/world, palette, shapes, materials,
+> light and brightness from the source or DNA.
 > Egyptian slot → scarabs/ankhi with the texture of gold and lapis lazuli; space → crystals/
 > alloys/stellar ceramics in cold temperatures; etc. Maintain a consistent style throughout the entire set.
 
@@ -450,26 +459,26 @@ Read if available:
 ## Step 3: Building a prompt
 
 > Style, palette and brightness are taken from the **Design DNA** concept - NOT casino/neon
-> default. For `/autocreate` `[ART-STYLE]` = polished cartoon 2.5D casual-game art.
+> default. For `/autocreate` `[ART-STYLE]` is the mapped reference's finish, or the
+> concept's chosen 2D/2.5D finish when there is no mapped reference.
 > First output **Subject / Material / Lighting** (see “Cartoon finish & concept
 > fidelity" above) - without them you will get a cheap flat icon.
 
 ```
-Polished cartoon 2.5D mobile game asset of [SUBJECT IDENTITY from concept],
-single hero object centered, bold rounded and slightly exaggerated silhouette,
-[MATERIAL/TEXTURE: metal/glass/stone/wood/neon] simplified into smooth modeled
-gradients, glossy highlights and restrained star glints, [ART STYLE] render,
-soft [LIGHTING: key top-left + light rim], rich [PALETTE from DNA] colors,
+Mobile game asset of [SUBJECT IDENTITY from reference or concept],
+single object centered, [SOURCE SILHOUETTE AND POSE],
+[MATERIAL/TEXTURE from source], [ART STYLE: 2D or 2.5D, linework and shading],
+[LIGHTING from source], [PALETTE from source or DNA] colors,
 crisp clean silhouette, sharp focus, isolated on flat solid single-colour [KEY COLOUR]
-background, no gradient, no scene, no ground shadow, [LETTERING POLICY], no photorealism,
-no product photography, no flat vector clipart, transparent-ready, 1024x1024.
+background, no gradient, no scene, no ground shadow, [LETTERING POLICY],
+no style substitution, transparent-ready, 1024x1024.
 [TYPE-DETAILS]
 ```
 
 ### Details by type (effects - only if they are in DNA):
 | Type | Add (substitute under DNA) |
 |-----|---------|
-| `symbol` / `sprite` | polished cartoon 2.5D: theme/shapes/materials/palette from DNA, single finish for the set |
+| `symbol` / `sprite` | match reference or DNA: subject/shapes/materials/palette/2D or 2.5D finish, single finish for the set |
 | `wild` (gambling) | premium accent symbol; effect (glow/shine/no) - from DNA |
 | `scatter` (gambling) | a special trigger symbol, visually highlighted using DNA |
 | `ui` button | shape from shape language DNA; effect (glow/shadow/flat) from DNA, no text |

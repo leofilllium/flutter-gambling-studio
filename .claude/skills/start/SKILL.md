@@ -26,7 +26,7 @@ are outside the studio's scope.
 | Command | What it does |
 |---------|--------------|
 | `/brainstorm` | Step-by-step idea generation. Together we pick the category, the archetype, the mathematics, the theme and the "juice". |
-| `/auto-idea` | Instantly generates a complete concept (no questions) from the 32 archetypes A–AF, cycling the Variety Dimensions and choosing a Layout Archetype. |
+| `/auto-idea` | Instantly generates a complete concept (no questions) from the 32 archetypes A–AF, building a Design Signature, state recipes, and anti-repeat comparison. |
 | `/autocreate` | Builds the game from concept to a finished Flutter project in one session. |
 | `/continue-project` | Continue an existing game from where you stopped. Your usual entry point. |
 
@@ -78,9 +78,10 @@ are outside the studio's scope.
 | AE | Neon Cascade | Plinko | C6 |
 | AF | Silver Rain | Pachinko + a jackpot gate | C6 |
 
-> Screen composition is a separate axis: the **Layout Archetype L1–L6**
-> (`.claude/docs/layout-archetypes.md`). The look comes from the **Design DNA**.
-> One archetype + different DNA/Layout = different games.
+> Screen composition is planned per screen/state using the **layout grammar**
+> (`.claude/docs/layout-archetypes.md`). Interaction and presentation come from the
+> **Design Signature**, and the Similarity Check prevents reskinned repeats.
+> One archetype + different world DNA, Design Signature, and state recipes = different games.
 >
 > The full category reference: `.claude/docs/gambling-categories.md`.
 

@@ -1,6 +1,6 @@
 ---
 name: playtest
-description: "Deep GAMEPLAY verification (not just 'the screens open'): actually plays the game through headless Chrome CDP — N gameplay actions, checking that the score/balance CHANGE, that the win path is reachable, that game-over is handled, that progression works, that the board is animated (vision-based frame comparison), and that there are no exceptions or leaks. Produces a PLAYTEST REPORT with a verdict and prioritised fixes. Called from /autocreate-finalize (Phase 10.6) or run manually."
+description: "Deep GAMEPLAY verification (not just 'the screens open'): actually plays the game through headless Chrome CDP — N gameplay actions, checking that the score/balance CHANGE, that the win path is reachable, that game-over is handled, that progression works, that active-state feedback is readable through vision-based frame comparison, and that there are no exceptions or leaks. Produces a PLAYTEST REPORT with a verdict and prioritised fixes. Called from /autocreate-finalize (Phase 10.6) or run manually."
 argument-hint: "[--rounds N] [--no-fix]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -77,7 +77,7 @@ Sources: the screenshots (`Read` vision), `manifest.json` (`semanticLabels`, `co
 | P2 | **The numbers change** | The score/balance in the screenshot AFTER a series of actions ≠ the value BEFORE (vision-reading the HUD digits) | CRITICAL |
 | P3 | **The win path is reachable** | Over N rounds, win feedback is visible at least once (overlay/particles/a rising number) | HIGH |
 | P4 | **A loss is handled** | Game-over / insufficient-funds appears and there is a way out of it (restart/menu) | HIGH |
-| P5 | **The board is alive** | Two frames of the idle state, taken apart, differ (idle animation) — vision | HIGH |
+| P5 | **The board communicates state** | During a real action, before/anticipation/result frames change meaningfully and the player can read what changed. A deliberately still idle state is valid; decorative perpetual motion is not required — vision | HIGH |
 | P6 | **Progression works** | Level/Mode Select opens, and choosing a level starts the game with a different config | HIGH |
 | P7 | **Pause/return** | Going to the menu and back does not break the state (the balance is preserved, no red screen) | HIGH |
 | P8 | **0 exceptions during the session** | `consoleErrors` is empty; no EXCEPTION CAUGHT in flutter-run.log | CRITICAL |

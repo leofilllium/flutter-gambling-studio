@@ -56,7 +56,7 @@ Look at the contact sheets and every background WITH YOUR EYES (vision), and ass
 
 | # | Criterion | FAIL signal |
 |---|-----------|-------------|
-| AR1 | One polished cartoon 2.5D style | Photorealism, product-shot, flat clipart, emoji/sticker, or a different finish within the set |
+| AR1 | One coherent 2D or 2.5D finish | The set changes linework, depth or shading without a reason from the reference/DNA |
 | AR2 | One light source | Highlights/shadows falling in different directions across sprites |
 | AR3 | One level of detail | One sprite overloaded with detail, another primitive |
 | AR4 | The Design DNA's palette | The asset's colours fight the game's palette (foreign hues) |
@@ -66,7 +66,7 @@ Look at the contact sheets and every background WITH YOUR EYES (vision), and ass
 | AR8 | The background does not fight the field | The background is brighter or higher-contrast than the game elements and steals focus |
 | AR9 | It matches the subject | A "cherry" that looks like a tomato; a symbol that cannot be identified |
 | AR10 | No AI artefacts | Extra limbs, letter-mush, deformed geometry |
-| AR11 | Reference match (mapped requests only) | The set was re-themed, substituted, recoloured or "improved" away from the request's preview instead of matching its subjects, materials, colours, light and character — or it traced the preview's pixels or lifted its wordmark. See "How close to the reference — match it" in `.claude/docs/game-concept-examples.md` |
+| AR11 | Reference match (mapped requests only) | The set was re-themed, substituted, recoloured or "improved" away from the source's subjects, background, materials, colours, finish, light and character; source files were not actually supplied where supported; or the runtime composition does not match. See `.claude/docs/game-concept-examples.md` |
 
 ### Step 4 — Verdict and regeneration
 
@@ -83,14 +83,14 @@ Write `design/asset-review.md`:
 For every FAIL, write a CORRECTED prompt (PNG/GPT Images 2.0) or the specific code edit (SVG):
 exactly what to add to the description of the light, style or material so the asset joins the
 set. Regenerate ONLY the rejected assets (not the whole set), redo the background cutout
-(`tools/cutout.py`) and the alpha check, then review the rejects again. **At most 2 iterations** —
-after the second, accept the best of what you have and record the residual risks in the report.
+(`tools/cutout.py`) and the alpha check, then review the rejects again. After two recovery
+iterations, record unresolved defects and issue a FAIL verdict for any material reference
+mismatch; do not label the best available approximation a PASS.
 
 ## Prompt engineering rules (for regeneration)
 
-- Repeat a "style anchor" in EVERY prompt in the series: the same phrase about the render style,
-  material, light source and palette (for example: "glossy 2.5D game asset, soft studio
-  lighting from upper right, rich amber-and-teal palette, centered, single object").
+- Repeat the game's actual style anchor in every prompt: 2D or 2.5D finish, linework, material,
+  light and palette. For mapped assets, include the relevant source image in each correction call.
 - Sprites: `flat solid single-colour chroma-key background` (by default `pure magenta #FF00FF`,
   or `pure green #00FF00` if the palette contains magenta) — for `tools/cutout.py`;
   one object, centred, no text except verified multiplier-coin inscriptions, no frames.
@@ -100,7 +100,7 @@ after the second, accept the best of what you have and record the residual risks
 
 ## What you do NOT do
 
-- You do NOT change the game code, the GDD, the balance or the Layout Archetype.
+- You do NOT change the game code, the GDD, the balance, or the recorded layout recipes.
 - You do NOT regenerate assets that passed review ("better is the enemy of good" in a pipeline).
 - You do NOT impose your own taste over the Design DNA: the benchmark is the game's DNA, not
   your preferences.

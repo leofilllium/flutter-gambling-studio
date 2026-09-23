@@ -1,8 +1,8 @@
 # Gameplay Screen Contract — Full-Viewport, Integrated, Mobile-First
 
 This contract prevents a working mechanic from being presented as a small demo embedded inside
-a generic app page. It applies to every C1–C6 `GameScreen`, regardless of Design DNA or Layout
-Archetype.
+a generic app page. It applies to every C1–C6 `GameScreen`, regardless of Design Signature or
+layout recipe.
 
 The product canvas is defined by `.claude/docs/mobile-first-contract.md`: phone UI/UX is the
 canonical starting point, and the same game must fill and adapt to landscape, tablet, desktop,
@@ -20,10 +20,10 @@ and Web viewports without becoming a framed phone preview.
    point and use all remaining space. At expanded sizes, grow or recompose the mechanic and its
    supporting zones so the full viewport feels intentional rather than padded around a phone UI.
 2b. **The field is centered by default.** Absent a documented reason, the play field's horizontal
-   center coincides with the viewport's horizontal center — same default as the main-menu lead
-   (quality-bar.md §1, V19). An off-center composition is fine when the recorded Layout Archetype
-   (`.claude/docs/layout-archetypes.md`, L1–L6) genuinely calls for it — a side rail (L4) or a
-   split panel (L5) can shift the field's midpoint — but that reason belongs in
+   center coincides with the viewport's horizontal center — an unrecorded offset is treated as an
+   accident. An off-center composition is fine when the recorded per-state recipe
+   (`.claude/docs/layout-archetypes.md`) genuinely calls for it — an edge rail, split relationship,
+   or object-led composition can shift the field's midpoint — but that reason belongs in
    `design/art-direction.md`, not in an unexplained `Padding`/`Align`/`Positioned` offset that
    nobody chose on purpose. Checked as V20 by `/emulator-test` and `/autocreate-finalize`.
 3. **No nested mini-game.** Do not place the live field inside a phone-like window, browser-like
@@ -77,7 +77,7 @@ For each size, verify:
 - no overflow, clipping, accidental letterboxing, or large unexplained dead zone;
 - the field is visually dominant and not a thumbnail or nested app window;
 - the field's horizontal center sits inside the middle 60% of the viewport width, unless the
-  recorded Layout Archetype and a documented reason justify otherwise;
+  recorded state recipe and a documented reason justify otherwise;
 - the primary action and essential counters are visible without scrolling;
 - controls do not overlap the field's critical interaction zone;
 - control labels fit, tap targets meet the minimum, and enabled/disabled states are clear;
@@ -98,7 +98,7 @@ Treat any of these as a HIGH layout defect and a release blocker:
 - the field resembles a small window inside the app screen;
 - the field is below the size thresholds without a documented mechanic-driven exception;
 - the field is shoved off-center (an unexplained `Padding`/`Align`/`Positioned` offset) without a
-  Layout Archetype reason recorded in `design/art-direction.md`;
+  recipe/mechanic reason recorded in `design/art-direction.md`;
 - core gameplay requires vertical scrolling;
 - a large instruction/progression card competes with or is larger than the field;
 - core buttons are cramped, uneven, clipped, off-screen, or visually disconnected;
