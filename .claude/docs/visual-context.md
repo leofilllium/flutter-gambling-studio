@@ -113,6 +113,11 @@ the mechanic, aspect ratio, and visual lead. Examples include character-left/gam
 full-width active Plinko, object-led reels across all three, or a contained field on any panel.
 The middle panel has no privileged role. Multiple play fields are allowed when they depict
 real, coherent states and each remains readable; one continuous field is often stronger.
+Generate the entire panorama as one scene. Give the image generator the real active gameplay
+capture as context for the mechanic, symbols, topology and outcome; have it render gameplay
+naturally at a three-quarter/3D angle within the same image as the environment and foreground.
+Do not paste the capture or a derived board plate into the panorama, or leave a placeholder
+opening for a later gameplay insert. Reject generated gameplay that changes the real outcome.
 
 For character-led concepts, default to a large first-panel character. Use a waist-up crop for
 humanoids; use a readable species-appropriate crop for animal mascots. Protect the whole head,

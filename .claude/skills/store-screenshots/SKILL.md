@@ -1,6 +1,6 @@
 ---
 name: store-screenshots
-description: "Create a context-based store kit: character-, object-, or mechanic-led panorama with flexible gameplay spans, real screenshots, a dedicated feature graphic, icon/emblem and ZIP. Use matching examples-games previews and actual game assets and topology. Preserve runtime backgrounds."
+description: "Create a store kit whose panorama is generated as one scene using gameplay captures only as references; add real capture slides, a feature graphic, icon/emblem and ZIP. Match game assets and topology; preserve runtime backgrounds."
 argument-hint: "[--count 8] [--panels 3] [--lead-kind character|object|mechanic] [--character-framing bust|mascot] [--banner-layout free|left-heavy] [--size 1320x2868|play] [--no-play-set] [--frame ios|android|none] [--no-apply] [--no-wire-logo] [--no-captions] [--apply-backdrop]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -19,7 +19,7 @@ was explicitly requested. All copy is English unless another game language was r
 
 ## Outputs
 
-Default N=8 screenshots: P=3 adjacent concept panels from one integrated panorama followed by
+Default N=8 screenshots: P=3 adjacent concept panels sliced from one fully generated panorama followed by
 N−P actual gameplay/meta captures with optional device frames and captions. Produce `store/`
 at 1320×2868 and `store-play/` at 1080×1920 independently, not by resizing one set into the other.
 Include a dedicated text-free 1024×500 feature graphic: the scene plus one phone on the right
@@ -92,7 +92,8 @@ Write `STORE_BRIEF.md` before any generation call:
   introduce a person, hand, animal,
   mascot or player silhouette; slide 1 cannot be a decorative object-only scene.
 - Actual topology and resolving state. New unspecified classic slots default to 3×3; store
-  work preserves the shipped game's dimensions, symbols, ordering and outcome.
+  work preserves the shipped game's dimensions, symbols, ordering and outcome. Record the
+  gameplay capture as a visual reference for generation, never as a layer for the panorama.
 - Complete sprite inventory, source-to-PNG mapping, scene role and in-app evidence per file.
 - Verified coin inscriptions, preferably x5/x10 when supported and thematic, with exact config/
   paytable source and meaning. No invented multipliers or guaranteed rewards. Only these short
@@ -139,57 +140,37 @@ contact shadows and shared light. Add recognizable flying/falling objects at var
 primary subjects sharp, source-colored and dominant over a broad smooth subordinate far plane.
 Generic stage furniture, particles or a tidy row cannot replace the actual object spill.
 
-Prepare an optional physical board reference from the measured actual frame:
-
-```bash
-"$STORE_PYTHON" tools/store_compose.py boardplate --out "$ART_DIR/board-plate.png" \
-  --from-shot "$RAW_DIR/gameplay-reference-win.png" --rect "$FIELD_RECT" \
-  --radius 0.04 --yaw -16 --pitch 7 --depth 0.06 --sheen 0.2
-```
-
-`FIELD_RECT` is the measured x,y,w,h, not a universal crop. Draft with `triptych --pano-only
---save-pano` and explicit placement when useful. Example sprite specifications:
-
-| Layout | Arguments |
-|---|---|
-| Joker first, board right two | `--lead-kind character --sprite "hero.png@hero" --sprite "board.png@board,x=0.67,w=1.9"` |
-| Chicken first | `--lead-kind character --character-framing mascot --sprite "chicken.png@hero"` |
-| Full-width Plinko | `--lead-kind mechanic --sprite "board.png@board,x=0.5,w=2.9"` |
-| Crown/object-led slot without living characters | `--lead-kind object --sprite "board-a.png@board,panel=1,w=0.9" --sprite "board-b.png@board,panel=2,w=0.9" --sprite "crown.png@prop,panel=3,w=0.8,h=0.7"`; use angled board plates or one continuous angled field spanning panels 1–2 |
-| Contained board on chosen panel | `--sprite "board.png@board,panel=3,w=0.85"` |
-
-Here x is normalized across the panorama and w uses panel widths. Width/height are fit limits:
-the default board height 0.56 can constrain a square or portrait board before the requested width
-is reached. Supply measured h as well when appropriate; inspect the actual span and readability,
-and accept a narrower field or redesign the scene instead of stretching the mechanic. Use real
-paths, `--sprite-dir` for complete supporting coverage, `--object-frame
-auto`, and selected falls. `@hero` is only for actual characters; props use panel/x/y/w placement.
-The draft is an aid, not a finished illustration. Noncritical board structure can cross seams.
+Plan the full panorama before generation. A rough layout sketch may indicate panel cuts and
+subject positions, but it must not contain a screenshot-shaped opening intended for later fill.
+Give the image generator the actual gameplay capture, shipped sprite assets and matching previews
+as references. Label the capture as **context only**: it establishes the real mechanic, field
+dimensions, symbol identities, ordering and resolving state. Request a complete, coherent image
+in one generation: the game surface itself appears as a scene-native three-quarter/3D view, with
+its housing, depth, lighting, foreground interactions and surrounding environment generated
+together. The panorama must already look finished before the compositor slices it. Noncritical
+board structure may cross seams.
 
 Use the available built-in image tool; headless generation follows `generate-png-asset/SKILL.md`
-and `tools/gpt_image.py` with prompt files/repeated `--image` inputs. Final integration receives
-the draft if used, actual resolving frame, field plate, shipped sprites and matching previews.
-Label which references govern identity and which govern composition. Request one coherent scene
-whose field gains physical depth/light/perspective while retaining real topology, symbols and
-outcome. A pasted screenshot rectangle and an attractive invented board both fail. Do not paste
-a screenshot over the final render. Save the integrated result as `art/keyart-integrated.png`.
+and `tools/gpt_image.py` with prompt files/repeated `--image` inputs. Supply the actual resolving
+frame, shipped sprites and matching previews directly as references where the tool supports them.
+Label which references govern identity and which govern composition. Save the single generated
+scene as `art/keyart-integrated.png`. Do not paste, warp or texture-map any screenshot crop,
+board plate, symbol grid or other gameplay block into the panorama, either before or after image
+generation. Do not generate a background or empty board recess to fill later. The compositor may
+grade and slice the finished panorama; it must not assemble its gameplay field.
 
-Treat count- and order-sensitive gameplay geometry as a deterministic project-derived layer,
-not as a raster-model obligation. If an integrated generation changes rows, columns, paylines,
-buckets, symbol order or the decisive outcome, reject that field. After one bounded recovery,
-generate or retain only the character, environment, lighting and foreground dressing, then use
-the compositor to integrate the exact real board/field plate and shipped sprites. Apply any
-perspective transform to the complete exact field layer rather than redrawing its cells. This is
-not permission to paste an unintegrated rectangular screenshot: preserve the field's readable
-contents while matching scene depth, edging and light.
+Count rows, columns, paylines, buckets and symbols against the runtime capture and verify the
+decisive outcome. If the model changes topology or state, reject the image and use the bounded
+generation/edit budget to correct the whole coherent scene with the capture as reference. If a
+faithful scene still cannot be generated, report a blocker; do not substitute a composited field.
 
 When the brief calls for angled or environment-integrated gameplay, a perspective transform alone
-is not evidence of integration. The final field must visibly satisfy all three contextual-embedding
+is not evidence of integration. The generated field must visibly satisfy all three contextual-embedding
 groups: **structural reception** (a recessed housing, altar or console with readable thickness,
 edging and plane-matched perspective); **photometric contact** (contact shadow plus local colour
 spill, light wrap or reflection consistent with the scene's key light); and **spatial interaction**
 (a foreground or atmospheric element crossing the housing edge without hiding decisive cells). A
-rectangular drop shadow, glow or decorative platform merely placed behind the whole screenshot does
+rectangular drop shadow, glow or decorative platform around a screenshot-like rectangle does
 not satisfy this contract. Review these cues at final panel size as well as in the continuous
 panorama. Recount the final exported topology and recheck the decisive outcome after all crops and
 seam adjustments.
@@ -206,7 +187,10 @@ and sharp primary subjects.
 Compare every sprite and the integrated field with the actual runtime frame. Record source,
 reference, visible panels, scene role, identity and runtime evidence. Missing sprites, wrong
 topology/state, floating stickers, invented lettering or unreadable primary forms require a
-bounded correction. If budget runs out, report the blocker instead of shipping a draft.
+bounded correction. Reject any visible capture boundary, preserved screenshot pixels, flat
+UI crop, empty placeholder or pasted board plate. Review the generation inputs and edits to
+confirm the complete scene was generated together. If budget runs out, report the blocker instead
+of shipping a draft.
 
 Review both the assembled panorama and gapped carousel. Boards may span seams; tight regions
 around faces, decisive symbols, multiplier inscriptions and bucket/reveal outcomes must survive
@@ -349,7 +333,8 @@ success is not runtime or visual verification.
 
 Write STORE_INFO.md with context/reference decisions; panel map; upload order/dimensions/counts;
 complete per-sprite identity and per-panel anchor audit; real state/topology/integration evidence;
-prompts/budget/corrections; measured bounds and seam review for each geometry; strict gate results
+prompts/budget/corrections; evidence that the gameplay capture was reference-only and the panorama
+was generated as one complete scene; measured bounds and seam review for each geometry; strict gate results
 and visual verdicts; feature source/layout/review, its right-side capture and a no-text verdict;
 branding/capture/log evidence; background guard and compliance. For no-living-character object/mechanic games, record the no-invented-player
 check and separate slide-1/slide-2 angled-gameplay verdicts. Never call a draft or diagnostic a

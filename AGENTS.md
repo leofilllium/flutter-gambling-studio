@@ -23,6 +23,11 @@ wager/reveal/drop/collect moment, premium depth and tactility, controlled antici
 focus, with real active gameplay large and readable. This is composition—not a mandatory
 black/neon/gold skin; every palette, material, character and type choice still comes from the
 current game's Design DNA. Never use cropping or device chrome to hide a weak gameplay layout.
+For panorama carousel panels, use the actual gameplay capture only as image-generation context.
+Generate the entire scene, including a natural three-quarter/3D view of the mechanic, as one
+image. Never paste, warp, or texture-map the capture or a gameplay board plate into the panorama,
+and never generate a placeholder scene to fill with gameplay afterward. Verify the generated
+topology, symbols, and outcome against the capture; stop if the image cannot preserve them.
 Record `lead_kind: character | object | mechanic` before composing. Zeus, Joker and chicken games
 default to a large character on the first panel. Object/mechanic games such as crown slots and
 Plinko need no invented mascot or character-only opening. For characters, left/lower edge crops
