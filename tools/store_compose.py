@@ -13,38 +13,18 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             they land on the quietest columns, and the art is asked for a calm
             corridor there. `--gutter 0` remains available for a true butt-jointed,
             lossless panorama when the publisher is known not to insert gaps.
-            `--sprite` and `--sprite-dir` inlay the game's real objects into the
-            layout draft — a context-selected lead, freely placed gameplay, and ALL
-            shipped sprite assets distributed across the slides — so every
-            split panel belongs unmistakably to the game. Auto-placement fills
-            uncovered panels first; supporting objects form a cropped band
-            across the bottom and then fall through the full picture with
-            varied rotation and selective motion trails. In character mode, a waist-up
-            hero owns the left of panel 1: its source remains complete, while
-            the composition may crop only its left and lower edges. Its full
-            head/headwear stays clear of the top and its complete attached
-            silhouette stays clear of the first carousel seam.
-            The bare background is measured to stay smooth and subordinate, and the
-            finished art is blocked when it is unreadably crushed, busy across the far
-            plane, weak at the bottom, visibly overprocessed, or when the
+            The source must already be one complete generated scene, including
+            a naturally integrated view of the real game mechanic. A gameplay
+            capture informs generation; it is never inlaid into the panorama.
+            The finished art is blocked when it is unreadably crushed, busy across
+            the far plane, weak at the bottom, visibly overprocessed, or when the
             character silhouette leaves panel 1 or protected outcome crosses a cut.
             Object/mechanic leads use --lead-bounds, with no invented character. The
-            inlaid result is a generation reference,
-            never the final paste-up: the finished panorama is rendered as one
-            scene from this context. It carries no marketing copy; authentic symbol
+            scene carries no marketing copy; authentic symbol
             denominations such as x5/x10 remain when supported by game rules.
             Protect these just like outcome symbols. Marketing lettering across a
             panel boundary is cut by the store's gutters, and a lockup inside
             one panel breaks the single-picture illusion.
-  boardplate
-            the game's REAL play field as a transparent cutout for `triptych
-            --sprite plate.png@board`: the shipped symbol files laid into the
-            game's own grid (or the field lifted straight out of a captured
-            frame), stood up in perspective with a slab edge. `--win` builds it
-            at the moment the round pays — payline, ring, spill light, the rest
-            of the field falling back and the paying symbol lifting out of its
-            cell — the gameplay may span any panels, and a correct grid at rest
-            reads as a diagram.
   showcase  a real in-game frame placed inside a drawn phone (bezel, notch,
             home indicator, glass glare, drop shadow) over a themed background,
             with the caption typography that sells the frame.
@@ -91,13 +71,8 @@ Requires: Pillow + numpy (both already required by tools/cutout.py).
 
 Examples:
   python3 tools/store_compose.py fonts --font-dir assets/fonts
-  python3 tools/store_compose.py triptych --src keyart.png --out art/draft/ \\
-      --panels 3 --size 1320x2868 --pano-only \\
-      --save-pano art/keyart-draft.png \\
-      --sprite assets/images/sprites/eagle.png@hero \\
-      --sprite-dir assets/images/sprites \\
-      --sprite assets/images/sprites/lightning.png@panel=2 \\
-      --sprite-glow-color "#F0B34A"
+  python3 tools/store_compose.py triptych --src art/keyart-integrated.png \\
+      --out store/ --panels 3 --size 1320x2868 --art-gate strict
   # Explicit standalone operation; never part of /store-screenshots by default.
   python3 tools/store_compose.py backdrop --src art/keyart-integrated.png \\
       --out-dir assets/images/backgrounds --variants menu,game --offset -0.6 \\
@@ -1885,10 +1860,9 @@ _FALL_ROT = (-18, 12, 24, -9, 15, -27, 8, 20, -14, 6)
 _FALL_TRAIL = (0.6, 0.0, 0.4, 0.0, 0.7, 0.0, 0.3, 0.5, 0.0, 0.35)
 FALL_FRONT_W = 0.20               # at or above this it falls IN FRONT of the hero
 DEFAULT_FALL_TRAIL = 1.0          # multiplier on the per-object smear above
-# The play field built out of the game's REAL symbols (`boardplate`). It is the
-# picture's mechanic. Legacy defaults bridge the middle into its neighbours;
-# context may place it anywhere with x/y/w/h. Keep it inside the outer frame
-# and large enough to read, showing a real active round (`boardplate --win`).
+# Legacy sprite layout constants. The store panorama command no longer uses
+# these to build or inlay gameplay; the image generator receives real captures
+# and sprite files as visual references instead.
 BOARD_W, BOARD_H = 1.16, 0.56
 BOARD_CONTAINED_W = 0.78          # narrow mechanics or layouts without two neighbours
 BOARD_X, BOARD_FOOT = 0.50, 0.88
@@ -2536,7 +2510,7 @@ def inlay_sprites(pano: Image.Image, specs, panels: int, panel_w: int,
                   hero_height: float = HERO_H,
                   lead_kind: str = "character",
                   character_framing: str = "bust") -> list[str]:
-    """Composite the game's OWN objects into the concept art.
+    """Legacy internal layout helper; never use its pixels in a store panorama.
 
     Stores reject listings whose first panels advertise a world the app does not
     contain. Describing the game's symbols to an image model produces something
@@ -2989,6 +2963,10 @@ def cmd_triptych(args) -> None:
     n = args.panels
     if not 2 <= n <= 5:
         die(f"--panels {n} out of range (2..5)")
+    if getattr(args, "sprite", []) or getattr(args, "sprite_dir", []):
+        die("triptych accepts only a complete generated panorama. Pass the real "
+            "gameplay capture and shipped sprites to image generation as visual "
+            "references; --sprite and --sprite-dir cannot inlay them into store panels")
     if args.pano_only and not args.save_pano:
         die("--pano-only writes nothing without --save-pano PNG")
 
@@ -3007,10 +2985,6 @@ def cmd_triptych(args) -> None:
 
     gutter = parse_gutter(args.gutter, w)
     snap = parse_snap(args.seam_snap, w)
-    frame_target = parse_object_frame(getattr(args, "object_frame", "auto"))
-    falling = not getattr(args, "no_falling", False)
-    fall_trail = float(getattr(args, "fall_trail", DEFAULT_FALL_TRAIL))
-    hero_height = float(getattr(args, "hero_height", HERO_H))
     art_gate = getattr(args, "art_gate", "strict")
     lead_kind = getattr(args, "lead_kind", "character")
     lead_bounds = (parse_unit_box(args.lead_bounds, "--lead-bounds")
@@ -3021,10 +2995,6 @@ def cmd_triptych(args) -> None:
                        for box in getattr(args, "gameplay_bounds", [])]
     hero_bounds = (parse_unit_box(args.hero_bounds)
                    if getattr(args, "hero_bounds", None) else None)
-    if not 0.10 <= hero_height <= 0.95:
-        die(f"--hero-height {hero_height}: expected a fraction from 0.10 to 0.95")
-    if not 0.0 <= fall_trail <= 2.0:
-        die(f"--fall-trail {fall_trail}: expected a multiplier from 0 to 2")
     src = load_image(args.src, "key art")
 
     # The panorama is composed WIDER than the panels it produces: the extra
@@ -3053,24 +3023,8 @@ def cmd_triptych(args) -> None:
     pano = cover(src, pano_w, pano_h, bias_x=args.offset, zoom=args.zoom)
     pano = pop_grade(pano, args.pop, vibrance=args.vibrance, lift=args.lift,
                      contrast=args.contrast, bloom=args.bloom)
-    # The cuts are chosen on the art BEFORE the objects land on it: the objects
-    # are then placed inside the panels those cuts define, so nothing is ever
-    # seated against a seam that afterwards moves out from under it.
+    # Choose cuts directly on the complete generated art.
     spans = plan_panel_spans(pano, n, w, gutter, snap)
-    sprite_specs = expand_sprite_specs(getattr(args, "sprite", []),
-                                       getattr(args, "sprite_dir", []))
-    backdrop_details: list[float] = []
-    if sprite_specs:
-        # This is the only stage at which the bare plate can be distinguished
-        # from the finished picture. Once the integration render paints the
-        # objects in, `triptych` receives a single image and correctly treats it
-        # as the finished panorama instead.
-        backdrop_details = backdrop_report(pano, spans)
-    inlay_sprites(pano, sprite_specs, n, w, h, gutter,
-                  glow_color=args.sprite_glow_color, light=args.sprite_light,
-                  spans=spans, frame_target=frame_target, falling=falling,
-                  fall_trail=fall_trail, hero_height=hero_height, lead_kind=lead_kind,
-                  character_framing=getattr(args, "character_framing", "bust"))
     seam_report(pano, spans)
     detail_report(pano, spans)
     glare_report(pano)
@@ -3082,16 +3036,6 @@ def cmd_triptych(args) -> None:
             lead_bounds=lead_bounds, protected_bounds=protected_bounds,
             gameplay_bounds=gameplay_bounds,
             character_framing=getattr(args, "character_framing", "bust"))
-        if backdrop_details and any(detail > BACKDROP_BUSY
-                                    for detail in backdrop_details):
-            busy = ", ".join(
-                f"panel {i + 1} {detail:.1f}"
-                for i, detail in enumerate(backdrop_details)
-                if detail > BACKDROP_BUSY)
-            issues.insert(
-                0,
-                f"the bare staging plate is already too busy ({busy}; maximum "
-                f"{BACKDROP_BUSY:.1f}) before the hero and game objects land")
         for issue in issues:
             warn(f"ART GATE: {issue}")
         if issues and art_gate == "strict":
@@ -3109,10 +3053,7 @@ def cmd_triptych(args) -> None:
         total += save_png(panel, path)
         ok(f"{path.name}  {w}×{h}")
 
-    # The integrated panorama — graded, with the game's real objects seated into
-    # it — is the picture the storefront kit should share. Save it so panels,
-    # showcase backgrounds and the feature graphic all use the finished art,
-    # instead of the bare model output that has none of the objects in it.
+    # Save the complete generated scene with its export grade and crop when requested.
     if args.save_pano:
         pano_path = Path(args.save_pano)
         if pano_path.parent.resolve() == out_dir.resolve():
@@ -3120,19 +3061,14 @@ def cmd_triptych(args) -> None:
                  "as an upload asset. Keep it beside the art (art/keyart-integrated.png).")
         save_png(pano, Path(args.save_pano))
         ok(f"{Path(args.save_pano).name}  {pano_w}×{pano_h}  "
-           + ("layout draft (reference image for `gpt_image.py edit` — not an "
-              "upload asset, and not what `banner` should read)"
-              if args.pano_only else
-              "integrated panorama (feed this to `banner --keyart` and showcase `--bg`)"))
+           "prepared complete panorama")
 
     # Stitched preview — a cheap vision check that nothing important (a face,
     # the hero, a coin) is cut by a panel boundary. The gutters are painted in
     # so the preview shows what the STORE shows, gaps and all, rather than a
     # continuous picture the listing page will never display.
     if args.pano_only:
-        info("--pano-only: layout draft written, no panels. Hand it to "
-             "`gpt_image.py edit` with the objects' own files, then slice the "
-             "picture that comes back.")
+        info("--pano-only: prepared complete panorama written, no store panels")
         return
 
     # The primary preview is the PROOF: the panels laid edge to edge exactly as
@@ -3355,30 +3291,16 @@ def expand_to_fit(base: Image.Image, box: tuple[int, int, int, int]):
     return canvas, dx, dy
 
 
+def cmd_retired_boardplate(args) -> None:
+    die("boardplate is retired for store panoramas. Pass the real gameplay capture "
+        "to image generation as context and generate the complete scene in one image")
+
+
 def cmd_boardplate(args) -> None:
-    """Build the play field out of the game's REAL assets, as a cutout.
+    """Legacy internal board renderer; the store panorama CLI does not expose it.
 
-    This exists because of one specific rejection: a concept panel showed a
-    reel grid the image model had invented — its own tiles, its own frames, its
-    own symbol art — beside gameplay frames whose board looked nothing like it.
-    The designer's note was that the two have to be the same, and a text prompt
-    cannot produce "the same". Only the real files can.
-
-    Two ways in, both exact:
-      --from-shot  lift the field straight out of a captured gameplay frame
-      --symbol     lay the shipped symbol PNGs into the real grid
-    The result is a transparent PNG for `triptych --sprite plate.png@board`, so
-    the mechanic in the key art is the mechanic in the app.
-
-    The next note on the same kit was about the panel this plate lands on: the
-    middle slide is boring. It was — a correct grid of correct symbols sitting
-    at rest is a contact sheet, not a gameplay example. So the plate can be
-    built at the moment the round PAYS: `--win` names the cells that hit, and
-    they get the payline, the ring and the glow while the rest of the field
-    falls back (`--dim`); `--lift` pops the middle winning symbol up out of its
-    cell with its own shadow on the board. None of that invents anything — the
-    symbols, the grid and the colours are still the game's own; it is the same
-    field, caught one frame later.
+    A real gameplay capture now goes straight to image generation as visual
+    context. The finished panorama is generated as one scene, then sliced.
     """
     out = Path(args.out)
     radius_f = max(0.0, min(0.5, args.radius))
@@ -3599,8 +3521,8 @@ def cmd_boardplate(args) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     size = save_png(plate, out, keep_alpha=True)
     ok(f"{out.name}  {plate.width}×{plate.height}  {size // 1024} KB  board plate")
-    info(f"seat it with: triptych --sprite {out} @board  (real symbols, real layout — "
-         "the model never draws the field)")
+    info("Legacy board plate saved for internal comparison only. For store art, "
+         "pass the real gameplay capture to image generation as context")
 
 
 def cmd_showcase(args) -> None:
@@ -4292,36 +4214,11 @@ def main() -> None:
                         "nothing may be discarded, so the cuts move together (default "
                         f"auto = {SNAP_REF * 100:.0f}%% of a panel; off = the "
                         "content-blind even split)")
-    t.add_argument("--sprite", action="append", default=[], metavar="PNG[@k=v,...]",
-                   help="place REAL game assets in a reference draft, never the final "
-                        "deliverable. Roles: hero (character mode only), prop, frame "
-                        "(bottom spill), fall (airborne), board (real play field). "
-                        "Character mode promotes the first non-board sprite to hero "
-                        "if none is explicit. Object/mechanic mode never does. "
-                        "Keys: x,y (normalized panorama centre), w,h (fractions of "
-                        "one panel), panel (1-based), rot, bleed, glow, shadow, "
-                        "contact, light, occlude, trail, opacity. Gameplay can sit "
-                        "anywhere: @board,x=0.67,w=1.9 for right two panels or "
-                        "@board,x=0.5,w=2.9 for all three; set h to preserve aspect "
-                        "and readability. Non-critical board structure may cross "
-                        "seams; protect outcomes separately after final integration. "
-                        "Omitted board placement retains a central compatibility "
-                        "default, not a composition rule. Repeatable.")
+    # Parse legacy paste options only to explain why they are refused.
+    t.add_argument("--sprite", action="append", default=[], metavar="PNG",
+                   help="retired: panorama gameplay and objects must be generated in the scene; this option is refused")
     t.add_argument("--sprite-dir", action="append", default=[], metavar="DIR",
-                   help="recursively add EVERY raster sprite in DIR to the layout/"
-                        "reference manifest (PNG, WebP, JPEG discovery). Repeatable. "
-                        "Every discovered source is then required to be a standalone "
-                        "PNG with real transparent alpha; convert/cut out WebP/JPEG "
-                        "files before composition. Explicit "
-                        "--sprite entries come first and override duplicate files, so "
-                        "pass the hero with @hero before its directory. Assets are "
-                        "distributed across panels; this remains a generation draft, "
-                        "never a shippable sprite paste-up.")
-    t.add_argument("--hero-height", type=float, default=HERO_H, metavar="F",
-                   help="how much of panel 1's height the hero fills VISIBLY. The "
-                        "bust is anchored to the panel's left edge and top, and is "
-                        "cropped by the bottom edge and (when it is wider than the "
-                        f"panel) the left one. Default {HERO_H}.")
+                   help="retired: pass asset files directly to image generation as references; this option is refused")
     t.add_argument("--hero-bounds", metavar="X,Y,W,H",
                    help="tight normalized box around the hero as the FINAL render "
                         "shows it, including held/worn/attached props. The strict "
@@ -4334,36 +4231,10 @@ def main() -> None:
                         "crushed, busy in the far plane, weak at the bottom, overprocessed, "
                         "or the measured hero leaves panel 1. `warn` is only for a "
                         "diagnostic preview; `off` is for compositor unit tests.")
-    t.add_argument("--object-frame", default="auto", metavar="auto|N|off",
-                   help="how many unassigned sprites form the dense cropped band "
-                        "along the bottom edge. `auto` uses roughly 72%% of the "
-                        "supporting manifest (up to three per panel) in a staggered, "
-                        "overlapping spill and leaves the rest airborne; `off` "
-                        "sends them all into the fall. Default auto.")
-    t.add_argument("--no-falling", action="store_true",
-                   help="keep unassigned sprites out of the air. With the default "
-                        "object frame they all join the bottom band; with "
-                        "--object-frame off they retain the legacy standing-prop layout.")
-    t.add_argument("--fall-trail", type=float, default=DEFAULT_FALL_TRAIL, metavar="F",
-                   help="0..2 multiplier for motion smears behind auto falling objects. "
-                        f"Default {DEFAULT_FALL_TRAIL}; 0 keeps every object crisp.")
-    t.add_argument("--sprite-glow-color", default="#FFFFFF", metavar="HEX",
-                   help="halo colour behind inlaid objects — pass the game's accent so "
-                        "they sit in the art instead of on top of it")
-    t.add_argument("--sprite-light", type=float, default=DEFAULT_SPRITE_LIGHT,
-                   metavar="F",
-                   help="0..1 — how hard each object is pulled into the scene's own "
-                        "light (colour cast from the art it covers + an edge "
-                        f"light-wrap). Default {DEFAULT_SPRITE_LIGHT}; 0 pastes the "
-                        "sprite flat, which is what reads as a sticker.")
     t.add_argument("--save-pano", metavar="PNG",
-                   help="also write the full graded panorama WITH the objects inlaid, "
-                        "so `banner` and showcase backgrounds can reuse the same "
-                        "integrated art")
+                   help="also write the prepared complete panorama after grading and crop")
     t.add_argument("--pano-only", action="store_true",
-                   help="write only --save-pano: no panels, no preview. This is the "
-                        "layout DRAFT pass, whose output is a reference image for "
-                        "`gpt_image.py edit`, not an upload asset")
+                   help="write only --save-pano: no panels or preview; the source must already be complete")
     add_pop_args(t)
     # Retired: the panorama is pure image. Still parsed so a stale caller gets a
     # sentence explaining where the words go, not `unrecognized arguments`.
@@ -4372,78 +4243,8 @@ def main() -> None:
     t.add_argument("--title-panel", type=int, default=0, help=argparse.SUPPRESS)
     t.set_defaults(func=cmd_triptych)
 
-    bp = sub.add_parser(
-        "boardplate",
-        help="the game's REAL play field as a transparent cutout, for `triptych --sprite`")
-    bp.add_argument("--out", required=True, metavar="PNG")
-    bp.add_argument("--from-shot", metavar="PNG",
-                    help="lift the field out of a captured gameplay frame — the most "
-                         "exact match there is, and the right choice on any run that "
-                         "already has frames. Needs --rect")
-    bp.add_argument("--rect", metavar="X,Y,W,H",
-                    help="the play field inside --from-shot: fractions of the frame "
-                         "when <= 1, pixels otherwise")
-    bp.add_argument("--symbol", action="append", default=[], metavar="PNG",
-                    help="a real symbol PNG out of assets/images/. Repeatable, in "
-                         "reading order; a short list is staggered across the grid")
-    bp.add_argument("--grid", default="3x3", metavar="COLSxROWS",
-                    help="the game's own field shape (default 3x3)")
-    bp.add_argument("--frame", metavar="PNG",
-                    help="the game's real board/panel asset, used as the plate's "
-                         "background instead of drawn colours")
-    bp.add_argument("--panel", default="", metavar="HEX",
-                    help="board background colour — sample it from the game's board")
-    bp.add_argument("--tile", default="", metavar="HEX", help="per-cell tile colour")
-    bp.add_argument("--border", default="", metavar="HEX", help="board edge colour")
-    bp.add_argument("--border-width", type=float, default=0.045, metavar="F",
-                    help="border thickness as a fraction of one cell")
-    bp.add_argument("--cell", type=int, default=320, metavar="PX",
-                    help="one cell's size; the plate is scaled down into the panorama, "
-                         "so generate it larger than it will be shown")
-    bp.add_argument("--gap", type=float, default=0.06, metavar="F",
-                    help="gap between cells, as a fraction of one cell")
-    bp.add_argument("--pad", type=float, default=0.09, metavar="F",
-                    help="board padding around the cells, as a fraction of one cell")
-    bp.add_argument("--tile-radius", type=float, default=0.16, metavar="F")
-    bp.add_argument("--symbol-pad", type=float, default=0.12, metavar="F",
-                    help="breathing room between a symbol and its cell edge")
-    bp.add_argument("--radius", type=float, default=0.05, metavar="F",
-                    help="the plate's own corner radius, as a fraction of its short side")
-    bp.add_argument("--sheen", type=float, default=0.35, metavar="F",
-                    help="0..1 glass highlight across the field; 0 for none")
-    bp.add_argument("--yaw", type=float, default=-14.0, metavar="DEG",
-                    help="turn the board around its vertical axis, so it has a near "
-                         "edge and a far edge instead of facing the camera flat")
-    bp.add_argument("--pitch", type=float, default=6.0, metavar="DEG",
-                    help="tip the board away from the camera, so it stands on the "
-                         "scene's ground plane rather than floating parallel to it")
-    bp.add_argument("--depth", type=float, default=0.05, metavar="F",
-                    help="slab thickness as a fraction of the board's short side; the "
-                         "visible edge is what makes it an object and not a decal")
-    bp.add_argument("--tilt", type=float, default=0.0, metavar="DEG",
-                    help="roll the finished plate in the picture plane, after the "
-                         "perspective, to match the stage it is standing on")
-    bp.add_argument("--win", default="", metavar="CxR,CxR,...",
-                    help="the cells that PAY, 1-based COLxROW in the order they pay "
-                         "(e.g. 1x2,2x2,3x2). They get the payline, an accent ring and "
-                         "the light it spills onto the panel, and the rest of the field "
-                         "falls back (--dim). An active round makes the listing a "
-                         "gameplay example: a correct grid at rest looks boring. "
-                         "This captures a decisive moment "
-                         "without inventing anything the app does not have")
-    bp.add_argument("--win-color", default="", metavar="HEX",
-                    help="the game's own win/accent colour for the payline, rings and "
-                         "glow (default: --border, then a warm gold)")
-    bp.add_argument("--dim", type=float, default=0.35, metavar="F",
-                    help="0..0.9 — how far the non-paying cells fall back, so the win "
-                         "reads first. Only applies with --win")
-    bp.add_argument("--lift", type=float, default=1.45, metavar="F",
-                    help="scale of the paying symbol as it rises out of its cell, with "
-                         "its own shadow landing on the board — the cue that says the "
-                         "round is resolving, not posed. Composited after the "
-                         "perspective, because it is leaving the board's plane. 1 or "
-                         "less to keep the field flat; needs --win")
-    bp.set_defaults(func=cmd_boardplate)
+    bp = sub.add_parser("boardplate", help=argparse.SUPPRESS)
+    bp.set_defaults(func=cmd_retired_boardplate)
 
     s = sub.add_parser("showcase", help="real game frame in a phone on a themed background")
     s.add_argument("--shot", required=True)

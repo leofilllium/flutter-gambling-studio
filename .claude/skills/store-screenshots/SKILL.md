@@ -209,7 +209,9 @@ Label which references govern identity and which govern composition. Save the si
 scene as `art/keyart-integrated.png`. Do not paste, warp or texture-map any screenshot crop,
 board plate, symbol grid or other gameplay block into the panorama, either before or after image
 generation. Do not generate a background or empty board recess to fill later. The compositor may
-grade and slice the finished panorama; it must not assemble its gameplay field.
+grade and slice the finished panorama; it must not assemble its gameplay field. `boardplate` is
+retired for this workflow, and `triptych` refuses `--sprite` and `--sprite-dir`. Pass the capture
+and shipped sprites directly to image generation as references, then export the complete scene.
 
 Count rows, columns, paylines, buckets and symbols against the runtime capture and verify the
 decisive outcome. If the model changes topology or state, reject the image and use the bounded
@@ -328,8 +330,8 @@ together. Remeasure after any geometry change and separately for each store's as
 
 Resolve measured variables first. Character exports use hero-bounds instead of lead-bounds;
 object exports use lead-kind object. Repeat protected regions as necessary. Export Play with
-`--size play` and separately measured bounds. Do not pass sprites on final slicing calls: they
-already belong to the integrated render. Strict mode writes no deliverable on failure; warn
+`--size play` and separately measured bounds. The final slicing call accepts only the complete
+generated render. Strict mode writes no deliverable on failure; warn
 is diagnostic-only and off is for tests. Carousel exports default to `--gutter auto`: the continuous
 source extends beneath a hidden strip scaled from 100px at a 1320px card, matching the publisher's
 inter-card separator. Keep faces, inscriptions and decisive outcomes outside those hidden strips;
