@@ -64,7 +64,9 @@ an elegant courtier or horror character. Prefer x5/x10 reward coins in gameplay 
 game config and theme support them; never invent runtime multipliers or change balance solely for
 promotional art. Every generated game's store screenshot set includes theme-matched balls marked
 x5, x10, x25, x50 and x100 as store-only scene elements, even when those values are absent from
-the game. Keep them out of real gameplay captures and payout claims.
+the game. Across all six categories, plan each ball as a prominent secondary subject at roughly
+35-40% of the final portrait panel width; adapt only to protect readable gameplay and record
+the reason. Keep them out of real gameplay captures and payout claims.
 
 All agent responses must be in English, and every artifact the pipeline writes — design documents, concepts, reports, session state and commit messages — must be in English as well. Dart/Flutter code, file paths, class names and CLI commands are English by definition.
 

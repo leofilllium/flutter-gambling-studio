@@ -105,7 +105,10 @@ For `/store-screenshots`, every generated game's store screenshot set instead in
 theme-matched background balls marked `x5`, `x10`, `x25`, `x50` and `x100`, regardless of its
 paytable. They are store-only scene elements: do not insert them into real gameplay captures,
 imply those tiers are reachable, or alter game math to justify them. Build their shape, material,
-palette and light from the current Design DNA, and keep all five readable in the final screenshots.
+palette and light from the current Design DNA. For every C1-C6 category and lead kind, make each
+ball a prominent secondary subject, starting near 35-40% of the final portrait panel width and
+adjusting only to protect the actual gameplay and outcome. Keep all five readable in the final
+screenshots.
 
 These short, verified runtime game-object inscriptions and the five store-only ball markings
 are exceptions to the no-baked-copy rule.

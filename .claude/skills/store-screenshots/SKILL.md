@@ -108,6 +108,9 @@ Write `STORE_BRIEF.md` before any generation call:
 - Multiplier-ball art direction: which shipped object or visual motif inspires the ball, plus
   its material, palette, ornament, lighting, target size and placement in the panorama and
   feature scene. Size is judged in the final panel crop, not the wide source image.
+  Apply the same prominent-size target to every C1-C6 game and every lead kind: plan each ball
+  at roughly 35-40% of a final portrait panel's width, then adjust only where the game's
+  decisive action or geometry requires it. Record the reason for any smaller target.
   Record the exact labels separately from the visual treatment so a styled ball never changes
   a game's payout meaning.
   Map each value to a final panorama panel and an airborne zone, or to a showcase background
@@ -170,14 +173,15 @@ heights and horizontal positions with clear space between neighboring balls. Do 
 them in the lower heap, along one baseline, or in a tight cluster. In a character-led triptych,
 favor panels 2 and 3 around the action; panel 1 is optional only if the character's face,
 headwear, hands and silhouette remain clear. For other layouts, follow the actual mechanic.
-Make each ball a prominent secondary subject, not a small coin or badge. For a character-led
-slot panorama, aim for a diameter around 1.3–1.5 visible reel-cell widths in the final panel;
-adapt that proportion to the primary repeated object in other mechanics. If the user supplies
-an approved visual example, match its scale and apply any requested size adjustment relative
-to that example. Leave obvious breathing room between balls, aiming for at least half a ball
-diameter of clear space between their outlines. Vary depth and scale modestly while keeping
-each number readable at store thumbnail size. Compose enough room for these balls from the
-start; enlarging a crowded finished panorama can hide symbols, cross seams or clip outer edges.
+Make each ball a prominent secondary subject, not a small coin or badge, in every C1-C6 game.
+Use the final portrait panel width as the common scale reference: start around 35-40% of that
+width per ball, including games without reels. Match a user-supplied visual example and apply
+any requested size adjustment relative to it. Adjust the target only as needed to keep the real
+game and decisive outcome readable, then record the reason in the brief. Leave obvious breathing
+room between balls, aiming for at least half a ball diameter of clear space between their outlines.
+Vary depth and scale modestly while keeping each number readable at store thumbnail size.
+Compose enough room for these balls from the start; enlarging a crowded finished panorama can
+hide symbols, cross seams or clip outer edges.
 Do not let the balls obscure the real board, decisive outcome or protected seams.
 
 Plan the full panorama before generation, or the portrait showcase background for `--panels 0`.
@@ -247,7 +251,8 @@ game content. Geometry metrics cannot identify a Joker, read lettering or verify
 visual comparison is mandatory.
 Inspect each multiplier ball at full and thumbnail size for exact lettering, a distinct readable
 backing, theme-consistent materials and lighting, the planned prominent size relative to the
-game's symbols or approved reference, and no overlap with decisive gameplay. Check
+final portrait panel or approved reference in every game category, and no overlap with decisive
+gameplay. Check
 that the balls read as separate flying objects above the irregular lower spill, with varied
 height and lateral position instead of a bottom row or cluster. Inspect the final App Store
 and Play carousel crops separately: every label and enough of its ball to read as a physical
