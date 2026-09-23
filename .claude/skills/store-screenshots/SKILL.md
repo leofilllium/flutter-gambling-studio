@@ -106,13 +106,15 @@ Write `STORE_BRIEF.md` before any generation call:
   guaranteed result. Render showcase captions with compositor typography; only the short ball
   inscriptions may be generated into the marketing art.
 - Multiplier-ball art direction: which shipped object or visual motif inspires the ball, plus
-  its material, palette, ornament, lighting and placement in the panorama and feature scene.
+  its material, palette, ornament, lighting, target size and placement in the panorama and
+  feature scene. Size is judged in the final panel crop, not the wide source image.
   Record the exact labels separately from the visual treatment so a styled ball never changes
   a game's payout meaning.
   Map each value to a final panorama panel and an airborne zone, or to a showcase background
   when `--panels 0`. For a character-led three-panel scene, plan the balls chiefly around
   gameplay in panels 2 and 3; use panel 1 only where the character stays clear. For an
   object/mechanic lead, distribute them around the actual play surface wherever it spans.
+  Reserve room for all five at the intended size before generating the scene.
 - Independent feature layout: `free` by default or justified `left-heavy`; no reserved device zone.
   The feature graphic is text-free: record the chosen capture for its right-side phone, not a
   title or tagline.
@@ -168,8 +170,15 @@ heights and horizontal positions with clear space between neighboring balls. Do 
 them in the lower heap, along one baseline, or in a tight cluster. In a character-led triptych,
 favor panels 2 and 3 around the action; panel 1 is optional only if the character's face,
 headwear, hands and silhouette remain clear. For other layouts, follow the actual mechanic.
-Vary ball depth and scale while keeping each number readable at store thumbnail size. Do not
-let the balls obscure the real board, decisive outcome or protected seams.
+Make each ball a prominent secondary subject, not a small coin or badge. For a character-led
+slot panorama, aim for a diameter around 1.3–1.5 visible reel-cell widths in the final panel;
+adapt that proportion to the primary repeated object in other mechanics. If the user supplies
+an approved visual example, match its scale and apply any requested size adjustment relative
+to that example. Leave obvious breathing room between balls, aiming for at least half a ball
+diameter of clear space between their outlines. Vary depth and scale modestly while keeping
+each number readable at store thumbnail size. Compose enough room for these balls from the
+start; enlarging a crowded finished panorama can hide symbols, cross seams or clip outer edges.
+Do not let the balls obscure the real board, decisive outcome or protected seams.
 
 Plan the full panorama before generation, or the portrait showcase background for `--panels 0`.
 A rough layout sketch may indicate panel cuts and subject positions, but it must not contain a
@@ -237,7 +246,8 @@ the gaps. Protect those details, not the entire board housing. Every crop still 
 game content. Geometry metrics cannot identify a Joker, read lettering or verify a payline:
 visual comparison is mandatory.
 Inspect each multiplier ball at full and thumbnail size for exact lettering, a distinct readable
-backing, theme-consistent materials and lighting, and no overlap with decisive gameplay. Check
+backing, theme-consistent materials and lighting, the planned prominent size relative to the
+game's symbols or approved reference, and no overlap with decisive gameplay. Check
 that the balls read as separate flying objects above the irregular lower spill, with varied
 height and lateral position instead of a bottom row or cluster. Inspect the final App Store
 and Play carousel crops separately: every label and enough of its ball to read as a physical
