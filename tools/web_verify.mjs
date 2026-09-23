@@ -294,6 +294,9 @@ function findLeafByLabel(nodes, exactLabels, fallbackRe) {
     })[0];
 }
 
+const PRIMARY_PLAY_LABEL = /^(?:play|start|begin|spin|new game|continue|tap to play)\b/i;
+const PRIMARY_ACTION_LABEL = /^(?:spin|play|tap|roll|throw|drop|launch|deal|draw|pull|bet|go|move|open)\b/i;
+
 // ─── the tour ──────────────────────────────────────────────────────────────
 async function main() {
   launchChrome();
@@ -352,7 +355,7 @@ async function main() {
   const play = findLeafByLabel(
     menuNodes,
     ['play main storm', 'play', 'start', 'begin', 'new game', 'continue', 'tap to play'],
-    /play|start|begin|new game|continue|tap to play/i,
+    PRIMARY_PLAY_LABEL,
   );
   if (play) { log(`🎯 found action by label: "${play.label}"`); await tap(play.x, play.y, play.label); }
   else { log('🎯 no labeled Play — tapping thumb zone'); await tap(VW / 2, VH * 0.82); }
@@ -367,7 +370,7 @@ async function main() {
   const act = findLeafByLabel(
     nodes2,
     ['spin', 'play', 'tap', 'roll', 'throw', 'drop', 'launch', 'deal', 'draw', 'pull', 'bet', 'go', 'move', 'open'],
-    /spin|play|tap|roll|throw|drop|launch|deal|draw|pull|bet|go|move|open/i,
+    PRIMARY_ACTION_LABEL,
   );
   if (act) { log(`🎯 action button: "${act.label}"`); await tap(act.x, act.y, act.label); }
   else { await tap(VW / 2, VH * 0.82); }
