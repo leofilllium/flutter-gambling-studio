@@ -86,4 +86,5 @@ board topology, Joker expression (when relevant), and verified multiplier-coin m
 the concept into the art direction, asset manifest and prompts. Classic unspecified slots
 use 3×3; store gameplay placement is flexible and object-led games need no invented character.
 
-Reject forced mascots, horror Jokers, invented multipliers and store grids that differ from runtime.
+Reject forced mascots, horror Jokers, invented runtime multipliers and store grids that differ
+from runtime. For store-only art, follow `/store-screenshots` and include its five themed balls.

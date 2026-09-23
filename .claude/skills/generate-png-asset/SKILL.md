@@ -23,6 +23,8 @@ meaning. Prefer x5/x10 when supported; validate exact lettering at 64 px and in 
 verified inscriptions are allowed under the quality floor. No invented multipliers, marketing
 copy, balances or payout promises. A code overlay can letter an unlettered source using the same
 config value; a different payout symbol is not merely a recolor.
+The five themed multiplier balls required by `/store-screenshots` are a store-only art exception;
+follow that runbook for their labels and keep this config-backed rule for runtime game assets.
 
 ## Default rule
 

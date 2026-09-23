@@ -60,8 +60,11 @@ replace the game's background merely to make it match newly generated marketing 
 
 Unspecified classic slots use 3 reels × 3 visible rows (3×3), not 4×4. Preserve explicit or existing
 variants. Joker defaults to a mischievous, slightly vicious theatrical trickster, playful rather than
-an elegant courtier or horror character. Prefer x5/x10 reward coins where the actual game config and
-theme support them; never invent multipliers or change balance solely for promotional art.
+an elegant courtier or horror character. Prefer x5/x10 reward coins in gameplay where the actual
+game config and theme support them; never invent runtime multipliers or change balance solely for
+promotional art. Every generated game's store screenshot set includes theme-matched balls marked
+x5, x10, x25, x50 and x100 as store-only scene elements, even when those values are absent from
+the game. Keep them out of real gameplay captures and payout claims.
 
 All agent responses must be in English, and every artifact the pipeline writes — design documents, concepts, reports, session state and commit messages — must be in English as well. Dart/Flutter code, file paths, class names and CLI commands are English by definition.
 
