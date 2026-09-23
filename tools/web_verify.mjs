@@ -261,6 +261,9 @@ function findByLabel(nodes, re) {
   return nodes.find((n) => re.test(n.label));
 }
 
+const PRIMARY_PLAY_LABEL = /^(?:play|start|begin|spin|new game|continue|tap to play)\b/i;
+const PRIMARY_ACTION_LABEL = /^(?:spin|play|tap|roll|throw|drop|launch|deal|draw|pull|bet|go|move|open)\b/i;
+
 // ─── the tour ──────────────────────────────────────────────────────────────
 async function main() {
   launchChrome();
@@ -306,7 +309,10 @@ async function main() {
 
   // 3. game screen — prefer a labeled Play/Start button, else thumb-zone tap
   const nodes = await readSemantics();
-  const play = findByLabel(nodes, /play|start|begin|spin|new game|continue|tap to play/i);
+  // Require an action at the start of the semantic label. Flutter can merge
+  // an entire menu into one label, where a trailing "How to Play" link or the
+  // game's own instructions otherwise wins this first-match search.
+  const play = findByLabel(nodes, PRIMARY_PLAY_LABEL);
   if (play) { log(`🎯 found action by label: "${play.label}"`); await tap(play.x, play.y, play.label); }
   else { log('🎯 no labeled Play — tapping thumb zone'); await tap(VW / 2, VH * 0.82); }
   await sleep(2500);
@@ -314,7 +320,7 @@ async function main() {
 
   // 4. main action (spin/play/tap) — labeled if possible, else thumb zone again
   const nodes2 = await readSemantics();
-  const act = findByLabel(nodes2, /spin|play|tap|roll|throw|drop|launch|deal|draw|pull|bet|go|move|open/i);
+  const act = findByLabel(nodes2, PRIMARY_ACTION_LABEL);
   if (act) { log(`🎯 action button: "${act.label}"`); await tap(act.x, act.y, act.label); }
   else { await tap(VW / 2, VH * 0.82); }
   await sleep(1500);
