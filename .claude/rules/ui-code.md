@@ -129,6 +129,11 @@ class _MyState extends State<MyWidget> with SingleTickerProviderStateMixin {
 `TextEditingController` and `FocusNode` MUST be disposed or cancelled in `dispose()`.
 Use nullable types (`Timer?`) for safety.
 
+For image-loading or animation handoffs that intentionally keep a fallback visible for a
+short delay, store that delay as a nullable `Timer` and cancel it in `dispose()`. Do not use
+an uncancellable `Future.delayed` for a callback that can call `setState`; widget layout
+tests dispose routes between viewport passes and will correctly report the pending timer.
+
 A listener can synchronously release its owner during `notifyListeners()`. Mark the
 owner inactive and cancel timers immediately, but defer disposal of its active
 `ChangeNotifier`/`ValueNotifier` until the notification stack unwinds (for example, a
