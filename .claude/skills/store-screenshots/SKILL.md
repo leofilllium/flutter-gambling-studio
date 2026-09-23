@@ -109,7 +109,10 @@ Write `STORE_BRIEF.md` before any generation call:
   its material, palette, ornament, lighting and placement in the panorama and feature scene.
   Record the exact labels separately from the visual treatment so a styled ball never changes
   a game's payout meaning.
-  Map each value to a final panorama panel, or to a showcase background when `--panels 0`.
+  Map each value to a final panorama panel and an airborne zone, or to a showcase background
+  when `--panels 0`. For a character-led three-panel scene, plan the balls chiefly around
+  gameplay in panels 2 and 3; use panel 1 only where the character stays clear. For an
+  object/mechanic lead, distribute them around the actual play surface wherever it spans.
 - Independent feature layout: `free` by default or justified `left-heavy`; no reserved device zone.
   The feature graphic is text-free: record the chosen capture for its right-side phone, not a
   title or tagline.
@@ -147,10 +150,11 @@ or span one continuous angled surface across both with meaningful gameplay visib
 add a human, hand, animal, mascot or player silhouette to supply drama. The object lead may frame
 the action, but it cannot replace gameplay in slide 1.
 
-Build the lower edge from a varied spill of actual game objects: scale, rotation, height, overlap,
-contact shadows and shared light. Add recognizable flying/falling objects at varied depths. Keep
-primary subjects sharp, source-colored and dominant over a broad smooth subordinate far plane.
-Generic stage furniture, particles or a tidy row cannot replace the actual object spill.
+Build the lower edge from an irregular, cropped spill of actual game objects across its full
+width: vary scale, rotation, height, overlap, contact shadows and depth so it reads as a
+tumbled heap rather than a tidy row or one isolated pile. Add recognizable flying/falling
+objects above it. Keep primary subjects sharp, source-colored and dominant over a broad
+smooth subordinate far plane. Generic stage furniture or particles cannot replace the spill.
 
 Show all five themed multiplier balls at least once across the generated panorama's store
 panels; when `--panels 0`, include them in the themed background of at least one showcase slide
@@ -159,9 +163,13 @@ backing; place the inscription on the ball itself, not as floating typography. D
 material, colour, ornament, edge treatment and light from the game's Design DNA and actual
 objects. A Plinko ball, jester bead, jeweled sphere or mechanical capsule should feel native to
 its game. Avoid reusing a generic bubble across store kits. These store-only balls supplement
-the required spill of actual game objects. Vary depth and scale in the scene while keeping each
-number readable at store thumbnail
-size. Do not let the balls obscure the real board, decisive outcome or protected seams.
+the required spill of actual game objects: keep them visibly airborne above it, at different
+heights and horizontal positions with clear space between neighboring balls. Do not collect
+them in the lower heap, along one baseline, or in a tight cluster. In a character-led triptych,
+favor panels 2 and 3 around the action; panel 1 is optional only if the character's face,
+headwear, hands and silhouette remain clear. For other layouts, follow the actual mechanic.
+Vary ball depth and scale while keeping each number readable at store thumbnail size. Do not
+let the balls obscure the real board, decisive outcome or protected seams.
 
 Plan the full panorama before generation, or the portrait showcase background for `--panels 0`.
 A rough layout sketch may indicate panel cuts and subject positions, but it must not contain a
@@ -175,7 +183,8 @@ together. The panorama must already look finished before the compositor slices i
 board structure may cross seams.
 
 In the generation prompt, identify five separate game-native balls with the exact inscriptions
-`x5`, `x10`, `x25`, `x50` and `x100`; give their planned positions and store-only visual role.
+`x5`, `x10`, `x25`, `x50` and `x100`; give their distinct airborne positions, spacing
+from each other and separation from the lower real-object heap, plus their store-only visual role.
 Treat the balls as physical parts of the scene, never floating labels or UI overlays. Check the
 model's rendered digits before any export and correct illegible or changed values within the
 bounded art recovery budget.
@@ -229,8 +238,12 @@ game content. Geometry metrics cannot identify a Joker, read lettering or verify
 visual comparison is mandatory.
 Inspect each multiplier ball at full and thumbnail size for exact lettering, a distinct readable
 backing, theme-consistent materials and lighting, and no overlap with decisive gameplay. Check
-that all five values remain visible in the final store screenshots, even after slicing and
-gutters; for `--panels 0`, inspect the showcase slide separately from the feature graphic.
+that the balls read as separate flying objects above the irregular lower spill, with varied
+height and lateral position instead of a bottom row or cluster. Inspect the final App Store
+and Play carousel crops separately: every label and enough of its ball to read as a physical
+object must remain visible after slicing, gutters and the different outer/top crops. A source
+panorama alone cannot establish this; correct placement or export geometry if a value is cut
+or crowded. For `--panels 0`, inspect the showcase slide separately from the feature graphic.
 
 For an object/mechanic-led game with no living character, explicitly reject any invented living
 player or mascot in slide 1. Verify that slides 1 and 2 each contain recognizable authentic
@@ -367,7 +380,8 @@ multipliers and payout promises. Metadata retains the virtual-currency disclaime
 gambling declaration, rating and applicable odds disclosure. Interpret text matches in context.
 Check all five final ball inscriptions against the required store-art set. A missing or altered
 label fails the store kit; an unsupported gameplay value does not. Keep the balls visually
-separate from real gameplay captures so the captured outcome remains authentic.
+separate from real gameplay captures so the captured outcome remains authentic. Record the
+final crop locations and the airborne spacing and lower-spill verdict in STORE_INFO.md.
 
 Recheck runtime-background inventory/hashes/wiring: normal result UNCHANGED. If branding changed
 Dart, run format/analysis and relevant existing tests, and verify the menu still fits. Compositor
