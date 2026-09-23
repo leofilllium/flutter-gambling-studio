@@ -255,6 +255,12 @@ object must remain visible after slicing, gutters and the different outer/top cr
 panorama alone cannot establish this; correct placement or export geometry if a value is cut
 or crowded. For `--panels 0`, inspect the showcase slide separately from the feature graphic.
 
+Make a final-size contact sheet of every delivered panorama panel (and the gapped carousel) before
+packaging. Inspect each protected inscription and decisive face at thumbnail size, then inspect
+the seam-adjacent hero at full size. A strict numeric art gate does not replace this crop review:
+if a label is clipped or a hero crosses a publisher gap, correct the generated scene or bounds and
+rerun the strict composition gate before continuing.
+
 For an object/mechanic-led game with no living character, explicitly reject any invented living
 player or mascot in slide 1. Verify that slides 1 and 2 each contain recognizable authentic
 gameplay at a three-quarter/3D angle; when one field spans both, inspect the separate crops rather
