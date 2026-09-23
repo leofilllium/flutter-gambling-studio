@@ -29,7 +29,8 @@ composition and rendering style. Use the actual images as generation references 
 runtime result beside them (`.claude/docs/game-concept-examples.md` → "How close to the reference
 — match it"). Read
 `.claude/docs/visual-context.md` and `.claude/docs/game-concept-examples.md` for lead kinds,
-flexible store composition, 3×3 classic-slot defaults, Joker tone and supported x5/x10 coins.
+flexible store composition, 3×3 classic-slot defaults, Joker tone, supported runtime x5/x10
+coins and the five required store-only multiplier balls.
 The reference's visual language is authoritative; reject unrequested style substitutions.
 
 ## Technology stack

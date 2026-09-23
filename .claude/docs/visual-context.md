@@ -90,8 +90,8 @@ keeps its documented dimensions. Do not change a shipped game to satisfy a marke
 
 ### Multiplier coins
 
-Prefer prominent `x5` and `x10` coins/badges in runtime rewards and storefront object spills
-when the theme and actual mechanics support those values. Coin material and edging follow the
+Prefer prominent `x5` and `x10` coins/badges in runtime rewards when the theme and actual
+mechanics support those values. Coin material and edging follow the
 game: royal jewel medallion, playful jester chip, charged Plinko token, and so on.
 At new-concept design time, prefer real x5/x10 reward tiers when they suit the mechanic and have
 the game-mathematician verify the resulting model before generating their assets. This is a
@@ -99,12 +99,20 @@ concept choice, not permission for store generation to alter an existing game's 
 Record each marker's exact config/paytable source and meaning in the manifest. A total payout,
 per-line multiplier, bonus modifier, and ten-pull count are different meanings; do not substitute
 one for another or imply a guaranteed reward. If x5/x10 do not exist, use a supported value or
-unlettered objects. Never change balance just to justify a promotional coin.
+unlettered objects for runtime assets. Never change balance just to justify a promotional coin.
 
-These short, verified game-object inscriptions are exceptions to the no-baked-copy rule.
-Keep ordinary UI and marketing text in code/compositor typography. Check exact lettering at
-runtime size; generate/edit the inscription or render it from the same config value on an
-unlettered source, without recoloring a symbol to invent a new payout identity.
+For `/store-screenshots`, every generated game's store screenshot set instead includes five
+theme-matched background balls marked `x5`, `x10`, `x25`, `x50` and `x100`, regardless of its
+paytable. They are store-only scene elements: do not insert them into real gameplay captures,
+imply those tiers are reachable, or alter game math to justify them. Build their shape, material,
+palette and light from the current Design DNA, and keep all five readable in the final screenshots.
+
+These short, verified runtime game-object inscriptions and the five store-only ball markings
+are exceptions to the no-baked-copy rule.
+Keep ordinary UI and marketing text in code/compositor typography. For runtime assets, check
+exact lettering at runtime size and derive it from the same config value; do not recolor a
+symbol to invent a new payout identity. For store-only balls, check all five inscriptions at
+final screenshot size against the required visual set.
 
 ## Flexible store composition
 
