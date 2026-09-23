@@ -39,6 +39,7 @@ Requires: numpy + Pillow.  Optional: rembg (auto-detected).
 Usage:
   python3 tools/cutout.py assets/images/sprites/cherry.png --type sprite
   python3 tools/cutout.py --dir assets/images/sprites --type sprite
+  python3 tools/cutout.py assets/images/sprites --check       # audit every PNG in a directory
   python3 tools/cutout.py --dir assets/images/sprites --check      # audit only
   python3 tools/cutout.py in.png --key '#FF00FF' --json
 """
@@ -581,6 +582,30 @@ def process(path: Path, args, mask: np.ndarray | None = None) -> dict:
     return result
 
 
+def collect_paths(files: list[str], directory: str | None) -> list[Path]:
+    """Expand positional and --dir inputs into sorted PNG paths.
+
+    A directory is accepted in either position so ``--check directory`` does
+    the useful batch audit callers expect instead of trying to open the
+    directory as one image. Non-existent paths are kept for the caller's
+    existing "file not found" reporting.
+    """
+    paths: list[Path] = []
+    for value in files:
+        candidate = Path(value)
+        if candidate.is_dir():
+            paths.extend(sorted(candidate.glob("*.png")))
+        else:
+            paths.append(candidate)
+    if directory:
+        candidate = Path(directory)
+        if candidate.is_dir():
+            paths.extend(sorted(candidate.glob("*.png")))
+        else:
+            paths.append(candidate)
+    return paths
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Clean background removal for game assets")
     ap.add_argument("files", nargs="*", help="PNG files to process")
@@ -610,9 +635,7 @@ def main() -> int:
     except ValueError as exc:
         ap.error(str(exc))
 
-    paths = [Path(f) for f in args.files]
-    if args.dir:
-        paths += sorted(Path(args.dir).glob("*.png"))
+    paths = collect_paths(args.files, args.dir)
     paths = [p for p in paths if not p.name.endswith(".orig.png")]
     if not paths:
         ap.error("no input files (pass PNG paths or --dir)")
