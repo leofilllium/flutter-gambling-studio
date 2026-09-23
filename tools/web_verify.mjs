@@ -110,8 +110,12 @@ const userDir = join(tmpdir(), `webverify-${process.pid}`);
 let chrome;
 function launchChrome() {
   const flags = [
-    '--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
-    '--use-gl=swiftshader', '--hide-scrollbars', '--no-first-run', '--no-default-browser-check',
+    // Flutter Web uses WebGL for its canvas. Disabling GPU conflicts with the
+    // SwiftShader software renderer on some headless Chrome builds, so keep
+    // WebGL enabled and explicitly permit SwiftShader instead.
+    '--headless=new', '--no-sandbox', '--disable-dev-shm-usage',
+    '--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist',
+    '--enable-unsafe-swiftshader', '--hide-scrollbars', '--no-first-run', '--no-default-browser-check',
     '--disable-extensions', '--disable-background-networking',
     `--window-size=${VW},${VH}`, `--remote-debugging-port=${PORT}`,
     `--user-data-dir=${userDir}`, URL,
