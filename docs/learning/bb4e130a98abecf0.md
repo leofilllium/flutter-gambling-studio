@@ -43,4 +43,3 @@ SHA-256: `a61bce1d1bf7ffcad93bdfe9b192dff64cd21c723604b04b59f61908b7ff29a4`
   Output SHA-256: `788b4b25b6d3ba9fb9a31d792df01cd28494f48fd042d0bf135f3900cff56c12`
 
     anti-slop structure and regression checks: PASS
-
