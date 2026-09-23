@@ -116,7 +116,8 @@ function launchChrome() {
     // SwiftShader available in CI/headless Chrome but explicitly allow the
     // GPU path; --disable-gpu forces CPU-only CanvasKit where PNG layers can
     // disappear while text and vector primitives still render.
-    '--enable-gpu', '--ignore-gpu-blocklist', '--use-gl=angle', '--use-angle=swiftshader',
+    '--enable-gpu', '--enable-webgl', '--ignore-gpu-blocklist',
+    '--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader',
     '--hide-scrollbars', '--no-first-run', '--no-default-browser-check',
     // Keep ordinary network loading enabled: Flutter's HTML renderer decodes
     // Image.asset resources through the page's asset pipeline. Chromium's
