@@ -11,28 +11,27 @@ class StoreScreenshotTopologyGuidanceTest(unittest.TestCase):
         ).read_text(encoding="utf-8")
         cls.guidance_flat = " ".join(cls.guidance.split())
 
-    def test_exact_topology_has_bounded_deterministic_fallback(self) -> None:
+    def test_panorama_uses_capture_only_as_context_for_one_generated_scene(self) -> None:
+        phase = self.guidance.split("## Phase 1 — composition and integrated art", 1)[1].split(
+            "## Phase 2 — identity and critical-region review", 1
+        )[0]
         required_contract = (
-            "count- and order-sensitive gameplay geometry",
-            "After one bounded recovery",
-            "exact real board/field plate and shipped sprites",
-            "complete exact field layer rather than redrawing its cells",
-            "not permission to paste an unintegrated rectangular screenshot",
+            "**context only**",
+            "complete, coherent image",
+            "three-quarter/3D view",
+            "must not assemble its gameplay field",
+            "do not substitute a composited field",
             "Recount the final exported topology",
         )
         for phrase in required_contract:
             with self.subTest(phrase=phrase):
-                self.assertIn(phrase, self.guidance)
+                self.assertIn(phrase, phase)
 
-        integration_start = self.guidance.index(
-            "Treat count- and order-sensitive gameplay geometry"
-        )
-        recovery = self.guidance.index("After one bounded recovery", integration_start)
-        deterministic = self.guidance.index("exact real board/field plate", recovery)
-        final_audit = self.guidance.index("Recount the final exported topology", deterministic)
-        self.assertLess(integration_start, recovery)
-        self.assertLess(recovery, deterministic)
-        self.assertLess(deterministic, final_audit)
+        self.assertNotIn("tools/store_compose.py boardplate", phase)
+        self.assertNotIn("--from-shot", phase)
+        self.assertNotIn("deterministic project-derived layer", phase)
+        self.assertIn("Reject any visible capture boundary", self.guidance)
+        self.assertIn("the gameplay capture was reference-only", self.guidance)
 
     def test_feature_graphic_is_text_free_with_one_phone_on_the_right(self) -> None:
         required_contract = (
