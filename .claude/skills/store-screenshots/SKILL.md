@@ -292,6 +292,15 @@ object must remain visible after slicing, gutters and the different outer/top cr
 panorama alone cannot establish this; correct placement or export geometry if a value is cut
 or crowded. For `--panels 0`, inspect the showcase slide separately from the feature graphic.
 
+Before packaging, write a compact final-panel ball map in `STORE_INFO.md`: for each exact
+`x5`, `x10`, `x25`, `x50`, and `x100` inscription, name the delivered panel(s), confirm that
+the backing remains a physical ball, and mark whether either edge or publisher gap is within
+one ball diameter. Treat a label or ball body within that seam-adjacency band as a visual
+review item even when the numeric geometry gate passes. If the inscription is split, clipped,
+or hard to read in the gapped carousel preview, correct the crop once within the measured
+geometry budget or report the remaining blocker; never hide it with a caption or a pasted
+replacement. Apply the same explicit check to Play crops independently.
+
 Make a final-size contact sheet of every delivered panorama panel (and the gapped carousel) before
 packaging. Inspect each protected inscription and decisive face at thumbnail size, then inspect
 the seam-adjacent hero at full size. A strict numeric art gate does not replace this crop review:
