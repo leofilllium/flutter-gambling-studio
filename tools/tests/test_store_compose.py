@@ -117,6 +117,26 @@ class ReassemblyTests(unittest.TestCase):
                          if not p.name.startswith("_"))
         self.assertEqual(uploads, ["store-01.png", "store-02.png", "store-03.png"])
 
+    def test_strict_exports_when_only_visual_balance_scores_fail(self) -> None:
+        panels, pano = self._slice(
+            art_gate="strict", hero_bounds="0.01,0.02,0.25,0.90",
+            gutter="0", seam_snap="off")
+        self.assertEqual(len(panels), 3)
+        blockers: list[str] = []
+        issues = store_compose.final_art_issues(
+            pano, [(0, 240), (240, 480), (480, 720)],
+            (0.01, 0.02, 0.25, 0.90), blockers_out=blockers)
+        self.assertTrue(issues, "the synthetic image should trigger visual review notes")
+        self.assertEqual(blockers, [])
+
+    def test_strict_still_blocks_a_protected_region_crossing_a_seam(self) -> None:
+        with self.assertRaises(SystemExit):
+            self._slice(
+                art_gate="strict", hero_bounds="0.01,0.02,0.25,0.90",
+                protected_bounds=["0.31,0.20,0.10,0.12"],
+                gutter="0", seam_snap="off")
+        self.assertFalse((self.dir / "panels" / "store-01.png").exists())
+
 
 class GutterTests(unittest.TestCase):
     """Carousel gaps hide a scaled source strip unless lossless mode is explicit."""
@@ -1872,6 +1892,20 @@ class BannerCommandTests(unittest.TestCase):
         base = np.asarray(Image.open(args.base_out).convert("RGB"))
         out = np.asarray(Image.open(args.out).convert("RGB"))
         self.assertFalse(np.array_equal(base, out))
+
+    def test_strict_banner_exports_with_visual_review_notes(self) -> None:
+        canvas = Image.new("RGB", (1024, 500), (40, 40, 40))
+        canvas.save(self.source)
+        blockers: list[str] = []
+        issues = store_compose.banner_art_issues(
+            canvas.convert("RGBA"), (0.01, 0.04, 0.38, 0.94),
+            blockers_out=blockers)
+        self.assertTrue(issues)
+        self.assertEqual(blockers, [])
+
+        args = self._args()
+        store_compose.cmd_banner(args)
+        self.assertTrue(Path(args.out).is_file())
 
     def test_phone_sits_on_the_right_and_the_left_stays_pure_scene(self) -> None:
         args = self._args()

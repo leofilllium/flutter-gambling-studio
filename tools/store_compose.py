@@ -16,9 +16,10 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             The source must already be one complete generated scene, including
             a naturally integrated view of the real game mechanic. A gameplay
             capture informs generation; it is never inlaid into the panorama.
-            The finished art is blocked when it is unreadably crushed, busy across
-            the far plane, weak at the bottom, visibly overprocessed, or when the
-            character silhouette leaves panel 1 or protected outcome crosses a cut.
+            Structural crop, seam and protected-outcome failures block export.
+            Brightness, background detail and foreground-balance scores are
+            reported for visual review; they cannot prove that an illustrated
+            scene has the wrong composition.
             Object/mechanic leads use --lead-bounds, with no invented character. The
             scene carries no marketing copy; authentic symbol
             denominations such as x5/x10 remain when supported by game rules.
@@ -1944,10 +1945,9 @@ def validate_sprite_assets(specs: list[dict]) -> None:
             "`python3 tools/cutout.py FILE.png --check`.")
     info(f"sprite asset gate: {len(specs)} standalone PNG object(s) have real alpha")
 
-# The final panorama needs a blocking gate, but it protects readability rather
-# than enforcing a high-key aesthetic. These low-end limits catch an obscured or
-# crushed image while allowing a deliberately moody Design DNA. The foreground
-# and palette-separation rules remain unchanged.
+# The final panorama reports these visual measurements for review. They are
+# useful diagnostics, but do not block a structurally sound export: generated
+# illustrations can satisfy the brief without matching a fixed pixel ratio.
 FINAL_LUMA_MIN = 0.18
 FINAL_SHADOW_MAX = 0.70
 FINAL_UPPER_DETAIL_MAX = 29.0
@@ -2040,9 +2040,9 @@ def upper_background_details(activity: np.ndarray, scale: float,
         issues.append(
             f"subject/gameplay bounds leave insufficient measurable upper background "
             f"({share:.1%}; need ≥{BACKGROUND_SAMPLE_MIN:.0%}). Use tight measured "
-            "subject boxes and retain visible far-plane evidence; a fully masked "
-            "background cannot pass")
-    # An empty mask is a blocker above, not a fabricated zero-detail pass.
+            "subject boxes and inspect the far plane; a fully masked background "
+            "cannot yield a meaningful detail score")
+    # An empty mask is reported above, not treated as a zero-detail pass.
     overall = (sum(float(sample.sum()) for sample in samples) / count
                if count else FINAL_UPPER_DETAIL_MAX + 1)
     details = [float(sample.mean()) if sample.size else overall for sample in samples]
@@ -2059,8 +2059,9 @@ def final_art_issues(
         require_hero_bounds: bool = True,
         lead_kind: str = "character", lead_bounds=None,
         protected_bounds=(), gameplay_bounds=(),
-        character_framing: str = "bust") -> list[str]:
-    """Return the blockers from the supplied panorama-feedback contract.
+        character_framing: str = "bust",
+        blockers_out: list[str] | None = None) -> list[str]:
+    """Return composition notes and optionally collect structural blockers.
 
     ``hero_bounds`` is the tight normalized box around the protagonist as the
     integrated picture actually shows it, including anything held, worn, or
@@ -2078,6 +2079,13 @@ def final_art_issues(
     issues = focal_bounds_issues(
         pano, spans, lead_kind, lead_bounds, protected_bounds,
         require_bounds=require_hero_bounds)
+    if blockers_out is not None:
+        blockers_out.extend(issues)
+
+    def add_blocker(message: str) -> None:
+        issues.append(message)
+        if blockers_out is not None:
+            blockers_out.append(message)
     if lead_kind != "character":
         hero_bounds = None
     activity, scale = _activity(pano)
@@ -2186,7 +2194,7 @@ def final_art_issues(
 
     if hero_bounds is None:
         if require_hero_bounds:
-            issues.append(
+            add_blocker(
                 "--hero-bounds is required for final art: measure the tight x,y,w,h "
                 "around the complete protagonist, including held/worn/attached props, "
                 "after the integration render")
@@ -2203,27 +2211,27 @@ def final_art_issues(
          f"starting {(hx0 - left) / max(1.0, panel_w):.0%} into panel 1; "
          f"panel 1 x={left / pano.width:.3f}..{right / pano.width:.3f}")
     if character_framing == "mascot" and w * pano.width / panel_w * h < MASCOT_MIN_PANEL_AREA:
-        issues.append("the mascot is too small; its measured silhouette box must "
-                      f"occupy ≥{MASCOT_MIN_PANEL_AREA:.0%} of panel 1 area")
+        add_blocker("the mascot is too small; its measured silhouette box must "
+                    f"occupy ≥{MASCOT_MIN_PANEL_AREA:.0%} of panel 1 area")
     elif character_framing == "bust" and h < HERO_MIN_H:
-        issues.append(
+        add_blocker(
             f"the hero is too small ({h:.0%} of panel height; need ≥{HERO_MIN_H:.0%}). "
             "The bust is the slide: crop it at the waist and bring it forward rather "
             "than fitting a whole standing figure into the panel")
     if hx0 > left + panel_w * HERO_LEFT_MAX:
-        issues.append(
+        add_blocker(
             f"the hero is not on the left of panel 1 (it starts "
             f"{(hx0 - left) / max(1.0, panel_w):.0%} in; need ≤{HERO_LEFT_MAX:.0%}). "
             "The protagonist anchors the left edge and the picture is built to its "
             "right — a centred figure reads as a poster subject, not as a berth")
     if hy0 < margin_y:
-        issues.append(
+        add_blocker(
             f"the top of the frame crops or crowds the hero (need at least "
             f"{HERO_SAFE_Y:.0%} clear headroom). The bust may run off the left and "
             "bottom edges, but the complete face, hair and headwear must survive the "
             "thumbnail strip")
     if hx1 > right - margin_x:
-        issues.append(
+        add_blocker(
             "the hero silhouette crosses the first carousel seam. Hat, hands, "
             "book/weapon, cape and any held reward stay inside panel 1 — the store's "
             "gutter cuts there, and it will cut through the character")
@@ -3030,18 +3038,20 @@ def cmd_triptych(args) -> None:
     glare_report(pano)
 
     if art_gate != "off":
+        blockers: list[str] = []
         issues = final_art_issues(
             pano, spans, hero_bounds,
             require_hero_bounds=not args.pano_only, lead_kind=lead_kind,
             lead_bounds=lead_bounds, protected_bounds=protected_bounds,
             gameplay_bounds=gameplay_bounds,
-            character_framing=getattr(args, "character_framing", "bust"))
+            character_framing=getattr(args, "character_framing", "bust"),
+            blockers_out=blockers)
         for issue in issues:
-            warn(f"ART GATE: {issue}")
-        if issues and art_gate == "strict":
-            die(f"concept-art gate failed with {len(issues)} blocker(s); no store "
-                "panels were written. Regenerate the panorama, or use "
-                "--art-gate warn only for a diagnostic preview that cannot ship")
+            warn(f"ART {'BLOCKER' if issue in blockers else 'REVIEW'}: {issue}")
+        if blockers and art_gate == "strict":
+            die(f"concept-art gate failed with {len(blockers)} structural blocker(s); "
+                "no store panels were written. Correct the measured crop, seam or "
+                "protected region, then rerun once; --art-gate warn is diagnostic only")
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -3687,8 +3697,9 @@ def banner_art_issues(
         lead_kind: str = "character", lead_bounds=None,
         protected_bounds=(), gameplay_bounds=(),
         banner_layout: str = "free",
-        character_framing: str = "bust") -> list[str]:
-    """Return blockers from the supplied long-banner composition contract."""
+        character_framing: str = "bust",
+        blockers_out: list[str] | None = None) -> list[str]:
+    """Return banner review notes and optionally collect structural blockers."""
     if character_framing not in CHARACTER_FRAMINGS:
         die(f"unknown character framing {character_framing!r}")
     metrics = banner_art_metrics(canvas, scene_share)
@@ -3710,6 +3721,13 @@ def banner_art_issues(
     issues = focal_bounds_issues(
         canvas, [(0, canvas.width)], lead_kind, lead_bounds, protected_bounds,
         require_bounds=require_hero_bounds)
+    if blockers_out is not None:
+        blockers_out.extend(issues)
+
+    def add_blocker(message: str) -> None:
+        issues.append(message)
+        if blockers_out is not None:
+            blockers_out.append(message)
     if banner_layout == "left-heavy" and density > BANNER_CALM_MAX:
         issues.append(
             "the right of the banner is as busy as the scene side. Keep the same "
@@ -3784,7 +3802,7 @@ def banner_art_issues(
 
     if hero_bounds is None:
         if require_hero_bounds:
-            issues.append(
+            add_blocker(
                 "--hero-bounds is required for final long-banner art: measure the "
                 "large waist-up protagonist on the left, including "
                 "the complete head/headwear and every held prop")
@@ -3792,24 +3810,24 @@ def banner_art_issues(
 
     x, y, w, h = hero_bounds
     if character_framing == "mascot" and w * h < MASCOT_MIN_BANNER_AREA:
-        issues.append("the long-banner mascot is too small; its measured silhouette "
-                      f"box must occupy ≥{MASCOT_MIN_BANNER_AREA:.0%} of banner area")
+        add_blocker("the long-banner mascot is too small; its measured silhouette "
+                    f"box must occupy ≥{MASCOT_MIN_BANNER_AREA:.0%} of banner area")
     elif character_framing == "bust" and h < BANNER_HERO_MIN_H:
-        issues.append(
+        add_blocker(
             f"the long-banner hero is too small ({h:.0%} of banner height; need "
             f"≥{BANNER_HERO_MIN_H:.0%}). Use a large waist-up crop, not a full-body "
             "figure or distant machine")
     if x > BANNER_HERO_LEFT_MAX:
-        issues.append(
+        add_blocker(
             f"the long-banner hero does not anchor the left edge (starts {x:.0%} "
             f"into the image; need ≤{BANNER_HERO_LEFT_MAX:.0%})")
     if y < BANNER_HERO_TOP_MIN:
-        issues.append(
+        add_blocker(
             f"the hero's head/headwear is cut or unsafe at the top ({y:.1%} margin; "
             f"need ≥{BANNER_HERO_TOP_MIN:.0%}). Keep the waist/lower body crop, never "
             "the head crop")
     if banner_layout == "left-heavy" and x + w > BANNER_HERO_RIGHT_MAX:
-        issues.append(
+        add_blocker(
             f"the hero silhouette consumes the calmer side (ends at {x + w:.0%}; "
             f"need ≤{BANNER_HERO_RIGHT_MAX:.0%}). Keep the complete waist-up figure "
             "and held props in the active left scene")
@@ -3859,6 +3877,7 @@ def cmd_banner(args) -> None:
     hero_bounds = (parse_unit_box(args.hero_bounds)
                    if getattr(args, "hero_bounds", None) else None)
     if banner_gate != "off":
+        blockers: list[str] = []
         issues = banner_art_issues(
             canvas, hero_bounds, require_hero_bounds=banner_gate == "strict",
             lead_kind=getattr(args, "lead_kind", "character"),
@@ -3869,13 +3888,14 @@ def cmd_banner(args) -> None:
             gameplay_bounds=[parse_unit_box(box, "--gameplay-bounds")
                              for box in getattr(args, "gameplay_bounds", [])],
             banner_layout=getattr(args, "banner_layout", "free"),
-            character_framing=getattr(args, "character_framing", "bust"))
+            character_framing=getattr(args, "character_framing", "bust"),
+            blockers_out=blockers)
         for issue in issues:
-            warn(f"BANNER GATE: {issue}")
-        if issues and banner_gate == "strict":
-            die(f"long-banner gate failed with {len(issues)} blocker(s); no feature "
-                "graphic was written. Regenerate the source art, or use "
-                "--banner-gate warn only for a diagnostic base that cannot ship")
+            warn(f"BANNER {'BLOCKER' if issue in blockers else 'REVIEW'}: {issue}")
+        if blockers and banner_gate == "strict":
+            die(f"long-banner gate failed with {len(blockers)} structural blocker(s); "
+                "no feature graphic was written. Correct the measured crop or "
+                "protected region, then rerun once; --banner-gate warn is diagnostic only")
 
     base_out = getattr(args, "base_out", None)
     if base_out:
@@ -4227,10 +4247,10 @@ def main() -> None:
                         "and keeps its silhouette off the first carousel seam.")
     t.add_argument("--art-gate", choices=("strict", "warn", "off"), default="strict",
                    help="validate the panorama against the supplied composition brief. "
-                        "`strict` (default) writes no panels when the art is unreadably "
-                        "crushed, busy in the far plane, weak at the bottom, overprocessed, "
-                        "or the measured hero leaves panel 1. `warn` is only for a "
-                        "diagnostic preview; `off` is for compositor unit tests.")
+                        "`strict` (default) blocks crop, seam and protected-region "
+                        "failures; visual balance scores are advisory. `warn` writes a "
+                        "diagnostic preview despite structural failures; `off` is for "
+                        "compositor unit tests.")
     t.add_argument("--save-pano", metavar="PNG",
                    help="also write the prepared complete panorama after grading and crop")
     t.add_argument("--pano-only", action="store_true",
@@ -4293,9 +4313,9 @@ def main() -> None:
     b.add_argument("--banner-gate", choices=("strict", "warn", "off"),
                    default="strict",
                    help="validate the selected context and layout. `strict` (default) "
-                        "writes nothing when palette, readability, restrained highlights, focal "
-                        "framing, protection, or full-width object framing fails. `warn` is "
-                        "diagnostic only; `off` is for compositor tests")
+                        "blocks crop, focal framing and protected-region failures; "
+                        "visual balance scores are advisory. `warn` is diagnostic "
+                        "only; `off` is for compositor tests")
     b.add_argument("--base-out", metavar="PNG",
                    help="also save the audited text/device-free long-banner crop "
                         "before the phone is composed")

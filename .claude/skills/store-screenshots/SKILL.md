@@ -342,8 +342,10 @@ panorama exports and banners; otherwise the compatibility default is humanoid `b
 Measured hero/lead bounds are already excluded from background detail. Add gameplay-bounds for
 separate fields, especially a character-led scene with a large board on the right. Field boxes
 may cross seams; they do not replace tight protected bounds around decisive symbols. Mask only
-real subjects, not busy scenery. At least 5% of the upper background must remain measurable;
-empty masks cannot bypass the gate. Palette/light and foreground-object detail still apply.
+real subjects, not busy scenery or multiplier balls. Measure boxes once from the prepared image;
+do not search combinations of masks, zoom, offsets or grading to improve a numeric score. If
+less than 5% of the upper background remains measurable, review the actual scene and box
+measurements rather than expanding or shrinking masks to force a pass.
 
 Measure normalized bounds on the **final prepared panorama**, including seam-snap slack, not the
 unprocessed source. Banner bounds use its final delivery crop. First export diagnostics under
@@ -361,8 +363,15 @@ together. Remeasure after any geometry change and separately for each store's as
 Resolve measured variables first. Character exports use hero-bounds instead of lead-bounds;
 object exports use lead-kind object. Repeat protected regions as necessary. Export Play with
 `--size play` and separately measured bounds. The final slicing call accepts only the complete
-generated render. Strict mode writes no deliverable on failure; warn
-is diagnostic-only and off is for tests. Carousel exports default to `--gutter auto`: the continuous
+generated render. In `strict` mode, real crop, seam and protected-region failures block export;
+background detail, foreground ratios, colour and exposure metrics are review notes. Inspect
+those notes against the final crops and correct a visible defect, but do not regenerate art or
+adjust `--gameplay-bounds` merely to clear a score. `warn` is diagnostic-only and `off` is for
+tests. Run the strict export once per format and allow one measured geometry correction if it
+finds a structural blocker. If that blocker remains, report it instead of running a parameter
+search. Reuse the same complete generated source for independently composed App Store and Play
+sets; do not feed a prepared App Store crop into Play or stretch/pad the illustration to game a
+metric. Carousel exports default to `--gutter auto`: the continuous
 source extends beneath a hidden strip scaled from 100px at a 1320px card, matching the publisher's
 inter-card separator. Keep faces, inscriptions and decisive outcomes outside those hidden strips;
 atmosphere and noncritical field structure may cross them. Use `--gutter 0` only for a publisher
@@ -399,8 +408,11 @@ Feature example, after measuring the final horizontal crop:
 ```
 
 Character banners use hero-bounds; mechanic banners use lead-bounds. Supply critical protected
-regions and gameplay-bounds for separate field surfaces too. Free layout retains palette/readability/foreground checks; left-heavy additionally checks
-the 3/5–2/5 density pattern. Add the phone only after the clean source passes, and retain base-out.
+regions and gameplay-bounds for separate field surfaces too. Free layout reports
+palette/readability/foreground measurements; left-heavy additionally reports the 3/5–2/5
+density pattern. The strict banner gate blocks only focal crop and protected-region failures.
+Review visual notes in the final crop, correct visible defects, and avoid parameter searches to
+clear a score. Add the phone only after the clean source passes, and retain base-out.
 
 **The feature graphic is a banner with one phone on the right and no text.** It carries no
 title, tagline, logo, wordmark, caption, badge or call to action — not on the left, not over the
