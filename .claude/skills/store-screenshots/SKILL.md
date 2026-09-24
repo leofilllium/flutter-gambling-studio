@@ -113,12 +113,13 @@ Write `STORE_BRIEF.md` before any generation call:
   decisive action or geometry requires it. Record the reason for any smaller target.
   Record the exact labels separately from the visual treatment so a styled ball never changes
   a game's payout meaning.
-  For a three-panel panorama, map `x5` and `x10` to slide 2 and `x25`, `x50`, `x100` to slide 3,
-  regardless of lead kind. Record each ball's approximate center in its final portrait crop,
-  flight direction and clear distance from the lower heap. Keep slide 1 free of multiplier balls.
-  Reserve enough open air around the gameplay in slides 2 and 3 before the first generation;
-  do not plan to move the balls into place later. For `--panels 0`, map them to the themed
-  showcase background.
+  Map each value to a position and flight direction across the full panorama, judging space in
+  the final portrait crops. Scatter the five balls across at least two panels with no fixed
+  count or label assignment per panel; slide 1 may have none. In a character-led scene, a ball
+  on slide 1 should pass in front of and partly overlap the character's body or silhouette
+  while keeping the face and identity readable. Reserve space around and between subjects at
+  varied heights, including beside or in front of noncritical gameplay, before the first
+  generation. For `--panels 0`, map the balls to the themed showcase background.
 - Independent feature layout: `free` by default or justified `left-heavy`; no reserved device zone.
   The feature graphic is text-free: record the chosen capture for its right-side phone, not a
   title or tagline.
@@ -159,10 +160,10 @@ the action, but it cannot replace gameplay in slide 1.
 Build the lower edge from an irregular, cropped spill of actual game objects across its full
 width: vary scale, rotation, height, overlap, contact shadows and depth so it reads as a
 tumbled heap rather than a tidy row or one isolated pile. Add recognizable flying/falling
-actual game objects above it. The multiplier balls belong in the open air of slides 2 and 3,
-never in this spill or immediately above its edge. Keep primary subjects sharp, source-colored
-and dominant over a broad smooth subordinate far plane. Generic stage
-furniture or particles cannot replace the spill.
+actual game objects above it. Keep multiplier balls visibly in flight, including when one passes
+in front of the lower objects; do not let one rest in the spill. Keep primary subjects sharp,
+source-colored and dominant over a broad smooth subordinate far plane. Generic stage furniture
+or particles cannot replace the spill.
 
 Show all five themed multiplier balls at least once across the generated panorama's store
 panels; when `--panels 0`, include them in the themed background of at least one showcase slide
@@ -171,25 +172,26 @@ backing; place the inscription on the ball itself, not as floating typography. D
 material, colour, ornament, edge treatment and light from the game's Design DNA and actual
 objects. A Plinko ball, jester bead, jeweled sphere or mechanical capsule should feel native to
 its game. Avoid reusing a generic bubble across store kits. These store-only balls supplement
-the required spill of actual game objects. In a three-panel panorama, integrate all five into
-the original generated scene: two flying in slide 2 and three flying in slide 3, with none in
-slide 1. Stagger them around the game action at distinct upper and middle heights and lateral
-positions. Give them different flight directions, slight tilts and restrained motion cues that
-share the scene's light and atmosphere. Avoid a row, regular grid, uniform arc or tight cluster.
-Keep each ball visibly detached from the lower spill, with open background beneath it; a ball
-resting on or emerging from the heap fails this requirement. Do not hide a ball across a panel
-seam or place all five in one slide.
+the required spill of actual game objects. Integrate all five into the original generated scene
+and scatter them through the whole panorama at irregular heights and lateral positions: above,
+beside and sometimes in front of the game action, with different depths and flight directions.
+Do not confine them to a band above the board or to panels 2 and 3. Slide 1 is optional; in a
+character-led scene, a ball there should pass in front of and partly cover the character's body
+or silhouette to create depth, while leaving the face and recognizable identity readable. Use
+slight tilts and restrained motion cues that share the scene's light and atmosphere. Avoid a row,
+regular grid, uniform arc or tight cluster. A low-flying ball may overlap the lower props, but
+it must read as airborne rather than seated in the heap. Keep inscriptions clear of panel cuts.
 Make each ball a prominent secondary subject, not a small coin or badge, in every C1-C6 game.
 Use the final portrait panel width as the common scale reference: start around 35-40% of that
 width per ball, including games without reels. Match a user-supplied visual example and apply
 any requested size adjustment relative to it. Adjust the target only as needed to keep the real
 game and decisive outcome readable, then record the reason in the brief. Leave obvious breathing
 room between balls, aiming for at least half a ball diameter of clear space between their outlines
-in the final portrait crops. Leave similar separation from the top of the lower spill.
+in the final portrait crops.
 Vary depth and scale modestly while keeping each number readable at store thumbnail size.
 Compose enough room for these balls from the start; enlarging a crowded finished panorama can
 hide symbols, cross seams or clip outer edges.
-Do not let the balls obscure the real board, decisive outcome or protected seams.
+They may overlap noncritical board housing or props, but keep decisive gameplay and outcomes readable.
 
 Plan the full panorama before generation, or the portrait showcase background for `--panels 0`.
 A rough layout sketch may indicate panel cuts and subject positions, but it must not contain a
@@ -202,21 +204,21 @@ its housing, depth, lighting, foreground interactions and surrounding environmen
 together. The panorama must already look finished before the compositor slices it. Noncritical
 board structure may cross seams.
 
-Put this composition requirement in the **first** image-generation prompt, adapting only the
-positions needed to keep this game's decisive play readable. Percentages refer to each final
-portrait panel crop, not the full wide source:
+Put this composition requirement in the **first** image-generation prompt, adapting the scene
+details to the game's actual characters, board and environment:
 
-> One continuous, fully illustrated three-panel scene. Slide 1 contains no multiplier balls.
-> Slide 2: `x5` flies high on the left (center near 25% width, 20% height); `x10` flies at
-> middle height on the right (near 75%, 50%). Slide 3: `x25` flies high on the right (near
-> 75%, 20%); `x50` flies around the middle left (near 22%, 37%); `x100` flies at a different
-> middle height on the right (near 70%, 58%). Each marking is on its own rounded, themed ball.
-> The five balls are separate physical objects in mid-flight, with different angles and short,
-> subtle directional motion cues. Match their material, reflections, scale, depth and lighting
-> to the rest of this single scene. Leave at least half a ball diameter of clear air between
-> neighboring outlines and between every ball and the lower object spill. The spill at the
-> bottom consists only of actual game objects. No ball rests on a surface, touches the heap,
-> casts a contact shadow, enters slide 1, crosses a panel cut or hides decisive gameplay.
+> One continuous, fully illustrated panorama with five separate themed balls inscribed exactly
+> `x5`, `x10`, `x25`, `x50` and `x100`. Scatter them unpredictably through the whole scene at
+> different heights, horizontal positions, depths and flight angles across at least two panels,
+> with no fixed count per panel. Some can fly above the gameplay; others should pass beside or
+> in front of its noncritical housing and props, including lower middle air. Do not put all five
+> above the board or line them up along the lower edge. Keep at least half a ball
+> diameter between their outlines. Slide 1 may have no ball. In a character-led scene, a ball
+> in slide 1 passes in front of and partly overlaps the character's body or silhouette without
+> hiding the face or identity. Give the balls short, subtle directional motion cues and match their
+> material, reflections, perspective and light to the rest of this single scene. None rests
+> on a surface or looks embedded in the lower object heap. Keep every inscription legible
+> after panel crops and gutters, and leave decisive gameplay and outcomes readable.
 
 Do not ask the model to add balls in a later pass. Treat them as naturally generated parts of
 the same complete scene, never floating labels, UI overlays or pasted cutouts. Check the exact
@@ -279,11 +281,12 @@ visual comparison is mandatory.
 Inspect each multiplier ball at full and thumbnail size for exact lettering, a distinct readable
 backing, theme-consistent materials and lighting, the planned prominent size relative to the
 final portrait panel or approved reference in every game category, and no overlap with decisive
-gameplay. Check that all five balls read as separate flying objects above the irregular lower
-spill, with varied height and lateral position instead of a bottom row or cluster. For a
-three-panel panorama, reject any result with a ball in slide 1, fewer or more than two balls
-in slide 2 or three in slide 3, a ball touching the spill or another ball, or a ball that looks
-seated instead of airborne. Inspect the final App Store
+gameplay. Check that all five balls read as separate flying objects scattered around the scene
+at varied heights and lateral positions, including beside or in front of noncritical gameplay;
+reject a group confined above the board, a bottom row, a tight cluster or any ball that looks
+seated in the spill. Slide 1 needs no ball. In a character-led scene, if it contains one,
+confirm the ball partly overlaps the character while leaving the face and identity readable.
+Inspect the final App Store
 and Play carousel crops separately: every label and enough of its ball to read as a physical
 object must remain visible after slicing, gutters and the different outer/top crops. A source
 panorama alone cannot establish this; correct placement or export geometry if a value is cut
