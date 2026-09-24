@@ -119,6 +119,14 @@ Write `STORE_BRIEF.md` before any generation call:
   irregularly staggered around the gameplay, rather than aligned or grouped along the bottom.
   Keep multiplier balls out of slide 1. For `--panels 0`, map them to the themed
   showcase background. Reserve room for all five at the intended size before generation.
+- Before generating a three-panel source, write a format-specific ball map for every export
+  aspect (App Store and Play). Convert each planned ball center into normalized panorama
+  coordinates and keep a full ball diameter plus the compositor gutter inside its target
+  panel. Use the final panel's normalized safe-center zones rather than only checking the
+  wide source. If the five required balls cannot fit the two/three panel split at the target
+  35-40% panel width, generate a separate source for that format instead of relying on a
+  crop offset or accepting a seam clip. Record the map and the safe-center check in the
+  brief before calling `store_compose.py`.
 - Independent feature layout: `free` by default or justified `left-heavy`; no reserved device zone.
   The feature graphic is text-free: record the chosen capture for its right-side phone, not a
   title or tagline.
