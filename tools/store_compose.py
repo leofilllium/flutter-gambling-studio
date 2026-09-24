@@ -8,7 +8,7 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
   triptych  N vertical panels sliced out of ONE wide key-art panorama. The
             default source continues beneath the publisher's carousel separators:
             an allowance scaled from 100px at a 1320px panel is discarded at each
-            cut, while protected content stays intact. WHERE the cuts fall is chosen by the
+            cut. WHERE the cuts fall is chosen by the
             picture, not by arithmetic (`--seam-snap`): the tiling slides until
             they land on the quietest columns, and the art is asked for a calm
             corridor there. `--gutter 0` remains available for a true butt-jointed,
@@ -16,14 +16,12 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             The source must already be one complete generated scene, including
             a naturally integrated view of the real game mechanic. A gameplay
             capture informs generation; it is never inlaid into the panorama.
-            Structural crop, seam and protected-outcome failures block export.
-            Brightness, background detail and foreground-balance scores are
-            reported for visual review; they cannot prove that an illustrated
-            scene has the wrong composition.
-            Object/mechanic leads use --lead-bounds, with no invented character. The
-            scene carries no marketing copy; authentic symbol
-            denominations such as x5/x10 remain when supported by game rules.
-            Protect these just like outcome symbols. Marketing lettering across a
+            Numeric art diagnostics are opt-in. The default exports the panels
+            for one visual review; flying multiplier balls may cover gameplay.
+            Object/mechanic leads need no invented character. The scene carries
+            no marketing copy. Store-only multiplier balls may use x5/x10/x25/
+            x50/x100 even when they are absent from the game's paytable; they
+            are not claims about actual gameplay. Marketing lettering across a
             panel boundary is cut by the store's gutters, and a lockup inside
             one panel breaks the single-picture illusion.
   showcase  a real in-game frame placed inside a drawn phone (bezel, notch,
@@ -73,7 +71,7 @@ Requires: Pillow + numpy (both already required by tools/cutout.py).
 Examples:
   python3 tools/store_compose.py fonts --font-dir assets/fonts
   python3 tools/store_compose.py triptych --src art/keyart-integrated.png \\
-      --out store/ --panels 3 --size 1320x2868 --art-gate strict
+      --out store/ --panels 3 --size 1320x2868 --art-gate off
   # Explicit standalone operation; never part of /store-screenshots by default.
   python3 tools/store_compose.py backdrop --src art/keyart-integrated.png \\
       --out-dir assets/images/backgrounds --variants menu,game --offset -0.6 \\
@@ -2993,7 +2991,7 @@ def cmd_triptych(args) -> None:
 
     gutter = parse_gutter(args.gutter, w)
     snap = parse_snap(args.seam_snap, w)
-    art_gate = getattr(args, "art_gate", "strict")
+    art_gate = getattr(args, "art_gate", "off")
     lead_kind = getattr(args, "lead_kind", "character")
     lead_bounds = (parse_unit_box(args.lead_bounds, "--lead-bounds")
                    if getattr(args, "lead_bounds", None) else None)
@@ -3033,11 +3031,10 @@ def cmd_triptych(args) -> None:
                      contrast=args.contrast, bloom=args.bloom)
     # Choose cuts directly on the complete generated art.
     spans = plan_panel_spans(pano, n, w, gutter, snap)
-    seam_report(pano, spans)
-    detail_report(pano, spans)
-    glare_report(pano)
-
     if art_gate != "off":
+        seam_report(pano, spans)
+        detail_report(pano, spans)
+        glare_report(pano)
         blockers: list[str] = []
         issues = final_art_issues(
             pano, spans, hero_bounds,
@@ -3868,12 +3865,12 @@ def cmd_banner(args) -> None:
     w, h = parse_size(args.size)
     # The source is a dedicated horizontal render. It may still be a 3:2 image
     # from the image API, so the 1024×500 delivery crop can lose top/bottom
-    # content; the measured hero box below is what protects the complete head.
+    # content; inspect the delivered crop once for visible clipping.
     canvas = pop_grade(cover(load_image(args.keyart, "key art"), w, h,
                              bias_x=args.offset, zoom=args.zoom),
                        args.pop, vibrance=args.vibrance, lift=args.lift,
                        contrast=args.contrast, bloom=args.bloom)
-    banner_gate = getattr(args, "banner_gate", "strict")
+    banner_gate = getattr(args, "banner_gate", "off")
     hero_bounds = (parse_unit_box(args.hero_bounds)
                    if getattr(args, "hero_bounds", None) else None)
     if banner_gate != "off":
@@ -3902,10 +3899,10 @@ def cmd_banner(args) -> None:
         base_path, out_path = Path(base_out), Path(args.out)
         if base_path.resolve() == out_path.resolve():
             die("--base-out must differ from --out: the base is the text/device-free "
-                "audited scene, while --out adds the phone")
+                "scene, while --out adds the phone")
         base_size = save_png(canvas, base_path)
         ok(f"{base_path.name}  {w}×{h}  {base_size // 1024} KB "
-           "(audited text/device-free long-banner source)")
+           "(text/device-free long-banner source)")
 
     # Build at working resolution, then fit by HEIGHT — a banner device sized
     # by width alone ends up a postage stamp on a 1024×500 canvas.
@@ -4181,7 +4178,7 @@ def add_composition_args(parser: argparse.ArgumentParser) -> None:
                              "area prominence instead of a humanoid height minimum")
     parser.add_argument("--lead-bounds", metavar="X,Y,W,H",
                         help="normalized focal object/field box in the FINAL crop; "
-                             "required for object/mechanic strict art. May span "
+                             "used only with an opt-in art gate. May span "
                              "panels and sit anywhere; no character anatomy gate")
     parser.add_argument("--gameplay-bounds", action="append", default=[],
                         metavar="X,Y,W,H",
@@ -4241,16 +4238,15 @@ def main() -> None:
                    help="retired: pass asset files directly to image generation as references; this option is refused")
     t.add_argument("--hero-bounds", metavar="X,Y,W,H",
                    help="tight normalized box around the hero as the FINAL render "
-                        "shows it, including held/worn/attached props. The strict "
+                        "shows it, including held/worn/attached props. An opt-in strict "
                         "gate uses it to prove the bust starts on the left, stays "
                         f"large, keeps at least {HERO_SAFE_Y * 100:.0f}%% clear headroom, "
                         "and keeps its silhouette off the first carousel seam.")
-    t.add_argument("--art-gate", choices=("strict", "warn", "off"), default="strict",
-                   help="validate the panorama against the supplied composition brief. "
-                        "`strict` (default) blocks crop, seam and protected-region "
-                        "failures; visual balance scores are advisory. `warn` writes a "
-                        "diagnostic preview despite structural failures; `off` is for "
-                        "compositor unit tests.")
+    t.add_argument("--art-gate", choices=("strict", "warn", "off"), default="off",
+                   help="optional numeric composition diagnostics. `off` (default) "
+                        "exports directly; `warn` reports findings; `strict` blocks "
+                        "crop, seam and protected-region failures. Flying multiplier "
+                        "balls covering gameplay are valid in every mode.")
     t.add_argument("--save-pano", metavar="PNG",
                    help="also write the prepared complete panorama after grading and crop")
     t.add_argument("--pano-only", action="store_true",
@@ -4293,7 +4289,7 @@ def main() -> None:
     b.add_argument("--banner-layout", choices=("free", "left-heavy"), default="free",
                    help="free follows game context with full-width object framing; "
                         "left-heavy opts into the legacy active left 3/5 and calm "
-                        "right 2/5. Both retain palette, light and focal gates")
+                        "right 2/5. Numeric gates are optional")
     b.add_argument("--out", required=True)
     b.add_argument("--size", default="1024x500")
     b.add_argument("--shot", required=True,
@@ -4308,16 +4304,16 @@ def main() -> None:
                         "source with extra width. Measure focal bounds after cropping")
     b.add_argument("--hero-bounds", metavar="X,Y,W,H",
                    help="tight normalized box around a complete waist-up character "
-                        "in the final banner crop. Required in character mode only; "
+                        "in the final banner crop for an opt-in gate; "
                         "object/mechanic mode uses --lead-bounds")
     b.add_argument("--banner-gate", choices=("strict", "warn", "off"),
-                   default="strict",
-                   help="validate the selected context and layout. `strict` (default) "
-                        "blocks crop, focal framing and protected-region failures; "
-                        "visual balance scores are advisory. `warn` is diagnostic "
-                        "only; `off` is for compositor tests")
+                   default="off",
+                   help="optional numeric composition diagnostics. `off` (default) "
+                        "exports directly; `warn` reports findings; `strict` blocks "
+                        "crop, focal framing and protected-region failures. Flying "
+                        "multiplier balls covering gameplay are valid in every mode")
     b.add_argument("--base-out", metavar="PNG",
-                   help="also save the audited text/device-free long-banner crop "
+                   help="also save the text/device-free long-banner crop "
                         "before the phone is composed")
     add_pop_args(b)
     # Retired: the feature graphic is pure image plus one phone. Still parsed so a

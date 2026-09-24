@@ -13,6 +13,19 @@ concept, art direction, asset manifest, math config and runtime evidence. Inspec
 `examples-games/` previews by default. References guide composition; the shipped assets and
 mechanics govern identity. Never change a real game to match a preview's topology or palette.
 
+For a character-led kit, the shipped character asset is the canonical player reference in
+**every** image-generation call. Supply the original asset file again for a retry or a separate
+banner/icon render; never use an earlier generated image as the character reference or edit a
+generated image into the next source. The generated scene may establish composition, but it
+cannot redefine the character's face, silhouette, costume or colors. If the character has
+multiple shipped layers, use the original layers or a lossless assembly of them.
+
+Multiplier balls must look airborne and may cross in front of the board, symbols, outcomes,
+props or character. Their overlap with gameplay is an intended composition choice, not a gate
+failure. Keep the original character recognizable and the five ball labels legible. Review art
+once at final crop size; use format/dimension checks for exports. Do not run numeric composition
+gates or repeat visual audits to optimize scores.
+
 Create local artifacts; do not publish or build release binaries. Apply icon/emblem unless
 `--no-apply`. Runtime backgrounds and wiring remain unchanged unless their separate redesign
 was explicitly requested. All copy is English unless another game language was requested.
@@ -95,7 +108,8 @@ Write `STORE_BRIEF.md` before any generation call:
 - Actual topology and resolving state. New unspecified classic slots default to 3×3; store
   work preserves the shipped game's dimensions, symbols, ordering and outcome. Record the
   gameplay capture as a visual reference for generation, never as a layer for the panorama.
-- Complete sprite inventory, source-to-PNG mapping, scene role and in-app evidence per file.
+- The canonical character asset path (if present), plus the source assets used for visible
+  gameplay objects and their scene roles.
 - List the five store-only balls separately from shipped sprites; they need theme references,
   not in-app asset evidence.
 - Required store-art multiplier-ball set for every game: `x5`, `x10`, `x25`, `x50`, and `x100`,
@@ -107,30 +121,29 @@ Write `STORE_BRIEF.md` before any generation call:
   inscriptions may be generated into the marketing art.
 - Multiplier-ball art direction: which shipped object or visual motif inspires the ball, plus
   its material, palette, ornament, lighting, target size and placement in the panorama and
-  feature scene. Size is judged in the final panel crop, not the wide source image.
-  Apply the same prominent-size target to every C1-C6 game and every lead kind: plan each ball
-  at roughly 35-40% of a final portrait panel's width, then adjust only where the game's
-  decisive action or geometry requires it. Record the reason for any smaller target.
+  feature scene. Size is judged in the final panel crop, not the wide source image. Aim for
+  prominent balls around 35-40% of a portrait panel's width, adjusting for the artwork.
   Record the exact labels separately from the visual treatment so a styled ball never changes
   a game's payout meaning.
   Map each value to a position and flight direction across the full panorama, judging space in
   the final portrait crops. Scatter the five balls across at least two panels with no fixed
   count or label assignment per panel; slide 1 may have none. In a character-led scene, a ball
   on slide 1 should pass in front of and partly overlap the character's body or silhouette
-  while keeping the face and identity readable. Reserve space around and between subjects at
-  varied heights, including beside or in front of noncritical gameplay, before the first
-  generation. For `--panels 0`, map the balls to the themed showcase background.
+  while keeping the character recognizable. Place balls at varied heights, including in front
+  of gameplay, before the first generation. For `--panels 0`, map the balls to the themed
+  showcase background.
 - Independent feature layout: `free` by default or justified `left-heavy`; no reserved device zone.
   The feature graphic is text-free: record the chosen capture for its right-side phone, not a
   title or tagline.
-- Generation budget and recovery limit inherited from the asset manifest; no unlimited retries.
+- One initial attempt per required scene (panorama, feature scene and any icon), with at most
+  one fresh retry for an objective failure in that scene. Both start from the original assets.
+  Do not iterate from generated output.
 
-Inventory all shipped gameplay sprite roots from the registry/pubspec, including secondary and
-alternate states. Exclude UI chrome, fonts, backgrounds and store outputs. Preserve originals;
-convert non-PNG sources to standalone lossless PNG references and verify real alpha using
-`tools/cutout.py --check`. Review complete silhouettes, identity and source-color separation at
-full size and 64px. Actual sprite files are identity references, not just written descriptions.
-Use staged integration when reference count exceeds the transport's limit; audit every file.
+Collect the original character asset and the gameplay sprites that will be visible in the art.
+Exclude UI chrome, fonts, backgrounds and store outputs. Preserve originals; convert non-PNG
+sources to lossless PNG references only when the image tool needs PNG. If reference slots are
+limited, prioritize the original character asset, then the gameplay capture and visible sprites.
+Written descriptions and generated previews never replace the character asset.
 
 Capture or locate a real active/resolving gameplay frame as reference-only context. Record its
 field rectangle and actual state. A symbol-built board is provisional until a real frame exists.
@@ -150,7 +163,7 @@ still protects the head, first-panel placement and attached silhouette. Left/bot
 allowed for a bust; preserve the mascot's recognizable form. Joker is a mischievous, slightly vicious
 playful trickster, not an elegant courtier or horror figure. Object/mechanic scenes have no empty
 character berth and no anatomy constraints. Keep a strong game anchor in every panel; a continuous
-board can anchor several. Multiple boards are valid only when their real states remain readable.
+board can anchor several. Flying multiplier balls may cover part of any board.
 When the shipped game has no living character, its first two carousel slides must instead be
 gameplay-led: present the real board or mechanic at a readable three-quarter/3D angle in each crop,
 or span one continuous angled surface across both with meaningful gameplay visible in both. Never
@@ -173,31 +186,18 @@ material, colour, ornament, edge treatment and light from the game's Design DNA 
 objects. A Plinko ball, jester bead, jeweled sphere or mechanical capsule should feel native to
 its game. Avoid reusing a generic bubble across store kits. These store-only balls supplement
 the required spill of actual game objects. Integrate all five into the original generated scene
-and scatter them through the whole panorama at irregular heights and lateral positions: above,
-beside and sometimes in front of the game action, with different depths and flight directions.
-Do not confine them to a band above the board or to panels 2 and 3. Slide 1 is optional; in a
-character-led scene, a ball there should pass in front of and partly cover the character's body
-or silhouette to create depth, while leaving the face and recognizable identity readable. Use
-slight tilts and restrained motion cues that share the scene's light and atmosphere. Avoid a row,
-regular grid, uniform arc or tight cluster. A low-flying ball may overlap the lower props, but
-it must read as airborne rather than seated in the heap. Keep inscriptions clear of panel cuts.
-Make each ball a prominent secondary subject, not a small coin or badge, in every C1-C6 game.
-Use the final portrait panel width as the common scale reference: start around 35-40% of that
-width per ball, including games without reels. Match a user-supplied visual example and apply
-any requested size adjustment relative to it. Adjust the target only as needed to keep the real
-game and decisive outcome readable, then record the reason in the brief. Leave obvious breathing
-room between balls, aiming for at least half a ball diameter of clear space between their outlines
-in the final portrait crops.
-Vary depth and scale modestly while keeping each number readable at store thumbnail size.
-Compose enough room for these balls from the start; enlarging a crowded finished panorama can
-hide symbols, cross seams or clip outer edges.
-They may overlap noncritical board housing or props, but keep decisive gameplay and outcomes readable.
+and scatter them through the whole panorama at irregular heights, depths and flight directions.
+Some should fly across the game action, including the board or outcome area. Do not move them
+all above the board to keep gameplay unobstructed. A ball may overlap gameplay, lower props or
+the character; only a seated ball, clipped inscription or unrecognizable character needs a
+correction. Avoid a row, regular grid or tight cluster. Match any user-supplied size reference.
 
 Plan the full panorama before generation, or the portrait showcase background for `--panels 0`.
 A rough layout sketch may indicate panel cuts and subject positions, but it must not contain a
 screenshot-shaped opening intended for later fill.
-Give the image generator the actual gameplay capture, shipped sprite assets and matching previews
-as references. Label the capture as **context only**: it establishes the real mechanic, field
+Give the image generator the canonical character asset, actual gameplay capture, relevant shipped
+sprites and matching previews as references. Label the original character asset as **identity
+authority** and the capture as **context only**: it establishes the real mechanic, field
 dimensions, symbol identities, ordering and resolving state. Request a complete, coherent image
 in one generation: the game surface itself appears as a scene-native three-quarter/3D view, with
 its housing, depth, lighting, foreground interactions and surrounding environment generated
@@ -210,28 +210,24 @@ details to the game's actual characters, board and environment:
 > One continuous, fully illustrated panorama with five separate themed balls inscribed exactly
 > `x5`, `x10`, `x25`, `x50` and `x100`. Scatter them unpredictably through the whole scene at
 > different heights, horizontal positions, depths and flight angles across at least two panels,
-> with no fixed count per panel. Some can fly above the gameplay; others should pass beside or
-> in front of its noncritical housing and props, including lower middle air. Do not put all five
-> above the board or line them up along the lower edge. Keep at least half a ball
-> diameter between their outlines. Slide 1 may have no ball. In a character-led scene, a ball
-> in slide 1 passes in front of and partly overlaps the character's body or silhouette without
-> hiding the face or identity. Give the balls short, subtle directional motion cues and match their
-> material, reflections, perspective and light to the rest of this single scene. None rests
-> on a surface or looks embedded in the lower object heap. Keep every inscription legible
-> after panel crops and gutters, and leave decisive gameplay and outcomes readable.
+> with no fixed count per panel. Let several balls fly in front of the board, symbols, outcomes,
+> lower objects or character. Gameplay overlap is intentional. Do not put all five above the
+> board or line them up along the lower edge. Give the balls directional motion cues and match
+> their material, reflections, perspective and light to the rest of this single scene. None rests
+> on a surface. Keep every inscription legible after panel crops. Reproduce the supplied original
+> character asset faithfully; do not derive the character from a generated scene.
 
 Do not ask the model to add balls in a later pass. Treat them as naturally generated parts of
-the same complete scene, never floating labels, UI overlays or pasted cutouts. Check the exact
-digits and final crop positions before export. If they fail, make at most one fresh whole-scene
-attempt from the original references with a corrected prompt; do not edit an edited image or
-keep regenerating until texture, anatomy or symbol identity degrades. If that attempt still
-fails, report the blocker rather than ship an artifacted image.
+the same complete scene, never floating labels, UI overlays or pasted cutouts. If the character
+drifts from the original asset, a ball is missing/seated, or a label is wrong, make at most one
+fresh whole-scene attempt. Reattach the **original** character asset and gameplay references;
+never pass the previous generated image as the character reference. Do not continue iterating.
 
 Use the available built-in image tool; headless generation follows `generate-png-asset/SKILL.md`
-and `tools/gpt_image.py` with prompt files/repeated `--image` inputs. Supply the actual resolving
-frame, shipped sprites and matching previews directly as references where the tool supports them.
-Label which references govern identity and which govern composition. Save the single generated
-scene as `art/keyart-integrated.png`. Do not paste, warp or texture-map any screenshot crop,
+and `tools/gpt_image.py` with prompt files/repeated `--image` inputs. Supply the original character
+asset as the first identity reference on every call; use the gameplay capture and previews for
+composition. Save the generated scene as `art/keyart-integrated.png`. Do not paste, warp or
+texture-map any screenshot crop,
 board plate, symbol grid or other gameplay block into the panorama, either before or after image
 generation. Do not generate a background or empty board recess to fill later. The compositor may
 grade and slice the finished panorama; it must not assemble its gameplay field. `boardplate` is
@@ -240,21 +236,9 @@ and shipped sprites directly to image generation as references, then export the 
 Do not composite, paste or relabel multiplier balls after generation. The compositor only grades
 and slices the finished image.
 
-Count rows, columns, paylines, buckets and symbols against the runtime capture and verify the
-decisive outcome. If the model changes topology or state, reject the image and use the bounded
-generation/edit budget to correct the whole coherent scene with the capture as reference. If a
-faithful scene still cannot be generated, report a blocker; do not substitute a composited field.
-
-When the brief calls for angled or environment-integrated gameplay, a perspective transform alone
-is not evidence of integration. The generated field must visibly satisfy all three contextual-embedding
-groups: **structural reception** (a recessed housing, altar or console with readable thickness,
-edging and plane-matched perspective); **photometric contact** (contact shadow plus local colour
-spill, light wrap or reflection consistent with the scene's key light); and **spatial interaction**
-(a foreground or atmospheric element crossing the housing edge without hiding decisive cells). A
-rectangular drop shadow, glow or decorative platform around a screenshot-like rectangle does
-not satisfy this contract. Review these cues at final panel size as well as in the continuous
-panorama. Recount the final exported topology and recheck the decisive outcome after all crops and
-seam adjustments.
+Use the runtime capture to keep the game surface recognizable. The generated marketing scene
+may be partly covered by flying balls; authentic gameplay remains visible in the separate real
+captures. Check for a pasted screenshot boundary in the single final visual pass.
 
 Render `art/long-banner-integrated.png` separately for the horizontal feature graphic with the
 same identity and lead kind. Full-width action is valid. A left-heavy 3/5–2/5 composition is
@@ -263,53 +247,19 @@ words. Do not ask the image model for a title, logo, wordmark, tagline or empty 
 left side left blank for text is a failed banner. Keep actual game objects across the lower edge
 and sharp primary subjects.
 
-## Phase 2 — identity and critical-region review
+## Phase 2 — visual review criteria (apply after exports)
 
-Compare every sprite and the integrated field with the actual runtime frame. Record source,
-reference, visible panels, scene role, identity and runtime evidence. Missing sprites, wrong
-topology/state, floating stickers, unplanned lettering, wrong multiplier labels or unreadable
-primary forms require a bounded correction. Reject any visible capture boundary, preserved
-screenshot pixels, flat UI crop, empty placeholder or pasted board plate. Review the generation
-inputs and edits to confirm the complete scene was generated together. If budget runs out,
-report the blocker instead of shipping a draft.
+After the first full export, inspect one contact sheet showing the final App Store and Play crops,
+plus the feature graphic. Compare the character to its original asset, verify that `x5`, `x10`,
+`x25`, `x50` and `x100` appear on distinct airborne balls, and check for clipped labels, missing
+panels or an obvious pasted screenshot boundary. Flying balls may cover gameplay, including an
+outcome. Do not count that as an error or move the balls to clear the board. For a game without a
+character, check that no player/mascot was invented. One fresh generation attempt is allowed for
+an objective failure, using the original assets again. Do not do repeated full-size/thumbnail
+passes, per-sprite audits, numeric scoring or subjective regeneration cycles.
 
-Review both the assembled panorama and gapped carousel. Boards may span seams; tight regions
-around faces, decisive symbols, multiplier inscriptions and bucket/reveal outcomes must survive
-the gaps. Protect those details, not the entire board housing. Every crop still needs readable
-game content. Geometry metrics cannot identify a Joker, read lettering or verify a payline:
-visual comparison is mandatory.
-Inspect each multiplier ball at full and thumbnail size for exact lettering, a distinct readable
-backing, theme-consistent materials and lighting, the planned prominent size relative to the
-final portrait panel or approved reference in every game category, and no overlap with decisive
-gameplay. Check that all five balls read as separate flying objects scattered around the scene
-at varied heights and lateral positions, including beside or in front of noncritical gameplay;
-reject a group confined above the board, a bottom row, a tight cluster or any ball that looks
-seated in the spill. Slide 1 needs no ball. In a character-led scene, if it contains one,
-confirm the ball partly overlaps the character while leaving the face and identity readable.
-Inspect the final App Store
-and Play carousel crops separately: every label and enough of its ball to read as a physical
-object must remain visible after slicing, gutters and the different outer/top crops. A source
-panorama alone cannot establish this; correct placement or export geometry if a value is cut
-or crowded. For `--panels 0`, inspect the showcase slide separately from the feature graphic.
-
-Make a final-size contact sheet of every delivered panorama panel (and the gapped carousel) before
-packaging. Inspect each protected inscription and decisive face at thumbnail size, then inspect
-the seam-adjacent hero at full size. A strict numeric art gate does not replace this crop review:
-if a label is clipped or a hero crosses a publisher gap, correct the generated scene or bounds and
-rerun the strict composition gate before continuing.
-
-For an object/mechanic-led game with no living character, explicitly reject any invented living
-player or mascot in slide 1. Verify that slides 1 and 2 each contain recognizable authentic
-gameplay at a three-quarter/3D angle; when one field spans both, inspect the separate crops rather
-than accepting the assembled panorama alone.
-
-Use restrained, theme-led store grading by default: preserve the concept's exposure, add only a
-modest colour lift when it helps thumbnail readability, and keep source-color separation,
-foreground depth, and a broad smooth subordinate background. Do not require a bright far plane,
-glare, bloom, or a universal saturation score. Those treatments are valid only when the Design DNA
-or user explicitly calls for them. Crushed unreadable darkness, clipped highlights, excessive
-saturation, or excessive far-plane detail still fail. Correct store art without recoloring runtime
-assets.
+Use restrained, theme-led store grading. Adjust a visible exposure problem once if needed; do
+not tune numeric palette or foreground metrics. Keep runtime assets untouched.
 
 ## Phase 3 — branding and current captures
 
@@ -323,61 +273,26 @@ Capture menu, active play, peak tension, win/reward and a useful meta state afte
 `--size 390x844 --dpr 3 --budget 180 --quick`. Reuse frames only if current and authentic. Reject
 blank, duplicate, loading, error, overflow and fabricated states; parse runtime exception logs.
 Apply `.claude/docs/gameplay-screen-contract.md`: never use cropping or device chrome to conceal
-weak gameplay. If the actual state changed, correct integration/feature art and remeasure/re-export;
+weak gameplay. If the actual state changed, correct integration/feature art and re-export;
 an unchanged matching capture does not justify another generation call.
 
-## Phase 4 — context-aware final exports
+## Phase 4 — final exports
 
-Always explicitly select lead-kind. CLI default character exists only for old callers.
-For characters, pass the same selected `--character-framing` on drafts, diagnostics, final
-panorama exports and banners; otherwise the compatibility default is humanoid `bust`.
-
-| Kind | Final bounds | Check |
-|---|---|---|
-| character | `--hero-bounds x,y,w,h` | Prominent first-panel character; head/attached silhouette protected |
-| object/mechanic | `--lead-bounds x,y,w,h` | Prominent recognizable lead anywhere, including across panels |
-| all | Repeat `--protected-bounds x,y,w,h` | Critical details avoid actual crop edges and gaps |
-| all | Repeat `--gameplay-bounds x,y,w,h` | Actual fields, wherever placed, are excluded from background-only detail measurements |
-
-Measured hero/lead bounds are already excluded from background detail. Add gameplay-bounds for
-separate fields, especially a character-led scene with a large board on the right. Field boxes
-may cross seams; they do not replace tight protected bounds around decisive symbols. Mask only
-real subjects, not busy scenery or multiplier balls. Measure boxes once from the prepared image;
-do not search combinations of masks, zoom, offsets or grading to improve a numeric score. If
-less than 5% of the upper background remains measurable, review the actual scene and box
-measurements rather than expanding or shrinking masks to force a pass.
-
-Measure normalized bounds on the **final prepared panorama**, including seam-snap slack, not the
-unprocessed source. Banner bounds use its final delivery crop. First export diagnostics under
-art/ with identical size/zoom/offset/seam settings, inspect and measure. `--seam-snap off` makes
-a planned split easy to reproduce; auto is valid when measurements and actual cuts are checked
-together. Remeasure after any geometry change and separately for each store's aspect ratio.
+Select the game's lead kind and export directly from the complete generated scene. Turn the
+numeric art gates off; do not measure hero, lead, gameplay or protected-region boxes. Inspect
+actual final crops once in Phase 2. If a label or character is cut by a seam, make one crop
+adjustment and re-export. A flying ball covering gameplay is never a reason to adjust the crop.
 
 ```bash
 "$STORE_PYTHON" tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
   --out "$OUT_DIR" --panels 3 --size 1320x2868 --pop soft --seam-snap off \
-  --lead-kind mechanic --lead-bounds "$LEAD_BOUNDS" \
-  --protected-bounds "$OUTCOME_BOUNDS" --art-gate strict
+  --lead-kind mechanic --art-gate off
 ```
 
-Resolve measured variables first. Character exports use hero-bounds instead of lead-bounds;
-object exports use lead-kind object. Repeat protected regions as necessary. Export Play with
-`--size play` and separately measured bounds. The final slicing call accepts only the complete
-generated render. In `strict` mode, real crop, seam and protected-region failures block export;
-background detail, foreground ratios, colour and exposure metrics are review notes. Inspect
-those notes against the final crops and correct a visible defect, but do not regenerate art or
-adjust `--gameplay-bounds` merely to clear a score. `warn` is diagnostic-only and `off` is for
-tests. Run the strict export once per format and allow one measured geometry correction if it
-finds a structural blocker. If that blocker remains, report it instead of running a parameter
-search. Reuse the same complete generated source for independently composed App Store and Play
-sets; do not feed a prepared App Store crop into Play or stretch/pad the illustration to game a
-metric. Carousel exports default to `--gutter auto`: the continuous
-source extends beneath a hidden strip scaled from 100px at a 1320px card, matching the publisher's
-inter-card separator. Keep faces, inscriptions and decisive outcomes outside those hidden strips;
-atmosphere and noncritical field structure may cross them. Use `--gutter 0` only for a publisher
-known to render true butt joints or for a lossless diagnostic panorama. Inspect the carousel preview
-with gaps as the authoritative seam check. Panorama/carousel previews are verification files, not
-upload slides.
+Use `--lead-kind character` or `object` as applicable. Export Play separately with `--size play`
+from the same complete source; do not resize the App Store panels. The compositor's default
+gutter remains suitable for a carousel. A label cut by the gutter needs one crop correction;
+gameplay coverage by a ball is acceptable.
 
 ## Phase 5 — showcases and feature graphic
 
@@ -396,23 +311,19 @@ inspired by the existing game background, with all five themed balls. Use it beh
 real-capture showcase; keep the capture and runtime background files unchanged. Compose Play
 separately.
 
-Feature example, after measuring the final horizontal crop:
+Feature example:
 
 ```bash
 "$STORE_PYTHON" tools/store_compose.py banner --keyart "$ART_DIR/long-banner-integrated.png" \
   --out "$STORE_DIR/feature-graphic-1024x500.png" \
   --base-out "$ART_DIR/long-banner-source-1024x500.png" --size 1024x500 --pop soft \
-  --lead-kind object --lead-bounds "$BANNER_LEAD_BOUNDS" \
-  --banner-layout free --banner-gate strict \
+  --lead-kind object --banner-layout free --banner-gate off \
   --shot "$RAW_DIR/03-spin.png" --frame "${DEVICE_FRAME:-ios}"
 ```
 
-Character banners use hero-bounds; mechanic banners use lead-bounds. Supply critical protected
-regions and gameplay-bounds for separate field surfaces too. Free layout reports
-palette/readability/foreground measurements; left-heavy additionally reports the 3/5–2/5
-density pattern. The strict banner gate blocks only focal crop and protected-region failures.
-Review visual notes in the final crop, correct visible defects, and avoid parameter searches to
-clear a score. Add the phone only after the clean source passes, and retain base-out.
+Use the appropriate `--lead-kind` for the game. Keep the original character asset as a direct
+identity reference if the banner requires a separate generation call. Review the final banner
+with the phone once; do not run focal bounds, gameplay bounds or numeric banner gates.
 
 **The feature graphic is a banner with one phone on the right and no text.** It carries no
 title, tagline, logo, wordmark, caption, badge or call to action — not on the left, not over the
@@ -420,48 +331,40 @@ scene, not beside the device. The scene fills the frame and the phone sits on th
 is pure illustration with no scrim or copy space. The compositor enforces this: `banner` refuses
 `--title`, `--tagline` and `--logo`. The only lettering that may appear is a themed multiplier-ball
 inscription already inside the generated scene or the game's own UI inside the captured screenshot.
-When `--panels 0`, the clean feature scene carries all five multiplier balls without displacing
-the game's decisive play or creating a text block; verify that the phone does not cover them.
+When `--panels 0`, the clean feature scene carries all five multiplier balls. The phone and balls
+may cover gameplay; keep the ball labels legible.
 
 **The feature graphic always carries one device.** `--shot` is required: pick the single
 strongest current capture (active play or a win moment, not the menu) and pass it so the compositor
 inlays a real phone mockup with that authentic screenshot on the right side of the 1024×500 canvas
 inside Play's safe area — a full scene occupies most of the frame and one device sits to the right,
 never a bare screenshot rectangle (`--frame none` is refused) or a pasted capture with no scene
-around it. `--base-out` keeps the clean device-free scene for the art/readability gates; `--out` is
+around it. `--base-out` keeps the clean device-free scene; `--out` is
 the one shipped with the phone composited in. Do not ship a feature graphic with no device.
 
 ## Phase 6 — verify, report and package
 
 Run `store_compose.py check --dir "$OUT_DIR" --store appstore` and, when enabled, the equivalent
 Play check. Verify RGB PNGs, dimensions, no store-screenshot transparency, file sizes, aspect,
-numbering/counts and feature dimensions. Open the feature graphic and confirm it shows no title,
-tagline, logo or other copy, no blank left-hand text space, and exactly one framed phone on the
-right. Review final rendered App Store and Google Play crops
-separately, at thumbnail and full size. For object/mechanic-led panoramas, explicitly confirm in
-each crop that an identifiable spill of actual lower game objects remains in frame.
+numbering/counts and feature dimensions. In the single visual review from Phase 2, confirm the
+feature graphic has no title, tagline, logo or other copy and exactly one framed phone on the
+right; do not repeat the image review here.
 Read responsible-gaming.md; check captions, metadata and art for currency symbols, misleading
 multipliers and payout promises. Metadata retains the virtual-currency disclaimer, simulated
 gambling declaration, rating and applicable odds disclosure. Interpret text matches in context.
-Check all five final ball inscriptions against the required store-art set. A missing or altered
-label fails the store kit; an unsupported gameplay value does not. Keep the balls visually
-separate from real gameplay captures so the captured outcome remains authentic. Record the
-final crop locations and the airborne spacing and lower-spill verdict in STORE_INFO.md.
+The Phase 2 review checks the five ball inscriptions once. A missing or altered label needs the
+one allowed correction; an unsupported gameplay value does not. Balls in the generated scene
+may cover its gameplay; keep separate real gameplay captures authentic.
 
 Recheck runtime-background inventory/hashes/wiring: normal result UNCHANGED. If branding changed
 Dart, run format/analysis and relevant existing tests, and verify the menu still fits. Compositor
 success is not runtime or visual verification.
 
-Write STORE_INFO.md with context/reference decisions; panel map; upload order/dimensions/counts;
-complete per-sprite identity and per-panel anchor audit; real state/topology/integration evidence;
-the five store-only multiplier balls, their theme treatment, actual gameplay support if any,
-and final-panel visibility; prompts/budget/corrections; evidence that the gameplay capture was reference-only
-and the panorama was generated as one complete scene; measured bounds and seam review for each
-geometry; strict gate results
-and visual verdicts; feature source/layout/review, its right-side capture and a no-text verdict;
-branding/capture/log evidence; background guard and compliance. For no-living-character object/mechanic games, record the no-invented-player
-check and separate slide-1/slide-2 angled-gameplay verdicts. Never call a draft or diagnostic a
-finished panorama.
+Write STORE_INFO.md with the original character asset path, references used for each image call,
+panel map, upload order/dimensions/counts, five store-only ball labels and whether each exists
+in gameplay, the one visual review result, any single correction, feature phone capture and
+no-text result, background guard and compliance notes. Do not require per-sprite audit tables,
+measured bounds, numeric gate results or repeated visual verdicts.
 
 ```bash
 ARCHIVE_NAME="$PROJECT_NAME-store-$TS.zip"
@@ -471,7 +374,6 @@ unzip -t "$ARCHIVE_PATH"
 shasum -a 256 "$ARCHIVE_PATH" > "$ARCHIVE_PATH.sha256"
 ```
 
-Verify ZIP contents: ordered screenshots, feature graphic, branding and audits. Final answer
-links ZIP/report, gives composition/counts and actual limitations. On a reusable failure or a
-verified faster method, invoke `/auto-learn` with evidence; proposals remain on review branches
-and never merge automatically.
+Verify ZIP contents: ordered screenshots, feature graphic and branding. Final answer links
+ZIP/report, gives composition/counts and actual limitations. Record reusable failures or faster
+methods for a separate `/auto-learn` run; do not add that workflow to store-kit delivery.
