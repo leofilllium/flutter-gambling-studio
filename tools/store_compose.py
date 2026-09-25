@@ -13,8 +13,9 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             they land on the quietest columns, and the art is asked for a calm
             corridor there. `--gutter 0` remains available for a true butt-jointed,
             lossless panorama when the publisher is known not to insert gaps.
-            The source must already be one complete generated scene, including
-            a naturally integrated view of the real game mechanic. A gameplay
+            The source must already be one complete prepared scene, including
+            a naturally integrated view of the real game mechanic and any
+            multiplier balls copied from a shipped game asset. A gameplay
             capture informs generation; it is never inlaid into the panorama.
             Numeric art diagnostics are opt-in. The default exports the panels
             for one visual review; flying multiplier balls may cover gameplay.
@@ -2970,9 +2971,10 @@ def cmd_triptych(args) -> None:
     if not 2 <= n <= 5:
         die(f"--panels {n} out of range (2..5)")
     if getattr(args, "sprite", []) or getattr(args, "sprite_dir", []):
-        die("triptych accepts only a complete generated panorama. Pass the real "
-            "gameplay capture and shipped sprites to image generation as visual "
-            "references; --sprite and --sprite-dir cannot inlay them into store panels")
+        die("triptych accepts only a complete prepared panorama. Pass the real "
+            "gameplay capture to image generation as context, and compose "
+            "asset-backed multiplier balls into the source before slicing; "
+            "--sprite and --sprite-dir cannot inlay them into store panels")
     if args.pano_only and not args.save_pano:
         die("--pano-only writes nothing without --save-pano PNG")
 
@@ -3029,7 +3031,7 @@ def cmd_triptych(args) -> None:
     pano = cover(src, pano_w, pano_h, bias_x=args.offset, zoom=args.zoom)
     pano = pop_grade(pano, args.pop, vibrance=args.vibrance, lift=args.lift,
                      contrast=args.contrast, bloom=args.bloom)
-    # Choose cuts directly on the complete generated art.
+    # Choose cuts directly on the complete prepared art.
     spans = plan_panel_spans(pano, n, w, gutter, snap)
     if art_gate != "off":
         seam_report(pano, spans)
@@ -3060,7 +3062,7 @@ def cmd_triptych(args) -> None:
         total += save_png(panel, path)
         ok(f"{path.name}  {w}×{h}")
 
-    # Save the complete generated scene with its export grade and crop when requested.
+    # Save the complete prepared scene with its export grade and crop when requested.
     if args.save_pano:
         pano_path = Path(args.save_pano)
         if pano_path.parent.resolve() == out_dir.resolve():
@@ -4233,9 +4235,9 @@ def main() -> None:
                         "content-blind even split)")
     # Parse legacy paste options only to explain why they are refused.
     t.add_argument("--sprite", action="append", default=[], metavar="PNG",
-                   help="retired: panorama gameplay and objects must be generated in the scene; this option is refused")
+                   help="retired: gameplay belongs in the generated scene; place asset-backed multiplier balls into the prepared source before slicing")
     t.add_argument("--sprite-dir", action="append", default=[], metavar="DIR",
-                   help="retired: pass asset files directly to image generation as references; this option is refused")
+                   help="retired: provide gameplay assets as scene references and compose multiplier balls into the source before slicing")
     t.add_argument("--hero-bounds", metavar="X,Y,W,H",
                    help="tight normalized box around the hero as the FINAL render "
                         "shows it, including held/worn/attached props. An opt-in strict "
