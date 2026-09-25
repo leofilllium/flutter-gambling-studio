@@ -34,7 +34,7 @@ These files establish both halves of the invariant: the existing image bytes and
 references that select them.
 
 **Launcher icon.** If no suitable square icon art exists yet (`assets/branding/app_icon.png` or a
-game-world emblem crop from `art/keyart-integrated.png`), generate one with the same Codex GPT
+game-world emblem crop from `art/panorama.png`), generate one with the same Codex GPT
 Images 2.0 path as the rest of the asset set (`generate-png-asset/SKILL.md`, budgeted as one
 `generate` source): a full-bleed square composition of the game's hero character/object/emblem
 on its own themed background, matching the Design DNA.
@@ -74,7 +74,7 @@ Only when the user explicitly requested a runtime-background redesign and suppli
 `--apply-backdrop` may this separate operation run:
 
 ```bash
-"$STORE_PYTHON" tools/store_compose.py backdrop --src "$ART_DIR/keyart-integrated.png" \
+"$STORE_PYTHON" tools/store_compose.py backdrop --src "$ART_DIR/panorama.png" \
   --out-dir assets/images/backgrounds --prefix bg_keyart \
   --variants menu,game --size 1080x1920 --offset -0.55 --pop soft --calm 0.45 \
   --confirm-game-background-replacement

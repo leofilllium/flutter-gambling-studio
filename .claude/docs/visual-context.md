@@ -114,8 +114,10 @@ These short, verified runtime game-object inscriptions and the five store-only b
 are exceptions to the no-baked-copy rule.
 Keep ordinary UI and marketing text in code/compositor typography. For runtime assets, check
 exact lettering at runtime size and derive it from the same config value; do not recolor a
-symbol to invent a new payout identity. For store-only balls, check all five inscriptions at
-final screenshot size against the required visual set.
+symbol to invent a new payout identity. Store-only ball labels are never code/compositor
+typography: the image model letters them from the exact labels written in the prompt, in the same
+call that paints the scene. Check all five inscriptions at final screenshot size against the
+required visual set.
 
 ## Flexible store composition
 
@@ -124,10 +126,14 @@ the mechanic, aspect ratio, and visual lead. Examples include character-left/gam
 full-width active Plinko, object-led reels across all three, or a contained field on any panel.
 The middle panel has no privileged role. Multiple play fields are allowed when they depict
 real, coherent states and each remains readable; one continuous field is often stronger.
-Generate the game scene as one image, then place multiplier balls copied from a shipped game
-asset before slicing the panorama. Give the image generator the real active gameplay capture as
-context for the mechanic, symbols, topology and outcome; have it render gameplay naturally at a
-three-quarter/3D angle within the same image as the environment and foreground.
+Generate the feature banner first, then the panorama with that banner attached as world context.
+Each scene is one image that already contains the character, gameplay, foreground and the five
+labelled multiplier balls: attach a shipped ball/coin/orb asset as the ball model and write the
+exact labels into the prompt, so the image model paints and letters the balls in the scene.
+Nothing is pasted or lettered onto generated art by script. Give the image generator the real
+active gameplay capture as context for the mechanic, symbols, topology and outcome; have it render
+gameplay naturally at a three-quarter/3D angle within the same image as the environment and
+foreground.
 Do not paste the capture or a derived board plate into the panorama, or leave a placeholder
 opening for a later gameplay insert. Reject generated gameplay that changes the real outcome.
 
@@ -153,12 +159,12 @@ Use one visual review of the final crops; numeric composition bounds are optiona
 The background may be colorful and luminous while staying subordinate through softer focus and
 lower local contrast.
 
-Build an art-directed lower-edge sequence of a few large, recognizable game objects, roughly
-5–7 across a three-panel character scene when that treatment fits. Preserve a deliberate
-left-to-right rhythm and distinct silhouettes with only small edge overlaps. Sparse coins may
-accent the gaps. Avoid miniature clutter, stacked heaps and any supporting surface beneath the
-objects; no floor, fabric, tabletop or drape. Keep selected multiplier balls flying in front of
-the gameplay: at least two must visibly cover part of the board or mechanic in the marketing
+Frame the lower edge like close-up casino key art: roughly 5–7 of the game's own objects across a
+three-panel scene, each very large and near the camera, overlapping in depth and cropped by the
+bottom edge, over a continuous glittering layer of the game's gold coins or currency that runs the
+full width. Keep each object's silhouette readable. Avoid miniature clutter and any supporting
+surface beneath the objects; no floor, fabric, tabletop or drape. Keep selected multiplier balls
+flying in front of the gameplay: at least two must visibly cover part of the board or mechanic in the marketing
 scene. Keep every ball outside the player/hero character silhouette. For lighting, use the game's
 authentic palette with strong warm/cool separation, clean specular highlights, local reflected
 color, selective glints and controlled bloom around real light sources. Keep color-rich shadows

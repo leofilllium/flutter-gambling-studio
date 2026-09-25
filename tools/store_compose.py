@@ -13,10 +13,12 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             they land on the quietest columns, and the art is asked for a calm
             corridor there. `--gutter 0` remains available for a true butt-jointed,
             lossless panorama when the publisher is known not to insert gaps.
-            The source must already be one complete prepared scene, including
-            a naturally integrated view of the real game mechanic and any
-            multiplier balls copied from a shipped game asset. A gameplay
-            capture informs generation; it is never inlaid into the panorama.
+            The source must already be one complete generated scene: the real
+            game mechanic and the labelled multiplier balls are painted by the
+            image model in the same call (a shipped ball asset and the feature
+            banner are attached as references; the labels come from the
+            prompt). A gameplay capture informs generation; it is never inlaid
+            into the panorama, and nothing is pasted or lettered onto it here.
             Numeric art diagnostics are opt-in. The default exports the panels
             for one visual review; at least two flying multiplier balls must
             visibly cover gameplay while keeping the player/hero unobscured.
@@ -2973,9 +2975,10 @@ def cmd_triptych(args) -> None:
         die(f"--panels {n} out of range (2..5)")
     if getattr(args, "sprite", []) or getattr(args, "sprite_dir", []):
         die("triptych accepts only a complete prepared panorama. Pass the real "
-            "gameplay capture to image generation as context, and compose "
-            "asset-backed multiplier balls into the source before slicing; "
-            "--sprite and --sprite-dir cannot inlay them into store panels")
+            "gameplay capture and the shipped ball asset to image generation as "
+            "references so the scene is generated with its gameplay and labelled "
+            "multiplier balls; --sprite and --sprite-dir cannot inlay them into "
+            "store panels")
     if args.pano_only and not args.save_pano:
         die("--pano-only writes nothing without --save-pano PNG")
 
@@ -4235,9 +4238,9 @@ def main() -> None:
                         "content-blind even split)")
     # Parse legacy paste options only to explain why they are refused.
     t.add_argument("--sprite", action="append", default=[], metavar="PNG",
-                   help="retired: gameplay belongs in the generated scene; place asset-backed multiplier balls into the prepared source before slicing")
+                   help="retired: gameplay and multiplier balls belong in the generated scene")
     t.add_argument("--sprite-dir", action="append", default=[], metavar="DIR",
-                   help="retired: provide gameplay assets as scene references and compose multiplier balls into the source before slicing")
+                   help="retired: pass gameplay and ball assets to image generation as references")
     t.add_argument("--hero-bounds", metavar="X,Y,W,H",
                    help="tight normalized box around the hero as the FINAL render "
                         "shows it, including held/worn/attached props. An opt-in strict "

@@ -25,6 +25,8 @@ copy, balances or payout promises. A code overlay can letter an unlettered sourc
 config value; a different payout symbol is not merely a recolor.
 The five themed multiplier balls required by `/store-screenshots` are a store-only art exception;
 follow that runbook for their labels and keep this config-backed rule for runtime game assets.
+The code-overlay option above never applies to them: the image model letters the store balls
+from the exact labels in the prompt.
 
 ## Default rule
 

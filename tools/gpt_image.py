@@ -13,11 +13,12 @@ Examples:
     --size 1024x1024 \
     --quality high
   python3 tools/gpt_image.py edit \
-    --prompt-file design/prompts/keyart-integration.txt \
-    --image art/keyart-draft.png \
-    --image assets/images/sprites/sprite_eagle.png \
-    --out art/keyart-integrated.png \
-    --size 1536x1024 --fidelity high
+    --prompt-file art/panorama-prompt.txt \
+    --image assets/images/sprites/sprite_hero.png \
+    --image art/long-banner.png \
+    --image assets/images/sprites/sprite_ball.png \
+    --out art/panorama.png \
+    --size 3456x2384 --fidelity high
 """
 
 from __future__ import annotations
@@ -505,7 +506,8 @@ def _parser() -> argparse.ArgumentParser:
         required=True,
         metavar="IMAGE",
         help="a PNG, JPEG or WebP reference image. Repeatable, and ORDER MATTERS: "
-             "pass the layout draft first, then identity-critical references "
+             "pass the identity-critical reference first (e.g. the original "
+             "character asset), then context images such as a layout draft "
              f"(max {MAX_INPUT_IMAGES})",
     )
     edit.add_argument("--out", required=True, help="destination .png path")

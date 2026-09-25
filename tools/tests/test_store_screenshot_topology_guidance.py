@@ -10,28 +10,67 @@ class StoreScreenshotTopologyGuidanceTest(unittest.TestCase):
             repo / ".claude/skills/store-screenshots/SKILL.md"
         ).read_text(encoding="utf-8")
         cls.guidance_flat = " ".join(cls.guidance.split())
+        cls.phase1 = " ".join(
+            cls.guidance.split("## Phase 1 — banner first, then the complete panorama", 1)[1]
+            .split("## Phase 2 — visual review criteria", 1)[0]
+            .split()
+        )
 
     def test_panorama_uses_capture_only_as_context_for_one_generated_scene(self) -> None:
-        phase = self.guidance.split("## Phase 1 — composition and integrated art", 1)[1].split(
-            "## Phase 2 — identity and critical-region review", 1
-        )[0]
         required_contract = (
             "**context only**",
             "complete, coherent image",
             "three-quarter/3D view",
             "must not assemble its gameplay field",
-            "do not substitute a composited field",
-            "Recount the final exported topology",
+            "Check for a pasted screenshot boundary",
         )
         for phrase in required_contract:
             with self.subTest(phrase=phrase):
-                self.assertIn(phrase, phase)
+                self.assertIn(phrase, self.phase1)
 
-        self.assertNotIn("tools/store_compose.py boardplate", phase)
-        self.assertNotIn("--from-shot", phase)
-        self.assertNotIn("deterministic project-derived layer", phase)
-        self.assertIn("Reject any visible capture boundary", self.guidance)
-        self.assertIn("the gameplay capture was reference-only", self.guidance)
+        self.assertNotIn("tools/store_compose.py boardplate", self.phase1)
+        self.assertNotIn("--from-shot", self.phase1)
+
+    def test_banner_is_generated_first_and_is_world_context_for_the_panorama(self) -> None:
+        banner = self.phase1.index("### 1a — Banner (the first generation call)")
+        panorama = self.phase1.index("### 1b — Panorama (banner as world context)")
+        self.assertLess(banner, panorama)
+        for phrase in (
+            "Generation order: banner first, then panorama.",
+            "the accepted banner (world context — not a character reference)",
+            "not an edit, outpaint or crop of the banner",
+            "The character may take a different pose, expression, crop or panel",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, self.guidance_flat)
+        # The original character asset stays the first reference on every call.
+        for section in ("### 1a", "### 1b"):
+            block = self.phase1.split(section, 1)[1]
+            with self.subTest(section=section):
+                self.assertIn("Attach, in order: the original character asset", block)
+
+    def test_multiplier_balls_and_labels_are_generated_not_pasted(self) -> None:
+        for phrase in (
+            "attach that file to every scene-generation call as the **multiplier reference**",
+            'each used once: "x5", "x10", "x25", "x50", "x100"',
+            "never draw a label with Pillow, the compositor or any other script",
+            "Never letter it with a script",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, self.guidance_flat)
+        for retired in ("Use Pillow to copy", "alpha-composite them onto the",
+                        "keyart-integrated.png", "long-banner-integrated.png"):
+            with self.subTest(retired=retired):
+                self.assertNotIn(retired, self.guidance_flat)
+
+    def test_lower_edge_is_a_close_up_object_band_over_coins(self) -> None:
+        for phrase in (
+            "overlapping one another in depth, cropped by the bottom edge",
+            "continuous glittering layer of the game's gold coins",
+            "no floor, fabric, tabletop, podium, platform or velvet drape",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, self.phase1)
 
     def test_feature_graphic_is_text_free_with_one_phone_on_the_right(self) -> None:
         required_contract = (
@@ -46,33 +85,6 @@ class StoreScreenshotTopologyGuidanceTest(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, self.guidance_flat)
         self.assertNotIn("optional typography", self.guidance_flat)
-
-    def test_angled_field_requires_contextual_embedding_cues(self) -> None:
-        required_cues = (
-            "a perspective transform alone is not evidence of integration",
-            "structural reception",
-            "recessed housing, altar or console",
-            "photometric contact",
-            "contact shadow plus local colour spill, light wrap or reflection",
-            "spatial interaction",
-            "foreground or atmospheric element crossing the housing edge",
-            "at final panel size as well as in the continuous panorama",
-        )
-        for phrase in required_cues:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, self.guidance_flat)
-
-        perspective_only = self.guidance_flat.index(
-            "a perspective transform alone is not evidence of integration"
-        )
-        structure = self.guidance_flat.index("structural reception", perspective_only)
-        lighting = self.guidance_flat.index("photometric contact", structure)
-        overlap = self.guidance_flat.index("spatial interaction", lighting)
-        final_size = self.guidance_flat.index("at final panel size", overlap)
-        self.assertLess(perspective_only, structure)
-        self.assertLess(structure, lighting)
-        self.assertLess(lighting, overlap)
-        self.assertLess(overlap, final_size)
 
 
 if __name__ == "__main__":

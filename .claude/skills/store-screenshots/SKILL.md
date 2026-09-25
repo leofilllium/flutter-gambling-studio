@@ -1,6 +1,6 @@
 ---
 name: store-screenshots
-description: "Create a store kit with asset-backed x5/x10/x25/x50/x100 multiplier balls, a panorama, real capture slides, feature graphic, icon/emblem and ZIP. Match game assets and topology; preserve runtime backgrounds."
+description: "Create a store kit: generate the feature banner first (character on the left), then a complete panorama with character, gameplay and x5/x10/x25/x50/x100 multiplier balls rendered in one image-generation call from the banner and a shipped ball asset as references. Add real capture slides, feature graphic, icon/emblem and ZIP. Match game assets and topology; preserve runtime backgrounds."
 argument-hint: "[--count 8] [--panels 3] [--lead-kind character|object|mechanic] [--character-framing bust|mascot] [--banner-layout free|left-heavy] [--size 1320x2868|play] [--no-play-set] [--frame ios|android|none] [--no-apply] [--no-wire-logo] [--no-captions] [--apply-backdrop]"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent
@@ -13,12 +13,20 @@ concept, art direction, asset manifest, math config and runtime evidence. Inspec
 `examples-games/` previews by default. References guide composition; the shipped assets and
 mechanics govern identity. Never change a real game to match a preview's topology or palette.
 
+**Generation order: banner first, then panorama.** The horizontal feature banner, with the
+character on the left, is the first image generated. It establishes the campaign's world:
+environment, palette, lighting, board housing, lower-edge band and multiplier-ball look. The
+accepted banner is then attached as **world context** to the panorama call (and to the
+`--panels 0` showcase background), so the carousel and the feature graphic read as one campaign.
+
 For a character-led kit, the shipped character asset is the canonical player reference in
-**every** image-generation call. Supply the original asset file again for a retry or a separate
-banner/icon render; never use an earlier generated image as the character reference or edit a
-generated image into the next source. The generated scene may establish composition, but it
-cannot redefine the character's face, silhouette, costume or colors. If the character has
-multiple shipped layers, use the original layers or a lossless assembly of them.
+**every** image-generation call and is always attached first. Supply the original asset file
+again for a retry or a separate icon render. The accepted banner is the only generated image a
+later call may receive, and only as world context: it is never the character reference, and the
+panorama is a new composition, not an edit, outpaint or crop of the banner. The generated scene
+may establish pose and composition, but it cannot redefine the character's face, silhouette,
+costume or colors. If the character has multiple shipped layers, use the original layers or a
+lossless assembly of them.
 
 Multiplier balls must look airborne. Several must fly **in front of gameplay** and visibly cover
 parts of the board, symbols or outcome area in the marketing scene. None may overlap the visible
@@ -27,13 +35,16 @@ is intentional; player occlusion is a placement error. Keep the five ball labels
 once at final crop size; use format/dimension checks for exports. Do not run numeric composition
 gates or repeat visual audits to optimize scores.
 
-The visible body/background of every multiplier ball must come from an **actual shipped game
-asset file**. Choose one suitable ball, coin, token or other round gameplay asset and reuse its
-pixels for all five values. Confirm its path in the game's asset registry or `pubspec.yaml`.
-Add the inscription to copies of that asset; do not generate a new
-ball, ask the image model to redraw the backing, or accept a merely similar-looking orb. Place
-the asset-based balls into the marketing scene before slicing it. Their position, rotation,
-shadow and motion cues may vary, while the source artwork remains recognizable.
+**The image model generates the multiplier balls and their labels in the same call as the rest
+of the scene.** Choose one suitable shipped round asset, such as a ball, coin, token or orb,
+confirm its path in the game's asset registry or `pubspec.yaml`, and attach that file to every
+scene-generation call as the **multiplier reference**. The model paints the balls from that
+reference: same silhouette, material, color and ornament, rendered at scene scale with the scene's
+own light, reflections, glow and motion. Write the exact labels `x5`, `x10`, `x25`, `x50` and
+`x100` into the prompt so the model letters them onto the balls. Never cut out, copy, paste or
+alpha-composite the asset (or any sprite, label, board plate or screenshot crop) into generated
+art, and never draw a label with Pillow, the compositor or any other script. The compositor only
+grades, slices and frames finished images.
 
 Create local artifacts; do not publish or build release binaries. Apply icon/emblem unless
 `--no-apply`. Runtime backgrounds and wiring remain unchanged unless their separate redesign
@@ -44,14 +55,14 @@ was explicitly requested. All copy is English unless another game language was r
 Default N=8 screenshots: P=3 adjacent concept panels sliced from one complete panorama followed by
 N−P actual gameplay/meta captures with optional device frames and captions. Produce `store/`
 at 1320×2868 and `store-play/` at 1080×1920 independently, not by resizing one set into the other.
-Include a dedicated text-free 1024×500 feature graphic: the scene plus one phone on the right
-holding a real screenshot, with no title or copy on the left or anywhere else (see Phase 5),
+Include a dedicated text-free 1024×500 feature graphic: the banner scene plus one phone on the
+right holding a real screenshot, with no title or copy on the left or anywhere else (see Phase 5),
 icon masters/platform densities (1024 launcher master, 512×512 Play listing icon, frame-free —
 see Phase 3), transparent emblem, `STORE_BRIEF.md`, `STORE_INFO.md`, and ZIP under `project_zip/`.
 `--no-play-set` omits Play screenshots. `--panels 0` skips panorama work and uses real captures
 for all N screenshots, with the required multiplier balls in a themed showcase background; it
-still produces the separate feature graphic. Marketing portrait formats never constrain the
-runtime app's full mobile/expanded viewport behavior.
+still generates the banner first and produces the feature graphic. Marketing portrait formats
+never constrain the runtime app's full mobile/expanded viewport behavior.
 
 ## Phase 0 — context and preflight
 
@@ -106,11 +117,14 @@ Write `STORE_BRIEF.md` before any generation call:
 - `lead_kind: character | object | mechanic`, exact subject and in-game role. A chicken is a
   character; a crown/coin/board is not. No invented mascot or character-only opening for objects.
 - Inspected references, borrowed traits and original adaptations.
+- Banner plan: lead on the left, gameplay placement, lower-edge band, which multiplier labels
+  appear in it and where, and what continues under the phone on the right.
 - Panel map with anchors and gameplay positions/spans. Any panel, the right two, or all three
-  may carry gameplay. There is no required middle field or final reward-only panel.
-- Lower-edge object plan: roughly 5–7 large game objects across a three-panel character scene
-  when that treatment fits, with sparse coin accents, small edge overlaps, clear silhouettes
-  and no supporting surface. Record the game's warm/cool light sources and polished materials.
+  may carry gameplay. There is no required middle field or final reward-only panel. Note where
+  the character's pose, crop or panel differs from the banner.
+- Lower-edge plan (see Phase 1): the game's own objects chosen for the close-up foreground band,
+  their left-to-right order, which ones cross seams, and the currency used for the coin layer.
+  Record the game's warm/cool light sources and polished materials.
 - For an object/mechanic-led game with no living character in its concept and shipped inventory,
   mark slides 1 and 2 as gameplay-led. Each opening crop, reviewed separately, must show
   recognizable authentic play at a three-quarter/3D angle, either through two readable samples
@@ -120,20 +134,22 @@ Write `STORE_BRIEF.md` before any generation call:
 - Actual topology and resolving state. New unspecified classic slots default to 3×3; store
   work preserves the shipped game's dimensions, symbols, ordering and outcome. Record the
   gameplay capture as a visual reference for generation, never as a layer for the panorama.
-- The canonical character asset path (if present), the shipped asset used as the backing for
-  every multiplier ball, plus source assets used for other visible gameplay objects. Record
-  their scene roles. The ball backing must be an actual asset file, not a style reference.
+- The canonical character asset path (if present), the shipped asset attached as the
+  multiplier reference, plus source assets used for other visible gameplay objects. Record
+  their scene roles. The multiplier reference must be an actual asset file.
 - Required store-art multiplier-ball set for every game: `x5`, `x10`, `x25`, `x50`, and `x100`,
   whether or not those values exist in the game's paytable. These are themed marketing-scene
   objects, not a gameplay state, a payout claim or a reason to change game math. Record which
   values, if any, are actual in-game rewards and keep unsupported values out of real gameplay
   captures, captions, paytable claims and feature-phone UI. Never present the five balls as a
-  guaranteed result. Render showcase captions with compositor typography; only the short ball
-  inscriptions may be added to the marketing art.
-- Multiplier-ball art direction: the exact shipped backing asset path, its original material,
-  palette and ornament, plus lighting, target size and placement in the panorama and feature
-  scene. Size is judged in the final panel crop, not the wide source image. Aim for
-  prominent balls around 35-40% of a portrait panel's width, adjusting for the artwork.
+  guaranteed result. Showcase captions on real-capture slides use compositor typography; the
+  ball inscriptions are generated by the image model from the prompt, and nothing letters the
+  generated art afterward.
+- Multiplier-ball art direction: the multiplier reference path, its original material, palette
+  and ornament, the label style (display face, color, outline), glow/sparkle treatment, lighting,
+  target size and placement in the banner, panorama and any showcase background. Size is judged
+  in the final panel crop, not the wide source image. Aim for prominent balls around 35-40% of a
+  portrait panel's width, adjusting for the artwork.
   Record the exact labels separately from the visual treatment so a styled ball never changes
   a game's payout meaning.
   Map each value to a position and flight direction across the full panorama, judging space in
@@ -141,23 +157,26 @@ Write `STORE_BRIEF.md` before any generation call:
   count or label assignment per panel; slide 1 may have none. Place at least two ball bodies
   across the board/mechanic or its symbols so they visibly hide a portion of gameplay in the
   exported marketing panels. Keep every ball outside the player/hero silhouette. Map the same
-  behavior in the feature scene and, for `--panels 0`, the themed showcase background wherever
-  the marketing scene depicts gameplay. Do not alter authentic captured gameplay in a phone.
+  behavior in the banner and, for `--panels 0`, the themed showcase background wherever the
+  marketing scene depicts gameplay. Do not alter authentic captured gameplay in a phone.
 - Independent feature layout: `free` by default or justified `left-heavy`; no reserved device zone.
   The feature graphic is text-free: record the chosen capture for its right-side phone, not a
   title or tagline.
-- One initial attempt per required scene (panorama, feature scene and any icon), with at most
-  one fresh retry for an objective failure in that scene. Both start from the original assets.
-  Do not iterate from generated output.
+- One initial attempt per required scene (banner, panorama, any `--panels 0` showcase background
+  and any icon), with at most one fresh retry for an objective failure in that scene. Retries
+  restart from the original assets, plus the accepted banner for scenes generated after it. Do not
+  iterate from a rejected output. If the banner is retried, later scenes use the accepted one.
 
 Collect the original character asset and the gameplay sprites that will be visible in the art.
 Exclude UI chrome, fonts, backgrounds and store outputs. Preserve originals; convert non-PNG
 sources to lossless PNG references only when the image tool needs PNG. If reference slots are
-limited, prioritize the original character asset, then the gameplay capture and visible sprites.
+limited, prioritize the original character asset, then the accepted banner (for later scenes),
+the multiplier reference, the gameplay capture and visible sprites.
 Written descriptions and generated previews never replace the character asset.
-For the ball backing, choose a shipped round asset such as a ball, coin or token. If it has no
-transparent background, cut it out locally without redrawing its body. If no shipped asset can
-serve as a recognizable ball backing, report the missing source instead of inventing an orb.
+For the multiplier reference, choose a shipped round asset such as a ball, coin, orb or token.
+If it sits on an opaque background, a local cutout may give the model a cleaner reference; that
+cutout is only an input to generation and never enters the art. If no shipped asset can serve
+as a recognizable ball reference, report the missing source instead of inventing an orb.
 
 Capture or locate a real active/resolving gameplay frame as reference-only context. Record its
 field rectangle and actual state. A symbol-built board is provisional until a real frame exists.
@@ -166,7 +185,9 @@ runtime-background files, hashes and selecting code/config references before any
 registered splash/shared backgrounds outside conventional directories. See
 [references/runtime-branding.md](references/runtime-branding.md).
 
-## Phase 1 — composition and integrated art
+## Phase 1 — banner first, then the complete panorama
+
+### Composition rules shared by every scene
 
 Choose the panorama aspect from panel count and target geometry. Character-led Zeus/Joker/chicken
 games default to a large real character on panel 1; humanoids use a waist-up crop and animals a
@@ -185,124 +206,155 @@ or span one continuous angled surface across both with meaningful gameplay visib
 add a human, hand, animal, mascot or player silhouette to supply drama. The object lead may frame
 the action, but it cannot replace gameplay in slide 1.
 
-Build an art-directed foreground sequence across the lower edge. For a three-panel character-led
-scene, start with roughly 5–7 large, recognizable game objects across the **whole panorama**;
-small coins may be sparse accents. Adjust the count to the actual game and composition rather
-than forcing this number onto a scene that already works, such as an open Zeus composition.
-Arrange the main objects deliberately from left to right, cropping some at the camera edge.
-Avoid rigid equal spacing and identical scale while preserving clear individual silhouettes;
-one object may cover only a small edge of its neighbor. Do not stack objects into a heap, fill
-the bottom with many miniature duplicates, or add any supporting surface beneath the foreground
-objects: no floor, fabric, tabletop, platform or velvet drape. Use modest size and angle changes
-for rhythm. Light the objects with reflected color and edge light, without ground-contact
-shadows. A few other game objects may fly higher. Keep the asset-backed multiplier balls visibly
-in flight, including when they cross the foreground; none rests on a lower object.
-
-Show all five themed multiplier balls at least once across the prepared panorama's store
-panels; when `--panels 0`, include them in the themed background of at least one showcase slide
-as well as the clean feature scene. Give each marking a rounded ball or orb as its physical
-backing; place the inscription on the ball itself, not as floating typography. Use five copies
-of the selected shipped game asset as the physical backings. Preserve its silhouette, material,
-color and ornament; resize or rotate copies and add labels, shadows and motion cues locally.
-Do not redraw, recolor into a generic bubble, or replace the asset with an AI approximation.
-These store-only labeled copies supplement the planned lower-edge objects. Compose them into the
-scene before slicing, scattered at irregular heights, depths and flight directions. At least two
-must cross in front of the board or mechanic and visibly obscure part of it; do not move them all
-above the action to preserve gameplay visibility. They may overlap lower props but must remain
-clear of the player/hero silhouette. A ball seated on a surface, clipped inscription or player
-overlap needs a local placement correction. Avoid a row, regular grid or tight cluster. Match any
-user-supplied size reference.
-
-Plan the full panorama before generation, or the portrait showcase background for `--panels 0`.
-A rough layout sketch may indicate panel cuts and subject positions, but it must not contain a
-screenshot-shaped opening intended for later fill.
 Give the image generator the canonical character asset, actual gameplay capture, relevant shipped
-sprites and matching previews as references. Label the original character asset as **identity
-authority** and the capture as **context only**: it establishes the real mechanic, field
-dimensions, symbol identities, ordering and resolving state. Request a complete, coherent image
-in one generation: the game surface itself appears as a scene-native three-quarter/3D view, with
-its housing, depth, lighting, foreground interactions and surrounding environment generated
-together. Ask the model to leave plausible flight paths for the multiplier balls, but **not** to
-draw any multiplier balls or inscriptions. Noncritical board structure may cross seams.
+sprites, the multiplier reference and matching previews. Label the original character asset as
+**identity authority**, the multiplier reference as the **ball model**, and the capture as
+**context only**: it establishes the real mechanic, field dimensions, symbol identities, ordering
+and resolving state. Request a complete, coherent image in one generation: the game surface
+itself appears as a scene-native three-quarter/3D view, with its housing, depth, lighting,
+foreground band, labelled multiplier balls and surrounding environment generated together.
+Noncritical board structure may cross seams. A rough layout sketch may indicate panel cuts and
+subject positions, but it must not contain a screenshot-shaped opening intended for later fill.
+Do not generate a background, empty board recess or blank ball placeholder to fill later.
 
-Put this composition requirement in the **first** scene-generation prompt, adapting the details
-to the game's actual characters, board and environment:
+**Lower edge.** Frame the bottom of the scene like close-up casino key art: the game's own
+symbols and objects rendered very large, near the camera, across the full width. For a
+three-panel scene use roughly 5–7 hero objects, each around a third to half of a panel wide,
+overlapping one another in depth, cropped by the bottom edge and at some seams, and occupying
+about the lower quarter to third of the image. Beneath and between them, a continuous glittering
+layer of the game's gold coins (or its own currency) runs the whole width, so the band reads as
+a treasure spill rather than a row of cutouts. The coins are game objects, not a surface: no
+floor, fabric, tabletop, podium, platform or velvet drape. Vary scale and angle for rhythm; keep
+each hero object's silhouette readable; do not shrink it into miniature clutter. Light the band
+with the scene's warm and cool sources: specular highlights, rim light and reflected color. A few
+other game objects may fly higher. The multiplier balls stay visibly in flight, including when
+they cross the foreground; none rests on a lower object.
 
-> One continuous, fully illustrated game panorama. Leave flight paths at varied heights, depths
-> and horizontal positions for five balls copied from the shipped ball asset. Several paths must
-> cross the board or mechanic in the foreground, so the later balls visibly cover some gameplay.
-> Keep all ball paths clear of the player/hero character silhouette. Do not draw balls, orb
-> substitutes, multiplier labels or empty circular placeholders. Reproduce the supplied original
-> character asset faithfully; do not derive the character from a generated scene.
+**Multiplier balls.** Show all five labelled balls at least once across the panorama's store
+panels; when `--panels 0`, include them in the themed showcase background as well as the banner.
+Each ball is the multiplier reference re-rendered by the model: keep its silhouette, material,
+color and ornament recognizable while the scene's lighting shapes it, with a specular highlight,
+rim light in the scene's accent color, reflected color from neighbors, a halo, sparkle ring or
+energy glow drawn from the game's own FX vocabulary, and a short motion trail. The label is the
+dominant feature on the ball face: short chunky display numerals filling roughly 60–70% of the
+ball's width, in the game's warm display color (gold/yellow in most casino themes) with a dark
+outline, an inner highlight and a slight 3D bevel, following the ball's curvature. A flat
+sticker look, a thin or small label, an unlit disc and a ball that looks pasted over the scene
+are the failures this rule prevents. Scatter the balls at irregular heights, depths and flight
+directions. At least two must cross in front of the board or mechanic and visibly obscure part of
+it; do not move them all above the action to preserve gameplay visibility. They may overlap lower
+props but must remain clear of the player/hero silhouette. Avoid a row, regular grid or tight
+cluster. Match any user-supplied size reference.
 
-Include this lighting direction in the first prompt for every game. Use the lower-edge direction
-when the scene needs it, preserving an already effective open composition. Adapt both to the
-game's real palette and objects:
+### 1a — Banner (the first generation call)
 
-> Along the lower edge, place about 5–7 large game objects across the full three-panel scene
-> in a deliberate left-to-right sequence, with only small edge overlaps and readable silhouettes.
-> A few coins may accent the gaps. Crop selected objects at the bottom camera edge. Avoid a pile,
-> miniature clutter, rigid equal spacing and identical scale. Do not add any supporting surface
-> beneath them: no fabric, floor, tabletop, podium or drape. Give the scene vivid, high-impact
-> mobile-game key-art lighting from the game's authentic palette. Separate warm and cool hues,
-> add clean specular highlights to polished materials, theme-appropriate rim light on primary
-> subjects, and reflected color between nearby objects. Use small star glints selectively and
-> localized bloom around real light sources or verified magical effects. Keep shadows rich in
-> color, midtones saturated, and a few highlights near white. Keep the background luminous but
-> subordinate through softer focus and lower local contrast. Preserve the source asset colors;
-> avoid a global color wash, muddy shadows, flat lighting, matte gems and all-over haze. The
-> scene should look exciting and premium before compositor grading.
+Generate `art/long-banner.png` before anything else. For a character-led game the character
+stands large on the left; object/mechanic leads put the lead object or the angled gameplay
+surface there instead, with no invented character. The mechanic sits at a three-quarter/3D angle
+beside the lead, the environment runs edge to edge, and the lower-edge band crosses the full
+width. The right third continues the scene without a face, decisive symbol or ball label, because
+`banner` seats the phone there (centered at 82% of the width, about a third of it wide). That area
+is not an empty reserved zone: background, housing and foreground run through it. Include at least
+two labelled multiplier balls (all five when `--panels 0`), clear of the character and the phone
+area. No title, logo, wordmark, tagline, device, UI or copy space; a left side left blank for text
+is a failed banner. The banner must look finished alone.
 
-Save the generated scene as `art/keyart-scene.png`. Use Pillow to copy the actual ball asset five
-times, add `x5`, `x10`, `x25`, `x50` and `x100` to those copies, then alpha-composite them onto the
-scene at the planned positions. Let at least two cover gameplay while none covers the player.
-Add local shadow/light and directional motion cues so they look airborne. Save the complete result
-as `art/keyart-integrated.png`; this is the source passed to
-`triptych`. Apply the same asset-backed procedure to the feature scene and `--panels 0` showcase
-background. Do not use `triptych --sprite` or compose a gameplay board from screenshot pieces.
-If a label or ball placement is wrong, correct the local overlay once; do not regenerate the
-scene for a ball error. If the character drifts from its asset, make at most one fresh scene
-attempt with the **original** character asset and gameplay references. Never use the previous
-generated scene as the character reference.
+Attach, in order: the original character asset (identity authority), the multiplier reference
+(ball model), the gameplay capture (context only), visible shipped sprites, matching previews.
+When the tool takes custom sizes, `3840x1872` matches the 1024×500 delivery aspect.
+
+### 1b — Panorama (banner as world context)
+
+Generate `art/panorama.png` as a new composition for the panel geometry. The accepted banner is
+attached as **world context**, not as a source to extend: the panorama inherits its environment,
+palette, lighting, board housing, lower-edge treatment and ball look. The character may take a
+different pose, expression, crop or panel than in the banner; identity still comes only from the
+original asset. One call renders everything: character, scene-native gameplay, the lower-edge
+band, all five labelled balls in flight, and the environment.
+
+Attach, in order: the original character asset (identity authority), the accepted banner (world
+context — not a character reference), the multiplier reference (ball model), the gameplay
+capture (context only), visible shipped sprites, matching previews. When the tool takes custom
+sizes, `3456x2384` (about 1.45:1) covers three 1320×2868 panels plus the default hidden seam
+allowance.
+
+For `--panels 0`, generate the portrait `art/multiplier-showcase-bg.png` the same way, with the
+banner as world context, all five labelled balls in the scene and the existing game background
+as inspiration. Keep runtime background files unchanged.
+
+### First-prompt requirements
+
+Put this composition requirement in the **first** prompt of the panorama call, adapting the
+details to the game's actual characters, board, colors and environment. Adapt the same text to
+the banner (character left, at least two balls, the right third continuing the scene) and to any
+showcase background:
+
+> One continuous, fully illustrated game panorama set in the world of the attached banner:
+> same environment, palette, lighting and board housing, in a new composition. Reproduce the
+> supplied original character asset faithfully; the banner is world context, not the character
+> reference. Paint five multiplier balls modeled on the attached ball asset, flying at varied
+> heights, depths and horizontal positions. Letter each ball on its face with exactly one of
+> these inscriptions, each used once: "x5", "x10", "x25", "x50", "x100". Make every label big,
+> chunky 3D display numerals in [warm display color] with a dark outline and inner highlight,
+> filling most of the ball face and following its curve. Light the balls with the scene: glossy
+> specular highlights, [accent] rim light, a glowing [halo/sparkle ring/energy flare from the
+> game's FX], and a short motion trail. At least two balls fly in front of the board and cover
+> part of it; keep every ball clear of the character's silhouette. No other text, title, logo or
+> UI anywhere in the image.
+
+Include this lower-edge and lighting direction in the first prompt of every scene, adapting it to
+the game's real palette and objects:
+
+> Across the whole lower edge, place about 5–7 of the game's own objects very large and close to
+> the camera: [ordered list], overlapping each other in depth and cropped by the bottom edge, filling
+> about the lower quarter to third of the image. Under and between them, a continuous glittering
+> layer of gold coins runs the full width. No floor, fabric, tabletop, podium or drape, and no
+> miniature clutter. Give the scene vivid, high-impact mobile-game key-art lighting from the game's
+> authentic palette. Separate warm and cool hues, add clean specular highlights to polished
+> materials, theme-appropriate rim light on primary subjects, and reflected color between nearby
+> objects. Use small star glints selectively and localized bloom around real light sources or
+> verified magical effects. Keep shadows rich in color, midtones saturated, and a few highlights
+> near white. Keep the background luminous but subordinate through softer focus and lower local
+> contrast. Preserve the source asset colors; avoid a global color wash, muddy shadows, flat
+> lighting, matte gems and all-over haze. The scene should look exciting and premium before
+> compositor grading.
 
 Use the available built-in image tool; headless generation follows `generate-png-asset/SKILL.md`
-and `tools/gpt_image.py` with prompt files/repeated `--image` inputs. Supply the original character
-asset as the first identity reference on every call; use the gameplay capture and previews for
-composition. Do not paste, warp or texture-map any screenshot crop, board plate, symbol grid or
-other gameplay block into the panorama, either before or after image
-generation. Do not generate a background or empty board recess to fill later. The compositor may
-grade and slice the finished panorama; it must not assemble its gameplay field. `boardplate` is
-retired for this workflow, and `triptych` refuses `--sprite` and `--sprite-dir`. Pass the capture
-and shipped sprites directly to image generation as references. Ball overlays are the only
-asset-based addition to the finished scene before final slicing; the compositor only grades and
-slices that prepared image.
+and `tools/gpt_image.py edit` with a prompt file and repeated `--image` inputs in the order above.
+The compositor may grade and slice the finished panorama; it must not assemble its gameplay
+field or add anything to it. `boardplate` is retired for this workflow, and `triptych` refuses
+`--sprite` and `--sprite-dir`.
 
 Use the runtime capture to keep the game surface recognizable. The generated marketing scene
 may be partly covered by flying balls; authentic gameplay remains visible in the separate real
 captures. Check for a pasted screenshot boundary in the single final visual pass.
 
-Render `art/long-banner-scene.png` separately for the horizontal feature graphic with the same
-identity and lead kind, then place copies of the same shipped ball asset and save
-`art/long-banner-integrated.png`. Full-width action is valid. A left-heavy 3/5–2/5 composition is
-optional. The clean source must look finished alone: no device, UI, reserved zone or marketing
-words. Do not ask the image model for a title, logo, wordmark, tagline or empty copy space; a
-left side left blank for text is a failed banner. Keep actual game objects across the lower edge
-in the same shallow, art-directed sequence, with sharp primary subjects.
+### Correcting a generated scene
+
+Read every inscription at final crop size. A misspelled, missing, duplicated or extra label, a ball
+on the character, a ball resting on a lower object or character drift from its asset is an
+objective failure: use the scene's one fresh retry with the same references. If exactly one
+inscription is still wrong after the retry, make at most one image-tool edit of the selected
+scene that changes only that inscription, naming the exact label in the prompt and attaching the
+original character asset first. Never letter it with a script. If that edit alters anything else,
+keep the unedited scene and record the defect in `STORE_INFO.md`. A label cut by a seam is fixed
+by the crop (Phase 4), not by regeneration.
 
 ## Phase 2 — visual review criteria (apply after exports)
 
 After the first full export, inspect one contact sheet showing the final App Store and Play crops,
 plus the feature graphic. Compare the character to its original asset, verify that `x5`, `x10`,
-`x25`, `x50` and `x100` appear on distinct airborne balls, and check for clipped labels, missing
-panels or an obvious pasted screenshot boundary. Compare the ball backings to the selected
-shipped asset; a newly invented or AI-redrawn ball body is an error. Confirm at least two ball
-bodies visibly cover gameplay and none overlaps the player/hero silhouette. Do not move balls
-off the board to clear the action. Check that the lower edge has a deliberate sequence of large,
-individually readable objects, without a supporting surface or a heap of tiny props. For a game
-without a character, check that no player/mascot was invented. Fix a ball error in its local
-overlay; reserve the one fresh generation attempt for a clear scene identity or lighting failure,
-using the original assets again. Do not do repeated full-size/thumbnail passes, per-sprite
-audits, numeric scoring or subjective regeneration cycles.
+`x25`, `x50` and `x100` each appear once, spelled exactly, on distinct airborne balls, and check
+for clipped labels, missing panels or an obvious pasted screenshot boundary. Check that the balls
+read as the multiplier reference (silhouette, material, color, ornament) painted into the scene:
+lit by it, with glow and motion, labels bold and dominant. A flat, pasted-looking or small-label
+ball is an error. Confirm at least two ball bodies visibly cover gameplay and none overlaps the
+player/hero silhouette. Do not move balls off the board to clear the action. Check that the
+panorama visibly shares the banner's world, and that the lower edge is a close-up band of large,
+readable game objects over a continuous coin layer, without a floor, drape or heap of tiny props.
+For a game without a character, check that no player/mascot was invented. Apply the correction
+policy from Phase 1; do not do repeated full-size/thumbnail passes, per-sprite audits, numeric
+scoring or subjective regeneration cycles.
 
 Judge lighting in the generated source, before compositor grading. It should feel vivid and
 celebratory while retaining the game's authentic colors. Look for clean highlights, selected
@@ -329,13 +381,13 @@ an unchanged matching capture does not justify another generation call.
 
 ## Phase 4 — final exports
 
-Select the game's lead kind and export directly from the complete prepared scene. Turn the
+Select the game's lead kind and export directly from the complete generated panorama. Turn the
 numeric art gates off; do not measure hero, lead, gameplay or protected-region boxes. Inspect
 actual final crops once in Phase 2. If a label or character is cut by a seam, make one crop
 adjustment and re-export. A flying ball covering gameplay is never a reason to adjust the crop.
 
 ```bash
-"$STORE_PYTHON" tools/store_compose.py triptych --src "$ART_DIR/keyart-integrated.png" \
+"$STORE_PYTHON" tools/store_compose.py triptych --src "$ART_DIR/panorama.png" \
   --out "$OUT_DIR" --panels 3 --size 1320x2868 --pop soft --seam-snap off \
   --lead-kind mechanic --art-gate off
 ```
@@ -353,38 +405,35 @@ Resolve filenames and words from this game's inventory; honor frame/no-captions/
 
 ```bash
 "$STORE_PYTHON" tools/store_compose.py showcase --shot "$RAW_DIR/03-spin.png" \
-  --bg "$ART_DIR/keyart-integrated.png" --out "$OUT_DIR/store-04.png" \
+  --bg "$ART_DIR/panorama.png" --out "$OUT_DIR/store-04.png" \
   --size 1320x2868 --caption "Every Spin Counts" --type-mood playful --pop soft
 ```
 
-With panels 0, generate a portrait marketing scene inspired by the existing game background,
-then place all five copies of the shipped ball asset into it and save
-`art/multiplier-showcase-bg.png`. Use it behind at least one real-capture showcase; keep the
-capture and runtime background files unchanged. Compose Play separately.
+With panels 0, use `art/multiplier-showcase-bg.png` (Phase 1b) behind at least one real-capture
+showcase; keep the capture and runtime background files unchanged. Compose Play separately.
 
 Feature example:
 
 ```bash
-"$STORE_PYTHON" tools/store_compose.py banner --keyart "$ART_DIR/long-banner-integrated.png" \
+"$STORE_PYTHON" tools/store_compose.py banner --keyart "$ART_DIR/long-banner.png" \
   --out "$STORE_DIR/feature-graphic-1024x500.png" \
   --base-out "$ART_DIR/long-banner-source-1024x500.png" --size 1024x500 --pop soft \
-  --lead-kind object --banner-layout free --banner-gate off \
+  --lead-kind character --banner-layout free --banner-gate off \
   --shot "$RAW_DIR/03-spin.png" --frame "${DEVICE_FRAME:-ios}"
 ```
 
-Use the appropriate `--lead-kind` for the game. Keep the original character asset as a direct
-identity reference if the banner requires a separate generation call. Review the final banner
-with the phone once; do not run focal bounds, gameplay bounds or numeric banner gates.
+Use the appropriate `--lead-kind` for the game. Review the final banner with the phone once; do
+not run focal bounds, gameplay bounds or numeric banner gates.
 
 **The feature graphic is a banner with one phone on the right and no text.** It carries no
 title, tagline, logo, wordmark, caption, badge or call to action — not on the left, not over the
 scene, not beside the device. The scene fills the frame and the phone sits on the right; the left
 is pure illustration with no scrim or copy space. The compositor enforces this: `banner` refuses
-`--title`, `--tagline` and `--logo`. The only lettering that may appear is a themed multiplier-ball
-inscription added to an asset-backed ball or the game's own UI inside the captured screenshot.
-When `--panels 0`, the clean feature scene carries all five multiplier balls. The balls cover
-some of the scene's gameplay, stay clear of the player and keep their labels legible. The phone
-may cover other parts of the illustration.
+`--title`, `--tagline` and `--logo`. The only lettering that may appear is a multiplier-ball
+inscription generated by the image model or the game's own UI inside the captured screenshot.
+When `--panels 0`, the banner carries all five multiplier balls. The balls cover some of the
+scene's gameplay, stay clear of the player and the phone, and keep their labels legible. The
+phone may cover other parts of the illustration.
 
 **The feature graphic always carries one device.** `--shot` is required: pick the single
 strongest current capture (active play or a win moment, not the menu) and pass it so the compositor
@@ -404,22 +453,22 @@ right; do not repeat the image review here.
 Read responsible-gaming.md; check captions, metadata and art for currency symbols, misleading
 multipliers and payout promises. Metadata retains the virtual-currency disclaimer, simulated
 gambling declaration, rating and applicable odds disclosure. Interpret text matches in context.
-The Phase 2 review checks the five ball inscriptions once. A missing or altered label needs the
-one allowed correction; an unsupported gameplay value does not. Balls in the prepared marketing
-scene must cover some gameplay while leaving the player clear. Keep separate real gameplay
-captures authentic.
+The Phase 2 review checks the five ball inscriptions once. A missing or altered label follows the
+Phase 1 correction policy; an unsupported gameplay value does not need one. Balls in the
+generated marketing scene must cover some gameplay while leaving the player clear. Keep separate
+real gameplay captures authentic.
 
 Recheck runtime-background inventory/hashes/wiring: normal result UNCHANGED. If branding changed
 Dart, run format/analysis and relevant existing tests, and verify the menu still fits. Compositor
 success is not runtime or visual verification.
 
-Write STORE_INFO.md with the original character asset path, the exact shipped ball-backing asset
-path, references used for each image call, panel and lower-edge plan, upload order/dimensions/
-counts, five store-only ball labels and whether each exists in gameplay, the single visual
-verdict for balls covering gameplay while clearing the player, any correction, feature phone
-capture and no-text result, background guard and compliance notes. Do not require per-sprite
-audit tables, measured bounds, numeric gate results
-or repeated visual verdicts.
+Write STORE_INFO.md with the original character asset path, the multiplier reference asset path,
+the generation order and the references attached to each image call (the banner as world context
+for the panorama), panel and lower-edge plan, upload order/dimensions/counts, five store-only ball
+labels and whether each exists in gameplay, the single visual verdict for balls covering gameplay
+while clearing the player, any retry or inscription correction, feature phone capture and no-text
+result, background guard and compliance notes. Do not require per-sprite audit tables, measured
+bounds, numeric gate results or repeated visual verdicts.
 
 ```bash
 ARCHIVE_NAME="$PROJECT_NAME-store-$TS.zip"
