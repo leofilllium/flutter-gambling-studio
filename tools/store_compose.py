@@ -56,9 +56,9 @@ silently degrade when written as one-off `convert` incantations. Here they are
 deterministic, testable and identical across every game.
 
 Every generated-art path is colour graded on the way out (`--pop`, default
-`soft`): the restrained default gives game colours a modest readability lift while
-preserving the source exposure and avoiding automatic bloom. Stronger grades are explicit art
-direction, not a delivery requirement. Real gameplay frames are never graded — a store
+`soft`): the default preserves the key art's vivid source lighting and adds a modest colour
+lift. Specular highlights, local bloom and warm/cool contrast should already be present in the
+source; a stronger preset cannot create them. Real gameplay frames are never graded — a store
 screenshot must show what the app renders, so any runtime visual correction is made in the game
 itself as a separate task. Store composition preserves the game's existing backgrounds.
 
@@ -4150,11 +4150,10 @@ def add_text_args(p: argparse.ArgumentParser) -> None:
 
 def add_pop_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--pop", choices=tuple(POP_PRESETS), default=DEFAULT_POP,
-                   help="colour grade for GENERATED art. The restrained default "
-                        f"({DEFAULT_POP}) preserves source exposure and adds only a "
-                        "modest colour lift; vivid/blaze/max are explicit art-direction "
-                        "choices. Use "
-                        "`off` only when the art was already graded upstream.")
+                   help="colour grade for generated art. The default "
+                        f"({DEFAULT_POP}) preserves vivid source lighting and adds a "
+                        "modest colour lift; vivid/blaze/max are optional finishing "
+                        "choices. Use `off` when the art was already graded upstream.")
     p.add_argument("--vibrance", type=float, default=None, metavar="F",
                    help="override the preset's saturation lift (weighted toward the "
                         "dull pixels, so vivid areas do not clip)")

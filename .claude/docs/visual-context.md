@@ -124,9 +124,10 @@ the mechanic, aspect ratio, and visual lead. Examples include character-left/gam
 full-width active Plinko, object-led reels across all three, or a contained field on any panel.
 The middle panel has no privileged role. Multiple play fields are allowed when they depict
 real, coherent states and each remains readable; one continuous field is often stronger.
-Generate the entire panorama as one scene. Give the image generator the real active gameplay
-capture as context for the mechanic, symbols, topology and outcome; have it render gameplay
-naturally at a three-quarter/3D angle within the same image as the environment and foreground.
+Generate the game scene as one image, then place multiplier balls copied from a shipped game
+asset before slicing the panorama. Give the image generator the real active gameplay capture as
+context for the mechanic, symbols, topology and outcome; have it render gameplay naturally at a
+three-quarter/3D angle within the same image as the environment and foreground.
 Do not paste the capture or a derived board plate into the panorama, or leave a placeholder
 opening for a later gameplay insert. Reject generated gameplay that changes the real outcome.
 
@@ -148,18 +149,20 @@ faces, decisive symbols, multiplier inscriptions, bucket outcomes, and critical 
 clear of the actual gaps. Review both the assembled panorama and the gapped carousel. If a
 critical region cannot survive a proposed span, move/scale the composition or change the cuts.
 
-When checking background detail, exclude measured foreground subjects and gameplay fields;
-the upper half of a picture is not necessarily its background. The compositor accepts separate
-gameplay bounds in addition to lead/hero and critical-region bounds. Preserve measurable real
-background and the palette, light and foreground-object checks; do not mask busy scenery away.
+Use one visual review of the final crops; numeric composition bounds are optional diagnostics.
+The background may be colorful and luminous while staying subordinate through softer focus and
+lower local contrast.
 
-Use a varied foreground spill of real game objects across the lower edge and selected flying
-objects at different depths. Preserve sharp primary forms, source colors, contact shadows,
-clear action, and a broad smooth subordinate far plane. Casino-grade energy comes from composition
-and materials; it does not prescribe a universal gold/neon palette, high-key exposure, or an
-aggressive saturation target. Keep the Design DNA's value structure, use a restrained theme-led
-colour grade by default, and reserve brightness lifts, bloom, glare, and intense saturation for an
-explicit concept or user direction. Never tint runtime art.
+Build an art-directed lower-edge sequence of a few large, recognizable game objects, roughly
+5–7 across a three-panel character scene when that treatment fits. Preserve a deliberate
+left-to-right rhythm and distinct silhouettes with only small edge overlaps. Sparse coins may
+accent the gaps. Avoid miniature clutter, stacked heaps and any supporting surface beneath the
+objects; no floor, fabric, tabletop or drape. Keep selected multiplier balls flying in front of
+the scene, even when they cover gameplay. For lighting, use the game's authentic palette with
+strong warm/cool separation, clean specular highlights, local reflected color, selective glints
+and controlled bloom around real light sources. Keep color-rich shadows and vivid midtones;
+avoid a single-color wash, blanket saturation and clipped highlights. The source panorama should
+look like bright premium mobile-game key art before compositor grading. Never tint runtime art.
 
 The feature graphic needs its own horizontal render and the same context decision. A left-heavy
 3/5–2/5 arrangement is an option, not a universal rule. Object-led and mechanic-led banners may

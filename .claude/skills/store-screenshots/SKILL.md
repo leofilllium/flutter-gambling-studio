@@ -107,6 +107,9 @@ Write `STORE_BRIEF.md` before any generation call:
 - Inspected references, borrowed traits and original adaptations.
 - Panel map with anchors and gameplay positions/spans. Any panel, the right two, or all three
   may carry gameplay. There is no required middle field or final reward-only panel.
+- Lower-edge object plan: roughly 5–7 large game objects across a three-panel character scene
+  when that treatment fits, with sparse coin accents, small edge overlaps, clear silhouettes
+  and no supporting surface. Record the game's warm/cool light sources and polished materials.
 - For an object/mechanic-led game with no living character in its concept and shipped inventory,
   mark slides 1 and 2 as gameplay-led. Each opening crop, reviewed separately, must show
   recognizable authentic play at a three-quarter/3D angle, either through two readable samples
@@ -180,13 +183,18 @@ or span one continuous angled surface across both with meaningful gameplay visib
 add a human, hand, animal, mascot or player silhouette to supply drama. The object lead may frame
 the action, but it cannot replace gameplay in slide 1.
 
-Build the lower edge from an irregular, cropped spill of actual game objects across its full
-width: vary scale, rotation, height, overlap, contact shadows and depth so it reads as a
-tumbled heap rather than a tidy row or one isolated pile. Add recognizable flying/falling
-actual game objects above it. Keep multiplier balls visibly in flight, including when one passes
-in front of the lower objects; do not let one rest in the spill. Keep primary subjects sharp,
-source-colored and dominant over a broad smooth subordinate far plane. Generic stage furniture
-or particles cannot replace the spill.
+Build an art-directed foreground sequence across the lower edge. For a three-panel character-led
+scene, start with roughly 5–7 large, recognizable game objects across the **whole panorama**;
+small coins may be sparse accents. Adjust the count to the actual game and composition rather
+than forcing this number onto a scene that already works, such as an open Zeus composition.
+Arrange the main objects deliberately from left to right, cropping some at the camera edge.
+Avoid rigid equal spacing and identical scale while preserving clear individual silhouettes;
+one object may cover only a small edge of its neighbor. Do not stack objects into a heap, fill
+the bottom with many miniature duplicates, or add any supporting surface beneath the foreground
+objects: no floor, fabric, tabletop, platform or velvet drape. Use modest size and angle changes
+for rhythm. Light the objects with reflected color and edge light, without ground-contact
+shadows. A few other game objects may fly higher. Keep the asset-backed multiplier balls visibly
+in flight, including when they cross the foreground; none rests on a lower object.
 
 Show all five themed multiplier balls at least once across the prepared panorama's store
 panels; when `--panels 0`, include them in the themed background of at least one showcase slide
@@ -195,7 +203,7 @@ backing; place the inscription on the ball itself, not as floating typography. U
 of the selected shipped game asset as the physical backings. Preserve its silhouette, material,
 color and ornament; resize or rotate copies and add labels, shadows and motion cues locally.
 Do not redraw, recolor into a generic bubble, or replace the asset with an AI approximation.
-These store-only labeled copies supplement the required spill of actual game objects. Compose
+These store-only labeled copies supplement the planned lower-edge objects. Compose
 them into the scene before slicing, scattered at irregular heights, depths and flight directions.
 Some should fly across the game action, including the board or outcome area. Do not move them
 all above the board to keep gameplay unobstructed. A ball may overlap gameplay, lower props or
@@ -223,6 +231,24 @@ to the game's actual characters, board and environment:
 > balls, orb substitutes, multiplier labels or empty circular placeholders. Gameplay overlap by
 > the later balls is intentional. Reproduce the supplied original character asset faithfully;
 > do not derive the character from a generated scene.
+
+Include this lighting direction in the first prompt for every game. Use the lower-edge direction
+when the scene needs it, preserving an already effective open composition. Adapt both to the
+game's real palette and objects:
+
+> Along the lower edge, place about 5–7 large game objects across the full three-panel scene
+> in a deliberate left-to-right sequence, with only small edge overlaps and readable silhouettes.
+> A few coins may accent the gaps. Crop selected objects at the bottom camera edge. Avoid a pile,
+> miniature clutter, rigid equal spacing and identical scale. Do not add any supporting surface
+> beneath them: no fabric, floor, tabletop, podium or drape. Give the scene vivid, high-impact
+> mobile-game key-art lighting from the game's authentic palette. Separate warm and cool hues,
+> add clean specular highlights to polished materials, theme-appropriate rim light on primary
+> subjects, and reflected color between nearby objects. Use small star glints selectively and
+> localized bloom around real light sources or verified magical effects. Keep shadows rich in
+> color, midtones saturated, and a few highlights near white. Keep the background luminous but
+> subordinate through softer focus and lower local contrast. Preserve the source asset colors;
+> avoid a global color wash, muddy shadows, flat lighting, matte gems and all-over haze. The
+> scene should look exciting and premium before compositor grading.
 
 Save the generated scene as `art/keyart-scene.png`. Use Pillow to copy the actual ball asset five
 times, add `x5`, `x10`, `x25`, `x50` and `x100` to those copies, then alpha-composite them onto the
@@ -257,7 +283,7 @@ identity and lead kind, then place copies of the same shipped ball asset and sav
 optional. The clean source must look finished alone: no device, UI, reserved zone or marketing
 words. Do not ask the image model for a title, logo, wordmark, tagline or empty copy space; a
 left side left blank for text is a failed banner. Keep actual game objects across the lower edge
-and sharp primary subjects.
+in the same shallow, art-directed sequence, with sharp primary subjects.
 
 ## Phase 2 — visual review criteria (apply after exports)
 
@@ -267,13 +293,20 @@ plus the feature graphic. Compare the character to its original asset, verify th
 panels or an obvious pasted screenshot boundary. Compare the ball backings to the selected
 shipped asset; a newly invented or AI-redrawn ball body is an error. Flying balls may cover
 gameplay, including an outcome. Do not count that as an error or move the balls to clear the
-board. For a game without a character, check that no player/mascot was invented. Fix a ball
-error in its local overlay; reserve the one fresh generation attempt for a scene identity error,
-using the original assets again. Do not do repeated full-size/thumbnail passes, per-sprite audits,
-numeric scoring or subjective regeneration cycles.
+board. Check that the lower edge has a deliberate sequence of large, individually readable
+objects, without a supporting surface or a heap of tiny props. For a game without a character,
+check that no player/mascot was invented. Fix a ball error in its local overlay; reserve the one
+fresh generation attempt for a clear scene identity or lighting failure, using the original
+assets again. Do not do repeated full-size/thumbnail passes, per-sprite audits, numeric scoring
+or subjective regeneration cycles.
 
-Use restrained, theme-led store grading. Adjust a visible exposure problem once if needed; do
-not tune numeric palette or foreground metrics. Keep runtime assets untouched.
+Judge lighting in the generated source, before compositor grading. It should feel vivid and
+celebratory while retaining the game's authentic colors. Look for clean highlights, selected
+glints, local bloom and color-rich shadows; reject a flat global cast or uniformly dull scene.
+Avoid clipped highlights, crushed shadows, blanket saturation and bloom that washes out faces,
+symbols or text. The compositor should preserve the source look; make at most one visible
+exposure adjustment and do not tune numeric palette or foreground metrics. Keep runtime assets
+untouched.
 
 ## Phase 3 — branding and current captures
 
@@ -375,11 +408,11 @@ Dart, run format/analysis and relevant existing tests, and verify the menu still
 success is not runtime or visual verification.
 
 Write STORE_INFO.md with the original character asset path, the exact shipped ball-backing asset
-path, references used for each image call, panel map, upload order/dimensions/counts, five
-store-only ball labels and whether each exists in gameplay, the one visual review result, any
-single correction, feature phone capture and
-no-text result, background guard and compliance notes. Do not require per-sprite audit tables,
-measured bounds, numeric gate results or repeated visual verdicts.
+path, references used for each image call, panel and lower-edge plan, upload order/dimensions/
+counts, five store-only ball labels and whether each exists in gameplay, the one visual review
+result, any single correction, feature phone capture and no-text result, background guard and
+compliance notes. Do not require per-sprite audit tables, measured bounds, numeric gate results
+or repeated visual verdicts.
 
 ```bash
 ARCHIVE_NAME="$PROJECT_NAME-store-$TS.zip"
