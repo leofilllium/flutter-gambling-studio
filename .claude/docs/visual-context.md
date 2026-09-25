@@ -158,11 +158,13 @@ Build an art-directed lower-edge sequence of a few large, recognizable game obje
 left-to-right rhythm and distinct silhouettes with only small edge overlaps. Sparse coins may
 accent the gaps. Avoid miniature clutter, stacked heaps and any supporting surface beneath the
 objects; no floor, fabric, tabletop or drape. Keep selected multiplier balls flying in front of
-the scene, even when they cover gameplay. For lighting, use the game's authentic palette with
-strong warm/cool separation, clean specular highlights, local reflected color, selective glints
-and controlled bloom around real light sources. Keep color-rich shadows and vivid midtones;
-avoid a single-color wash, blanket saturation and clipped highlights. The source panorama should
-look like bright premium mobile-game key art before compositor grading. Never tint runtime art.
+the gameplay: at least two must visibly cover part of the board or mechanic in the marketing
+scene. Keep every ball outside the player/hero character silhouette. For lighting, use the game's
+authentic palette with strong warm/cool separation, clean specular highlights, local reflected
+color, selective glints and controlled bloom around real light sources. Keep color-rich shadows
+and vivid midtones; avoid a single-color wash, blanket saturation and clipped highlights. The
+source panorama should look like bright premium mobile-game key art before compositor grading.
+Never tint runtime art.
 
 The feature graphic needs its own horizontal render and the same context decision. A left-heavy
 3/5–2/5 arrangement is an option, not a universal rule. Object-led and mechanic-led banners may

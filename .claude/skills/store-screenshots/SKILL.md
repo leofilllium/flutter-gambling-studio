@@ -20,9 +20,10 @@ generated image into the next source. The generated scene may establish composit
 cannot redefine the character's face, silhouette, costume or colors. If the character has
 multiple shipped layers, use the original layers or a lossless assembly of them.
 
-Multiplier balls must look airborne and may cross in front of the board, symbols, outcomes,
-props or character. Their overlap with gameplay is an intended composition choice, not a gate
-failure. Keep the original character recognizable and the five ball labels legible. Review art
+Multiplier balls must look airborne. Several must fly **in front of gameplay** and visibly cover
+parts of the board, symbols or outcome area in the marketing scene. None may overlap the visible
+player/hero character silhouette, including headwear, face, hands and costume. Gameplay occlusion
+is intentional; player occlusion is a placement error. Keep the five ball labels legible. Review art
 once at final crop size; use format/dimension checks for exports. Do not run numeric composition
 gates or repeat visual audits to optimize scores.
 
@@ -137,11 +138,11 @@ Write `STORE_BRIEF.md` before any generation call:
   a game's payout meaning.
   Map each value to a position and flight direction across the full panorama, judging space in
   the final portrait crops. Scatter the five balls across at least two panels with no fixed
-  count or label assignment per panel; slide 1 may have none. In a character-led scene, a ball
-  on slide 1 should pass in front of and partly overlap the character's body or silhouette
-  while keeping the character recognizable. Place balls at varied heights, including in front
-  of gameplay, before the first generation. For `--panels 0`, map the balls to the themed
-  showcase background.
+  count or label assignment per panel; slide 1 may have none. Place at least two ball bodies
+  across the board/mechanic or its symbols so they visibly hide a portion of gameplay in the
+  exported marketing panels. Keep every ball outside the player/hero silhouette. Map the same
+  behavior in the feature scene and, for `--panels 0`, the themed showcase background wherever
+  the marketing scene depicts gameplay. Do not alter authentic captured gameplay in a phone.
 - Independent feature layout: `free` by default or justified `left-heavy`; no reserved device zone.
   The feature graphic is text-free: record the chosen capture for its right-side phone, not a
   title or tagline.
@@ -176,7 +177,8 @@ still protects the head, first-panel placement and attached silhouette. Left/bot
 allowed for a bust; preserve the mascot's recognizable form. Joker is a mischievous, slightly vicious
 playful trickster, not an elegant courtier or horror figure. Object/mechanic scenes have no empty
 character berth and no anatomy constraints. Keep a strong game anchor in every panel; a continuous
-board can anchor several. Flying multiplier balls may cover part of any board.
+board can anchor several. Flying multiplier balls must cover part of the board or mechanic in
+marketing art.
 When the shipped game has no living character, its first two carousel slides must instead be
 gameplay-led: present the real board or mechanic at a readable three-quarter/3D angle in each crop,
 or span one continuous angled surface across both with meaningful gameplay visible in both. Never
@@ -203,12 +205,13 @@ backing; place the inscription on the ball itself, not as floating typography. U
 of the selected shipped game asset as the physical backings. Preserve its silhouette, material,
 color and ornament; resize or rotate copies and add labels, shadows and motion cues locally.
 Do not redraw, recolor into a generic bubble, or replace the asset with an AI approximation.
-These store-only labeled copies supplement the planned lower-edge objects. Compose
-them into the scene before slicing, scattered at irregular heights, depths and flight directions.
-Some should fly across the game action, including the board or outcome area. Do not move them
-all above the board to keep gameplay unobstructed. A ball may overlap gameplay, lower props or
-the character; only a seated ball, clipped inscription or unrecognizable character needs a
-correction. Avoid a row, regular grid or tight cluster. Match any user-supplied size reference.
+These store-only labeled copies supplement the planned lower-edge objects. Compose them into the
+scene before slicing, scattered at irregular heights, depths and flight directions. At least two
+must cross in front of the board or mechanic and visibly obscure part of it; do not move them all
+above the action to preserve gameplay visibility. They may overlap lower props but must remain
+clear of the player/hero silhouette. A ball seated on a surface, clipped inscription or player
+overlap needs a local placement correction. Avoid a row, regular grid or tight cluster. Match any
+user-supplied size reference.
 
 Plan the full panorama before generation, or the portrait showcase background for `--panels 0`.
 A rough layout sketch may indicate panel cuts and subject positions, but it must not contain a
@@ -225,12 +228,12 @@ draw any multiplier balls or inscriptions. Noncritical board structure may cross
 Put this composition requirement in the **first** scene-generation prompt, adapting the details
 to the game's actual characters, board and environment:
 
-> One continuous, fully illustrated game panorama. Leave open flight paths at varied heights,
-> depths and horizontal positions, including in front of gameplay and the character, for five
-> multiplier balls that will be composited from the supplied shipped ball asset. Do not draw
-> balls, orb substitutes, multiplier labels or empty circular placeholders. Gameplay overlap by
-> the later balls is intentional. Reproduce the supplied original character asset faithfully;
-> do not derive the character from a generated scene.
+> One continuous, fully illustrated game panorama. Leave flight paths at varied heights, depths
+> and horizontal positions for five balls copied from the shipped ball asset. Several paths must
+> cross the board or mechanic in the foreground, so the later balls visibly cover some gameplay.
+> Keep all ball paths clear of the player/hero character silhouette. Do not draw balls, orb
+> substitutes, multiplier labels or empty circular placeholders. Reproduce the supplied original
+> character asset faithfully; do not derive the character from a generated scene.
 
 Include this lighting direction in the first prompt for every game. Use the lower-edge direction
 when the scene needs it, preserving an already effective open composition. Adapt both to the
@@ -252,8 +255,9 @@ game's real palette and objects:
 
 Save the generated scene as `art/keyart-scene.png`. Use Pillow to copy the actual ball asset five
 times, add `x5`, `x10`, `x25`, `x50` and `x100` to those copies, then alpha-composite them onto the
-scene at the planned positions. Add local shadow/light and directional motion cues so they look
-airborne. Save the complete result as `art/keyart-integrated.png`; this is the source passed to
+scene at the planned positions. Let at least two cover gameplay while none covers the player.
+Add local shadow/light and directional motion cues so they look airborne. Save the complete result
+as `art/keyart-integrated.png`; this is the source passed to
 `triptych`. Apply the same asset-backed procedure to the feature scene and `--panels 0` showcase
 background. Do not use `triptych --sprite` or compose a gameplay board from screenshot pieces.
 If a label or ball placement is wrong, correct the local overlay once; do not regenerate the
@@ -291,14 +295,14 @@ After the first full export, inspect one contact sheet showing the final App Sto
 plus the feature graphic. Compare the character to its original asset, verify that `x5`, `x10`,
 `x25`, `x50` and `x100` appear on distinct airborne balls, and check for clipped labels, missing
 panels or an obvious pasted screenshot boundary. Compare the ball backings to the selected
-shipped asset; a newly invented or AI-redrawn ball body is an error. Flying balls may cover
-gameplay, including an outcome. Do not count that as an error or move the balls to clear the
-board. Check that the lower edge has a deliberate sequence of large, individually readable
-objects, without a supporting surface or a heap of tiny props. For a game without a character,
-check that no player/mascot was invented. Fix a ball error in its local overlay; reserve the one
-fresh generation attempt for a clear scene identity or lighting failure, using the original
-assets again. Do not do repeated full-size/thumbnail passes, per-sprite audits, numeric scoring
-or subjective regeneration cycles.
+shipped asset; a newly invented or AI-redrawn ball body is an error. Confirm at least two ball
+bodies visibly cover gameplay and none overlaps the player/hero silhouette. Do not move balls
+off the board to clear the action. Check that the lower edge has a deliberate sequence of large,
+individually readable objects, without a supporting surface or a heap of tiny props. For a game
+without a character, check that no player/mascot was invented. Fix a ball error in its local
+overlay; reserve the one fresh generation attempt for a clear scene identity or lighting failure,
+using the original assets again. Do not do repeated full-size/thumbnail passes, per-sprite
+audits, numeric scoring or subjective regeneration cycles.
 
 Judge lighting in the generated source, before compositor grading. It should feel vivid and
 celebratory while retaining the game's authentic colors. Look for clean highlights, selected
@@ -339,7 +343,7 @@ adjustment and re-export. A flying ball covering gameplay is never a reason to a
 Use `--lead-kind character` or `object` as applicable. Export Play separately with `--size play`
 from the same complete source; do not resize the App Store panels. The compositor's default
 gutter remains suitable for a carousel. A label cut by the gutter needs one crop correction;
-gameplay coverage by a ball is acceptable.
+at least two balls must still cover gameplay, and no ball may cover the player.
 
 ## Phase 5 — showcases and feature graphic
 
@@ -378,8 +382,9 @@ scene, not beside the device. The scene fills the frame and the phone sits on th
 is pure illustration with no scrim or copy space. The compositor enforces this: `banner` refuses
 `--title`, `--tagline` and `--logo`. The only lettering that may appear is a themed multiplier-ball
 inscription added to an asset-backed ball or the game's own UI inside the captured screenshot.
-When `--panels 0`, the clean feature scene carries all five multiplier balls. The phone and balls
-may cover gameplay; keep the ball labels legible.
+When `--panels 0`, the clean feature scene carries all five multiplier balls. The balls cover
+some of the scene's gameplay, stay clear of the player and keep their labels legible. The phone
+may cover other parts of the illustration.
 
 **The feature graphic always carries one device.** `--shot` is required: pick the single
 strongest current capture (active play or a win moment, not the menu) and pass it so the compositor
@@ -400,8 +405,9 @@ Read responsible-gaming.md; check captions, metadata and art for currency symbol
 multipliers and payout promises. Metadata retains the virtual-currency disclaimer, simulated
 gambling declaration, rating and applicable odds disclosure. Interpret text matches in context.
 The Phase 2 review checks the five ball inscriptions once. A missing or altered label needs the
-one allowed correction; an unsupported gameplay value does not. Balls in the prepared scene
-may cover its gameplay; keep separate real gameplay captures authentic.
+one allowed correction; an unsupported gameplay value does not. Balls in the prepared marketing
+scene must cover some gameplay while leaving the player clear. Keep separate real gameplay
+captures authentic.
 
 Recheck runtime-background inventory/hashes/wiring: normal result UNCHANGED. If branding changed
 Dart, run format/analysis and relevant existing tests, and verify the menu still fits. Compositor
@@ -409,9 +415,10 @@ success is not runtime or visual verification.
 
 Write STORE_INFO.md with the original character asset path, the exact shipped ball-backing asset
 path, references used for each image call, panel and lower-edge plan, upload order/dimensions/
-counts, five store-only ball labels and whether each exists in gameplay, the one visual review
-result, any single correction, feature phone capture and no-text result, background guard and
-compliance notes. Do not require per-sprite audit tables, measured bounds, numeric gate results
+counts, five store-only ball labels and whether each exists in gameplay, the single visual
+verdict for balls covering gameplay while clearing the player, any correction, feature phone
+capture and no-text result, background guard and compliance notes. Do not require per-sprite
+audit tables, measured bounds, numeric gate results
 or repeated visual verdicts.
 
 ```bash

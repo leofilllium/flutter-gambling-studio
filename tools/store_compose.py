@@ -18,7 +18,8 @@ makes (genre/theme agnostic — everything visual comes from the arguments):
             multiplier balls copied from a shipped game asset. A gameplay
             capture informs generation; it is never inlaid into the panorama.
             Numeric art diagnostics are opt-in. The default exports the panels
-            for one visual review; flying multiplier balls may cover gameplay.
+            for one visual review; at least two flying multiplier balls must
+            visibly cover gameplay while keeping the player/hero unobscured.
             Object/mechanic leads need no invented character. The scene carries
             no marketing copy. Store-only multiplier balls may use x5/x10/x25/
             x50/x100 even when they are absent from the game's paytable; they
@@ -4246,8 +4247,8 @@ def main() -> None:
     t.add_argument("--art-gate", choices=("strict", "warn", "off"), default="off",
                    help="optional numeric composition diagnostics. `off` (default) "
                         "exports directly; `warn` reports findings; `strict` blocks "
-                        "crop, seam and protected-region failures. Flying multiplier "
-                        "balls covering gameplay are valid in every mode.")
+                        "crop, seam and protected-region failures. Visual review: "
+                        "at least two balls cover gameplay; none covers the player.")
     t.add_argument("--save-pano", metavar="PNG",
                    help="also write the prepared complete panorama after grading and crop")
     t.add_argument("--pano-only", action="store_true",
@@ -4311,8 +4312,8 @@ def main() -> None:
                    default="off",
                    help="optional numeric composition diagnostics. `off` (default) "
                         "exports directly; `warn` reports findings; `strict` blocks "
-                        "crop, focal framing and protected-region failures. Flying "
-                        "multiplier balls covering gameplay are valid in every mode")
+                        "crop, focal framing and protected-region failures. Visual "
+                        "review: at least two balls cover gameplay, none the player")
     b.add_argument("--base-out", metavar="PNG",
                    help="also save the text/device-free long-banner crop "
                         "before the phone is composed")
